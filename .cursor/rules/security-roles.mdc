@@ -1,6 +1,9 @@
 ---
 description: Sicurezza, ruoli RBAC e RLS per Live SLIDE CENTER (multi-tenant SaaS)
-globs: ["{supabase/**/*.sql,supabase/**/*.ts,apps/web/src/features/auth/**,apps/web/src/features/settings/**}"]
+globs:
+  [
+    "{supabase/**/*.sql,supabase/**/*.ts,apps/web/src/features/auth/**,apps/web/src/features/settings/**}",
+  ]
 alwaysApply: false
 ---
 
@@ -8,16 +11,17 @@ alwaysApply: false
 
 ## Ruoli applicativi
 
-| Ruolo | Descrizione | Accessi |
-|-------|------------|---------|
-| **admin** | Proprietario/manager dell'organizzazione | Tutto: CRUD eventi/sale/sessioni, gestione team, billing, export |
-| **coordinator** | Coordinatore evento | CRUD sessioni/speaker, vista regia, gestione upload, assegnazione sale |
-| **tech** | Tecnico di sala | Vista sala assegnata, download file, stato sync — NO gestione eventi |
-| **speaker** (guest) | Relatore esterno | Solo upload via token — nessun account, accesso limitato a `/u/:token` |
+| Ruolo               | Descrizione                              | Accessi                                                                |
+| ------------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
+| **admin**           | Proprietario/manager dell'organizzazione | Tutto: CRUD eventi/sale/sessioni, gestione team, billing, export       |
+| **coordinator**     | Coordinatore evento                      | CRUD sessioni/speaker, vista regia, gestione upload, assegnazione sale |
+| **tech**            | Tecnico di sala                          | Vista sala assegnata, download file, stato sync — NO gestione eventi   |
+| **speaker** (guest) | Relatore esterno                         | Solo upload via token — nessun account, accesso limitato a `/u/:token` |
 
 ## Auth (Supabase Auth)
 
 ### Registrazione e onboarding
+
 1. Signup via email/password → crea utente in `auth.users`
 2. Trigger/Edge Function `on_auth_user_created`:
    - Crea riga in `tenants` (nuova org)
@@ -26,6 +30,7 @@ alwaysApply: false
 3. Invito team: admin invita tech/coordinator via email → Edge Function `invite_user`
 
 ### JWT Custom Claims (`app_metadata`)
+
 ```json
 {
   "tenant_id": "uuid",
@@ -35,6 +40,7 @@ alwaysApply: false
 ```
 
 ### Speaker (guest access)
+
 - Nessun account Supabase Auth
 - Accesso tramite `upload_token` univoco con scadenza
 - Edge Function `validate_upload_token` verifica token → restituisce info speaker/sessione
@@ -74,24 +80,27 @@ CREATE POLICY tech_assigned_events ON events
 
 ```typescript
 // Ogni Edge Function deve:
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
 Deno.serve(async (req) => {
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) return new Response('Unauthorized', { status: 401 });
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return new Response("Unauthorized", { status: 401 });
 
   const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: authHeader } } }
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: authHeader } } },
   );
 
   // Verifica utente
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return new Response('Unauthorized', { status: 401 });
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user) return new Response("Unauthorized", { status: 401 });
 
   const tenantId = user.app_metadata?.tenant_id;
-  if (!tenantId) return new Response('No tenant', { status: 403 });
+  if (!tenantId) return new Response("No tenant", { status: 403 });
 
   // Operazioni scoped per tenant...
 });
@@ -103,17 +112,17 @@ Deno.serve(async (req) => {
 // In app: verificare limiti del piano
 const { tenant } = useTenant();
 
-const canCreateEvent = tenant.plan !== 'trial'
-  || activeEventsCount < tenant.max_events_per_month;
+const canCreateEvent =
+  tenant.plan !== "trial" || activeEventsCount < tenant.max_events_per_month;
 
 const canAddRoom = rooms.length < tenant.max_rooms_per_event;
 
 const storageOk = tenant.storage_used_bytes < tenant.storage_limit_bytes;
 ```
 
-| Piano | Eventi/mese | Sale/evento | Storage | Agent |
-|-------|------------|-------------|---------|-------|
-| Trial | 1 | 3 | 10GB | 1 |
-| Starter | 3 | 5 | 50GB | 1 |
-| Pro | 10 | 20 | 500GB | 3 |
-| Enterprise | Illimitato | Illimitato | Custom | Custom |
+| Piano      | Eventi/mese | Sale/evento | Storage | Agent  |
+| ---------- | ----------- | ----------- | ------- | ------ |
+| Trial      | 1           | 3           | 10GB    | 1      |
+| Starter    | 3           | 5           | 50GB    | 1      |
+| Pro        | 10          | 20          | 500GB   | 3      |
+| Enterprise | Illimitato  | Illimitato  | Custom  | Custom |

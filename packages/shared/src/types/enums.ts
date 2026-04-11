@@ -1,0 +1,10 @@
+export type UserRole = 'admin' | 'tech' | 'coordinator';
+export type EventStatus = 'draft' | 'setup' | 'active' | 'closed' | 'archived';
+export type RoomType = 'main' | 'breakout' | 'preview' | 'poster';
+export type SessionType = 'talk' | 'panel' | 'workshop' | 'break' | 'ceremony';
+export type PresentationStatus = 'pending' | 'uploaded' | 'reviewed' | 'approved' | 'rejected';
+export type VersionStatus = 'uploading' | 'processing' | 'ready' | 'failed' | 'superseded';
+export type SyncStatus = 'synced' | 'syncing' | 'outdated' | 'offline';
+export type ConnectionStatus = 'online' | 'offline' | 'degraded';
+export type ActorType = 'user' | 'speaker' | 'agent' | 'system';
+export type UploadSource = 'web_portal' | 'preview_room' | 'agent_upload';

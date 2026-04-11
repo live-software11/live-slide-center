@@ -1,14 +1,47 @@
+# Dependencies
 node_modules
+
+# Build output
 dist
+packages/shared/dist
+packages/ui/dist
 .turbo
-*.local
+**/.tsbuildinfo
+*.tsbuildinfo
+
+# tsc -b emit (non servono nel repo, Vite bundla i .ts direttamente)
+apps/web/src/**/*.js
+apps/web/src/**/*.d.ts
+!apps/web/src/vite-env.d.ts
+apps/web/*.js
+apps/web/*.d.ts
+
+# Env
 .env
+.env.local
 .env.*.local
+*.local
+
+# IDE
+.vscode/settings.json
+!.vscode/extensions.json
+
+# OS
 .DS_Store
 Thumbs.db
+
+# Logs
 *.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test
 coverage
+
+# Supabase local
 supabase/.branches
 supabase/.temp
-**/.tsbuildinfo
-apps/web/node_modules/.tmp
+
+# Tauri build (fasi successive)
+apps/agent/src-tauri/target
+apps/player/src-tauri/target

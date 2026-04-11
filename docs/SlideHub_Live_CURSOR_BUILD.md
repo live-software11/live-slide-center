@@ -17,6 +17,7 @@ Live SLIDE CENTER e il **Presentation & Projection Management System (PPMS)** de
 **Problema risolto:** oggi la gestione slide in eventi si basa su cartelle condivise, USB, email. I tecnici non sempre hanno competenze IT avanzate. Serve un'interfaccia grafica professionale che crei automaticamente l'infrastruttura di rete, gestisca le versioni, e restituisca al cliente tutti i contenuti a fine evento.
 
 **Target utenti:**
+
 - **Aziende AV / service tecnici** (come DHS, Studio Visio, Tecnoconference)
 - **Organizzatori congressi** (PCO, centri congressi)
 - **Tecnici di sala** (operatori proiezione, regia)
@@ -28,12 +29,12 @@ Live SLIDE CENTER e il **Presentation & Projection Management System (PPMS)** de
 
 ### Concorrenti diretti
 
-| Prodotto | Azienda | Punti di forza | Limiti |
-|----------|---------|----------------|--------|
-| **SLIDEbit** | TC Group / Meetbit (Firenze) | PPMS completo, e-lectern, SENDbit per upload remoto, 25+ anni nel settore congressi medicali | Software proprietario chiuso, pricing opaco, no SaaS self-service |
-| **Slidecrew** | Slidecrew (Olanda) | SaaS moderno, local caching server, app per tecnici/moderatori/kiosk, timer integrato, ePoster | Pricing per evento/sala/giorno, no controllo proiezione nativo |
-| **Preseria** | Preseria (Norvegia) | Upload intuitivo, desktop app Windows/Mac, sync veloce, offline mode | Meno funzionalita di regia, no multi-projection |
-| **PresenterHub** | AVFX (USA) | Enterprise-grade, sync tra server e breakout rooms, network management | Solo mercato USA, non SaaS open |
+| Prodotto         | Azienda                      | Punti di forza                                                                                 | Limiti                                                            |
+| ---------------- | ---------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **SLIDEbit**     | TC Group / Meetbit (Firenze) | PPMS completo, e-lectern, SENDbit per upload remoto, 25+ anni nel settore congressi medicali   | Software proprietario chiuso, pricing opaco, no SaaS self-service |
+| **Slidecrew**    | Slidecrew (Olanda)           | SaaS moderno, local caching server, app per tecnici/moderatori/kiosk, timer integrato, ePoster | Pricing per evento/sala/giorno, no controllo proiezione nativo    |
+| **Preseria**     | Preseria (Norvegia)          | Upload intuitivo, desktop app Windows/Mac, sync veloce, offline mode                           | Meno funzionalita di regia, no multi-projection                   |
+| **PresenterHub** | AVFX (USA)                   | Enterprise-grade, sync tra server e breakout rooms, network management                         | Solo mercato USA, non SaaS open                                   |
 
 ### Differenziatori di Live SLIDE CENTER
 
@@ -55,6 +56,7 @@ Live SLIDE CENTER e il **Presentation & Projection Management System (PPMS)** de
 **Decisione:** Supabase (PostgreSQL + Auth + Realtime + Storage + Edge Functions).
 
 **Motivazioni:**
+
 - **Modello relazionale**: eventi → sale → sessioni → speaker → presentazioni → versioni. Questo e intrinsecamente relazionale con query complesse (join, aggregazioni, filtri multi-livello). PostgreSQL eccelle; Firestore richiederebbe denormalizzazione estrema.
 - **Upload TUS nativo**: Supabase Storage implementa il protocollo TUS per upload resumable. Firebase Storage no.
 - **RLS potente**: Row-Level Security di PostgreSQL per multi-tenancy e piu espressivo delle Firestore Security Rules per query complesse.
@@ -71,6 +73,7 @@ Live SLIDE CENTER e il **Presentation & Projection Management System (PPMS)** de
 **Decisione:** Cloudflare R2 come storage blob primario per i file delle presentazioni.
 
 **Motivazioni:**
+
 - **Zero egress fees**: scaricando 1TB da R2 = $0. Da Firebase Storage = $120. Da Supabase Storage = $90.
 - **S3-compatible**: usa `@aws-sdk/client-s3`, nessun SDK proprietario.
 - **Storage economico**: $0.015/GB vs $0.026/GB (Firebase) vs $0.021/GB (Supabase).
@@ -87,6 +90,7 @@ Live SLIDE CENTER e il **Presentation & Projection Management System (PPMS)** de
 **Decisione:** Tauri v2 con backend Rust (Axum per HTTP server).
 
 **Motivazioni:**
+
 - **Esperienza esistente**: Andrea ha gia Tauri v2 (Ledwall Render) e Tauri v1 + Axum (Speaker Timer).
 - **Performance**: Rust per file I/O, HTTP server, e sync e significativamente piu performante di Electron/Node.js.
 - **Dimensione installer**: ~10MB vs ~150MB di Electron.
@@ -94,6 +98,7 @@ Live SLIDE CENTER e il **Presentation & Projection Management System (PPMS)** de
 - **SQLite nativo**: `rusqlite` nel processo principale, zero overhead.
 
 **Struttura desktop:**
+
 - **Local Agent**: Tauri v2 + Axum (0.0.0.0:8080) + rusqlite + file cache
 - **Room Player**: Tauri v2 (leggero) → connesso ad Agent via LAN
 
@@ -102,6 +107,7 @@ Live SLIDE CENTER e il **Presentation & Projection Management System (PPMS)** de
 **Decisione:** React 19 + Vite 8 + React Router 7, non Next.js 15.
 
 **Motivazioni:**
+
 - **Coerenza ecosistema**: tutti i progetti usano React + Vite (PLAN, CREW, WORKS, Ledwall, Timer).
 - **No SSR necessario**: e una dashboard operativa, non un sito pubblico. Non serve SEO. Non serve SSR.
 - **DX superiore**: Vite e piu veloce, configurazione piu semplice, meno "magia" nascosta.
@@ -112,6 +118,7 @@ Live SLIDE CENTER e il **Presentation & Projection Management System (PPMS)** de
 **Decisione:** Lemon Squeezy (non Stripe diretto) tramite la piattaforma Live WORKS APP.
 
 **Motivazioni:**
+
 - **Coerenza**: tutte le app desktop della suite usano Live WORKS APP per licenze.
 - **Merchant of Record**: Lemon Squeezy gestisce IVA/tasse internazionali.
 - **Infrastruttura esistente**: webhook, portale clienti, gestione abbonamenti gia implementati.
@@ -122,62 +129,62 @@ Live SLIDE CENTER e il **Presentation & Projection Management System (PPMS)** de
 
 ### Web Dashboard + Upload Portal
 
-| Componente | Tecnologia | Versione |
-|------------|-----------|----------|
-| Framework UI | React | 19 |
-| Build tool | Vite | 8 |
-| Linguaggio | TypeScript | strict mode |
-| Styling | Tailwind CSS | 4 |
-| Componenti UI | shadcn/ui + Radix | latest |
-| Routing | React Router | 7 |
-| State management | Zustand | latest |
-| Table/list | TanStack Table | latest |
-| Form validation | Zod + React Hook Form | latest |
-| Backend/DB | Supabase (PostgreSQL) | latest |
-| Auth | Supabase Auth | latest |
-| Realtime | Supabase Realtime | latest |
-| Upload | tus-js-client + use-tus | latest |
-| Date/calendar | date-fns + react-day-picker | latest |
-| i18n | i18next + react-i18next | latest |
+| Componente       | Tecnologia                  | Versione    |
+| ---------------- | --------------------------- | ----------- |
+| Framework UI     | React                       | 19          |
+| Build tool       | Vite                        | 8           |
+| Linguaggio       | TypeScript                  | strict mode |
+| Styling          | Tailwind CSS                | 4           |
+| Componenti UI    | shadcn/ui + Radix           | latest      |
+| Routing          | React Router                | 7           |
+| State management | Zustand                     | latest      |
+| Table/list       | TanStack Table              | latest      |
+| Form validation  | Zod + React Hook Form       | latest      |
+| Backend/DB       | Supabase (PostgreSQL)       | latest      |
+| Auth             | Supabase Auth               | latest      |
+| Realtime         | Supabase Realtime           | latest      |
+| Upload           | tus-js-client + use-tus     | latest      |
+| Date/calendar    | date-fns + react-day-picker | latest      |
+| i18n             | i18next + react-i18next     | latest      |
 
 ### File Storage
 
-| Componente | Tecnologia | Note |
-|------------|-----------|------|
-| Blob storage MVP | Supabase Storage | TUS nativo, semplice da iniziare |
-| Blob storage scale | Cloudflare R2 | Zero egress, S3-compatible, migrazione trasparente |
-| Upload protocol | TUS (RFC 7230) | Resumable, pause/resume, retry automatico |
-| Integrity | SHA-256 client-side | Calcolato prima dell'upload, verificato al download |
+| Componente         | Tecnologia          | Note                                                |
+| ------------------ | ------------------- | --------------------------------------------------- |
+| Blob storage MVP   | Supabase Storage    | TUS nativo, semplice da iniziare                    |
+| Blob storage scale | Cloudflare R2       | Zero egress, S3-compatible, migrazione trasparente  |
+| Upload protocol    | TUS (RFC 7230)      | Resumable, pause/resume, retry automatico           |
+| Integrity          | SHA-256 client-side | Calcolato prima dell'upload, verificato al download |
 
 ### Desktop — Local Agent
 
-| Componente | Tecnologia | Note |
-|------------|-----------|------|
-| Framework | Tauri v2 | Rust backend + webview |
-| HTTP server LAN | Axum | Bind 0.0.0.0, serve file alle sale |
-| Database locale | SQLite (rusqlite) | WAL mode, cache metadata + stato sync |
-| File cache | Filesystem locale | Struttura: `{event_id}/{presentation_id}/{version}/file` |
-| Sync engine | Reqwest + tokio | Pull periodico + realtime via WebSocket |
-| Service discovery | mDNS (mdns-sd crate) | Agent si annuncia sulla rete locale |
+| Componente        | Tecnologia           | Note                                                     |
+| ----------------- | -------------------- | -------------------------------------------------------- |
+| Framework         | Tauri v2             | Rust backend + webview                                   |
+| HTTP server LAN   | Axum                 | Bind 0.0.0.0, serve file alle sale                       |
+| Database locale   | SQLite (rusqlite)    | WAL mode, cache metadata + stato sync                    |
+| File cache        | Filesystem locale    | Struttura: `{event_id}/{presentation_id}/{version}/file` |
+| Sync engine       | Reqwest + tokio      | Pull periodico + realtime via WebSocket                  |
+| Service discovery | mDNS (mdns-sd crate) | Agent si annuncia sulla rete locale                      |
 
 ### Desktop — Room Player
 
-| Componente | Tecnologia | Note |
-|------------|-----------|------|
-| Framework | Tauri v2 | Leggero, connessione LAN |
-| LAN client | Reqwest | Polling + WebSocket verso Agent |
-| Database locale | SQLite (rusqlite) | Stato locale, file manifest |
-| File manager | Filesystem | Sync folder per file correnti |
-| Overlay info | Webview | Versione, stato, timer — sempre visibile |
+| Componente      | Tecnologia        | Note                                     |
+| --------------- | ----------------- | ---------------------------------------- |
+| Framework       | Tauri v2          | Leggero, connessione LAN                 |
+| LAN client      | Reqwest           | Polling + WebSocket verso Agent          |
+| Database locale | SQLite (rusqlite) | Stato locale, file manifest              |
+| File manager    | Filesystem        | Sync folder per file correnti            |
+| Overlay info    | Webview           | Versione, stato, timer — sempre visibile |
 
 ### Deploy
 
-| Target | Piattaforma | Note |
-|--------|------------|------|
-| Web dashboard | Vercel o Firebase Hosting | SPA statica |
-| Edge Functions | Supabase Edge Functions | Deno runtime |
-| Local Agent | Installer NSIS (Windows) | Auto-update via tauri-plugin-updater |
-| Room Player | Installer NSIS (Windows) | Leggero, auto-update |
+| Target         | Piattaforma               | Note                                 |
+| -------------- | ------------------------- | ------------------------------------ |
+| Web dashboard  | Vercel o Firebase Hosting | SPA statica                          |
+| Edge Functions | Supabase Edge Functions   | Deno runtime                         |
+| Local Agent    | Installer NSIS (Windows)  | Auto-update via tauri-plugin-updater |
+| Room Player    | Installer NSIS (Windows)  | Leggero, auto-update                 |
 
 ---
 
@@ -590,14 +597,14 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 
 ### Scenari offline
 
-| Scenario | Comportamento | Indicatore UI |
-|----------|--------------|---------------|
-| **Agent ONLINE, Room ONLINE** | Sync completo, ultima versione | `ONLINE` verde — "v4 di 4 — Sync 14:32" |
-| **Agent ONLINE, Room DISCONNESSA** | Room usa cache locale | `DISCONNESSO` rosso — "v3 di 4 — Ultima sync 12:15" |
-| **Agent OFFLINE, Room su LAN** | Agent serve cache, room aggiornata su LAN | `LAN ONLY` giallo — "v3 di 3 locali — Cloud non raggiungibile" |
-| **Speaker carica mentre Agent offline** | Cloud salva v4, Agent non la ha ancora | Dashboard: "v4 disponibile, Agent offline" |
-| **Agent torna online** | Pull automatico versioni mancanti → push a room | Transizione da giallo a verde |
-| **Room torna su LAN** | Auto-sync da Agent, verifica versione | Transizione da rosso a verde |
+| Scenario                                | Comportamento                                   | Indicatore UI                                                  |
+| --------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------- |
+| **Agent ONLINE, Room ONLINE**           | Sync completo, ultima versione                  | `ONLINE` verde — "v4 di 4 — Sync 14:32"                        |
+| **Agent ONLINE, Room DISCONNESSA**      | Room usa cache locale                           | `DISCONNESSO` rosso — "v3 di 4 — Ultima sync 12:15"            |
+| **Agent OFFLINE, Room su LAN**          | Agent serve cache, room aggiornata su LAN       | `LAN ONLY` giallo — "v3 di 3 locali — Cloud non raggiungibile" |
+| **Speaker carica mentre Agent offline** | Cloud salva v4, Agent non la ha ancora          | Dashboard: "v4 disponibile, Agent offline"                     |
+| **Agent torna online**                  | Pull automatico versioni mancanti → push a room | Transizione da giallo a verde                                  |
+| **Room torna su LAN**                   | Auto-sync da Agent, verifica versione           | Transizione da rosso a verde                                   |
 
 ### Conflict resolution
 
@@ -619,23 +626,24 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 
 **Pagine principali:**
 
-| Route | Scopo |
-|-------|-------|
-| `/login` | Auth Supabase (email/password) |
-| `/signup` | Registrazione → crea tenant |
-| `/dashboard` | Overview eventi attivi, statistiche |
-| `/events` | Lista eventi, CRUD |
-| `/events/:id` | Dettaglio evento: sale, sessioni, timeline |
-| `/events/:id/rooms` | Gestione sale |
-| `/events/:id/sessions` | Calendario sessioni (drag & drop) |
-| `/events/:id/speakers` | Lista speaker, stato upload |
-| `/events/:id/live` | **Vista regia**: stato realtime di tutte le sale |
-| `/events/:id/activity` | Feed attivita in tempo reale |
-| `/events/:id/export` | Export fine evento |
-| `/settings` | Impostazioni tenant, billing, team |
-| `/u/:token` | **Upload Portal** (pubblico, token-based) |
+| Route                  | Scopo                                            |
+| ---------------------- | ------------------------------------------------ |
+| `/login`               | Auth Supabase (email/password)                   |
+| `/signup`              | Registrazione → crea tenant                      |
+| `/dashboard`           | Overview eventi attivi, statistiche              |
+| `/events`              | Lista eventi, CRUD                               |
+| `/events/:id`          | Dettaglio evento: sale, sessioni, timeline       |
+| `/events/:id/rooms`    | Gestione sale                                    |
+| `/events/:id/sessions` | Calendario sessioni (drag & drop)                |
+| `/events/:id/speakers` | Lista speaker, stato upload                      |
+| `/events/:id/live`     | **Vista regia**: stato realtime di tutte le sale |
+| `/events/:id/activity` | Feed attivita in tempo reale                     |
+| `/events/:id/export`   | Export fine evento                               |
+| `/settings`            | Impostazioni tenant, billing, team               |
+| `/u/:token`            | **Upload Portal** (pubblico, token-based)        |
 
 **Vista Regia** (pagina critica):
+
 - Griglia di tutte le sale con stato live
 - Per ogni sala: sessione corrente, speaker, file, versione, sync status
 - Indicatori a colori inequivocabili: verde/giallo/rosso
@@ -647,6 +655,7 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 **Ruolo:** Pagina accessibile via QR code o link univoco. Il relatore carica la propria presentazione senza autenticazione (token-based).
 
 **Flusso UX:**
+
 1. Relatore scansiona QR / clicca link → `/u/{token}`
 2. Vede: nome evento, sua sessione, sala assegnata, deadline
 3. Drag & drop file (PPT, PPTX, KEY, PDF, MP4, MOV)
@@ -655,6 +664,7 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 6. Se file > 500MB: avviso "upload potrebbe richiedere tempo"
 
 **Vincoli tecnici:**
+
 - File max: 2GB (configurabile per tenant plan)
 - Formati accettati: `.pptx`, `.ppt`, `.key`, `.pdf`, `.mp4`, `.mov`, `.avi`, `.wmv`
 - SHA-256 calcolato client-side (Web Crypto API) prima dell'upload
@@ -665,6 +675,7 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 **Ruolo:** Server locale sull'infrastruttura di rete dell'evento. Cache di tutti i file, distribuzione LAN.
 
 **Funzionalita:**
+
 - **Auth**: login con credenziali utente tenant → riceve JWT con permessi
 - **Sync engine**: sottoscrive Realtime, scarica nuove versioni, gestisce coda download
 - **HTTP server LAN** (Axum su 0.0.0.0:8080):
@@ -681,6 +692,7 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 - **Dashboard locale**: UI React nel webview Tauri — stato sync, file cached, diagnostica rete
 
 **Struttura cache filesystem:**
+
 ```
 {user_data}/live-slide-center/
 ├── events/
@@ -700,6 +712,7 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 **Ruolo:** Installato su ogni PC di sala. Mantiene sincronizzato il file corrente per la proiezione.
 
 **Funzionalita:**
+
 - **Discovery Agent**: cerca Agent via mDNS o configurazione manuale (IP:porta)
 - **Auto-sync**: scarica file corrente appena disponibile
 - **Sync folder**: mantiene i file in una cartella accessibile dal tecnico
@@ -724,17 +737,17 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 
 ### Palette
 
-| Ruolo | Colore | Uso |
-|-------|--------|-----|
-| Background primario | `#0A0A0B` (nero profondo) | Dark mode — ambiente regia |
-| Background card | `#141416` | Pannelli, sidebar |
-| Background hover | `#1C1C1F` | Stati hover |
-| Accent primario | `#0066FF` (blu elettrico) | CTA, link, selezione |
-| Success | `#22C55E` | Synced, online, ready |
-| Warning | `#F59E0B` | Syncing, LAN only, processing |
-| Danger | `#EF4444` | Offline, failed, outdated |
-| Text primario | `#FAFAFA` | Titoli, contenuto |
-| Text secondario | `#A1A1AA` | Label, metadata |
+| Ruolo               | Colore                    | Uso                           |
+| ------------------- | ------------------------- | ----------------------------- |
+| Background primario | `#0A0A0B` (nero profondo) | Dark mode — ambiente regia    |
+| Background card     | `#141416`                 | Pannelli, sidebar             |
+| Background hover    | `#1C1C1F`                 | Stati hover                   |
+| Accent primario     | `#0066FF` (blu elettrico) | CTA, link, selezione          |
+| Success             | `#22C55E`                 | Synced, online, ready         |
+| Warning             | `#F59E0B`                 | Syncing, LAN only, processing |
+| Danger              | `#EF4444`                 | Offline, failed, outdated     |
+| Text primario       | `#FAFAFA`                 | Titoli, contenuto             |
+| Text secondario     | `#A1A1AA`                 | Label, metadata               |
 
 ### Tipografia
 
@@ -757,11 +770,11 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 
 ### Piani SaaS
 
-| Piano | Prezzo | Target | Limiti |
-|-------|--------|--------|--------|
-| **Starter** | €149/mese | Piccole aziende AV, 1-2 eventi/mese | 3 eventi/mese, 5 sale/evento, 50GB storage, 1 Agent |
-| **Pro** | €399/mese | Aziende AV medie, congressi | 10 eventi/mese, 20 sale/evento, 500GB storage, 3 Agent |
-| **Enterprise** | Custom | Grandi service tecnici, PCO | Illimitato, SLA, supporto dedicato, white-label |
+| Piano          | Prezzo    | Target                              | Limiti                                                 |
+| -------------- | --------- | ----------------------------------- | ------------------------------------------------------ |
+| **Starter**    | €149/mese | Piccole aziende AV, 1-2 eventi/mese | 3 eventi/mese, 5 sale/evento, 50GB storage, 1 Agent    |
+| **Pro**        | €399/mese | Aziende AV medie, congressi         | 10 eventi/mese, 20 sale/evento, 500GB storage, 3 Agent |
+| **Enterprise** | Custom    | Grandi service tecnici, PCO         | Illimitato, SLA, supporto dedicato, white-label        |
 
 ### Incluso in tutti i piani
 
@@ -783,6 +796,7 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 ## 10. Roadmap Esecutiva (16 Fasi)
 
 ### FASE 0 — Bootstrap Monorepo
+
 - Crea monorepo con Turborepo + pnpm
 - Setup progetto Supabase (dev)
 - Configura R2 bucket (o solo Supabase Storage per MVP)
@@ -790,18 +804,21 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 - CI base (lint + typecheck)
 
 ### FASE 1 — Schema Database + RLS
+
 - Esegui migration iniziale PostgreSQL
 - Genera types TypeScript con `supabase gen types`
 - Scrivi test RLS (tenant A non vede dati tenant B)
 - Seed data per sviluppo
 
 ### FASE 2 — Auth Multi-Tenant
+
 - Supabase Auth (email + password)
 - Signup → crea tenant automaticamente + assegna ruolo admin
 - Custom claim `tenant_id` nel JWT (via Supabase hook o trigger)
 - Login/signup UI con shadcn
 
 ### FASE 3 — Event Management Dashboard
+
 - CRUD eventi con status workflow
 - CRUD sale per evento
 - CRUD sessioni con timeline/calendario
@@ -810,6 +827,7 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 - UI: sidebar, breadcrumb, tabelle TanStack, calendario
 
 ### FASE 4 — Speaker Upload Portal
+
 - Generazione token univoci per speaker
 - Pagina pubblica `/u/:token` con QR code
 - Upload TUS resumable (`use-tus` + `tus-js-client`)
@@ -819,6 +837,7 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 - Preview file name + metadata dopo upload
 
 ### FASE 5 — Versioning System
+
 - Ogni upload crea nuova `presentation_version` (append-only)
 - UI storico versioni con diff metadata
 - Rollback a versione precedente
@@ -826,6 +845,7 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 - Notifica in dashboard quando nuova versione disponibile
 
 ### FASE 6 — Realtime Dashboard (Vista Regia)
+
 - Subscribe a canali Supabase Realtime (room_state, versions, agents)
 - Griglia sale con stato live
 - Activity feed scrolling
@@ -833,6 +853,7 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 - Filtri per sala, sessione, stato
 
 ### FASE 7 — Local Agent (Tauri v2) — MVP
+
 - Progetto Tauri v2 con Axum backend
 - Auth con JWT tenant
 - Sync engine: download file da cloud
@@ -842,6 +863,7 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 - UI dashboard locale
 
 ### FASE 8 — Room Player (Tauri v2)
+
 - Progetto Tauri v2 leggero
 - mDNS discovery Agent (o config manuale)
 - Download file da Agent via LAN
@@ -850,6 +872,7 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 - Lancio file in app esterna (PowerPoint, Keynote)
 
 ### FASE 9 — Offline Architecture
+
 - Agent: coda download con retry, sync recovery dopo disconnessione
 - Room Player: fallback a cache locale, stato "DISCONNESSO"
 - Dashboard: indicatore "Agent offline — ultimo contatto X"
@@ -857,12 +880,14 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 - Conflict resolution: cloud-wins sempre
 
 ### FASE 10 — Upload dalla Preview Room
+
 - Agent accetta upload TUS locale (endpoint su LAN)
 - Upload dalla preview room → Agent → Cloud
 - Doppio percorso: speaker puo caricare da web O da preview room
 - Versioning identico in entrambi i casi
 
 ### FASE 11 — Export Fine Evento
+
 - Pulsante "Chiudi evento" nella dashboard
 - Genera ZIP con: tutti i file ultima versione per sessione
 - CSV activity_log completo
@@ -871,6 +896,7 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 - Auto-cleanup: Edge Function schedulata cancella file scaduti
 
 ### FASE 12 — Billing (Lemon Squeezy)
+
 - Integrazione checkout per 3 piani
 - Webhook LS → aggiorna `tenants.plan` + limiti
 - Enforcement limiti (eventi/mese, storage, agent)
@@ -878,6 +904,7 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 - Trial 14 giorni
 
 ### FASE 13 — i18n
+
 - `i18next` + `react-i18next` su web
 - Tauri: i18n nel webview React
 - Italiano primario, inglese professionale
@@ -885,12 +912,14 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 - Installer in inglese (coerente con ecosistema)
 
 ### FASE 14 — Integrazioni Ecosistema
+
 - Link bidirezionale con Live Speaker Timer (info sessione → timer)
 - API REST pubblica per integrazioni terze
 - Webhook per notifiche esterne (email, Slack)
 - Potenziale integrazione vMix/OBS (futuro)
 
 ### FASE 15 — Hardening & QA
+
 - Sentry error tracking (web + desktop)
 - Rate limiting su Edge Functions
 - Audit sicurezza RLS (penetration test multi-tenant)
@@ -1043,14 +1072,14 @@ VITE_UPLOAD_MAX_SIZE_BYTES=2147483648  # 2GB
 
 ## 13. Account & Infrastruttura
 
-| Risorsa | Account | Note |
-|---------|---------|------|
-| GitHub repo | **live-software11** | `github.com/live-software11/live-slide-center` |
-| Supabase project | **live.software11@gmail.com** | Project: `live-slide-center` |
-| Cloudflare R2 | Da creare | Bucket: `live-slide-center-files` |
-| Lemon Squeezy | Via Live WORKS APP | Prodotto "Live SLIDE CENTER" |
-| Vercel deploy | **live.software11@gmail.com** | Dominio: `app.liveslidecenter.com` |
-| Sentry | **live.software11@gmail.com** | Progetto: `live-slide-center` |
+| Risorsa          | Account                       | Note                                           |
+| ---------------- | ----------------------------- | ---------------------------------------------- |
+| GitHub repo      | **live-software11**           | `github.com/live-software11/live-slide-center` |
+| Supabase project | **live.software11@gmail.com** | Project: `live-slide-center`                   |
+| Cloudflare R2    | Da creare                     | Bucket: `live-slide-center-files`              |
+| Lemon Squeezy    | Via Live WORKS APP            | Prodotto "Live SLIDE CENTER"                   |
+| Vercel deploy    | **live.software11@gmail.com** | Dominio: `app.liveslidecenter.com`             |
+| Sentry           | **live.software11@gmail.com** | Progetto: `live-slide-center`                  |
 
 ---
 
