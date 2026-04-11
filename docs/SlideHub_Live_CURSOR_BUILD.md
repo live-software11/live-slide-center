@@ -1118,14 +1118,14 @@ Live SLIDE CENTER
 - [x] DX: `.editorconfig`, `.prettierrc`, `.nvmrc`, `.gitignore`, `.env.example`
 - [x] Git init (branch `main`, autore `Andrea Rizzari` / `live.software11@gmail.com`)
 - [x] `pnpm run typecheck` + `lint` + `build` tutti OK
-- [x] MCP Supabase (user-supabase-hosted) connesso in Cursor
+- [x] MCP Supabase (**supabase-hosted** in `mcp.json` + `SUPABASE_ACCESS_TOKEN` utente Windows; verifica: `pnpm run verify:supabase-mcp`)
+- [x] GitHub `origin` → `https://github.com/live-software11/live-slide-center.git` (branch `main` tracciata)
 
 ### Da fare al primo avvio sviluppo
 
 - [ ] Docker Desktop + `npx supabase start` + `npx supabase db reset`
 - [ ] `supabase link --project-ref <REF>` + copia `.env`
 - [ ] `npx supabase gen types typescript` → `packages/shared/src/types/database.ts`
-- [ ] `git remote add origin git@github.com:live-software11/live-slide-center.git` + push
 
 ### Comando per iniziare una sessione
 

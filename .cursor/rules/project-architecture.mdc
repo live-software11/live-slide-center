@@ -40,11 +40,14 @@ Live SLIDE CENTER/
 │   ├── seed.sql
 │   └── config.toml
 ├── docs/
+├── scripts/              # Setup Windows (es. `pnpm run setup:supabase-mcp`)
 ├── .cursor/rules/
 ├── turbo.json
 ├── pnpm-workspace.yaml
 └── .env.example
 ```
+
+**GitHub (sorgente):** `https://github.com/live-software11/live-slide-center` — account org **live-software11** (vedi `.cursor/rules/github-account-live-software11.mdc`).
 
 ## Pattern Moduli (apps/web)
 

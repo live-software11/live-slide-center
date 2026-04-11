@@ -26,6 +26,14 @@
 | **Turbo**                     | `pnpm add -g turbo` — CLI Turborepo globale            |
 | **Visual Studio Build Tools** | Necessario per compilare moduli Rust nativi su Windows |
 
+### Repository GitHub (sorgente)
+
+- **URL:** `https://github.com/live-software11/live-slide-center`
+- **Clone:** `git clone https://github.com/live-software11/live-slide-center.git`
+- **Primo push** se il repo non esisteva ancora: vedi `.cursor/rules/deploy-git-workflow.mdc` (sezione *Primo collegamento GitHub*).
+
+**EN:** Official monorepo is under org **live-software11**; use `gh auth status` before push.
+
 ---
 
 ## 2. Server MCP — Supabase (auth permanente, Aprile 2026)
@@ -128,12 +136,6 @@ Se preferisci non usare l’HTTP hosted:
 | **user-duckduckgo-mcp-server** | MEDIO    | Ricerca web per aggiornamenti API, best practices recenti                                                                                                                                     |
 | **user-Fetch**                 | MEDIO    | Lettura diretta documentazione online                                                                                                                                                         |
 | **user-filesystem**            | BASSO    | Operazioni file cross-progetto (leggere file da Live PLAN per riferimento)                                                                                                                    |
-
-### Da aggiungere (raccomandati)
-
-| Server MCP          | Installazione                                                    | Uso                            |
-| ------------------- | ---------------------------------------------------------------- | ------------------------------ |
-| **supabase-hosted** | Endpoint ufficiale in `mcp.json` — collega il progetto da Cursor | Management DB, query, RLS test |
 
 ### Workflow MCP consigliato
 

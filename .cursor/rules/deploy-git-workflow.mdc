@@ -44,6 +44,19 @@ git commit -m "feat: descrizione breve"
 git push
 ```
 
+### 4. Primo collegamento GitHub (repo remoto assente)
+
+Se `git fetch origin` risponde **Repository not found**, il repo non esiste ancora sull’org. Dalla root del monorepo (con `gh auth` su **live-software11**):
+
+```bash
+cd "C:\Users\andre\Desktop\Andrea Rizzari Live Software\Live SLIDE CENTER"
+gh repo create live-software11/live-slide-center --public --source=. --remote=origin --push --description "Live SLIDE CENTER"
+```
+
+Se `origin` esiste gia ma punta a un URL errato: `git remote remove origin` poi ripeti il comando sopra (o `git remote add origin https://github.com/live-software11/live-slide-center.git` se il repo esiste gia vuoto).
+
+**EN:** Create the GitHub repo with `gh repo create ... --push` when the remote does not exist yet.
+
 ## Workflow Deploy
 
 ### Deploy web (Vercel)

@@ -18,6 +18,7 @@ Il `origin` e **`github.com/live-software11/live-slide-center`**. Ogni **commit*
 1. `gh auth status` → account **attivo** su `github.com` deve essere **live-software11`.
 2. Se non lo e: `gh auth switch --user live-software11`
 3. `git remote -v` → `origin` deve puntare a `live-software11`.
+4. Se il repo **non esiste** ancora su GitHub: dalla root progetto, `gh repo create live-software11/live-slide-center --public --source=. --remote=origin --push` (account **live-software11**).
 
 ## Vietato in questo workspace
 

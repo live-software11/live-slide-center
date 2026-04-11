@@ -216,8 +216,17 @@ Stesso formato con sezione "Stato attuale" vs "Stato target".
 
 ## MCP e Strumenti
 
-- **Supabase MCP** (`supabase-hosted` in `mcp.json`): query DB, ispezione RLS, gestione auth
+- **Supabase MCP** (`supabase-hosted` in `mcp.json`): query DB, ispezione RLS, gestione auth. Setup token: `pnpm run setup:supabase-mcp`; verifica: `pnpm run verify:supabase-mcp`. Dettaglio: `docs/Setup_Strumenti_e_MCP.md`.
 - **context7**: documentazione aggiornata React, Supabase, Tailwind, Tauri, shadcn
 - **sequential-thinking**: per task complessi che richiedono ragionamento strutturato
 - **GitHub MCP**: operazioni repo
-```
+
+## Git e GitHub
+
+- **Remote ufficiale:** `origin` → `github.com/live-software11/live-slide-center` (HTTPS o SSH).
+- **Prima del push:** `gh auth status` → account attivo **live-software11**; commit con email `live.software11@gmail.com` e nome `Andrea Rizzari`.
+- **Se il repo remoto non esiste:** dalla root monorepo, `gh repo create live-software11/live-slide-center --public --source=. --remote=origin --push` (vedi `.cursor/rules/deploy-git-workflow.mdc`).
+
+### EN — Git and GitHub (same rules)
+
+Official remote: `live-software11/live-slide-center`. Before every push: `gh auth status` → active **live-software11**. If the GitHub repo does not exist yet, use `gh repo create live-software11/live-slide-center --public --source=. --remote=origin --push` from the monorepo root.
