@@ -7,21 +7,21 @@ alwaysApply: true
 
 ## Server per questo workspace
 
-| Nome in Cursor (`mcp.json`) | Tipo | Note |
-| --------------------------- | ---- | ---- |
-| **supabase-hosted** | HTTP + header `Authorization: Bearer …` | In `C:\Users\andre\.cursor\mcp.json`. **Auth permanente:** variabili ambiente `SUPABASE_ACCESS_TOKEN` (PAT) e `SUPABASE_PROJECT_REF` (ref progetto). Vedi `docs/Setup_Strumenti_e_MCP.md` §2. |
+| Nome in Cursor (`mcp.json`) | Tipo                                    | Note                                                                                                                                                                                          |
+| --------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **supabase-hosted**         | HTTP + `Authorization: Bearer ${env:SUPABASE_ACCESS_TOKEN}` | In `C:\Users\andre\.cursor\mcp.json`, URL `https://mcp.supabase.com/mcp` (senza `project_ref` = tool account + DB/storage completi). Solo PAT utente Windows. Vedi `docs/Setup_Strumenti_e_MCP.md` §2. |
 
 ### Perche non OAuth da browser
 
 Il flusso OAuth del MCP hosted (`https://mcp.supabase.com/mcp` senza header) puo fallire in Cursor con `{"message":"Unrecognized client_id"}` — problema noto lato integrazione (es. [supabase/supabase#43662](https://github.com/supabase/supabase/issues/43662)). La soluzione stabile e il **Personal Access Token** come da [documentazione Supabase MCP](https://supabase.com/docs/guides/getting-started/mcp#ci-environment) (sezione manual authentication).
 
-**EN:** Use a Supabase PAT in `Authorization` + `project_ref` in the URL; do not rely on browser OAuth until the upstream issue is fixed.
+**EN:** Use a Supabase PAT in `Authorization` (base URL for full tooling; add `?project_ref=` only if you want project-scoped mode and accept disabled account tools).
 
 **Alternativa (stdio):** `npx -y @supabase/mcp-server-supabase@latest --project-ref <REF>` con env **`SUPABASE_ACCESS_TOKEN`**.
 
 ## Tool MCP disponibili
 
-Usa il server **`supabase-hosted`** (dopo `SUPABASE_ACCESS_TOKEN` + `SUPABASE_PROJECT_REF` e riavvio Cursor) per:
+Usa il server **`supabase-hosted`** (dopo `SUPABASE_ACCESS_TOKEN` impostato e riavvio Cursor) per:
 
 - **Database**: query SQL dirette, ispezione tabelle, verifica RLS
 - **Auth**: gestione utenti, ispezione JWT claims

@@ -36,14 +36,27 @@ Se durante **Authenticate** su Supabase MCP compare quel JSON nel browser, **non
 
 **EN:** The hosted MCP OAuth flow can fail with `Unrecognized client_id`; use a **Personal Access Token (PAT)** instead — this is the official Supabase workaround for clients where OAuth is broken.
 
-### Configurazione consigliata (stabile): PAT + `project_ref`
+### Accesso completo vs solo un progetto (importante)
 
-Nel file globale **`C:\Users\andre\.cursor\mcp.json`** il server **`supabase-hosted`** e configurato cosi (senza segreti in chiaro nel JSON):
+Con il PAT, l’URL del MCP puo essere:
+
+| URL                                            | Effetto                                                                                                                                                                                                                                 |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `https://mcp.supabase.com/mcp`                 | **Accesso completo** all’account: tool **account** (`list_projects`, organizzazioni, costi, ecc.) + DB/storage del progetto che indichi nei tool.                                                                                       |
+| `https://mcp.supabase.com/mcp?project_ref=REF` | **Solo quel progetto**: riduce la superficie, ma **disabilita** i tool di gestione account elencati in [documentazione Supabase MCP](https://supabase.com/docs/guides/getting-started/mcp#configuration-options) (project-scoped mode). |
+
+Per “tutto sotto controllo da Cursor” usa l’URL **senza** `project_ref` (config attuale). Se in futuro vuoi solo Live SLIDE CENTER e zero tool account, aggiungi `?project_ref=...` e rimuovi l’esigenza di `list_projects`.
+
+**EN:** Full org/project tooling → base URL + PAT. Scoped-only DB → add `?project_ref=<ref>` (account tools disabled by design).
+
+### Configurazione attuale (stabile): solo PAT
+
+Nel file globale **`C:\Users\andre\.cursor\mcp.json`** il server **`supabase-hosted`** e cosi (nessun segreto nel file):
 
 ```json
 "supabase-hosted": {
   "type": "http",
-  "url": "https://mcp.supabase.com/mcp?project_ref=${env:SUPABASE_PROJECT_REF}",
+  "url": "https://mcp.supabase.com/mcp",
   "headers": {
     "Authorization": "Bearer ${env:SUPABASE_ACCESS_TOKEN}"
   }
@@ -54,23 +67,23 @@ Cursor risolve **`${env:NOME}`** all’avvio (vedi [Config Interpolation](https:
 
 #### Passi (una tantum)
 
-1. **Account Supabase** `live.software11@gmail.com` → [Access tokens](https://supabase.com/dashboard/account/tokens) → **Generate new token** (es. nome `Cursor MCP Live SLIDE CENTER`). Copia il valore (inizia spesso con `sbp_`).
-2. **Project ref**: Dashboard → progetto **live-slide-center** → **Settings → General** → campo **Reference ID** (stringa corta tipo `abcdefghijklmnop` nell’URL `https://supabase.com/dashboard/project/REF`).
-3. **Variabili ambiente utente Windows** (consigliato, persistenti dopo riavvio):
-   - `SUPABASE_ACCESS_TOKEN` = il PAT
-   - `SUPABASE_PROJECT_REF` = il Reference ID
-   - Da GUI: _Impostazioni Windows → Sistema → Informazioni → Impostazioni di sistema avanzate → Variabili d’ambiente_ → **Variabili utente** → Nuovo.
-   - Oppure da PowerShell (nuova sessione Cursor dopo `setx`):
+1. **Account** `live.software11@gmail.com` → [Access tokens](https://supabase.com/dashboard/account/tokens) → **Generate new token** (es. `Cursor MCP Live SLIDE CENTER`). Copia il valore (spesso prefisso `sbp_`).
+2. **Variabile utente Windows** `SUPABASE_ACCESS_TOKEN` = il PAT (solo questa e obbligatoria per la config sopra).
+   - GUI: _Impostazioni → Sistema → Informazioni → Impostazioni di sistema avanzate → Variabili d’ambiente_ → **Variabili utente** → Nuovo.
+   - Oppure: `setx SUPABASE_ACCESS_TOKEN "incolla_il_PAT"` poi **esci del tutto da Cursor** (anche dalla tray) e riapri.
+3. **Verifica che Windows veda il token** (PowerShell nuova, fuori da Cursor se serve):
 
 ```powershell
-setx SUPABASE_ACCESS_TOKEN "incolla_qui_il_PAT"
-setx SUPABASE_PROJECT_REF "incolla_qui_il_project_ref"
+[Environment]::GetEnvironmentVariable('SUPABASE_ACCESS_TOKEN', 'User')
 ```
 
-4. **Chiudi completamente Cursor** e riaprilo (le variabili `setx` non aggiornano i processi gia aperti).
-5. **Settings → MCP**: verifica che **supabase-hosted** sia verde / connesso. In chat: _«Elenca le tabelle del database con MCP Supabase»_.
+Se esce vuoto, la variabile non e impostata a livello **User** o non hai riavviato Cursor dopo `setx`.
 
-**Sicurezza:** il PAT ha i permessi del tuo account — non committarlo, non metterlo in `.env` del repo se e pubblico. Usa solo variabili utente o un vault. Per ridurre la superficie in produzione si puo aggiungere `&read_only=true` all’URL MCP (solo query read-only).
+4. **Settings → Tools & MCP**: **supabase-hosted** deve risultare connesso (non solo “Needs authentication”). Se resta in auth: controlla Output → **MCP: Supabase** per errori 401 / header mancante.
+
+**Sicurezza:** non committare il PAT. Opzionale: `?read_only=true` sull’URL per query DB solo in lettura.
+
+**Opzionale `SUPABASE_PROJECT_REF`:** non serve piu per l’URL base; conservala per `supabase link` nella CLI o per una seconda entry MCP “solo progetto” se la aggiungi in futuro.
 
 ### Alternativa: MCP stdio con `npx`
 
