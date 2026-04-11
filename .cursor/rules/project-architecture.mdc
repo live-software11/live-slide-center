@@ -1,0 +1,78 @@
+---
+description: Architettura progetto Live SLIDE CENTER — stack, struttura, moduli, dipendenze
+alwaysApply: true
+---
+
+# Architettura — Live SLIDE CENTER
+
+## Stack Tecnologico
+
+| Layer | Tecnologia | Versione |
+|-------|-----------|----------|
+| Frontend web | React 19 + TypeScript strict | latest |
+| Build | Vite 8 | latest |
+| Styling | Tailwind CSS 4 + shadcn/ui + Radix | latest |
+| Routing | React Router 7 | latest |
+| State | Zustand | latest |
+| Table | TanStack Table | latest |
+| Form | Zod + React Hook Form | latest |
+| i18n | i18next + react-i18next | latest |
+| Upload | tus-js-client + use-tus | latest |
+| Backend/DB | Supabase (PostgreSQL + Auth + Realtime + Edge Functions + Storage) | latest |
+| Desktop Agent | Tauri v2 + Axum (Rust) + SQLite (rusqlite) | latest |
+| Desktop Player | Tauri v2 (leggero) | latest |
+| Monorepo | Turborepo + pnpm | latest |
+
+## Struttura Monorepo
+
+```
+Live SLIDE CENTER/
+├── apps/
+│   ├── web/              # Dashboard + Upload Portal (React 19 + Vite)
+│   ├── agent/            # Local Agent (Tauri v2 + Axum + SQLite)
+│   └── player/           # Room Player (Tauri v2)
+├── packages/
+│   ├── shared/           # Types, validators Zod, constants, utils
+│   └── ui/               # Componenti shadcn condivisi
+├── supabase/
+│   ├── migrations/       # SQL schema versioning
+│   ├── functions/        # Edge Functions (Deno)
+│   ├── seed.sql
+│   └── config.toml
+├── docs/
+├── .cursor/rules/
+├── turbo.json
+├── pnpm-workspace.yaml
+└── .env.example
+```
+
+## Pattern Moduli (apps/web)
+
+Ogni feature segue il pattern: `repository → service → hook → view`
+
+```
+src/features/{nome}/
+├── components/         # Componenti UI del modulo
+├── hooks/              # useMyData.ts, useMyActions.ts
+├── lib/                # Logica pura, utilities
+├── types.ts            # Tipi TypeScript del modulo
+├── repository.ts       # CRUD Supabase (query, insert, update, delete)
+├── service.ts          # Logica business (validazione, trasformazioni)
+└── MyView.tsx          # Page-level view
+```
+
+## Database: Supabase (PostgreSQL)
+
+- **RLS obbligatorio** su ogni tabella con `tenant_id`
+- **Realtime** abilitato su: `room_state`, `presentation_versions`, `local_agents`, `activity_log`
+- **Types generati**: `supabase gen types typescript --project-id <id> > packages/shared/src/types/database.ts`
+- **Migrations**: `supabase/migrations/` — ogni modifica schema e una nuova migration
+
+## Desktop: Tauri v2
+
+- **Agent** (`apps/agent/`): Axum HTTP server su `0.0.0.0:8080`, rusqlite per SQLite, cache filesystem
+- **Player** (`apps/player/`): leggero, connessione LAN ad Agent, overlay informativo
+
+## Documento di riferimento completo
+
+`docs/SlideHub_Live_CURSOR_BUILD.md` — architettura dettagliata, schema SQL, flussi sync, roadmap.

@@ -1,0 +1,211 @@
+---
+description: Pattern Supabase — query, RLS, Realtime, Storage, Edge Functions per Live SLIDE CENTER
+globs: ["**/*.ts", "**/*.tsx", "supabase/**"]
+alwaysApply: false
+---
+
+# Supabase Patterns — Live SLIDE CENTER
+
+## Client Supabase (apps/web)
+
+```typescript
+// lib/supabase.ts
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@slidecenter/shared/types/database';
+
+export const supabase = createClient<Database>(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+```
+
+## Query Pattern — Repository
+
+```typescript
+// features/events/repository.ts
+import { supabase } from '../../lib/supabase';
+import type { Database } from '@slidecenter/shared/types/database';
+
+type Event = Database['public']['Tables']['events']['Row'];
+type EventInsert = Database['public']['Tables']['events']['Insert'];
+
+export async function listEvents(): Promise<Event[]> {
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .order('start_date', { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  return data;
+}
+
+export async function getEventWithRooms(eventId: string) {
+  const { data, error } = await supabase
+    .from('events')
+    .select(`
+      *,
+      rooms (
+        *,
+        sessions (
+          *,
+          speakers (*)
+        )
+      )
+    `)
+    .eq('id', eventId)
+    .single();
+  if (error) throw error;
+  return data;
+}
+```
+
+**Regole query:**
+- Sempre `limit()` sulle liste
+- RLS filtra automaticamente per `tenant_id` — non serve `where tenant_id = ...` nel client
+- Usare `select('campo1, campo2')` instead di `select('*')` per query frequenti
+- Join con sintassi embedded: `select('*, rooms(*)')`
+
+## Realtime Pattern — Hook
+
+```typescript
+// features/live-view/hooks/useRoomStates.ts
+import { useEffect, useState } from 'react';
+import { supabase } from '../../../lib/supabase';
+
+export function useRoomStates(eventId: string | null) {
+  const [states, setStates] = useState<RoomState[]>([]);
+
+  useEffect(() => {
+    if (!eventId) return;
+
+    // Fetch iniziale
+    supabase
+      .from('room_state')
+      .select('*, rooms(*)')
+      .then(({ data }) => { if (data) setStates(data); });
+
+    // Realtime subscription
+    const channel = supabase
+      .channel(`room_state:${eventId}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'room_state' },
+        (payload) => {
+          setStates(prev => {
+            const idx = prev.findIndex(s => s.room_id === payload.new?.room_id);
+            if (payload.eventType === 'DELETE') return prev.filter(s => s.room_id !== payload.old?.room_id);
+            if (idx >= 0) { const next = [...prev]; next[idx] = payload.new as RoomState; return next; }
+            return [...prev, payload.new as RoomState];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [eventId]);
+
+  return states;
+}
+```
+
+**Regole Realtime:**
+- Sempre cleanup con `supabase.removeChannel(channel)` nel return di useEffect
+- Channel name include context (eventId) per evitare conflitti
+- RLS filtra automaticamente — solo eventi del tenant arrivano
+- Per dati critici (room_state): fetch iniziale + subscription
+
+## Storage Pattern — Upload TUS
+
+```typescript
+// features/upload-portal/hooks/usePresignedUpload.ts
+import * as tus from 'tus-js-client';
+
+export function startTusUpload(
+  file: File,
+  sessionToken: string,
+  onProgress: (pct: number) => void,
+  onSuccess: () => void,
+  onError: (err: Error) => void
+) {
+  const upload = new tus.Upload(file, {
+    endpoint: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/upload/resumable`,
+    retryDelays: [0, 3000, 5000, 10000, 20000],
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+    },
+    chunkSize: 6 * 1024 * 1024, // Supabase richiede 6MB chunks
+    metadata: {
+      bucketName: 'presentations',
+      objectName: `${tenantId}/${eventId}/${presentationId}/${file.name}`,
+      contentType: file.type,
+      cacheControl: '3600',
+    },
+    onProgress: (bytesUploaded, bytesTotal) => {
+      onProgress(Math.round((bytesUploaded / bytesTotal) * 100));
+    },
+    onSuccess,
+    onError,
+  });
+
+  upload.findPreviousUploads().then((prev) => {
+    if (prev.length > 0) upload.resumeFromPreviousUpload(prev[0]);
+    upload.start();
+  });
+
+  return upload; // Per pause/resume: upload.abort() / upload.start()
+}
+```
+
+## Edge Functions Pattern
+
+```typescript
+// supabase/functions/validate-upload-token/index.ts
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+Deno.serve(async (req) => {
+  const { token } = await req.json();
+
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  );
+
+  const { data: speaker, error } = await supabase
+    .from('speakers')
+    .select('*, sessions(*, rooms(*))')
+    .eq('upload_token', token)
+    .gt('upload_token_expires_at', new Date().toISOString())
+    .single();
+
+  if (error || !speaker) {
+    return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  return new Response(JSON.stringify({ speaker }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
+});
+```
+
+## Migration Pattern
+
+```sql
+-- supabase/migrations/YYYYMMDDHHMMSS_add_feature.sql
+-- Sempre: BEGIN/COMMIT implicito da Supabase CLI
+-- Sempre: IF NOT EXISTS per idempotenza dove possibile
+
+ALTER TABLE presentations ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_presentations_thumbnail
+  ON presentations(session_id) WHERE thumbnail_url IS NOT NULL;
+```
+
+## Indici PostgreSQL — Linee guida
+
+- **Sempre** indice su `tenant_id` (per RLS performance)
+- **Sempre** indice su FK (event_id, room_id, session_id, etc.)
+- **Composti** per query frequenti: `(event_id, scheduled_start)` per sessioni
+- **Parziali** per stati: `WHERE status = 'active'` per eventi attivi
+- **GIN** per JSONB: `CREATE INDEX idx_settings ON events USING GIN (settings)`

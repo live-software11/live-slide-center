@@ -1,0 +1,122 @@
+---
+description: Workflow qualita codice — lint, typecheck, build e documentazione dopo ogni modifica
+alwaysApply: true
+---
+
+# Code Quality — Workflow Obbligatorio (Senior Engineer Standard)
+
+## Mentalita da ingegnere senior
+
+Ogni modifica deve essere trattata come se andasse in produzione domani mattina su un sistema live per eventi:
+- **Stabilita prima di tutto**: se una soluzione e veloce ma instabile, scartarla
+- **Performance**: non aggiungere query PostgreSQL senza stimare l'impatto su indici/costi
+- **Reversibilita**: ogni modifica deve essere comprensibile e reversibile
+- **Documentazione**: il codice che non si capisce tra 6 mesi e codice rotto
+
+---
+
+## Checklist dopo OGNI modifica di codice
+
+### 1. Verifica tecnica (obbligatoria)
+
+```bash
+pnpm run typecheck    # TypeScript strict — zero errori tollerati
+pnpm run lint         # ESLint — zero errori, zero warning
+pnpm run lint:fix     # Auto-fix dove possibile
+pnpm run build        # Build produzione — deve passare senza errori
+```
+
+### 2. Test (se la modifica tocca logica di business)
+
+```bash
+pnpm run test         # Test unitari e integration
+```
+
+### 3. Supabase (se tocchi schema o RLS)
+
+```bash
+supabase db diff      # Mostra diff schema locale vs remoto
+supabase test db      # Esegui test RLS (pgTAP)
+```
+
+### 4. Aggiornamento documentazione
+
+**Quando aggiornare `docs/SlideHub_Live_CURSOR_BUILD.md`:**
+- Modifica schema PostgreSQL (nuove tabelle, campi, indici)
+- Modifica policy RLS
+- Modifica architettura sync/offline
+- Nuove Edge Functions
+- Modifica struttura monorepo
+- Nuove dipendenze significative
+
+---
+
+## Analisi impatto prima di ogni modifica
+
+### PostgreSQL / Supabase
+- [ ] La modifica aggiunge query? Hanno indici appropriati?
+- [ ] Le nuove tabelle hanno RLS + policy `tenant_id`?
+- [ ] Le query usano `LIMIT` dove appropriato?
+- [ ] Le Edge Functions verificano auth + tenant?
+
+### Storage / Upload
+- [ ] File grandi usano TUS (non upload singolo)?
+- [ ] SHA-256 calcolato client-side?
+- [ ] `storage_key` tracciato in `presentation_versions`?
+- [ ] Cleanup file scaduti gestito?
+
+### Sync / Offline
+- [ ] L'Agent gestisce il caso offline correttamente?
+- [ ] Il Room Player mostra stato sync chiaramente?
+- [ ] Il conflict resolution e cloud-wins?
+- [ ] Il heartbeat Agent funziona?
+
+### i18n (completezza obbligatoria)
+- [ ] Ogni nuova stringa UI ha coppia IT/EN?
+- [ ] Traduzione EN professionale (terminologia eventi live/AV/congressi)?
+
+---
+
+## Se il build/lint fallisce
+
+**Errore TypeScript:**
+- Correggere sempre — nessun `any` implicito, nessun cast forzato
+- Se il tipo non esiste, crearlo in `types.ts` del modulo o generarlo con `supabase gen types`
+
+**Errore ESLint `react-hooks/exhaustive-deps`:**
+- Spostare logica dentro `useMemo`/`useCallback` — non aggiungere dipendenze false
+
+**Errore build Vite:**
+- Verificare import circolari
+- Verificare lazy import: `.then(m => ({ default: m.ComponentName }))`
+
+---
+
+## Standard di codice
+
+### Nomi e struttura
+- View page-level: `*View.tsx`
+- Componenti UI riusabili: `components/*.tsx`
+- Hook dati: `use*.ts`
+- Repository: `repository.ts` per ogni feature
+- Tipi: `types.ts` per ogni feature
+
+### Commenti
+- NO commenti che descrivono cosa fa il codice
+- SI commenti sul PERCHE di scelte non ovvie
+- SI commenti su invarianti critiche
+
+### Gestione errori
+- Ogni operazione Supabase in try/catch con log strutturato
+- MAI swallowing silenzioso in operazioni critiche (sync, upload, download)
+- Error boundaries per ogni modulo in App.tsx
+
+---
+
+## Priorita di ottimizzazione (ordine)
+
+1. **Correttezza** — il codice fa quello che deve fare, senza bug
+2. **Stabilita** — non crasha in produzione, gestisce edge case
+3. **Tenant isolation** — nessun dato cross-tenant visibile
+4. **Performance** — query ottimizzate, bundle piccolo, render veloci
+5. **Manutenibilita** — leggibile, documentato, testabile

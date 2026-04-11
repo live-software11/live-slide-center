@@ -1,0 +1,48 @@
+---
+description: MCP Supabase — accesso diretto al progetto Live SLIDE CENTER
+alwaysApply: true
+---
+
+# MCP Supabase — Accesso al progetto (Live SLIDE CENTER)
+
+## Server per questo workspace
+
+| Nome in Cursor (`mcp.json`) | Tipo                                | Note                                                                                                                                  |
+| --------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **supabase-hosted**         | HTTP `https://mcp.supabase.com/mcp` | In `C:\Users\andre\.cursor\mcp.json`. Collega il progetto Supabase da Cursor (Settings → MCP), account **live.software11@gmail.com**. |
+
+**Alternativa (stdio):** `npx -y @supabase/mcp-server-supabase@latest --project-ref <REF>` con env **`SUPABASE_ACCESS_TOKEN`** (PAT da dashboard Supabase).
+
+## Tool MCP disponibili
+
+Usa il server **`supabase-hosted`** (dopo login/collegamento progetto) per:
+
+- **Database**: query SQL dirette, ispezione tabelle, verifica RLS
+- **Auth**: gestione utenti, ispezione JWT claims
+- **Storage**: gestione bucket, file, policy
+- **Edge Functions**: deploy, log, test
+
+Verificare sempre lo schema dei tool nel descriptor MCP prima della chiamata.
+
+## Prerequisiti
+
+1. **Supabase CLI**: installata e autenticata (`supabase login`)
+2. **Progetto linkato**: `supabase link --project-ref <PROJECT_REF>` dalla root
+3. **Variabili ambiente**: `.env` con `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`
+
+## MCP vs codice
+
+- **MCP:** debug dati, ispezione tabelle/RLS/auth, validazione query
+- **Codice:** feature, logica, migrations, Edge Functions
+
+## Altri server MCP utili
+
+| Server                       | Uso per SLIDE CENTER                                               |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `user-context7`              | Documentazione aggiornata React, Supabase, Tailwind, Tauri, shadcn |
+| `user-duckduckgo-mcp-server` | Ricerca aggiornamenti API, best practices                          |
+| `user-Fetch`                 | Lettura documentazione online                                      |
+| `user-npm`                   | Versioni pacchetti, vulnerabilita, dipendenze                      |
+| `user-GitHub`                | Operazioni repo, PR, issues                                        |
+| `user-sequential-thinking`   | Task complessi che richiedono ragionamento step-by-step            |
+| `user-filesystem`            | Operazioni file cross-progetto                                     |

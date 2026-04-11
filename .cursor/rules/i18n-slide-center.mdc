@@ -1,0 +1,69 @@
+---
+description: Internazionalizzazione UI IT/EN — Live SLIDE CENTER (Web SaaS + Desktop)
+alwaysApply: true
+---
+
+# Internazionalizzazione e Lingua — Live SLIDE CENTER
+
+## Principio
+
+- **Lingua di programmazione:** Italiano (stringhe sorgente, commenti dove appropriato).
+- **UI e documentazione:** Ogni aggiunta in italiano deve avere traduzione professionale in inglese, specifica per eventi live, congressi e AV.
+
+---
+
+## UI — Requisiti obbligatori
+
+1. **Nuove stringhe UI:** Aggiungere sempre in entrambe le lingue (it/en) nei file di traduzione i18next.
+2. **Terminologia EN:** Professionale, settore eventi live, congressi, AV, presentation management.
+3. **Nessuna stringa hardcoded — ZERO ECCEZIONI:** Menu, etichette, placeholder, tooltip, `aria-label`, messaggi errore, pulsanti — tutto tramite `t('chiave')`. Include componenti condivisi shadcn customizzati.
+4. **Mai mostrare chiavi i18n grezze:** chiave mancante → warning in dev, fallback neutro in UI.
+5. **Tono professionale B2B:** formulazioni da software gestionale enterprise per eventi — chiarezza, precisione.
+6. **Regola di completezza:** ogni nuovo elemento UI in italiano DEVE avere EN professionale nello STESSO commit.
+
+### Terminologia di dominio
+
+| IT | EN |
+|----|----|
+| Evento | Event |
+| Sala | Room |
+| Sessione | Session |
+| Relatore / Speaker | Speaker / Presenter |
+| Presentazione | Presentation |
+| Centro Slide | Slide Center |
+| Regia | Control Room / Live View |
+| Agente Locale | Local Agent |
+| Versione | Version |
+| Sincronizzazione | Synchronization |
+| Caricamento | Upload |
+| Scaricamento | Download |
+
+### Accessibilita
+
+- `aria-label` e `title` tramite `t()` con coppia IT/EN
+- Prefisso `a11y.*` per etichette riusabili
+
+---
+
+## Documentazione
+
+- `docs/*.md`: contenuto bilingue (IT primario + sezione EN) o due versioni parallele.
+- Stile: chiaro, professionale, dominio eventi live/AV.
+
+---
+
+## Desktop (Agent + Player)
+
+- **Installer:** in inglese (coerente con ecosistema Live Software)
+- **Primo avvio:** selezione lingua (IT/EN)
+- **Lingua salvata** alla chiusura, ripristinata al riavvio
+- **Stringhe UI desktop:** stessi file i18n condivisi da `packages/shared/`
+
+---
+
+## Stack i18n
+
+- **Libreria:** `i18next` + `react-i18next`
+- **File traduzioni:** `packages/shared/src/i18n/locales/it.json` + `en.json`
+- **Namespace:** singolo per semplicita iniziale, split per feature se cresce
+- **Rilevamento lingua:** `i18next-browser-languagedetector` + override da impostazioni tenant

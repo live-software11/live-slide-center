@@ -1,0 +1,29 @@
+---
+description: GitHub — solo org live-software11; gh auth e identita commit prima di push
+alwaysApply: true
+---
+
+# GitHub — Account ufficiale (Live SLIDE CENTER)
+
+## Regola
+
+Il `origin` e **`github.com/live-software11/live-slide-center`**. Ogni **commit** e **push** deve avvenire con:
+
+- **Organizzazione / login GitHub:** `live-software11`
+- **Email commit (git locale):** `live.software11@gmail.com`
+- **Nome commit:** `Andrea Rizzari`
+
+## Prima di `git push`
+
+1. `gh auth status` → account **attivo** su `github.com` deve essere **live-software11`.
+2. Se non lo e: `gh auth switch --user live-software11`
+3. `git remote -v` → `origin` deve puntare a `live-software11`.
+
+## Vietato in questo workspace
+
+- Push con sessione **Andraven11** su questo `origin`.
+- Cambiare `origin` verso repo sotto `Andraven11` senza richiesta esplicita.
+
+## Riferimento
+
+Mappa completa: `docs/MAPPA_ACCOUNT_GITHUB_PROGETTI.md` (cartella **Andrea Rizzari Live Software**).

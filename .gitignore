@@ -1,0 +1,14 @@
+node_modules
+dist
+.turbo
+*.local
+.env
+.env.*.local
+.DS_Store
+Thumbs.db
+*.log
+coverage
+supabase/.branches
+supabase/.temp
+**/.tsbuildinfo
+apps/web/node_modules/.tmp

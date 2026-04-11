@@ -1,0 +1,43 @@
+---
+description: Ordine operazioni e priorita per lavorare nel workspace Live SLIDE CENTER
+alwaysApply: true
+---
+
+# Agent Workflow — Live SLIDE CENTER
+
+## Prima di modificare codice
+
+1. **Schema database / RLS**: leggere `docs/SlideHub_Live_CURSOR_BUILD.md` sezione 5 (Schema Database)
+2. **Architettura sync/offline**: leggere `docs/SlideHub_Live_CURSOR_BUILD.md` sezione 6 (Sync & Offline)
+3. **Permessi / ruoli**: verificare che la modifica rispetti il sistema RBAC (admin, tech, coordinator, speaker guest)
+4. **Gate piano**: verificare limiti tenant (storage, eventi/mese, sale/evento, agenti)
+5. **i18n**: ogni stringa IT ha coppia EN professionale nello stesso commit — ZERO eccezioni
+6. **Tenant isolation**: ogni query PostgreSQL deve avere RLS o filtro esplicito `tenant_id`
+
+## Ordine di esecuzione per task complessi
+
+1. Analisi impatto (RLS, indici PostgreSQL, storage, Edge Functions)
+2. Migration SQL se serve (`supabase/migrations/`)
+3. Modifica codice
+4. Typecheck + lint + build
+5. Aggiornamento documentazione
+
+## Vincoli assoluti
+
+- **tenant_id**: ogni query deve essere isolata per tenant — RLS e la barriera primaria
+- **RLS mai disabilitata**: ogni nuova tabella DEVE avere `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` + policy
+- **Supabase Realtime**: usare canali filtrati per tenant — mai broadcast globale
+- **Upload TUS**: file grandi (fino a 2GB) via protocollo TUS — mai upload singolo per file > 50MB
+- **SHA-256**: calcolato client-side (Web Crypto API) prima dell'upload, verificato al download dall'Agent
+- **Versioni immutabili**: `presentation_versions` e append-only — mai UPDATE su una versione esistente
+- **i18n completezza**: ogni stringa IT visibile in UI deve avere coppia EN professionale nello stesso commit
+- **Dark mode only**: UI in tema scuro — ambiente operativo regia
+
+## Checklist pre-modifica
+
+- [ ] La tabella ha RLS abilitata con policy `tenant_id = public.app_tenant_id()`?
+- [ ] Le nuove query hanno indici appropriati (`CREATE INDEX` nella migration)?
+- [ ] Il Realtime channel e filtrato per tenant?
+- [ ] I file caricati sono tracciati con `storage_key` + `file_hash_sha256`?
+- [ ] Lo stato sync (online/offline/syncing/outdated) e visualizzato in UI?
+- [ ] L'Edge Function verifica l'auth e il tenant prima di operare?

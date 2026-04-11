@@ -1,0 +1,60 @@
+---
+description: Sacralita dei dati e isolamento tenant — principio non negoziabile
+alwaysApply: true
+---
+
+# Live SLIDE CENTER — Sacralita dei Dati e Isolamento Tenant
+
+## Principio assoluto
+
+**Non esiste alcun compromesso.** La sacralita dei dati e l'isolamento tra aziende/clienti diversi sono il fulcro del progetto. Nessuna modifica puo indebolire questa garanzia.
+
+## Cosa significa
+
+1. **Nessun dato di un tenant deve essere visibile o accessibile ad altri tenant**
+2. **Ogni tabella PostgreSQL** con dati business ha colonna `tenant_id` con RLS
+3. **Le RLS policies** garantiscono `tenant_id = public.app_tenant_id()` su tutte le tabelle
+4. **Nessun compromesso** su performance, semplicita o velocita di sviluppo a scapito dell'isolamento
+
+## Dove si applica
+
+- Eventi, sale, sessioni, speaker, presentazioni, versioni
+- Room state, local agents, activity log
+- Storage: file path include `{tenant_id}/{event_id}/...`
+- Supabase Realtime: canali filtrati per tenant_id
+- Edge Functions: verificare sempre tenant dal JWT prima di operare
+- Local Agent: autenticato con JWT tenant-scoped
+
+## Implementazione RLS
+
+```sql
+-- Helper: tenant_id da JWT (app_metadata / user_metadata) — schema public
+CREATE OR REPLACE FUNCTION public.app_tenant_id() RETURNS uuid
+LANGUAGE sql STABLE
+SET search_path = public
+AS $$
+  SELECT COALESCE(
+    NULLIF(trim(both '"' from (auth.jwt() -> 'app_metadata' ->> 'tenant_id')), '')::uuid,
+    NULLIF(trim(both '"' from (auth.jwt() -> 'user_metadata' ->> 'tenant_id')), '')::uuid
+  );
+$$;
+
+-- Policy pattern per ogni tabella:
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON events
+  FOR ALL USING (tenant_id = public.app_tenant_id());
+```
+
+## Checklist pre-modifica
+
+- [ ] La nuova tabella ha `tenant_id UUID NOT NULL REFERENCES tenants(id)`?
+- [ ] RLS e abilitata con `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`?
+- [ ] La policy `tenant_isolation` e creata?
+- [ ] L'indice su `tenant_id` esiste?
+- [ ] L'Edge Function verifica il tenant dal JWT?
+- [ ] Il Realtime channel e filtrato per tenant?
+- [ ] Lo storage path include il tenant_id?
+
+## Violazione = bug critico
+
+Una violazione dell'isolamento tenant e un bug di sicurezza critico. Non e accettabile "per ora" o "tanto funziona". Correggere immediatamente.
