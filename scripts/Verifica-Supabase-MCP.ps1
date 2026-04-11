@@ -19,18 +19,29 @@ if ([string]::IsNullOrWhiteSpace($token)) {
 }
 else {
   Write-Host ('[OK] SUPABASE_ACCESS_TOKEN: presente (' + $token.Length + ' caratteri)') -ForegroundColor Green
+  # I PAT Supabase sono stringhe lunghe (spesso prefisso sbp_). Un solo carattere = quasi sempre incolla sbagliata.
+  if ($token.Length -lt 30) {
+    Write-Host '[!] ATTENZIONE: il valore sembra troppo corto per un PAT Supabase.' -ForegroundColor Yellow
+    Write-Host '    Rigenera il token in dashboard, poi: pnpm run setup:supabase-mcp (incolla tutto il valore).' -ForegroundColor Yellow
+  }
 }
 
 if ([string]::IsNullOrWhiteSpace($ref)) {
   Write-Host '[--] SUPABASE_PROJECT_REF: opzionale, non impostato' -ForegroundColor DarkGray
 }
 else {
-  Write-Host ('[OK] SUPABASE_PROJECT_REF: ' + $ref) -ForegroundColor Green
+  $refTrim = $ref.Trim()
+  if ($refTrim -match '^[a-z0-9]{15,30}$') {
+    Write-Host ('[OK] SUPABASE_PROJECT_REF: ' + $refTrim) -ForegroundColor Green
+  }
+  else {
+    Write-Host ('[OK] SUPABASE_PROJECT_REF: presente (' + $refTrim.Length + ' caratteri), verifica che sia il Reference ID del progetto') -ForegroundColor Yellow
+  }
 }
 
 Write-Host ''
 Write-Host 'File Cursor MCP globale:' -ForegroundColor DarkGray
 Write-Host ($env:USERPROFILE + '\.cursor\mcp.json') -ForegroundColor White
 Write-Host ''
-Write-Host "Se il token è OK ma Cursor non vede il MCP: chiudi Cursor del tutto e riapri." -ForegroundColor Yellow
+Write-Host 'Se il token e a posto ma Cursor non vede il MCP: chiudi Cursor del tutto e riapri.' -ForegroundColor Yellow
 Write-Host ''
