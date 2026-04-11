@@ -187,8 +187,8 @@ Dopo `supabase start`, la dashboard e disponibile su `http://localhost:54323`:
 
 ```yaml
 packages:
-  - "apps/*"
-  - "packages/*"
+  - 'apps/*'
+  - 'packages/*'
 ```
 
 ### `turbo.json` (root)

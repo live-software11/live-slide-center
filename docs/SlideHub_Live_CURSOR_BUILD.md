@@ -190,7 +190,7 @@ Live SLIDE CENTER e il **Presentation & Projection Management System (PPMS)** de
 
 ## 5. Schema Database (PostgreSQL via Supabase)
 
-### Migration iniziale: `supabase/migrations/0001_init.sql`
+### Migration iniziale: `supabase/migrations/20250411090000_init_slide_center.sql`
 
 ```sql
 -- ============================================================
@@ -933,139 +933,113 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 
 ```
 Live SLIDE CENTER/
+├── .cursor/rules/                    # 12 regole Cursor (architettura, RLS, i18n, deploy...)
+├── .editorconfig                     # Stile codice (UTF-8, LF, 2 spazi)
+├── .env.example                      # Template variabili ambiente
+├── .gitignore
+├── .nvmrc                            # Node 22
+├── .prettierrc + .prettierignore     # Prettier + plugin Tailwind
+├── tsconfig.base.json                # Strict mode condiviso TS 6
+├── turbo.json                        # Pipeline Turbo con globalEnv VITE_*
+├── pnpm-workspace.yaml               # Workspace: apps/*, packages/*
+├── package.json                      # Root: dev, build, lint, format, typecheck, test
+│
 ├── apps/
-│   ├── web/                          # Dashboard + Upload Portal
-│   │   ├── public/
-│   │   ├── src/
-│   │   │   ├── components/           # Componenti UI generici
-│   │   │   ├── features/             # Moduli feature-based
-│   │   │   │   ├── auth/
-│   │   │   │   ├── events/
-│   │   │   │   ├── rooms/
-│   │   │   │   ├── sessions/
-│   │   │   │   ├── speakers/
-│   │   │   │   ├── presentations/
-│   │   │   │   ├── upload-portal/
-│   │   │   │   ├── live-view/        # Vista regia
-│   │   │   │   ├── activity/
-│   │   │   │   ├── export/
-│   │   │   │   └── settings/
-│   │   │   ├── hooks/
-│   │   │   ├── lib/
-│   │   │   │   ├── supabase.ts       # Client Supabase
-│   │   │   │   ├── storage.ts        # Upload/download helpers
-│   │   │   │   └── utils.ts
-│   │   │   ├── routes/
-│   │   │   ├── stores/               # Zustand stores
-│   │   │   └── types/
-│   │   ├── index.html
-│   │   ├── vite.config.ts
-│   │   ├── tailwind.config.ts
-│   │   ├── tsconfig.json
-│   │   └── package.json
+│   ├── web/                          # Dashboard + Upload Portal (React 19 + Vite 8)
+│   │   ├── index.html                # Dark mode, lang="it"
+│   │   ├── vite.config.ts            # Tailwind 4 plugin, alias @/, sourcemaps
+│   │   ├── tsconfig.app.json         # Extends base, paths @/*, references shared+ui
+│   │   ├── tsconfig.node.json
+│   │   ├── eslint.config.js          # ESLint 9 + Prettier + react-hooks
+│   │   ├── package.json              # @slidecenter/web
+│   │   └── src/
+│   │       ├── main.tsx              # Entry: Router + Providers + i18n init
+│   │       ├── index.css             # Tailwind 4 @import + dark vars
+│   │       ├── vite-env.d.ts         # ImportMetaEnv tipizzata (VITE_*)
+│   │       ├── app/
+│   │       │   ├── routes.tsx        # React Router 7, lazy loading
+│   │       │   ├── root-layout.tsx   # Sidebar + main + Suspense
+│   │       │   └── providers.tsx     # Provider tree (pronto per Auth/Zustand)
+│   │       ├── lib/
+│   │       │   ├── supabase.ts       # Client tipizzato con validazione env
+│   │       │   └── i18n.ts           # Top-level await initI18n()
+│   │       └── features/             # Pattern feature-based
+│   │           ├── dashboard/DashboardView.tsx
+│   │           ├── events/EventsView.tsx
+│   │           └── settings/SettingsView.tsx
+│   │           # Fasi successive: auth/, rooms/, sessions/, speakers/,
+│   │           # presentations/, upload-portal/, live-view/, activity/, export/
 │   │
-│   ├── agent/                        # Local Agent (Tauri v2)
-│   │   ├── src/                      # React UI agent dashboard
-│   │   ├── src-tauri/
-│   │   │   ├── src/
-│   │   │   │   ├── main.rs
-│   │   │   │   ├── lib.rs
-│   │   │   │   ├── http_server.rs    # Axum LAN server
-│   │   │   │   ├── sync_engine.rs    # Cloud sync logic
-│   │   │   │   ├── cache_manager.rs  # File cache + cleanup
-│   │   │   │   ├── db.rs             # SQLite operations
-│   │   │   │   ├── heartbeat.rs      # Cloud heartbeat
-│   │   │   │   └── mdns.rs           # Service discovery
-│   │   │   ├── Cargo.toml
-│   │   │   └── tauri.conf.json
-│   │   ├── vite.config.ts
-│   │   └── package.json
-│   │
-│   └── player/                       # Room Player (Tauri v2)
-│       ├── src/                      # React UI player
-│       ├── src-tauri/
-│       │   ├── src/
-│       │   │   ├── main.rs
-│       │   │   ├── lib.rs
-│       │   │   ├── lan_client.rs     # Agent LAN connection
-│       │   │   ├── file_manager.rs   # Download + sync folder
-│       │   │   ├── db.rs             # SQLite local state
-│       │   │   └── discovery.rs      # mDNS Agent discovery
-│       │   ├── Cargo.toml
-│       │   └── tauri.conf.json
-│       ├── vite.config.ts
-│       └── package.json
+│   ├── agent/README.md               # Stub — Tauri v2 + Axum (fasi successive)
+│   └── player/README.md              # Stub — Tauri v2 leggero (fasi successive)
 │
 ├── packages/
-│   ├── shared/                       # Types + validators condivisi
-│   │   ├── src/
-│   │   │   ├── types/
-│   │   │   │   ├── database.ts       # Types generati da Supabase
-│   │   │   │   ├── api.ts            # Types API Agent LAN
-│   │   │   │   └── events.ts         # Types eventi realtime
-│   │   │   ├── validators/
-│   │   │   │   ├── event.ts          # Zod schema eventi
-│   │   │   │   ├── upload.ts         # Zod schema upload
-│   │   │   │   └── room.ts           # Zod schema sale
-│   │   │   ├── constants.ts
-│   │   │   └── utils.ts
-│   │   └── package.json
+│   ├── shared/                       # @slidecenter/shared
+│   │   ├── package.json              # exports: ., ./validators, ./i18n
+│   │   ├── tsconfig.json             # composite, declaration, declarationMap
+│   │   ├── eslint.config.js
+│   │   └── src/
+│   │       ├── index.ts              # Re-export strutturato
+│   │       ├── constants/
+│   │       │   ├── app.ts            # APP_SLUG, MAX_UPLOAD_SIZE, TUS_CHUNK, HEARTBEAT
+│   │       │   └── plans.ts          # PlanLimits per trial/starter/pro/enterprise
+│   │       ├── types/
+│   │       │   ├── index.ts
+│   │       │   ├── database.ts       # Placeholder (supabase gen types sovrascrive)
+│   │       │   └── enums.ts          # UserRole, EventStatus, SyncStatus, ecc.
+│   │       ├── validators/
+│   │       │   ├── index.ts
+│   │       │   └── event.ts          # Zod 4: event, room, session, speaker
+│   │       └── i18n/
+│   │           ├── index.ts           # initI18n() + i18next config
+│   │           └── locales/
+│   │               ├── it.json        # ~150 chiavi IT
+│   │               └── en.json        # ~150 chiavi EN (terminologia AV/eventi)
 │   │
-│   └── ui/                           # Componenti shadcn condivisi
-│       ├── src/
-│       └── package.json
+│   └── ui/                           # @slidecenter/ui
+│       ├── package.json              # exports: ., ./lib/utils
+│       ├── tsconfig.json             # composite, jsx react-jsx
+│       ├── eslint.config.js
+│       └── src/
+│           ├── index.ts              # Export cn()
+│           └── lib/utils.ts          # cn() = clsx + tailwind-merge (shadcn pattern)
 │
 ├── supabase/
+│   ├── config.toml                   # Project: Live_SLIDE_CENTER
+│   ├── seed.sql                      # Seed minimale
 │   ├── migrations/
-│   │   └── 0001_init.sql
-│   ├── functions/
-│   │   ├── validate-upload-token/    # Valida token speaker
-│   │   ├── process-upload/           # Post-upload processing
-│   │   ├── generate-export/          # Export fine evento
-│   │   └── cleanup-expired/          # Pulizia file scaduti
-│   ├── seed.sql
-│   └── config.toml
+│   │   └── 20250411090000_init_slide_center.sql  # Schema completo + RLS + Realtime + GRANT
+│   └── functions/
+│       ├── _shared/
+│       │   ├── cors.ts               # CORS headers + preflight handler
+│       │   └── auth.ts               # getSupabaseClient() + getTenantId()
+│       └── health/index.ts           # Health check endpoint
+│       # Fasi successive: validate-upload-token/, process-upload/, ecc.
 │
-├── docs/
-│   └── SlideHub_Live_CURSOR_BUILD.md # Questo documento
-│
-├── .cursor/
-│   └── rules/
-│       └── i18n-installer.mdc        # Regole i18n specifiche
-│
-├── turbo.json
-├── pnpm-workspace.yaml
-├── package.json
-└── .env.example
+└── docs/
+    ├── SlideHub_Live_CURSOR_BUILD.md  # Questo documento
+    ├── Istruzioni_Progetto_Claude_Live_Slide_Center.md
+    ├── Primo_Prompt_Avvio_Chat_Claude_Desktop_Live_Slide_Center.md
+    ├── Setup_Strumenti_e_MCP.md
+    └── docs commerciali/
 ```
 
 ---
 
 ## 12. Configurazione Ambiente
 
-### `.env.example`
+### `.env.example` (attuale nel repo)
 
 ```bash
-# === SUPABASE ===
-VITE_SUPABASE_URL=https://xxxxx.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
+# --- Supabase ---
+VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key
 
-# === CLOUDFLARE R2 (per fase di scaling) ===
-R2_ACCOUNT_ID=
-R2_ACCESS_KEY_ID=
-R2_SECRET_ACCESS_KEY=
-R2_BUCKET_NAME=live-slide-center
-R2_PUBLIC_URL=https://files.liveslidecenter.com
+# --- App ---
+VITE_APP_NAME="Live SLIDE CENTER"
+VITE_APP_VERSION=0.0.1
 
-# === LEMON SQUEEZY ===
-LS_API_KEY=
-LS_STORE_ID=
-LS_WEBHOOK_SECRET=
-
-# === APP ===
-VITE_APP_URL=https://app.liveslidecenter.com
-VITE_UPLOAD_MAX_SIZE_BYTES=2147483648  # 2GB
+# (Fasi successive: SUPABASE_SERVICE_ROLE_KEY, R2, Lemon Squeezy, Sentry)
 ```
 
 ---
@@ -1128,8 +1102,33 @@ Live SLIDE CENTER
 
 ---
 
-## 16. Comando di Avvio
+## 16. Stato Bootstrap e Comando di Avvio
+
+### Completato (operazioni preliminari)
+
+- [x] Monorepo Turborepo + pnpm workspace
+- [x] `tsconfig.base.json` condiviso (TS 6, strict)
+- [x] ESLint 9 + Prettier + eslint-config-prettier
+- [x] Vite 8 + Tailwind CSS 4 + @tailwindcss/vite
+- [x] `packages/shared`: types, enums, constants, validators Zod 4, i18n IT/EN (~150 chiavi)
+- [x] `packages/ui`: `cn()` utility (clsx + tailwind-merge), pronto per shadcn
+- [x] `apps/web`: React Router 7, layout dark-mode, feature-based, Supabase client, i18n
+- [x] Migration SQL completa: schema + RLS `public.app_tenant_id()` + Realtime + GRANT
+- [x] Edge Functions: `_shared/cors` + `_shared/auth` + `health` endpoint
+- [x] DX: `.editorconfig`, `.prettierrc`, `.nvmrc`, `.gitignore`, `.env.example`
+- [x] Git init (branch `main`, autore `Andrea Rizzari` / `live.software11@gmail.com`)
+- [x] `pnpm run typecheck` + `lint` + `build` tutti OK
+- [x] MCP Supabase (user-supabase-hosted) connesso in Cursor
+
+### Da fare al primo avvio sviluppo
+
+- [ ] Docker Desktop + `npx supabase start` + `npx supabase db reset`
+- [ ] `supabase link --project-ref <REF>` + copia `.env`
+- [ ] `npx supabase gen types typescript` → `packages/shared/src/types/database.ts`
+- [ ] `git remote add origin git@github.com:live-software11/live-slide-center.git` + push
+
+### Comando per iniziare una sessione
 
 Apri questo file in Cursor e scrivi nel chat:
 
-> "Leggi `docs/SlideHub_Live_CURSOR_BUILD.md` ed esegui la FASE 0. Spiegami ogni passo in italiano e chiedi conferma prima di procedere alla fase successiva."
+> "Leggi `docs/SlideHub_Live_CURSOR_BUILD.md` e inizia la FASE 1 (Auth + Tenant bootstrap). Spiega ogni passo in italiano e chiedi conferma prima di procedere alla fase successiva."
