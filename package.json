@@ -10,7 +10,9 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "setup:supabase-mcp": "powershell -NoProfile -ExecutionPolicy Bypass -File \"./scripts/Setup-Supabase-MCP.ps1\"",
+    "verify:supabase-mcp": "powershell -NoProfile -ExecutionPolicy Bypass -File \"./scripts/Verifica-Supabase-MCP.ps1\""
   },
   "devDependencies": {
     "eslint-config-prettier": "^10.1.8",

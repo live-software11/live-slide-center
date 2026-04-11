@@ -7,9 +7,9 @@ alwaysApply: true
 
 ## Server per questo workspace
 
-| Nome in Cursor (`mcp.json`) | Tipo                                    | Note                                                                                                                                                                                          |
-| --------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **supabase-hosted**         | HTTP + `Authorization: Bearer ${env:SUPABASE_ACCESS_TOKEN}` | In `C:\Users\andre\.cursor\mcp.json`, URL `https://mcp.supabase.com/mcp` (senza `project_ref` = tool account + DB/storage completi). Solo PAT utente Windows. Vedi `docs/Setup_Strumenti_e_MCP.md` §2. |
+| Nome in Cursor (`mcp.json`) | Tipo                                                        | Note                                                                                                                                                                                                   |
+| --------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **supabase-hosted**         | HTTP + `Authorization: Bearer ${env:SUPABASE_ACCESS_TOKEN}` | In `C:\Users\andre\.cursor\mcp.json`, URL `https://mcp.supabase.com/mcp` (senza `project_ref` = tool account + DB/storage completi). PAT in variabile utente Windows: `pnpm run setup:supabase-mcp` (verifica: `pnpm run verify:supabase-mcp`). Dettaglio: `docs/Setup_Strumenti_e_MCP.md` §2. |
 
 ### Perche non OAuth da browser
 

@@ -30,6 +30,30 @@
 
 ## 2. Server MCP — Supabase (auth permanente, Aprile 2026)
 
+### Se non hai competenze tecniche (tutto guidato)
+
+1. Apri **PowerShell** o il terminale integrato in Cursor nella cartella del progetto **Live SLIDE CENTER**.
+2. Esegui **una sola volta**:
+
+```bash
+pnpm run setup:supabase-mcp
+```
+
+3. Lo script apre il browser, ti chiede di incollare il token (senza mostrarlo), salva tutto in Windows e ti dice di **chiudere Cursor del tutto** e riaprirlo.
+4. Per controllare che sia andato a buon fine:
+
+```bash
+pnpm run verify:supabase-mcp
+```
+
+**EN:** Run `pnpm run setup:supabase-mcp` once, then restart Cursor fully; run `pnpm run verify:supabase-mcp` to confirm env vars exist.
+
+> L’agente AI **non puo** creare il token al posto tuo (serve login nel browser con la tua password Supabase). Lo script fa tutto il resto.
+
+---
+
+## 2b. Server MCP — Supabase (auth permanente, dettagli tecnici)
+
 ### Errore `{"message":"Unrecognized client_id"}`
 
 Se durante **Authenticate** su Supabase MCP compare quel JSON nel browser, **non e un errore del tuo account**: e un problema noto del flusso **OAuth** tra Cursor e `mcp.supabase.com` (registrazione `client_id`). Riferimento: [supabase/supabase#43662](https://github.com/supabase/supabase/issues/43662).
@@ -69,15 +93,16 @@ Cursor risolve **`${env:NOME}`** all’avvio (vedi [Config Interpolation](https:
 
 1. **Account** `live.software11@gmail.com` → [Access tokens](https://supabase.com/dashboard/account/tokens) → **Generate new token** (es. `Cursor MCP Live SLIDE CENTER`). Copia il valore (spesso prefisso `sbp_`).
 2. **Variabile utente Windows** `SUPABASE_ACCESS_TOKEN` = il PAT (solo questa e obbligatoria per la config sopra).
+   - **Consigliato:** `pnpm run setup:supabase-mcp` (script guidato dalla root del repo).
    - GUI: _Impostazioni → Sistema → Informazioni → Impostazioni di sistema avanzate → Variabili d’ambiente_ → **Variabili utente** → Nuovo.
-   - Oppure: `setx SUPABASE_ACCESS_TOKEN "incolla_il_PAT"` poi **esci del tutto da Cursor** (anche dalla tray) e riapri.
+   - Oppure PowerShell: `[Environment]::SetEnvironmentVariable('SUPABASE_ACCESS_TOKEN','incolla_il_PAT','User')` poi **esci del tutto da Cursor** (anche dalla tray) e riapri.
 3. **Verifica che Windows veda il token** (PowerShell nuova, fuori da Cursor se serve):
 
 ```powershell
 [Environment]::GetEnvironmentVariable('SUPABASE_ACCESS_TOKEN', 'User')
 ```
 
-Se esce vuoto, la variabile non e impostata a livello **User** o non hai riavviato Cursor dopo `setx`.
+Se esce vuoto, la variabile non e impostata a livello **User** o non hai riavviato Cursor dopo averla salvata. Prova anche `pnpm run verify:supabase-mcp`.
 
 4. **Settings → Tools & MCP**: **supabase-hosted** deve risultare connesso (non solo “Needs authentication”). Se resta in auth: controlla Output → **MCP: Supabase** per errori 401 / header mancante.
 
