@@ -28,22 +28,55 @@
 
 ---
 
-## 2. Server MCP — stato sulla tua macchina (Aprile 2026)
+## 2. Server MCP — Supabase (auth permanente, Aprile 2026)
 
-### Aggiunto automaticamente
+### Errore `{"message":"Unrecognized client_id"}`
 
-Nel file globale **`C:\Users\andre\.cursor\mcp.json`** e presente:
+Se durante **Authenticate** su Supabase MCP compare quel JSON nel browser, **non e un errore del tuo account**: e un problema noto del flusso **OAuth** tra Cursor e `mcp.supabase.com` (registrazione `client_id`). Riferimento: [supabase/supabase#43662](https://github.com/supabase/supabase/issues/43662).
+
+**EN:** The hosted MCP OAuth flow can fail with `Unrecognized client_id`; use a **Personal Access Token (PAT)** instead — this is the official Supabase workaround for clients where OAuth is broken.
+
+### Configurazione consigliata (stabile): PAT + `project_ref`
+
+Nel file globale **`C:\Users\andre\.cursor\mcp.json`** il server **`supabase-hosted`** e configurato cosi (senza segreti in chiaro nel JSON):
 
 ```json
 "supabase-hosted": {
   "type": "http",
-  "url": "https://mcp.supabase.com/mcp"
+  "url": "https://mcp.supabase.com/mcp?project_ref=${env:SUPABASE_PROJECT_REF}",
+  "headers": {
+    "Authorization": "Bearer ${env:SUPABASE_ACCESS_TOKEN}"
+  }
 }
 ```
 
-**Cosa fare dopo:** riavvia Cursor (o **Developer: Reload Window**). Apri **Settings → MCP** e completa l’associazione / login Supabase per il progetto **live-slide-center** (account **live.software11@gmail.com**), se richiesto dall’interfaccia.
+Cursor risolve **`${env:NOME}`** all’avvio (vedi [Config Interpolation](https://developertoolkit.ai/en/cursor-ide/quick-start/mcp-setup/)).
 
-**PAT alternativo (stdio):** se preferisci non usare l’endpoint HTTP, puoi aggiungere un server con `npx -y @supabase/mcp-server-supabase@latest --project-ref TUO_REF` e impostare la variabile d’ambiente **`SUPABASE_ACCESS_TOKEN`** (token personale da [Supabase Dashboard → Account → Access Tokens](https://supabase.com/dashboard/account/tokens)).
+#### Passi (una tantum)
+
+1. **Account Supabase** `live.software11@gmail.com` → [Access tokens](https://supabase.com/dashboard/account/tokens) → **Generate new token** (es. nome `Cursor MCP Live SLIDE CENTER`). Copia il valore (inizia spesso con `sbp_`).
+2. **Project ref**: Dashboard → progetto **live-slide-center** → **Settings → General** → campo **Reference ID** (stringa corta tipo `abcdefghijklmnop` nell’URL `https://supabase.com/dashboard/project/REF`).
+3. **Variabili ambiente utente Windows** (consigliato, persistenti dopo riavvio):
+   - `SUPABASE_ACCESS_TOKEN` = il PAT
+   - `SUPABASE_PROJECT_REF` = il Reference ID
+   - Da GUI: _Impostazioni Windows → Sistema → Informazioni → Impostazioni di sistema avanzate → Variabili d’ambiente_ → **Variabili utente** → Nuovo.
+   - Oppure da PowerShell (nuova sessione Cursor dopo `setx`):
+
+```powershell
+setx SUPABASE_ACCESS_TOKEN "incolla_qui_il_PAT"
+setx SUPABASE_PROJECT_REF "incolla_qui_il_project_ref"
+```
+
+4. **Chiudi completamente Cursor** e riaprilo (le variabili `setx` non aggiornano i processi gia aperti).
+5. **Settings → MCP**: verifica che **supabase-hosted** sia verde / connesso. In chat: _«Elenca le tabelle del database con MCP Supabase»_.
+
+**Sicurezza:** il PAT ha i permessi del tuo account — non committarlo, non metterlo in `.env` del repo se e pubblico. Usa solo variabili utente o un vault. Per ridurre la superficie in produzione si puo aggiungere `&read_only=true` all’URL MCP (solo query read-only).
+
+### Alternativa: MCP stdio con `npx`
+
+Se preferisci non usare l’HTTP hosted:
+
+`npx -y @supabase/mcp-server-supabase@latest --project-ref TUO_REF` con env **`SUPABASE_ACCESS_TOKEN`** (stesso PAT).
 
 ### Gia configurati nel workspace (verificare siano attivi)
 
