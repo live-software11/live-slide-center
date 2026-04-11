@@ -66,22 +66,25 @@ Live SLIDE CENTER e il **Presentation & Projection Management System (PPMS)** de
 
 **Trade-off accettato:** Andrea deve imparare Supabase. Ma i concetti (auth, storage, realtime, edge functions) mappano 1:1 su Firebase. La curva di apprendimento e minima.
 
-### ADR-002: Cloudflare R2 per file storage blob
+### ADR-002: Supabase Storage per file blob (MVP e oltre)
 
-**Contesto:** I file sono enormi (fino a 1GB/file, 1TB/evento). Lo storage deve essere economico.
+**Contesto:** I file sono grandi (fino a 2GB/file, 1TB/evento). Lo storage deve essere economico e integrato con Auth/RLS.
 
-**Decisione:** Cloudflare R2 come storage blob primario per i file delle presentazioni.
+**Decisione:** Supabase Storage come storage blob primario. Cloudflare R2 come upgrade futuro quando i costi lo giustificano.
 
 **Motivazioni:**
 
-- **Zero egress fees**: scaricando 1TB da R2 = $0. Da Firebase Storage = $120. Da Supabase Storage = $90.
-- **S3-compatible**: usa `@aws-sdk/client-s3`, nessun SDK proprietario.
-- **Storage economico**: $0.015/GB vs $0.026/GB (Firebase) vs $0.021/GB (Supabase).
-- **Multipart upload**: supporta upload parallelo fino a 5TB per oggetto.
+- **Integrazione nativa Auth**: le Storage Policies usano lo stesso JWT tenant-scoped di Postgres. Zero configurazione aggiuntiva per isolare i file per tenant.
+- **TUS nativo**: upload resumable fino a 500GB/file su piano Pro (chunk fissi 6MB).
+- **S3 protocol compatibile**: presigned URL via SigV4, multipart upload, `@aws-sdk/client-s3` — identico a R2/S3.
+- **Un solo servizio**: DB + Auth + Realtime + Storage + Edge Functions in un unico piano Supabase.
+- **Migrazione futura trasparente**: cambia endpoint da `supabase.co/storage/v1/s3` a `r2.cloudflarestorage.com` — il codice non cambia.
 
-**Flusso upload**: Speaker → TUS endpoint (Supabase Edge Function o Worker) → R2 bucket. Metadata in PostgreSQL.
+**Perche non R2 adesso**: aggiunge un secondo account (Cloudflare), carte di credito separate, API keys separate, senza vantaggio reale fino a quando l'egress mensile non supera $50 (= 10+ clienti attivi con TB di scaricamenti). In fase MVP, Supabase Storage e gratuito fino a 50MB/file (Free tier) e $25/mese per Pro (500GB/file).
 
-**Per MVP**: si puo partire con Supabase Storage (TUS integrato) e migrare a R2 in fase di scaling. Il costo per i primi clienti e accettabile.
+**Flusso upload**: Speaker → TUS endpoint Supabase Storage → Edge Function → `presentation_versions` + Realtime.
+
+**Upgrade path**: quando egress > $50/mese → Cloudflare R2 (stesso SDK S3, migrazione 1 giorno). Vedere `docs/GUIDA_DEFINITIVA_PROGETTO.md` §2 per analisi completa.
 
 ### ADR-003: Tauri v2 per app desktop (Agent + Player)
 
@@ -149,12 +152,12 @@ Live SLIDE CENTER e il **Presentation & Projection Management System (PPMS)** de
 
 ### File Storage
 
-| Componente         | Tecnologia          | Note                                                |
-| ------------------ | ------------------- | --------------------------------------------------- |
-| Blob storage MVP   | Supabase Storage    | TUS nativo, semplice da iniziare                    |
-| Blob storage scale | Cloudflare R2       | Zero egress, S3-compatible, migrazione trasparente  |
-| Upload protocol    | TUS (RFC 7230)      | Resumable, pause/resume, retry automatico           |
-| Integrity          | SHA-256 client-side | Calcolato prima dell'upload, verificato al download |
+| Componente | Tecnologia | Note |
+| ---- | --- | --- |
+| Blob storage MVP e Pro | Supabase Storage | TUS nativo (6MB chunk), S3-compatible, fino a 500GB/file (Pro) |
+| Blob storage a scala | Cloudflare R2 | Zero egress, stessa API S3 — upgrade quando egress > $50/mese |
+| Upload protocol | TUS (RFC 7230) | Resumable, pause/resume, retry automatico |
+| Integrity | SHA-256 client-side | Calcolato prima dell'upload, verificato al download |
 
 ### Desktop — Local Agent
 
@@ -169,22 +172,24 @@ Live SLIDE CENTER e il **Presentation & Projection Management System (PPMS)** de
 
 ### Desktop — Room Player
 
-| Componente      | Tecnologia        | Note                                     |
-| --------------- | ----------------- | ---------------------------------------- |
-| Framework       | Tauri v2          | Leggero, connessione LAN                 |
-| LAN client      | Reqwest           | Polling + WebSocket verso Agent          |
-| Database locale | SQLite (rusqlite) | Stato locale, file manifest              |
-| File manager    | Filesystem        | Sync folder per file correnti            |
-| Overlay info    | Webview           | Versione, stato, timer — sempre visibile |
+> **NOTA ARCHITETTURALE (Aprile 2026):** Il Room Player NON e un'app Tauri separata. E una **Progressive Web App (PWA)** — una route dedicata `/sala/:token` in `apps/web/`. Il tecnico apre un URL nel browser (Chrome/Edge propone "Installa come app"). Zero installazione, zero mDNS, zero compilazione Rust. Vedi `docs/GUIDA_DEFINITIVA_PROGETTO.md` §3 per dettagli. La directory `apps/player/` NON deve essere creata come progetto Tauri.
+
+| Componente | Tecnologia | Note |
+| --- | --- | --- |
+| Runtime | Browser (Chrome/Edge/Safari) | PWA installabile — nessun binario da distribuire |
+| Service worker | Workbox (via vite-plugin-pwa) | Cache offline, background sync |
+| Connessione cloud | Supabase Realtime + REST | Connessione diretta se internet disponibile |
+| Connessione LAN | HTTP fetch verso Agent | Fallback se Agent disponibile sulla LAN |
+| Cache locale | Cache API (service worker) | File corrente disponibile offline |
 
 ### Deploy
 
-| Target         | Piattaforma               | Note                                 |
+| Deploy         | Piattaforma               | Note                                 |
 | -------------- | ------------------------- | ------------------------------------ |
-| Web dashboard  | Vercel o Firebase Hosting | SPA statica                          |
+| Web dashboard  | Vercel                    | SPA statica                          |
+| Room Player    | Vercel (PWA route /sala)  | Parte della stessa web app           |
 | Edge Functions | Supabase Edge Functions   | Deno runtime                         |
 | Local Agent    | Installer NSIS (Windows)  | Auto-update via tauri-plugin-updater |
-| Room Player    | Installer NSIS (Windows)  | Leggero, auto-update                 |
 
 ---
 
@@ -707,29 +712,34 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 └── config.json
 ```
 
-### 7.4 Room Player (apps/player — Tauri v2)
+### 7.4 Room Player PWA (route /sala/:token in apps/web)
 
-**Ruolo:** Installato su ogni PC di sala. Mantiene sincronizzato il file corrente per la proiezione.
+> **Architettura semplificata (Aprile 2026):** Il Room Player e una **Progressive Web App**, non un'app Tauri separata. Questo elimina installazione software su ogni PC sala, compilazione Rust e discovery mDNS. La PWA si connette direttamente al cloud (normale) o all'Agent LAN (se disponibile).
+
+**Ruolo:** Ogni PC sala apre questa route nel browser. Chrome/Edge propone "Installa come app". Il tecnico vede sempre lo stato corrente della sua sala.
 
 **Funzionalita:**
 
-- **Discovery Agent**: cerca Agent via mDNS o configurazione manuale (IP:porta)
-- **Auto-sync**: scarica file corrente appena disponibile
-- **Sync folder**: mantiene i file in una cartella accessibile dal tecnico
-- **Overlay informativo** (sempre visibile, posizionabile):
+- **Connessione automatica**: conosce la sala dal token nell'URL — zero configurazione manuale
+- **Auto-sync cloud**: subscribe a Supabase Realtime per aggiornamenti versione
+- **Fallback LAN**: se Agent e raggiungibile, scarica file piu velocemente dalla LAN
+- **Cache offline**: service worker Workbox mantiene file corrente in Cache API
+- **Overlay informativo** (sempre visibile):
   ```
-  ┌─────────────────────────────────────────────────┐
-  │  SALA 1 — Dr. Rossi — Cardiologia Interventistica │
-  │  File: presentazione_rossi_v4.pptx               │
-  │  Versione: 4 di 4 — ● SYNC OK — 14:32          │
-  └─────────────────────────────────────────────────┘
+  +--------------------------------------------------+
+  |  SALA 1 — Dr. Rossi — Cardiologia               |
+  |  File: presentazione_rossi_v4.pptx              |
+  |  Versione: 4 di 4 — SYNC OK — 14:32            |
+  +--------------------------------------------------+
   ```
-- **Azioni per il tecnico**:
-  - Apri file in PowerPoint/Keynote (lancio esterno)
-  - Forza re-download
-  - Cambia sala assegnata
-  - Mostra storico versioni
-- **Indicatori di stato**: semaforo visivo (verde/giallo/rosso) sempre in primo piano
+- **Indicatori di stato**: verde (cloud direct), giallo (LAN only), rosso (offline cache)
+- **Installazione PWA**: banner "Installa come app" → icona sul desktop — si comporta come programma nativo
+
+**Flusso installazione sala (3 click):**
+1. Admin genera URL sala nella dashboard → condivide via QR code o link
+2. Tecnico apre URL su Chrome/Edge nel PC sala
+3. Clicca "Installa" nel banner → icona sul desktop
+4. Fatto — nessun installer, nessun IP da configurare
 
 ---
 
@@ -795,13 +805,13 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 
 ## 10. Roadmap Esecutiva (16 Fasi)
 
-### FASE 0 — Bootstrap Monorepo
+### FASE 0 — Bootstrap Monorepo (COMPLETATA — Aprile 2026)
 
-- Crea monorepo con Turborepo + pnpm
-- Setup progetto Supabase (dev)
-- Configura R2 bucket (o solo Supabase Storage per MVP)
+- Monorepo Turborepo + pnpm workspace
+- Setup progetto Supabase (cloud + CLI)
+- Supabase Storage configurato (MVP — no R2 iniziale)
 - `.env.example` con tutte le variabili
-- CI base (lint + typecheck)
+- CI base (lint + typecheck + build OK)
 
 ### FASE 1 — Schema Database + RLS
 
@@ -852,34 +862,42 @@ Local Agent ──[LAN HTTP]──> Room Player (Tauri v2)
 - Indicatori di stato Agent (heartbeat)
 - Filtri per sala, sessione, stato
 
-### FASE 7 — Local Agent (Tauri v2) — MVP
+### FASE 6 — Room Player PWA
 
-- Progetto Tauri v2 con Axum backend
-- Auth con JWT tenant
-- Sync engine: download file da cloud
-- SQLite per stato locale
-- HTTP API LAN (health, rooms, manifest, download)
-- Heartbeat al cloud
-- UI dashboard locale
+- Route `/sala/:token` nella web app esistente
+- `vite-plugin-pwa` + Workbox service worker
+- Manifest PWA: nome sala, icona, dark mode, display standalone
+- Connessione Supabase Realtime per aggiornamenti versione
+- Cache offline (Cache API service worker) per il file corrente
+- Overlay informativo: sala, versione, stato verde/giallo/rosso
+- Banner "Installa come app" (`beforeinstallprompt`)
+- Fallback LAN: se Agent disponibile, usa HTTP Agent per file
+- Test su Chrome Windows, Edge, Safari iOS
 
-### FASE 8 — Room Player (Tauri v2)
+**Risultato:** il tecnico apre un URL, clicca Installa, ha l'app. Zero installazione tradizionale.
 
-- Progetto Tauri v2 leggero
-- mDNS discovery Agent (o config manuale)
-- Download file da Agent via LAN
-- Sync folder locale
-- Overlay informativo (versione, stato, sala)
-- Lancio file in app esterna (PowerPoint, Keynote)
+### FASE 7 — Local Agent (Tauri v2)
 
-### FASE 9 — Offline Architecture
+Solo quando hai almeno 1 cliente che opera in luoghi con rete inaffidabile.
+
+- Progetto Tauri v2 in `apps/agent/`
+- Auth con JWT tenant, selezione evento attivo
+- Sync engine: Supabase Realtime → download file → SQLite locale
+- HTTP API LAN su Axum (0.0.0.0:8080): health, rooms/manifest, files/download, WS
+- mDNS: si annuncia come `_slidecenter._tcp.local`
+- Heartbeat ogni 30 secondi al cloud
+- UI locale: stato sync, file cached, diagnostica
+- La PWA Room Player (Fase 6) si connette all'Agent automaticamente se disponibile
+
+### FASE 8 — Offline Architecture Completa
 
 - Agent: coda download con retry, sync recovery dopo disconnessione
-- Room Player: fallback a cache locale, stato "DISCONNESSO"
+- PWA: fallback graceful (cache → LAN Agent → cloud → offline)
 - Dashboard: indicatore "Agent offline — ultimo contatto X"
 - Test completi: disconnetti internet, disconnetti LAN, riconnetti
 - Conflict resolution: cloud-wins sempre
 
-### FASE 10 — Upload dalla Preview Room
+### FASE 9 — Upload dalla Preview Room
 
 - Agent accetta upload TUS locale (endpoint su LAN)
 - Upload dalla preview room → Agent → Cloud
@@ -970,8 +988,8 @@ Live SLIDE CENTER/
 │   │           # Fasi successive: auth/, rooms/, sessions/, speakers/,
 │   │           # presentations/, upload-portal/, live-view/, activity/, export/
 │   │
-│   ├── agent/README.md               # Stub — Tauri v2 + Axum (fasi successive)
-│   └── player/README.md              # Stub — Tauri v2 leggero (fasi successive)
+│   ├── agent/README.md               # Stub — Tauri v2 + Axum (Fase 7)
+│   # Nota: NON esiste apps/player/ — il Room Player è una PWA route di apps/web/
 │
 ├── packages/
 │   ├── shared/                       # @slidecenter/shared
@@ -1050,7 +1068,7 @@ VITE_APP_VERSION=0.0.1
 | ---------------- | ----------------------------- | ---------------------------------------------- |
 | GitHub repo      | **live-software11**           | `github.com/live-software11/live-slide-center` |
 | Supabase project | **live.software11@gmail.com** | Project: `live-slide-center`                   |
-| Cloudflare R2    | Da creare                     | Bucket: `live-slide-center-files`              |
+| Cloudflare R2    | —                             | Upgrade futuro quando egress > $50/mese |
 | Lemon Squeezy    | Via Live WORKS APP            | Prodotto "Live SLIDE CENTER"                   |
 | Vercel deploy    | **live.software11@gmail.com** | Dominio: `app.liveslidecenter.com`             |
 | Sentry           | **live.software11@gmail.com** | Progetto: `live-slide-center`                  |
@@ -1129,6 +1147,6 @@ Live SLIDE CENTER
 
 ### Comando per iniziare una sessione
 
-Apri questo file in Cursor e scrivi nel chat:
+Apri `docs/GUIDA_DEFINITIVA_PROGETTO.md` e scrivi nel chat:
 
-> "Leggi `docs/SlideHub_Live_CURSOR_BUILD.md` e inizia la FASE 1 (Auth + Tenant bootstrap). Spiega ogni passo in italiano e chiedi conferma prima di procedere alla fase successiva."
+> "Leggi `docs/GUIDA_DEFINITIVA_PROGETTO.md`. E la fonte di verita master del progetto. Inizia la FASE 1 (Auth Multi-Tenant). Spiega ogni passo in italiano e chiedi conferma prima di procedere alla fase successiva."

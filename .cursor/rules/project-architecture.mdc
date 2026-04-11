@@ -18,9 +18,9 @@ alwaysApply: true
 | Form | Zod + React Hook Form | latest |
 | i18n | i18next + react-i18next | latest |
 | Upload | tus-js-client + use-tus | latest |
+| PWA (Room Player) | vite-plugin-pwa + Workbox | latest (Fase 6) |
 | Backend/DB | Supabase (PostgreSQL + Auth + Realtime + Edge Functions + Storage) | latest |
-| Desktop Agent | Tauri v2 + Axum (Rust) + SQLite (rusqlite) | latest |
-| Desktop Player | Tauri v2 (leggero) | latest |
+| Desktop Agent | Tauri v2 + Axum (Rust) + SQLite (rusqlite) | latest (Fase 7) |
 | Monorepo | Turborepo + pnpm | latest |
 
 ## Struttura Monorepo
@@ -28,9 +28,8 @@ alwaysApply: true
 ```
 Live SLIDE CENTER/
 ├── apps/
-│   ├── web/              # Dashboard + Upload Portal (React 19 + Vite)
-│   ├── agent/            # Local Agent (Tauri v2 + Axum + SQLite)
-│   └── player/           # Room Player (Tauri v2)
+│   ├── web/              # Dashboard + Upload Portal + Room Player PWA (React 19 + Vite)
+│   └── agent/            # Local Agent (Tauri v2 + Axum + SQLite) — Fase 7
 ├── packages/
 │   ├── shared/           # Types, validators Zod, constants, utils
 │   └── ui/               # Componenti shadcn condivisi
@@ -47,7 +46,16 @@ Live SLIDE CENTER/
 └── .env.example
 ```
 
+**IMPORTANTE:** NON esiste `apps/player/`. Il Room Player e una **PWA** — route `/sala/:token` in `apps/web/`. Non creare mai un progetto Tauri separato per il Player.
+
 **GitHub (sorgente):** `https://github.com/live-software11/live-slide-center` — account org **live-software11** (vedi `.cursor/rules/github-account-live-software11.mdc`).
+
+## Storage File (Supabase Storage — decisione definitiva MVP)
+
+- **Blob storage**: Supabase Storage (TUS nativo, S3-compatible, fino a 500GB/file su Pro)
+- **Path**: `tenants/{tenant_id}/events/{event_id}/presentations/{id}/v{n}/{file}`
+- **Upgrade futuro**: Cloudflare R2 (stesso SDK S3) quando egress > $50/mese — codice invariato
+- **NON configurare R2 adesso**: aggiunge complessita senza benefici nella fase attuale
 
 ## Pattern Moduli (apps/web)
 
@@ -67,15 +75,16 @@ src/features/{nome}/
 ## Database: Supabase (PostgreSQL)
 
 - **RLS obbligatorio** su ogni tabella con `tenant_id`
-- **Realtime** abilitato su: `room_state`, `presentation_versions`, `local_agents`, `activity_log`
+- **Realtime** abilitato su: `room_state`, `presentation_versions`, `local_agents` (NON su `activity_log` — polling)
 - **Types generati**: `supabase gen types typescript --project-id <id> > packages/shared/src/types/database.ts`
 - **Migrations**: `supabase/migrations/` — ogni modifica schema e una nuova migration
 
-## Desktop: Tauri v2
+## Desktop: Tauri v2 (solo Local Agent, Fase 7+)
 
-- **Agent** (`apps/agent/`): Axum HTTP server su `0.0.0.0:8080`, rusqlite per SQLite, cache filesystem
-- **Player** (`apps/player/`): leggero, connessione LAN ad Agent, overlay informativo
+- **Agent** (`apps/agent/`): Axum HTTP server su `0.0.0.0:8080`, rusqlite per SQLite, cache filesystem, mDNS
+- **Player**: PWA in `apps/web/` (non Tauri) — connessione Supabase Realtime diretta + fallback LAN Agent
 
-## Documento di riferimento completo
+## Documenti di riferimento
 
-`docs/SlideHub_Live_CURSOR_BUILD.md` — architettura dettagliata, schema SQL, flussi sync, roadmap.
+- `docs/GUIDA_DEFINITIVA_PROGETTO.md` — **FONTE DI VERITA MASTER**: architettura, storage, PWA vs Tauri, roadmap, checklist. In caso di conflitto, questo vince.
+- `docs/SlideHub_Live_CURSOR_BUILD.md` — schema SQL dettagliato, flussi sync, design system, struttura codice.

@@ -7,12 +7,13 @@ alwaysApply: true
 
 ## Prima di modificare codice
 
-1. **Schema database / RLS**: leggere `docs/SlideHub_Live_CURSOR_BUILD.md` sezione 5 (Schema Database)
-2. **Architettura sync/offline**: leggere `docs/SlideHub_Live_CURSOR_BUILD.md` sezione 6 (Sync & Offline)
-3. **Permessi / ruoli**: verificare che la modifica rispetti il sistema RBAC (admin, tech, coordinator, speaker guest)
-4. **Gate piano**: verificare limiti tenant (storage, eventi/mese, sale/evento, agenti)
-5. **i18n**: ogni stringa IT ha coppia EN professionale nello stesso commit — ZERO eccezioni
-6. **Tenant isolation**: ogni query PostgreSQL deve avere RLS o filtro esplicito `tenant_id`
+1. **Fonte di verita master**: leggere `docs/GUIDA_DEFINITIVA_PROGETTO.md` per architettura, decisioni storage, PWA vs Tauri, roadmap
+2. **Schema database / RLS**: leggere `docs/SlideHub_Live_CURSOR_BUILD.md` sezione 5 (Schema Database)
+3. **Architettura sync/offline**: leggere `docs/SlideHub_Live_CURSOR_BUILD.md` sezione 6 (Sync & Offline)
+4. **Permessi / ruoli**: verificare che la modifica rispetti il sistema RBAC (admin, tech, coordinator, speaker guest)
+5. **Gate piano**: verificare limiti tenant (storage, eventi/mese, sale/evento, agenti)
+6. **i18n**: ogni stringa IT ha coppia EN professionale nello stesso commit — ZERO eccezioni
+7. **Tenant isolation**: ogni query PostgreSQL deve avere RLS o filtro esplicito `tenant_id`
 
 ## Ordine di esecuzione per task complessi
 
@@ -32,6 +33,8 @@ alwaysApply: true
 - **Versioni immutabili**: `presentation_versions` e append-only — mai UPDATE su una versione esistente
 - **i18n completezza**: ogni stringa IT visibile in UI deve avere coppia EN professionale nello stesso commit
 - **Dark mode only**: UI in tema scuro — ambiente operativo regia
+- **Room Player = PWA**: mai creare `apps/player/` come progetto Tauri — il Player e route `/sala/:token` in `apps/web/`
+- **Storage = Supabase Storage**: mai configurare Cloudflare R2 finche egress < $50/mese
 
 ## Checklist pre-modifica
 
