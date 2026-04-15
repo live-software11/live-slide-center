@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { AuthContext } from './auth-context';
-import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { SupabaseEnvMissingScreen } from './supabase-env-missing-screen';
+import { getSupabaseBrowserClient, isSupabaseBrowserConfigured } from '@/lib/supabase';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  if (!isSupabaseBrowserConfigured()) {
+    return <SupabaseEnvMissingScreen />;
+  }
+  return <AuthProviderInner>{children}</AuthProviderInner>;
+}
+
+function AuthProviderInner({ children }: { children: ReactNode }) {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
