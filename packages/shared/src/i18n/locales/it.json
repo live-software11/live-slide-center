@@ -56,7 +56,15 @@
     "statusSetup": "In preparazione",
     "statusActive": "Attivo",
     "statusClosed": "Concluso",
-    "statusArchived": "Archiviato"
+    "statusArchived": "Archiviato",
+    "listIntro": "Elenco degli eventi del tuo tenant (dati isolati da RLS). Crea un evento per iniziare il workflow.",
+    "listTitle": "I tuoi eventi",
+    "emptyList": "Nessun evento ancora. Compila il modulo sopra per crearne uno.",
+    "dateOrderError": "La data di fine deve essere uguale o successiva alla data di inizio.",
+    "errors": {
+      "load": "Impossibile caricare gli eventi",
+      "missingTenant": "Sessione senza tenant associato. Esci e accedi di nuovo oppure contatta il supporto."
+    }
   },
   "room": {
     "title": "Sala",
@@ -160,9 +168,18 @@
   "admin": {
     "badge": "Super-Admin",
     "navOverview": "Panoramica",
+    "navTenants": "Tenant",
     "backToTenant": "Torna alla dashboard tenant",
     "dashboardTitle": "Panoramica piattaforma",
-    "dashboardIntro": "Vista globale tenant e metadati (nessun contenuto file). Le sezioni dettaglio (/admin/tenants, quote, audit) arriveranno in Fase 7."
+    "dashboardIntro": "Vista globale tenant e metadati (nessun contenuto file). Le sezioni dettaglio (/admin/tenants, quote, audit) arriveranno in Fase 7.",
+    "tenantsTitle": "Organizzazioni (tenant)",
+    "tenantsIntro": "Metadati tenant: piano, slug, utilizzo storage. Nessun file presentazione (GDPR).",
+    "tenantsEmpty": "Nessun tenant nel database.",
+    "tenantsLoadError": "Impossibile caricare l'elenco tenant",
+    "colTenantName": "Organizzazione",
+    "colSlug": "Slug",
+    "colPlan": "Piano",
+    "colStorage": "Storage"
   },
   "a11y": {
     "adminNav": "Navigazione area Super-Admin",

@@ -19,6 +19,12 @@ export function AdminRootLayout() {
             {t('admin.navOverview')}
           </Link>
           <Link
+            to="/admin/tenants"
+            className="rounded-md px-3 py-2 text-sm font-medium hover:bg-zinc-800"
+          >
+            {t('admin.navTenants')}
+          </Link>
+          <Link
             to="/"
             className="mt-4 rounded-md px-3 py-2 text-sm text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
           >

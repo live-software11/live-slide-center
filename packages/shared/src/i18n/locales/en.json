@@ -56,7 +56,15 @@
     "statusSetup": "Setting up",
     "statusActive": "Active",
     "statusClosed": "Closed",
-    "statusArchived": "Archived"
+    "statusArchived": "Archived",
+    "listIntro": "Events for your organization (RLS-isolated). Create an event to start the workflow.",
+    "listTitle": "Your events",
+    "emptyList": "No events yet. Use the form above to create one.",
+    "dateOrderError": "End date must be on or after the start date.",
+    "errors": {
+      "load": "Unable to load events",
+      "missingTenant": "No tenant on this session. Sign out and sign in again, or contact support."
+    }
   },
   "room": {
     "title": "Room",
@@ -160,9 +168,18 @@
   "admin": {
     "badge": "Super-Admin",
     "navOverview": "Overview",
+    "navTenants": "Tenants",
     "backToTenant": "Back to tenant dashboard",
     "dashboardTitle": "Platform overview",
-    "dashboardIntro": "Cross-tenant metadata view (no presentation file content). Detailed sections (/admin/tenants, quotas, audit) ship in Phase 7."
+    "dashboardIntro": "Cross-tenant metadata view (no presentation file content). Detailed sections (/admin/tenants, quotas, audit) ship in Phase 7.",
+    "tenantsTitle": "Organizations (tenants)",
+    "tenantsIntro": "Tenant metadata: plan, slug, storage usage. No presentation files (GDPR).",
+    "tenantsEmpty": "No tenants in the database.",
+    "tenantsLoadError": "Unable to load tenant list",
+    "colTenantName": "Organization",
+    "colSlug": "Slug",
+    "colPlan": "Plan",
+    "colStorage": "Storage"
   },
   "a11y": {
     "adminNav": "Super-Admin area navigation",

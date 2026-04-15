@@ -1,7 +1,7 @@
 # GUIDA DEFINITIVA PROGETTO — Live SLIDE CENTER
 
 > **Documento UNICO di riferimento.** Questo file sostituisce e incorpora: `PIANO_MASTER_v3.md`, `SlideHub_Live_CURSOR_BUILD.md`, `PRE_CODE_PREPARATION.md`, `LIVE_SLIDE_CENTER_DEFINITIVO.md`. Nessun altro documento ha autorita su questo. Se trovi una contraddizione altrove, **questo vince**.
-> **Versione:** 3.0.3 — 15 Aprile 2026 (`Database` tipizzato da migration; `/admin` + guard super_admin; Docker ancora richiesto per `gen types --local`)
+> **Versione:** 3.0.4 — 15 Aprile 2026 (`/admin/tenants`, lista+creazione eventi tenant; Docker ancora richiesto per `db reset` / `gen types --local`)
 > **Autore:** Andrea Rizzari + CTO Senior AI Review
 > **Stack:** React 19 + Vite 8 + TypeScript strict + Supabase + Vercel — gia funzionante nel repo
 
@@ -574,21 +574,23 @@ WHERE email = 'live.software11@gmail.com';
 
 ### Rotte applicazione (mappa completa)
 
-| Rotta          | Componente                             | Accesso              | Auth               |
-| -------------- | -------------------------------------- | -------------------- | ------------------ |
-| `/`            | `DashboardView`                        | Tenant (autenticato) | JWT tenant         |
-| `/events/*`    | Views eventi, sale, sessioni           | Tenant               | JWT tenant         |
-| `/team`        | `TeamView`                             | Admin tenant         | JWT admin          |
-| `/storage`     | `StorageView`                          | Tenant               | JWT tenant         |
-| `/billing`     | `BillingView`                          | Admin tenant         | JWT admin          |
-| `/settings`    | `SettingsView`                         | Tenant               | JWT tenant         |
+| Rotta          | Componente                             | Accesso              | Auth                    |
+| -------------- | -------------------------------------- | -------------------- | ----------------------- |
+| `/`            | `DashboardView`                        | Tenant (autenticato) | JWT tenant              |
+| `/events`      | `EventsView` — lista + creazione evento | Tenant               | JWT tenant              |
+| `/events/*`    | Dettaglio evento (Fase 2+)             | Tenant               | JWT tenant              |
+| `/team`        | `TeamView`                             | Admin tenant         | JWT admin               |
+| `/storage`     | `StorageView`                          | Tenant               | JWT tenant              |
+| `/billing`     | `BillingView`                          | Admin tenant         | JWT admin               |
+| `/settings`    | `SettingsView`                         | Tenant               | JWT tenant              |
 | `/admin`       | `AdminDashboardView` (stub)            | Solo `super_admin`   | JWT `app_metadata.role` |
-| `/admin/*`     | Altre viste Super-Admin (Fase 7)       | Solo `super_admin`   | JWT super_admin    |
-| `/pair`        | `PairView` — tastierino codice 6 cifre | Pubblico (tecnico)   | Nessuna            |
-| `/sala/:token` | `RoomPlayerView` — PWA file manager    | PC sala paired       | JWT sala (pairing) |
-| `/u/:token`    | `UploadPortalView` — upload relatore   | Speaker esterno      | `upload_token`     |
-| `/login`       | `LoginView`                            | Pubblico             | Nessuna            |
-| `/signup`      | `SignupView`                           | Pubblico             | Nessuna            |
+| `/admin/tenants` | `AdminTenantsView` — tabella tenant  | Solo `super_admin`   | JWT super_admin         |
+| `/admin/*`     | Altre viste Super-Admin (Fase 7)       | Solo `super_admin`   | JWT super_admin         |
+| `/pair`        | `PairView` — tastierino codice 6 cifre | Pubblico (tecnico)   | Nessuna                 |
+| `/sala/:token` | `RoomPlayerView` — PWA file manager    | PC sala paired       | JWT sala (pairing)      |
+| `/u/:token`    | `UploadPortalView` — upload relatore   | Speaker esterno      | `upload_token`          |
+| `/login`       | `LoginView`                            | Pubblico             | Nessuna                 |
+| `/signup`      | `SignupView`                           | Pubblico             | Nessuna                 |
 
 ---
 
@@ -726,23 +728,23 @@ export const PLAN_LIMITS: Record<TenantPlan, PlanLimits> = {
 
 ## 15. Roadmap Esecutiva
 
-| Fase  | Nome                                     | Stato          | Note                                                                                                          |
-| ----- | ---------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------- |
-| 0     | Bootstrap monorepo                       | **Completata** | Stack funzionante nel repo                                                                                    |
+| Fase  | Nome                                     | Stato          | Note                                                                                                                                                                             |
+| ----- | ---------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | Bootstrap monorepo                       | **Completata** | Stack funzionante nel repo                                                                                                                                                       |
 | 1     | Auth multi-tenant + signup + super-admin | **In corso**   | Trigger DB + `/login` `/signup` + `RequireAuth` + `/admin` + `RequireSuperAdmin`; tipi `Database` in `packages/shared` (allineati migration); restano inviti team, hardening JWT |
-| 2     | CRUD Eventi/Sale/Sessioni/Speaker        | Da fare        | Enforcement quote, import CSV                                                                                 |
-| 3     | Upload Portal relatori (TUS)             | Da fare        | SHA-256 client-side, QR per speaker                                                                           |
-| 4     | Versioning + storico                     | Da fare        | Append-only, status workflow, rollback                                                                        |
-| 5     | Vista Regia realtime                     | Da fare        | Subscribe Realtime, griglia sale, activity feed                                                               |
-| **6** | **Pairing Device + Room Player PWA**     | **Da fare**    | **Codice 6 cifre, Edge Functions, PWA offline**                                                               |
-| 7     | Dashboard Super-Admin                    | **In corso**   | Guard + layout + stub `/admin`; pagine `/admin/tenants`, quote, audit                                        |
-| 8     | Local Agent Tauri (Modalita B)           | Da fare        | Solo dopo primo cliente con rete incerta                                                                      |
-| 9     | Offline architecture completa            | Da fare        | Cache PWA + fallback Agent                                                                                    |
-| 10    | Export fine evento                       | Da fare        | ZIP + CSV + PDF                                                                                               |
-| 11    | Billing Lemon Squeezy                    | Da fare        | Solo a primo cliente pagante                                                                                  |
-| 12    | i18n completamento                       | In corso       | ~150 chiavi gia, completare                                                                                   |
-| 13    | Integrazioni ecosistema                  | Futuro         | Timer, CREW, API pubblica                                                                                     |
-| 14    | Hardening + Sentry + E2E                 | Pre-vendita    | Rate limiting, audit RLS, Playwright                                                                          |
+| 2     | CRUD Eventi/Sale/Sessioni/Speaker        | **In corso**   | `/events`: lista + insert; sale/sessioni/speaker, quote, import CSV                                                                                                                                 |
+| 3     | Upload Portal relatori (TUS)             | Da fare        | SHA-256 client-side, QR per speaker                                                                                                                                              |
+| 4     | Versioning + storico                     | Da fare        | Append-only, status workflow, rollback                                                                                                                                           |
+| 5     | Vista Regia realtime                     | Da fare        | Subscribe Realtime, griglia sale, activity feed                                                                                                                                  |
+| **6** | **Pairing Device + Room Player PWA**     | **Da fare**    | **Codice 6 cifre, Edge Functions, PWA offline**                                                                                                                                  |
+| 7     | Dashboard Super-Admin                    | **In corso**   | `/admin/tenants` lista tenant; restano `/admin/tenants/:id`, quote, audit                                                                                                        |
+| 8     | Local Agent Tauri (Modalita B)           | Da fare        | Solo dopo primo cliente con rete incerta                                                                                                                                         |
+| 9     | Offline architecture completa            | Da fare        | Cache PWA + fallback Agent                                                                                                                                                       |
+| 10    | Export fine evento                       | Da fare        | ZIP + CSV + PDF                                                                                                                                                                  |
+| 11    | Billing Lemon Squeezy                    | Da fare        | Solo a primo cliente pagante                                                                                                                                                     |
+| 12    | i18n completamento                       | In corso       | ~150 chiavi gia, completare                                                                                                                                                      |
+| 13    | Integrazioni ecosistema                  | Futuro         | Timer, CREW, API pubblica                                                                                                                                                        |
+| 14    | Hardening + Sentry + E2E                 | Pre-vendita    | Rate limiting, audit RLS, Playwright                                                                                                                                             |
 
 **Logica:** Fasi 1-6 = MVP cloud vendibile. Fase 7 = gestione clienti. Fasi 8-9 = offline premium. Fasi 10-14 = monetizzazione e polish.
 
@@ -834,7 +836,7 @@ Live SLIDE CENTER/
 - [ ] Wireframe Room Player fullscreen
 - [ ] Wireframe dashboard super-admin
 
-**EN — Checklist status:** Migrations are in-repo; tenant routes are auth-guarded; `SignupView` calls `refreshSession()` after signup. `packages/shared/src/types/database.ts` is **hand-maintained** from migrations until Docker allows `supabase gen types --local`. `/admin` uses `RequireSuperAdmin` plus a stub overview. Remaining: run `db reset` when Docker is available, regenerate types and diff, design wireframes, Phase 1 team invites, and Phase 7 admin sub-routes.
+**EN — Checklist status:** Migrations are in-repo; tenant routes are auth-guarded; `SignupView` calls `refreshSession()` after signup. `database.ts` is hand-maintained until `supabase gen types --local` runs. Super-admin has `/admin` and `/admin/tenants` (metadata only). Tenant `/events` lists and creates events (RLS). Remaining: Docker `db reset` + type regen, wireframes, Phase 1 invites, event detail + rooms/sessions/speakers, further admin routes.
 
 ---
 
