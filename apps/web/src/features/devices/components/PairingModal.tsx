@@ -73,7 +73,7 @@ export function PairingModal({ eventId, roomId, onClose, onPaired }: PairingModa
     if (s.status === 'idle' || s.status === 'generating') {
       return (
         <div className="flex flex-col items-center gap-4 py-8">
-          <Loader2 className="h-10 w-10 animate-spin text-blue-400" />
+          <Loader2 className="h-10 w-10 animate-spin text-sc-primary" />
           <p className="text-sm text-sc-text-muted">{t('devices.pairing.generating')}</p>
         </div>
       );
@@ -112,7 +112,7 @@ export function PairingModal({ eventId, roomId, onClose, onPaired }: PairingModa
     if (s.status === 'paired') {
       return (
         <div className="flex flex-col items-center gap-4 py-8">
-          <CheckCircle2 className="h-12 w-12 text-green-400" />
+          <CheckCircle2 className="h-12 w-12 text-sc-success" />
           <p className="text-lg font-semibold text-white">
             {t('devices.pairing.success', { name: s.deviceName })}
           </p>

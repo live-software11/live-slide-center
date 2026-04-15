@@ -28,7 +28,7 @@ export function EventSummaryBar({ snapshot, eventName }: Props) {
 
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-sc-primary/12 bg-sc-surface px-5 py-3">
-      <h2 className="text-sm font-semibold text-zinc-50 sm:text-base">{eventName}</h2>
+      <h2 className="text-sm font-semibold text-sc-text sm:text-base">{eventName}</h2>
       <Stat label={t('liveView.statRooms')} value={stats.rooms} />
       <Stat label={t('liveView.statSpeakers')} value={stats.totalSpeakers} />
       <Stat label={t('liveView.statUploaded')} value={stats.uploaded} color="text-sc-primary" />

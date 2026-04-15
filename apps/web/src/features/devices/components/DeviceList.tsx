@@ -49,7 +49,7 @@ function DeviceMenu({ device, rooms, onDone }: DeviceMenuProps) {
           <div className="flex gap-2 px-2 py-1">
             <input
               autoFocus
-              className="flex-1 rounded bg-sc-surface px-2 py-1 text-sm text-white outline-none ring-1 ring-blue-500"
+              className="flex-1 rounded bg-sc-surface px-2 py-1 text-sm text-white outline-none ring-1 ring-sc-ring/40"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => {
@@ -148,7 +148,7 @@ export function DeviceList({ devices, rooms, onRefresh }: DeviceListProps) {
 
             <div className="flex items-center gap-1">
               {isOnline ? (
-                <Wifi className="h-4 w-4 text-green-400" aria-label={t('devices.list.online')} />
+                <Wifi className="h-4 w-4 text-sc-success" aria-label={t('devices.list.online')} />
               ) : (
                 <WifiOff
                   className="h-4 w-4 text-sc-text-dim"

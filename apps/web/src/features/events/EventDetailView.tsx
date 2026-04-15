@@ -705,7 +705,7 @@ export default function EventDetailView() {
                   <p className="max-w-xs text-right text-xs text-sc-warning">{t('event.deleteCascadeHint')}</p>
                   <div className="flex gap-2">
                     <button type="button" disabled={eventDeleteBusy}
-                      className="rounded-xl bg-red-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
+                      className="rounded-xl bg-sc-danger px-3 py-1.5 text-sm font-medium text-white hover:bg-sc-danger/80 disabled:opacity-50"
                       onClick={async () => {
                         setEventDeleteBusy(true);
                         setDeleteError(null);
@@ -729,7 +729,7 @@ export default function EventDetailView() {
                 </div>
               ) : (
                 <button type="button"
-                  className="rounded-xl bg-red-900/50 px-3 py-1.5 text-sm font-medium text-sc-danger hover:bg-red-800/60"
+                  className="rounded-xl bg-sc-danger/15 px-3 py-1.5 text-sm font-medium text-sc-danger hover:bg-sc-danger/25"
                   aria-label={t('event.deleteAriaLabel', { name: event.name })}
                   onClick={() => setPendingEventDelete(true)}>
                   {t('event.delete')}
@@ -742,7 +742,7 @@ export default function EventDetailView() {
 
       {deleteError ? (
         <div
-          className="mt-4 rounded-xl border border-red-900/40 bg-red-950/40 px-4 py-3 text-sm text-sc-danger"
+          className="mt-4 rounded-xl border border-sc-danger/20 bg-sc-danger/10 px-4 py-3 text-sm text-sc-danger"
           role="alert"
         >
           <p>
@@ -920,7 +920,7 @@ export default function EventDetailView() {
                         <button
                           type="button"
                           disabled={deleteBusy}
-                          className="rounded-xl bg-red-900/50 px-3 py-1.5 text-xs font-medium text-sc-danger hover:bg-red-800 disabled:opacity-50"
+                          className="rounded-xl bg-sc-danger/15 px-3 py-1.5 text-xs font-medium text-sc-danger hover:bg-sc-danger/25 disabled:opacity-50"
                           onClick={async () => {
                             setDeleteBusy(true);
                             setDeleteError(null);
@@ -1346,7 +1346,7 @@ export default function EventDetailView() {
                           <button
                             type="button"
                             disabled={deleteBusy}
-                            className="rounded-xl bg-red-900/50 px-3 py-1.5 text-xs font-medium text-sc-danger hover:bg-red-800 disabled:opacity-50"
+                            className="rounded-xl bg-sc-danger/15 px-3 py-1.5 text-xs font-medium text-sc-danger hover:bg-sc-danger/25 disabled:opacity-50"
                             onClick={async () => {
                               setDeleteBusy(true);
                               setDeleteError(null);
@@ -1779,7 +1779,7 @@ export default function EventDetailView() {
                           <button
                             type="button"
                             disabled={deleteBusy}
-                            className="rounded-xl bg-red-900/50 px-3 py-1.5 text-xs font-medium text-sc-danger hover:bg-red-800 disabled:opacity-50"
+                            className="rounded-xl bg-sc-danger/15 px-3 py-1.5 text-xs font-medium text-sc-danger hover:bg-sc-danger/25 disabled:opacity-50"
                             onClick={async () => {
                               setDeleteBusy(true);
                               setDeleteError(null);

@@ -355,7 +355,7 @@ export default function UploadPortalView() {
       </div>
 
       {state.kind === 'error' ? (
-        <p className="mt-4 rounded-xl border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm text-red-300">
+        <p className="mt-4 rounded-xl border border-sc-danger/20 bg-sc-danger/10 px-3 py-2 text-sm text-sc-danger">
           {t(state.messageKey, state.params)}
         </p>
       ) : null}

@@ -94,7 +94,7 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
 
   if (error) {
     return (
-      <div className="mt-3 rounded-xl border border-red-900/60 bg-red-950/40 px-3 py-2 text-xs text-red-300">
+      <div className="mt-3 rounded-xl border border-sc-danger/20 bg-sc-danger/10 px-3 py-2 text-xs text-sc-danger">
         {t('presentation.versions.loadError')}
       </div>
     );
@@ -166,7 +166,7 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
             value={noteDraft}
             onChange={(e) => setNoteDraft(e.target.value)}
             rows={2}
-            className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+            className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
             placeholder={t('presentation.versions.reviewerNotePlaceholder', { name: speakerName })}
           />
           <div className="mt-2 flex flex-wrap gap-2">
@@ -206,7 +206,7 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
       ) : null}
 
       {actionError ? (
-        <p className="rounded border border-red-900/60 bg-red-950/40 px-3 py-2 text-xs text-red-300">
+        <p className="rounded border border-sc-danger/20 bg-sc-danger/10 px-3 py-2 text-xs text-sc-danger">
           {t('presentation.versions.actionError')}
         </p>
       ) : null}
@@ -234,7 +234,7 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
                     {v.file_hash_sha256 ? (
                       <span
                         title={v.file_hash_sha256}
-                        className="font-mono text-[10px] text-zinc-600"
+                        className="font-mono text-[10px] text-sc-text-dim"
                       >
                         {t('presentation.versions.hashShort', {
                           hash: v.file_hash_sha256.slice(0, 12),
@@ -258,7 +258,7 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
                     <button
                       type="button"
                       disabled={actionBusy === `rb:${v.id}`}
-                      className="rounded-xl border border-amber-700/60 px-2.5 py-1 text-xs font-medium text-amber-200/90 hover:bg-amber-950/40 disabled:opacity-40"
+                      className="rounded-xl border border-sc-warning/30 px-2.5 py-1 text-xs font-medium text-sc-warning hover:bg-sc-warning/10 disabled:opacity-40"
                       onClick={() => void onRollback(v)}
                     >
                       {actionBusy === `rb:${v.id}`
@@ -280,10 +280,10 @@ function StatusBadge({ status }: { status: PresentationStatus }) {
   const { t } = useTranslation();
   const tone: Record<PresentationStatus, string> = {
     pending: 'border-sc-primary/20 bg-sc-surface text-sc-text-muted',
-    uploaded: 'border-blue-900/60 bg-blue-950/40 text-blue-300',
+    uploaded: 'border-sc-primary/20 bg-sc-primary/10 text-sc-primary',
     reviewed: 'border-sc-primary/20 bg-sc-surface text-sc-text',
-    approved: 'border-emerald-900/60 bg-emerald-950/40 text-emerald-300',
-    rejected: 'border-red-900/60 bg-red-950/40 text-red-300',
+    approved: 'border-sc-success/20 bg-sc-success/10 text-sc-success',
+    rejected: 'border-sc-danger/20 bg-sc-danger/10 text-sc-danger',
   };
   return (
     <span
@@ -304,16 +304,16 @@ function VersionStatusBadge({
   const { t } = useTranslation();
   if (isCurrent) {
     return (
-      <span className="inline-flex items-center rounded border border-emerald-700/70 bg-emerald-950/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+      <span className="inline-flex items-center rounded border border-sc-success/40 bg-sc-success/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sc-success">
         {t('presentation.versions.currentBadge')}
       </span>
     );
   }
   const tone: Record<PresentationVersion['status'], string> = {
-    uploading: 'border-blue-900/60 bg-blue-950/40 text-blue-300',
-    processing: 'border-blue-900/60 bg-blue-950/40 text-blue-300',
-    ready: 'border-emerald-900/60 bg-emerald-950/40 text-emerald-300',
-    failed: 'border-red-900/60 bg-red-950/40 text-red-300',
+    uploading: 'border-sc-primary/20 bg-sc-primary/10 text-sc-primary',
+    processing: 'border-sc-primary/20 bg-sc-primary/10 text-sc-primary',
+    ready: 'border-sc-success/20 bg-sc-success/10 text-sc-success',
+    failed: 'border-sc-danger/20 bg-sc-danger/10 text-sc-danger',
     superseded: 'border-sc-primary/20 bg-sc-surface text-sc-text-dim',
   };
   return (
@@ -338,9 +338,9 @@ function StatusAction({
 }) {
   const cls =
     tone === 'success'
-      ? 'border-emerald-700/60 text-emerald-300 hover:bg-emerald-950/40'
+      ? 'border-sc-success/30 text-sc-success hover:bg-sc-success/10'
       : tone === 'danger'
-        ? 'border-red-700/60 text-red-300 hover:bg-red-950/40'
+        ? 'border-sc-danger/30 text-sc-danger hover:bg-sc-danger/10'
         : 'border-sc-primary/20 text-sc-text hover:bg-sc-elevated';
   return (
     <button

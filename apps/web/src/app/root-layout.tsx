@@ -32,7 +32,7 @@ export function RootLayout() {
     <div className="flex min-h-screen bg-sc-bg text-sc-text">
       <aside className="hidden w-64 shrink-0 border-r border-sc-primary/10 bg-sc-surface/80 backdrop-blur-xl lg:flex lg:flex-col">
         <div className="flex h-16 items-center gap-2.5 border-b border-sc-primary/10 px-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sc-navy ring-1 ring-white/10">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-sc-navy ring-1 ring-white/10">
             <span className="text-sm font-bold text-sc-primary">SC</span>
           </div>
           <span className="text-sm font-semibold tracking-tight text-sc-text">

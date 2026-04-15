@@ -128,7 +128,7 @@ export default function LiveRegiaView() {
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="rounded-md border border-sc-primary/20 px-3 py-1.5 text-xs font-medium text-sc-text-secondary hover:bg-sc-elevated"
+            className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs font-medium text-sc-text-secondary hover:bg-sc-elevated"
             aria-label={t('liveView.toggleFullscreen')}
           >
             {isFullscreen ? t('liveView.exitFullscreen') : t('liveView.enterFullscreen')}
@@ -143,7 +143,7 @@ export default function LiveRegiaView() {
           <div className="mt-4 flex flex-1 gap-4">
             <div className="min-w-0 flex-1">
               {snapshot.rooms.length === 0 ? (
-                <div className="flex items-center justify-center rounded-lg border border-sc-primary/12 bg-sc-surface py-20">
+                <div className="flex items-center justify-center rounded-xl border border-sc-primary/12 bg-sc-surface py-20">
                   <p className="text-sm text-sc-text-dim">{t('liveView.noRooms')}</p>
                 </div>
               ) : (

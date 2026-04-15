@@ -38,13 +38,13 @@ interface RoomData {
 function syncStatusColor(status: SyncStatus): string {
   switch (status) {
     case 'synced':
-      return 'text-green-400 bg-green-900/30 border-green-700/40';
+      return 'text-sc-success bg-sc-success/10 border-sc-success/30';
     case 'syncing':
-      return 'text-yellow-400 bg-yellow-900/30 border-yellow-700/40';
+      return 'text-sc-warning bg-sc-warning/10 border-sc-warning/30';
     case 'outdated':
-      return 'text-orange-400 bg-orange-900/30 border-orange-700/40';
+      return 'text-sc-accent bg-sc-accent/10 border-sc-accent/30';
     case 'offline':
-      return 'text-sc-danger bg-red-900/30 border-red-700/40';
+      return 'text-sc-danger bg-sc-danger/10 border-sc-danger/30';
   }
 }
 
@@ -292,7 +292,7 @@ export default function RoomPlayerView() {
       <main className="flex-1 overflow-auto p-4 space-y-4">
         {/* Banner selezione cartella */}
         {supported && !dirHandle && (
-          <div className="rounded-xl border border-blue-800/60 bg-blue-950/40 p-4">
+          <div className="rounded-xl border border-sc-primary/20 bg-sc-primary/10 p-4">
             <p className="text-sm font-medium text-sc-primary">{t('roomPlayer.fileSync.pickFolderTitle')}</p>
             <p className="mt-1 text-xs text-sc-primary/80">{t('roomPlayer.fileSync.pickFolderHint')}</p>
             <button
@@ -308,9 +308,9 @@ export default function RoomPlayerView() {
 
         {/* Cartella selezionata — info */}
         {supported && dirHandle && (
-          <div className="flex items-center gap-2 rounded-xl border border-green-800/40 bg-green-950/20 px-3 py-2">
-            <FolderOpen className="h-4 w-4 shrink-0 text-green-400" />
-            <span className="min-w-0 flex-1 truncate text-xs text-green-300">
+          <div className="flex items-center gap-2 rounded-xl border border-sc-success/20 bg-sc-success/10 px-3 py-2">
+            <FolderOpen className="h-4 w-4 shrink-0 text-sc-success" />
+            <span className="min-w-0 flex-1 truncate text-xs text-sc-success">
               {t('roomPlayer.fileSync.folderActive', { name: dirHandle.name })}
             </span>
           </div>
@@ -318,7 +318,7 @@ export default function RoomPlayerView() {
 
         {/* Avviso browser non supportato */}
         {!supported && (
-          <div className="rounded-xl border border-amber-800/40 bg-amber-950/20 px-3 py-2">
+          <div className="rounded-xl border border-sc-warning/20 bg-sc-warning/10 px-3 py-2">
             <p className="text-xs text-sc-warning">{t('roomPlayer.fileSync.notSupported')}</p>
           </div>
         )}

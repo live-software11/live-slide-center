@@ -12,7 +12,7 @@ export function RequireSuperAdmin() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-400">
+      <div className="flex min-h-screen items-center justify-center bg-sc-bg text-sc-text-muted">
         {t('auth.loadingSession')}
       </div>
     );

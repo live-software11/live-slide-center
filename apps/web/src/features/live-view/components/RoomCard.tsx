@@ -14,9 +14,9 @@ function presentationStatusColor(status: string): string {
     case 'reviewed':
       return 'bg-sc-primary';
     case 'rejected':
-      return 'bg-red-500';
+      return 'bg-sc-danger';
     default:
-      return 'bg-zinc-600';
+      return 'bg-sc-text-dim';
   }
 }
 
@@ -44,13 +44,13 @@ export function RoomCard({ data }: Props) {
 
   const uploadRatio = totalSpeakers > 0 ? uploadedCount / totalSpeakers : 0;
   const barColor =
-    uploadRatio >= 1 ? 'bg-sc-success' : uploadRatio > 0.5 ? 'bg-sc-primary' : uploadRatio > 0 ? 'bg-sc-warning' : 'bg-zinc-700';
+    uploadRatio >= 1 ? 'bg-sc-success' : uploadRatio > 0.5 ? 'bg-sc-primary' : uploadRatio > 0 ? 'bg-sc-warning' : 'bg-sc-elevated';
 
   return (
     <div className="flex flex-col rounded-xl border border-sc-primary/12 bg-sc-surface p-4">
       <header className="mb-3 flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold text-zinc-50">{room.name}</h3>
+          <h3 className="truncate text-sm font-semibold text-sc-text">{room.name}</h3>
           <p className="text-[10px] uppercase tracking-wide text-sc-text-dim">
             {t(`room.type${capitalize(room.room_type)}`)}
           </p>
@@ -68,7 +68,7 @@ export function RoomCard({ data }: Props) {
       </div>
 
       {currentSession ? (
-        <div className="mb-2 rounded-md border border-blue-900/40 bg-blue-950/30 px-3 py-2">
+        <div className="mb-2 rounded-xl border border-sc-primary/20 bg-sc-primary/10 px-3 py-2">
           <p className="text-[10px] uppercase tracking-wide text-sc-primary">{t('liveView.nowPlaying')}</p>
           <p className="mt-0.5 text-sm font-medium text-sc-text line-clamp-1">{currentSession.title}</p>
           <p className="text-xs text-sc-text-muted">
@@ -76,13 +76,13 @@ export function RoomCard({ data }: Props) {
           </p>
         </div>
       ) : (
-        <div className="mb-2 rounded-md border border-sc-primary/12 bg-sc-surface/40 px-3 py-2">
+        <div className="mb-2 rounded-xl border border-sc-primary/12 bg-sc-surface/40 px-3 py-2">
           <p className="text-[10px] text-sc-text-dim">{t('liveView.noCurrentSession')}</p>
         </div>
       )}
 
       {nextSession && (!currentSession || nextSession.id !== currentSession.id) ? (
-        <div className="mb-3 rounded-md border border-sc-primary/12 bg-sc-surface/40 px-3 py-1.5">
+        <div className="mb-3 rounded-xl border border-sc-primary/12 bg-sc-surface/40 px-3 py-1.5">
           <p className="text-[10px] uppercase tracking-wide text-sc-text-dim">{t('liveView.upNext')}</p>
           <p className="text-xs text-sc-text-secondary line-clamp-1">{nextSession.title}</p>
           <p className="text-[10px] text-sc-text-dim">
@@ -98,7 +98,7 @@ export function RoomCard({ data }: Props) {
             return (
               <li key={sp.id} className="flex items-center gap-2 text-xs">
                 <span
-                  className={`h-2 w-2 shrink-0 rounded-full ${pres ? presentationStatusColor(pres.status) : 'bg-zinc-700'}`}
+                  className={`h-2 w-2 shrink-0 rounded-full ${pres ? presentationStatusColor(pres.status) : 'bg-sc-elevated'}`}
                   title={pres ? t(`presentation.status${capitalize(pres.status)}`) : t('presentation.statusPending')}
                 />
                 <span className="truncate text-sc-text-secondary">{sp.full_name}</span>

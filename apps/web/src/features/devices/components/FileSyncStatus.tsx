@@ -10,13 +10,13 @@ interface FileSyncStatusProps {
 function StatusIcon({ status }: { status: FileSyncItem['status'] }) {
   switch (status) {
     case 'synced':
-      return <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />;
+      return <CheckCircle2 className="h-4 w-4 text-sc-success shrink-0" />;
     case 'downloading':
-      return <Download className="h-4 w-4 text-blue-400 shrink-0 animate-bounce" />;
+      return <Download className="h-4 w-4 text-sc-primary shrink-0 animate-bounce" />;
     case 'error':
-      return <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />;
+      return <AlertCircle className="h-4 w-4 text-sc-danger shrink-0" />;
     default:
-      return <FolderOpen className="h-4 w-4 text-zinc-500 shrink-0" />;
+      return <FolderOpen className="h-4 w-4 text-sc-text-dim shrink-0" />;
   }
 }
 
@@ -30,25 +30,25 @@ export function FileSyncStatus({ items, onRetry }: FileSyncStatusProps) {
       {items.map((item) => (
         <li
           key={item.versionId}
-          className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5"
+          className="flex items-center gap-2 rounded-xl border border-sc-primary/12 bg-sc-surface px-3 py-2.5"
         >
           <StatusIcon status={item.status} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-zinc-200">{item.speakerName}</p>
-            <p className="truncate text-xs text-zinc-500">{item.filename}</p>
+            <p className="truncate text-sm font-medium text-sc-text-secondary">{item.speakerName}</p>
+            <p className="truncate text-xs text-sc-text-dim">{item.filename}</p>
             {item.status === 'downloading' && (
-              <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-zinc-700">
+              <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-sc-elevated">
                 <div
-                  className="h-full rounded-full bg-blue-500 transition-all duration-300"
+                  className="h-full rounded-full bg-sc-primary transition-all duration-300"
                   style={{ width: `${item.progress}%` }}
                 />
               </div>
             )}
             {item.status === 'error' && item.errorMessage && (
-              <p className="mt-0.5 text-xs text-red-400">{item.errorMessage}</p>
+              <p className="mt-0.5 text-xs text-sc-danger">{item.errorMessage}</p>
             )}
           </div>
-          <span className="shrink-0 text-xs text-zinc-500">
+          <span className="shrink-0 text-xs text-sc-text-dim">
             {item.status === 'downloading'
               ? `${item.progress}%`
               : item.status === 'synced'
@@ -58,7 +58,7 @@ export function FileSyncStatus({ items, onRetry }: FileSyncStatusProps) {
                     <button
                       type="button"
                       onClick={() => onRetry(item.versionId)}
-                      className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300"
+                      className="flex items-center gap-1 text-xs text-sc-warning hover:text-sc-warning/80"
                       aria-label={t('roomPlayer.fileSync.retry')}
                     >
                       <RotateCcw className="h-3 w-3" />
