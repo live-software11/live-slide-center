@@ -1,30 +1,53 @@
-import { Outlet } from 'react-router';
+import { useTranslation } from 'react-i18next';
+import { Link, Outlet, useNavigate } from 'react-router';
 import { Suspense } from 'react';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
 
 export function RootLayout() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  async function handleLogout() {
+    await getSupabaseBrowserClient().auth.signOut();
+    navigate('/login', { replace: true });
+  }
+
   return (
     <div className="flex min-h-screen bg-zinc-950 text-zinc-100">
       <aside className="hidden w-64 border-r border-zinc-800 bg-zinc-900 lg:block">
-        <nav className="flex flex-col gap-1 p-4">
-          <a href="/" className="rounded-md px-3 py-2 text-sm font-medium hover:bg-zinc-800">
-            Dashboard
-          </a>
-          <a href="/events" className="rounded-md px-3 py-2 text-sm font-medium hover:bg-zinc-800">
-            Eventi
-          </a>
-          <a
-            href="/settings"
+        <nav className="flex flex-col gap-1 p-4" aria-label={t('a11y.mainNav')}>
+          <Link
+            to="/"
             className="rounded-md px-3 py-2 text-sm font-medium hover:bg-zinc-800"
           >
-            Impostazioni
-          </a>
+            {t('nav.dashboard')}
+          </Link>
+          <Link
+            to="/events"
+            className="rounded-md px-3 py-2 text-sm font-medium hover:bg-zinc-800"
+          >
+            {t('nav.events')}
+          </Link>
+          <Link
+            to="/settings"
+            className="rounded-md px-3 py-2 text-sm font-medium hover:bg-zinc-800"
+          >
+            {t('nav.settings')}
+          </Link>
+          <button
+            type="button"
+            onClick={() => void handleLogout()}
+            className="mt-4 rounded-md px-3 py-2 text-left text-sm font-medium text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+          >
+            {t('auth.logout')}
+          </button>
         </nav>
       </aside>
       <main className="flex-1 overflow-auto">
         <Suspense
           fallback={
             <div className="flex h-full items-center justify-center text-zinc-500">
-              Caricamento...
+              {t('auth.loadingSession')}
             </div>
           }
         >

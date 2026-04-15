@@ -25,7 +25,19 @@
     "forgotPassword": "Forgot password?",
     "resetPassword": "Reset password",
     "inviteUser": "Invite user",
-    "role": "Role"
+    "role": "Role",
+    "fullName": "Organization / full name",
+    "loginPageTitle": "Sign in to Slide Center",
+    "signupPageTitle": "Create your tenant workspace",
+    "submitLogin": "Sign in",
+    "submitSignup": "Create account",
+    "goToSignup": "No account? Register",
+    "goToLogin": "Already have an account? Sign in",
+    "errorGeneric": "The operation could not be completed. Please try again.",
+    "errorInvalidCredentials": "Invalid email or password.",
+    "loadingSession": "Checking session…",
+    "a11yLoginTitle": "Slide Center sign-in",
+    "a11ySignupTitle": "New tenant registration"
   },
   "event": {
     "title": "Event",

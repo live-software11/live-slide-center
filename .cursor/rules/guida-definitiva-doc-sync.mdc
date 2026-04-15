@@ -18,3 +18,5 @@ alwaysApply: true
 ## Riferimento incrociato
 
 Dettaglio su cosa aggiornare e stile: `.cursor/rules/docs-maintenance.mdc`. In caso di conflitto tra regole generiche e questa, per l'allineamento alla **GUIDA DEFINITIVA** vince questa regola.
+
+Chiusura qualita: `.cursor/rules/surgical-review-next-step.mdc` (typecheck/lint/build e proposta step successivo a semaforo verde).

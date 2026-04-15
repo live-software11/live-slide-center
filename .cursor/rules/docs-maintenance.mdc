@@ -8,7 +8,7 @@ alwaysApply: true
 La documentazione e parte del codice. Un'architettura non documentata e un'architettura che si dimentica.
 **Alla fine di ogni operazione significativa, aggiornare la documentazione e obbligatorio.**
 
-**Regola trasversale vincolante:** `.cursor/rules/guida-definitiva-doc-sync.mdc` — ogni modifica a dominio/schema/piani/roadmap richiede aggiornamento **nello stesso intervento** di `docs/GUIDA_DEFINITIVA_PROGETTO.md` (checklist §18 inclusa).
+**Regole trasversali vincolanti:** (1) `.cursor/rules/guida-definitiva-doc-sync.mdc` — aggiornare **nello stesso intervento** `docs/GUIDA_DEFINITIVA_PROGETTO.md` per dominio/schema/piani/roadmap; (2) `.cursor/rules/surgical-review-next-step.mdc` — ricontrollo typecheck/lint/build e proposta step successivo solo a semaforo verde.
 
 ---
 

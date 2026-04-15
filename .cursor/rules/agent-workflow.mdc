@@ -14,6 +14,7 @@ alwaysApply: true
 5. **Gate piano**: verificare limiti tenant (storage, eventi/mese, sale/evento, agenti)
 6. **i18n**: ogni stringa IT ha coppia EN professionale nello stesso commit — ZERO eccezioni
 7. **Tenant isolation**: ogni query PostgreSQL deve avere RLS o filtro esplicito `tenant_id`
+8. **Chiusura intervento**: `.cursor/rules/surgical-review-next-step.mdc` — typecheck/lint/build e messaggio con step successivo solo a semaforo verde
 
 ## Ordine di esecuzione per task complessi
 

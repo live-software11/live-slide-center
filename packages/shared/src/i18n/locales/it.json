@@ -25,7 +25,19 @@
     "forgotPassword": "Password dimenticata?",
     "resetPassword": "Reimposta password",
     "inviteUser": "Invita utente",
-    "role": "Ruolo"
+    "role": "Ruolo",
+    "fullName": "Nome organizzazione / Nome completo",
+    "loginPageTitle": "Accedi al Slide Center",
+    "signupPageTitle": "Crea il tuo tenant",
+    "submitLogin": "Entra",
+    "submitSignup": "Crea account",
+    "goToSignup": "Non hai un account? Registrati",
+    "goToLogin": "Hai già un account? Accedi",
+    "errorGeneric": "Operazione non riuscita. Riprova.",
+    "errorInvalidCredentials": "Email o password non validi.",
+    "loadingSession": "Verifica sessione…",
+    "a11yLoginTitle": "Accesso al Centro Slide",
+    "a11ySignupTitle": "Registrazione nuovo tenant"
   },
   "event": {
     "title": "Evento",

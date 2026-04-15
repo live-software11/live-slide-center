@@ -1,7 +1,7 @@
 # GUIDA DEFINITIVA PROGETTO — Live SLIDE CENTER
 
 > **Documento UNICO di riferimento.** Questo file sostituisce e incorpora: `PIANO_MASTER_v3.md`, `SlideHub_Live_CURSOR_BUILD.md`, `PRE_CODE_PREPARATION.md`, `LIVE_SLIDE_CENTER_DEFINITIVO.md`. Nessun altro documento ha autorita su questo. Se trovi una contraddizione altrove, **questo vince**.
-> **Versione:** 3.0.1 — 15 Aprile 2026 (Pre-Fase-1: migration pairing/quote, `plans.ts`, `UserRole`, regola Cursor doc-sync)
+> **Versione:** 3.0.2 — 15 Aprile 2026 (Fase 1 avviata: trigger signup→tenant, `/login` `/signup`, guard; regola review chirurgico)
 > **Autore:** Andrea Rizzari + CTO Senior AI Review
 > **Stack:** React 19 + Vite 8 + TypeScript strict + Supabase + Vercel — gia funzionante nel repo
 
@@ -237,7 +237,11 @@ Path obbligatorio: `tenants/{tenant_id}/events/{event_id}/presentations/{id}/v{n
 
 ### Auth
 
-Trigger SQL al signup: crea `tenants` → crea `users` con `role='admin'` → inserisce `tenant_id` nel JWT `app_metadata` (immutabile lato client).
+Trigger SQL al signup: crea `tenants` → crea `users` con `role='admin'` → aggiorna `auth.users.raw_app_meta_data` con `tenant_id` e `role` (il client deve **rinnovare la sessione** subito dopo `signUp`, es. `refreshSession()`, cosi il JWT include i claim per RLS).
+
+**File migration:** `supabase/migrations/20250415130000_handle_new_user_tenant.sql` (`handle_new_user` + trigger `on_auth_user_created` su `auth.users`).
+
+**EN:** On first signup, a DB trigger provisions the tenant and `public.users` row, then updates `raw_app_meta_data`. The SPA should call `refreshSession()` after `signUp` so the issued JWT includes `tenant_id` before any tenant-scoped queries run.
 
 ### RBAC
 
@@ -255,7 +259,7 @@ Trigger SQL al signup: crea `tenants` → crea `users` con `role='admin'` → in
 
 ### Migration iniziale: `supabase/migrations/20250411090000_init_slide_center.sql`
 
-**11 tabelle + RLS + trigger** (gia nel repo):
+**11 tabelle base + RLS + trigger** nella migration iniziale; estensioni successive aggiungono `paired_devices` e `pairing_codes` (vedi sotto).
 
 | Tabella                 | Scopo                                                                       |
 | ----------------------- | --------------------------------------------------------------------------- |
@@ -377,6 +381,10 @@ ALTER TABLE tenants ALTER COLUMN max_rooms_per_event SET DEFAULT 3;
 ```
 
 **Trigger quota:** la funzione `check_storage_quota()` nel repository considera `storage_limit_bytes < 0` come quota illimitata (Enterprise), cosi non si bloccano insert se il limite e segnato come illimitato nel dato tenant.
+
+### Migration auth signup — file nel repo: `supabase/migrations/20250415130000_handle_new_user_tenant.sql`
+
+Funzione `public.handle_new_user()` (SECURITY DEFINER) + trigger `on_auth_user_created` su `auth.users`: provisioning tenant + riga `public.users` + `raw_app_meta_data` con `tenant_id` e ruolo `admin`.
 
 ---
 
@@ -714,7 +722,7 @@ export const PLAN_LIMITS: Record<TenantPlan, PlanLimits> = {
 | Fase  | Nome                                     | Stato          | Note                                            |
 | ----- | ---------------------------------------- | -------------- | ----------------------------------------------- |
 | 0     | Bootstrap monorepo                       | **Completata** | Stack funzionante nel repo                      |
-| 1     | Auth multi-tenant + signup + super-admin | Da fare        | Signup→tenant+admin, JWT tenant_id, guard route |
+| 1     | Auth multi-tenant + signup + super-admin | **In corso**   | Trigger DB + `/login` `/signup` + `RequireAuth`; restano refresh claim hardening, `/admin` guard, inviti team |
 | 2     | CRUD Eventi/Sale/Sessioni/Speaker        | Da fare        | Enforcement quote, import CSV                   |
 | 3     | Upload Portal relatori (TUS)             | Da fare        | SHA-256 client-side, QR per speaker             |
 | 4     | Versioning + storico                     | Da fare        | Append-only, status workflow, rollback          |
@@ -782,6 +790,7 @@ Live SLIDE CENTER/
 - [ ] Letto questo documento per intero
 - [x] `.cursor/rules/project-architecture.mdc` — gia con riferimento esplicito a questo file
 - [x] Regola Cursor **obbligatoria** allineamento guida/codice: `.cursor/rules/guida-definitiva-doc-sync.mdc` (`alwaysApply: true`)
+- [x] Regola Cursor review + step successivo: `.cursor/rules/surgical-review-next-step.mdc` (`alwaysApply: true`)
 
 ### Account
 
@@ -795,6 +804,7 @@ Live SLIDE CENTER/
 - [x] Migration iniziale nel repo: `20250411090000_init_slide_center.sql`
 - [x] Migration pairing + super-admin + Realtime: `20250415120000_pairing_super_admin.sql`
 - [x] Migration quote storage + default Trial: `20250415120100_quotas_enforcement.sql`
+- [x] Migration auth signup → tenant: `20250415130000_handle_new_user_tenant.sql`
 - [ ] Verifica applicata: `supabase db reset` (o `db push` su progetto remoto) senza errori SQL
 - [ ] `supabase gen types typescript --local > packages/shared/src/types/database.ts` (o `--project-id` sul progetto collegato), sostituendo il placeholder in `packages/shared/src/types/database.ts`
 - [ ] **NOTA:** il bootstrap super-admin (sezione 10, `UPDATE auth.users`) va eseguito DOPO il primo signup con `live.software11@gmail.com`, non prima
@@ -816,7 +826,7 @@ Live SLIDE CENTER/
 - [ ] Wireframe Room Player fullscreen
 - [ ] Wireframe dashboard super-admin
 
-**EN — Checklist status:** Pairing/super-admin and quota migrations are in-repo; shared `UserRole` and `PlanLimits.maxFileSizeBytes` match section 12. Remaining Pre-Phase 1 items are mostly infrastructure verification (Supabase CLI, lint/build), type generation from the live schema, and design wireframes.
+**EN — Checklist status:** Pairing/super-admin, quota, and signup-provisioning migrations are in-repo; web app exposes `/login` and `/signup` with `RequireAuth` on tenant routes; `SignupView` calls `refreshSession()` after signup so JWT carries `tenant_id`. Remaining: Supabase CLI verification (`db reset`), generated `database.ts`, design wireframes, and completing Phase 1 (admin guard, team invites).
 
 ---
 
