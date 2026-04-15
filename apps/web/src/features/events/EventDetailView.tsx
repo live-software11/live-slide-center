@@ -73,6 +73,21 @@ const sessionFormSchema = (t: TFunction) =>
 
 type SessionFormValues = z.infer<ReturnType<typeof sessionFormSchema>>;
 
+const speakerFormSchema = (t: TFunction) =>
+  z.object({
+    session_id: z.string().uuid(),
+    full_name: z.string().min(1).max(200),
+    email: z
+      .string()
+      .max(320)
+      .transform((s) => s.trim())
+      .refine((s) => s === '' || z.string().email().safeParse(s).success, {
+        message: t('speaker.errors.invalidEmail'),
+      }),
+  });
+
+type SpeakerFormValues = z.infer<ReturnType<typeof speakerFormSchema>>;
+
 export default function EventDetailView() {
   const { t, i18n } = useTranslation();
   const { eventId } = useParams<{ eventId: string }>();
@@ -87,9 +102,10 @@ export default function EventDetailView() {
     [i18n.language],
   );
   const tenantId = getTenantIdFromSession(session);
-  const { state, reload, createRoom, createSession } = useEventDetail(supabase, eventId, tenantId);
+  const { state, reload, createRoom, createSession, createSpeaker } = useEventDetail(supabase, eventId, tenantId);
   const [roomCreateError, setRoomCreateError] = useState<string | null>(null);
   const [sessionCreateError, setSessionCreateError] = useState<string | null>(null);
+  const [speakerCreateError, setSpeakerCreateError] = useState<string | null>(null);
 
   const {
     register,
@@ -135,6 +151,29 @@ export default function EventDetailView() {
     });
   }, [readyEventId, roomIdsKey, eventStartDate, resetSessionForm]);
 
+  const speakerSchemaResolved = useMemo(() => speakerFormSchema(t), [t]);
+  const {
+    register: registerSpeaker,
+    handleSubmit: handleSpeakerSubmit,
+    reset: resetSpeakerForm,
+    formState: { errors: speakerErrors, isSubmitting: speakerSubmitting },
+  } = useForm<SpeakerFormValues>({
+    resolver: zodResolver(speakerSchemaResolved),
+    defaultValues: { session_id: '', full_name: '', email: '' },
+  });
+
+  const sessionIdsKey =
+    state.status === 'ready' && state.sessions.length > 0
+      ? state.sessions.map((s) => s.id).join(',')
+      : null;
+
+  useEffect(() => {
+    if (!readyEventId || !sessionIdsKey) return;
+    const firstSessionId = sessionIdsKey.split(',')[0];
+    if (!firstSessionId) return;
+    resetSpeakerForm({ session_id: firstSessionId, full_name: '', email: '' });
+  }, [readyEventId, sessionIdsKey, resetSpeakerForm]);
+
   const onRoomSubmit = handleSubmit(async (values) => {
     setRoomCreateError(null);
     const result = await createRoom(values);
@@ -165,6 +204,28 @@ export default function EventDetailView() {
         scheduled_end: `${eventStartDate}T10:00`,
       });
     }
+  });
+
+  const onSpeakerSubmit = handleSpeakerSubmit(async (values) => {
+    setSpeakerCreateError(null);
+    const emailTrimmed = typeof values.email === 'string' ? values.email.trim() : '';
+    const emailForDb = emailTrimmed === '' ? null : emailTrimmed;
+    const result = await createSpeaker({
+      session_id: values.session_id,
+      full_name: values.full_name,
+      email: emailForDb,
+    });
+    if (result.errorMessage) {
+      setSpeakerCreateError(
+        result.errorMessage === 'missing_context' ? t('speaker.errors.missingContext') : result.errorMessage,
+      );
+      return;
+    }
+    resetSpeakerForm({
+      session_id: values.session_id,
+      full_name: '',
+      email: '',
+    });
   });
 
   if (authLoading) {
@@ -241,7 +302,14 @@ export default function EventDetailView() {
     );
   }
 
-  const { event, rooms, sessions } = state;
+  const { event, rooms, sessions, speakers } = state;
+
+  const speakersSorted = [...speakers].sort((a, b) => {
+    const sa = sessions.find((s) => s.id === a.session_id)?.scheduled_start ?? '';
+    const sb = sessions.find((s) => s.id === b.session_id)?.scheduled_start ?? '';
+    if (sa !== sb) return sa.localeCompare(sb);
+    return a.display_order - b.display_order;
+  });
 
   return (
     <div className="p-8">
@@ -467,6 +535,113 @@ export default function EventDetailView() {
                     <p className="text-xs text-zinc-400">
                       {dateTimeFmt.format(new Date(s.scheduled_start))} → {dateTimeFmt.format(new Date(s.scheduled_end))}
                     </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-12" aria-labelledby="speakers-section-title">
+        <h2 id="speakers-section-title" className="text-lg font-semibold text-zinc-100">
+          {t('speaker.titlePlural')}
+        </h2>
+        <p className="mt-1 text-sm text-zinc-500">{t('speaker.eventDetailIntro')}</p>
+
+        {sessions.length === 0 ? (
+          <p className="mt-6 text-sm text-amber-400/90" role="status">
+            {t('speaker.needSessionFirst')}
+          </p>
+        ) : (
+          <div className="mt-6 rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
+            <h3 className="text-sm font-medium text-zinc-200">{t('speaker.create')}</h3>
+            <form className="mt-4 flex max-w-lg flex-col gap-4" onSubmit={onSpeakerSubmit} noValidate>
+              <div>
+                <label htmlFor="speaker-session" className="mb-1 block text-sm text-zinc-400">
+                  {t('speaker.linkedSession')}
+                </label>
+                <select
+                  id="speaker-session"
+                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                  {...registerSpeaker('session_id')}
+                >
+                  {sessions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.title}
+                    </option>
+                  ))}
+                </select>
+                {speakerErrors.session_id ? (
+                  <p className="mt-1 text-xs text-red-400" role="alert">
+                    {speakerErrors.session_id.message}
+                  </p>
+                ) : null}
+              </div>
+              <div>
+                <label htmlFor="speaker-name" className="mb-1 block text-sm text-zinc-400">
+                  {t('speaker.fullName')}
+                </label>
+                <input
+                  id="speaker-name"
+                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                  autoComplete="name"
+                  aria-invalid={speakerErrors.full_name ? true : undefined}
+                  {...registerSpeaker('full_name')}
+                />
+                {speakerErrors.full_name ? (
+                  <p className="mt-1 text-xs text-red-400" role="alert">
+                    {speakerErrors.full_name.message}
+                  </p>
+                ) : null}
+              </div>
+              <div>
+                <label htmlFor="speaker-email" className="mb-1 block text-sm text-zinc-400">
+                  {t('speaker.emailOptional')}
+                </label>
+                <input
+                  id="speaker-email"
+                  type="email"
+                  autoComplete="email"
+                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                  aria-invalid={speakerErrors.email ? true : undefined}
+                  {...registerSpeaker('email')}
+                />
+                {speakerErrors.email ? (
+                  <p className="mt-1 text-xs text-red-400" role="alert">
+                    {speakerErrors.email.message}
+                  </p>
+                ) : null}
+              </div>
+              {speakerCreateError ? (
+                <p className="text-sm text-red-400" role="alert">
+                  {speakerCreateError}
+                </p>
+              ) : null}
+              <button
+                type="submit"
+                disabled={speakerSubmitting}
+                className="w-fit rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+              >
+                {t('common.create')}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {speakersSorted.length === 0 ? (
+          <p className="mt-6 text-sm text-zinc-500">{t('speaker.emptyEventList')}</p>
+        ) : (
+          <ul className="mt-6 divide-y divide-zinc-800 rounded-lg border border-zinc-800">
+            {speakersSorted.map((sp) => {
+              const sessionTitle =
+                sessions.find((s) => s.id === sp.session_id)?.title ?? t('speaker.sessionUnknown');
+              return (
+                <li key={sp.id} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-medium text-zinc-100">{sp.full_name}</p>
+                    <p className="text-xs text-zinc-500">{sessionTitle}</p>
+                    {sp.email ? <p className="text-xs text-zinc-400">{sp.email}</p> : null}
                   </div>
                 </li>
               );

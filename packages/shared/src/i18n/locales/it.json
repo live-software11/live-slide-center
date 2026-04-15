@@ -117,11 +117,21 @@
     "titlePlural": "Relatori",
     "create": "Nuovo relatore",
     "fullName": "Nome completo",
+    "linkedSession": "Sessione collegata",
+    "emailOptional": "Email (opzionale)",
+    "eventDetailIntro": "Relatori associati a una sessione dell'evento. Elenco ordinato per orario sessione.",
+    "emptyEventList": "Nessun relatore: aggiungine uno dal modulo sopra.",
+    "needSessionFirst": "Per aggiungere un relatore serve almeno una sessione: creala nella sezione precedente.",
+    "sessionUnknown": "Sessione non disponibile nell'elenco",
     "company": "Azienda",
     "jobTitle": "Ruolo",
     "bio": "Biografia",
     "uploadToken": "Token upload",
-    "sendInvite": "Invia invito upload"
+    "sendInvite": "Invia invito upload",
+    "errors": {
+      "invalidEmail": "Indirizzo email non valido.",
+      "missingContext": "Contesto incompleto. Ricarica la pagina."
+    }
   },
   "presentation": {
     "title": "Presentazione",

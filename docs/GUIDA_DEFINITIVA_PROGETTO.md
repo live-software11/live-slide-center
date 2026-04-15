@@ -1,7 +1,7 @@
 # GUIDA DEFINITIVA PROGETTO — Live SLIDE CENTER
 
 > **Documento UNICO di riferimento.** Questo file sostituisce e incorpora: `PIANO_MASTER_v3.md`, `SlideHub_Live_CURSOR_BUILD.md`, `PRE_CODE_PREPARATION.md`, `LIVE_SLIDE_CENTER_DEFINITIVO.md`. Nessun altro documento ha autorita su questo. Se trovi una contraddizione altrove, **questo vince**.
-> **Versione:** 3.0.6 — 15 Aprile 2026 (`/events/:eventId` + sale + sessioni: lista + insert; `/admin/tenants`, `/events`; Docker ancora richiesto per `db reset` / `gen types --local`)
+> **Versione:** 3.0.7 — 15 Aprile 2026 (`/events/:eventId` + sale + sessioni + relatori: lista + insert; `/admin/tenants`, `/events`; Docker ancora richiesto per `db reset` / `gen types --local`)
 > **Autore:** Andrea Rizzari + CTO Senior AI Review
 > **Stack:** React 19 + Vite 8 + TypeScript strict + Supabase + Vercel — gia funzionante nel repo
 
@@ -554,9 +554,9 @@ WHERE email = 'live.software11@gmail.com';
 
 ### Implementazione corrente (aprile 2026)
 
-L'interfaccia tenant espone `/events` (lista + nuovo evento) e `/events/:eventId` con **Sale** (elenco e creazione: nome, `room_type`) e **Sessioni** (elenco e creazione: titolo, sala, `session_type`, orari `datetime-local` convertiti in UTC al salvataggio). Restano in roadmap Fase 2+: relatori, calendario drag&drop, edit/delete sale e sessioni, quote.
+L'interfaccia tenant espone `/events` (lista + nuovo evento) e `/events/:eventId` con **Sale**, **Sessioni** (titolo, sala, `session_type`, orari `datetime-local` → UTC) e **Relatori** (sessione, nome, email opzionale; niente ancora `upload_token` / QR). Restano in roadmap Fase 2+: calendario drag&drop, edit/delete, quote, portale upload.
 
-**EN:** Tenant UI exposes `/events` (list + create) and `/events/:eventId` with **Rooms** (list + create: name, `room_type`) and **Sessions** (list + create: title, room, `session_type`, `datetime-local` range stored as UTC). Still on the Phase 2+ roadmap: speakers, drag-and-drop calendar, room/session edit-delete, quotas.
+**EN:** Tenant UI exposes `/events` (list + create) and `/events/:eventId` with **Rooms**, **Sessions** (title, room, `session_type`, `datetime-local` range stored as UTC), and **Speakers** (session, full name, optional email; no `upload_token` / QR yet). Still on the Phase 2+ roadmap: drag-and-drop calendar, edit/delete, quotas, upload portal.
 
 ### Dettaglio evento — tab
 
@@ -738,7 +738,7 @@ export const PLAN_LIMITS: Record<TenantPlan, PlanLimits> = {
 | ----- | ---------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0     | Bootstrap monorepo                       | **Completata** | Stack funzionante nel repo                                                                                                                                                       |
 | 1     | Auth multi-tenant + signup + super-admin | **In corso**   | Trigger DB + `/login` `/signup` + `RequireAuth` + `/admin` + `RequireSuperAdmin`; tipi `Database` in `packages/shared` (allineati migration); restano inviti team, hardening JWT |
-| 2     | CRUD Eventi/Sale/Sessioni/Speaker        | **In corso**   | `/events` lista+insert; `/events/:eventId` dettaglio + sale + sessioni (lista+insert); restano speaker, quote, import CSV, edit/delete, calendario                               |
+| 2     | CRUD Eventi/Sale/Sessioni/Speaker        | **In corso**   | `/events` lista+insert; `/events/:eventId` sale+sessioni+relatori (lista+insert); restano token upload/QR, quote, import CSV, edit/delete, calendario                          |
 | 3     | Upload Portal relatori (TUS)             | Da fare        | SHA-256 client-side, QR per speaker                                                                                                                                              |
 | 4     | Versioning + storico                     | Da fare        | Append-only, status workflow, rollback                                                                                                                                           |
 | 5     | Vista Regia realtime                     | Da fare        | Subscribe Realtime, griglia sale, activity feed                                                                                                                                  |
@@ -842,7 +842,7 @@ Live SLIDE CENTER/
 - [ ] Wireframe Room Player fullscreen
 - [ ] Wireframe dashboard super-admin
 
-**EN — Checklist status:** Migrations are in-repo; tenant routes are auth-guarded; `SignupView` calls `refreshSession()` after signup. `database.ts` is hand-maintained until `supabase gen types --local` runs. Super-admin has `/admin` and `/admin/tenants` (metadata only). Tenant `/events` lists and creates events (RLS); `/events/:eventId` shows event detail, rooms, and sessions (list + create). Remaining: Docker `db reset` + type regen, wireframes, Phase 1 invites, speakers, room/session edit-delete, further admin routes.
+**EN — Checklist status:** Migrations are in-repo; tenant routes are auth-guarded; `SignupView` calls `refreshSession()` after signup. `database.ts` is hand-maintained until `supabase gen types --local` runs. Super-admin has `/admin` and `/admin/tenants` (metadata only). Tenant `/events` lists and creates events (RLS); `/events/:eventId` shows event detail, rooms, sessions, and speakers (list + create; upload token/QR not wired yet). Remaining: Docker `db reset` + type regen, wireframes, Phase 1 invites, upload portal/TUS, room/session/speaker edit-delete, further admin routes.
 
 ---
 

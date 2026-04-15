@@ -117,11 +117,21 @@
     "titlePlural": "Speakers",
     "create": "New speaker",
     "fullName": "Full name",
+    "linkedSession": "Linked session",
+    "emailOptional": "Email (optional)",
+    "eventDetailIntro": "Speakers linked to an event session. The list is ordered by session start time.",
+    "emptyEventList": "No speakers yet — add one using the form above.",
+    "needSessionFirst": "Create at least one session in the section above before adding speakers.",
+    "sessionUnknown": "Session not found in the current list",
     "company": "Company",
     "jobTitle": "Job title",
     "bio": "Biography",
     "uploadToken": "Upload token",
-    "sendInvite": "Send upload invite"
+    "sendInvite": "Send upload invite",
+    "errors": {
+      "invalidEmail": "Invalid email address.",
+      "missingContext": "Incomplete context. Reload the page."
+    }
   },
   "presentation": {
     "title": "Presentation",
