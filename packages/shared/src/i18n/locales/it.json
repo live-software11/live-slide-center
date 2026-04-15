@@ -67,7 +67,8 @@
     "errors": {
       "load": "Impossibile caricare gli eventi",
       "missingTenant": "Sessione senza tenant associato. Esci e accedi di nuovo oppure contatta il supporto.",
-      "invalidRoute": "Identificativo evento non valido nell'URL."
+      "invalidRoute": "Identificativo evento non valido nell'URL.",
+      "deleteFailed": "Eliminazione non riuscita"
     }
   },
   "room": {
@@ -84,6 +85,8 @@
     "typePoster": "Poster",
     "eventDetailIntro": "Sale collegate a questo evento. I dati sono isolati per tenant (RLS).",
     "emptyEventList": "Nessuna sala: creane una con il modulo sopra.",
+    "deleteCascadeHint": "Eliminando la sala vengono rimosse in cascata anche le sessioni e i relatori collegati (vincoli PostgreSQL).",
+    "deleteAriaLabel": "Elimina la sala {{name}}",
     "errors": {
       "missingContext": "Contesto incompleto per creare la sala. Ricarica la pagina."
     }
@@ -107,6 +110,8 @@
     "eventDetailIntro": "Sessioni collegate a una sala dell'evento. Elenco ordinato per orario di inizio.",
     "emptyEventList": "Nessuna sessione: aggiungine una dal modulo sopra.",
     "needRoomFirst": "Per creare una sessione serve almeno una sala: aggiungila nella sezione precedente.",
+    "deleteCascadeHint": "Eliminando la sessione vengono rimossi in cascata anche i relatori collegati (vincoli PostgreSQL).",
+    "deleteAriaLabel": "Elimina la sessione {{title}}",
     "errors": {
       "scheduleOrder": "L'orario di fine deve essere uguale o successivo all'inizio.",
       "missingContext": "Contesto sessione incompleto. Ricarica la pagina."
@@ -123,6 +128,7 @@
     "emptyEventList": "Nessun relatore: aggiungine uno dal modulo sopra.",
     "needSessionFirst": "Per aggiungere un relatore serve almeno una sessione: creala nella sezione precedente.",
     "sessionUnknown": "Sessione non disponibile nell'elenco",
+    "deleteAriaLabel": "Elimina il relatore {{name}}",
     "company": "Azienda",
     "jobTitle": "Ruolo",
     "bio": "Biografia",
@@ -170,6 +176,7 @@
     "save": "Salva",
     "cancel": "Annulla",
     "delete": "Elimina",
+    "confirmDelete": "Conferma eliminazione",
     "edit": "Modifica",
     "create": "Crea",
     "search": "Cerca",

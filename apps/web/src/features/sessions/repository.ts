@@ -34,3 +34,7 @@ export async function createSessionForEvent(
     .select()
     .single();
 }
+
+export async function deleteSessionById(supabase: SupabaseClient<Database>, id: string) {
+  return supabase.from('sessions').delete().eq('id', id);
+}

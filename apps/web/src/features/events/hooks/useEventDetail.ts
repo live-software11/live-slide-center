@@ -1,9 +1,26 @@
 import { startTransition, useCallback, useEffect, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@slidecenter/shared';
-import { createRoomForEvent, listRoomsByEvent, type RoomRow, type RoomType } from '../../rooms/repository';
-import { createSessionForEvent, listSessionsByEvent, type SessionRow, type SessionType } from '../../sessions/repository';
-import { createSpeakerForSession, listSpeakersByEvent, type SpeakerRow } from '../../speakers/repository';
+import {
+  createRoomForEvent,
+  deleteRoomById,
+  listRoomsByEvent,
+  type RoomRow,
+  type RoomType,
+} from '../../rooms/repository';
+import {
+  createSessionForEvent,
+  deleteSessionById,
+  listSessionsByEvent,
+  type SessionRow,
+  type SessionType,
+} from '../../sessions/repository';
+import {
+  createSpeakerForSession,
+  deleteSpeakerById,
+  listSpeakersByEvent,
+  type SpeakerRow,
+} from '../../speakers/repository';
 import { getEventById, type EventRow } from '../repository';
 
 type DetailState =
@@ -108,5 +125,38 @@ export function useEventDetail(
     [supabase, tenantId, eventId, load],
   );
 
-  return { state, reload: load, createRoom, createSession, createSpeaker };
+  const deleteRoom = useCallback(
+    async (roomId: string) => {
+      if (!tenantId) return { errorMessage: 'missing_context' as const };
+      const { error } = await deleteRoomById(supabase, roomId);
+      if (error) return { errorMessage: error.message };
+      await load();
+      return { errorMessage: null as string | null };
+    },
+    [supabase, tenantId, load],
+  );
+
+  const deleteSession = useCallback(
+    async (sessionId: string) => {
+      if (!tenantId) return { errorMessage: 'missing_context' as const };
+      const { error } = await deleteSessionById(supabase, sessionId);
+      if (error) return { errorMessage: error.message };
+      await load();
+      return { errorMessage: null as string | null };
+    },
+    [supabase, tenantId, load],
+  );
+
+  const deleteSpeaker = useCallback(
+    async (speakerId: string) => {
+      if (!tenantId) return { errorMessage: 'missing_context' as const };
+      const { error } = await deleteSpeakerById(supabase, speakerId);
+      if (error) return { errorMessage: error.message };
+      await load();
+      return { errorMessage: null as string | null };
+    },
+    [supabase, tenantId, load],
+  );
+
+  return { state, reload: load, createRoom, createSession, createSpeaker, deleteRoom, deleteSession, deleteSpeaker };
 }

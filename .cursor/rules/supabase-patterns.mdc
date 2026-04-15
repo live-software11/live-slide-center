@@ -64,6 +64,8 @@ export async function getEventWithRooms(eventId: string) {
 - `select('campo1, campo2')` invece di `select('*')` per query frequenti
 - Join con sintassi embedded: `select('*, rooms(*)')`
 
+**Delete:** `from('tabella').delete().eq('id', id)` — la RLS deve consentire solo righe del tenant corrente (stessa policy `tenant_isolation` delle SELECT). Attenzione a `ON DELETE CASCADE` nello schema: eliminare una **sala** rimuove sessioni e relatori collegati; eliminare una **sessione** rimuove i relatori. Allineare messaggi UI/i18n alla guida §11.
+
 ## Realtime Pattern — Hook
 
 ```typescript

@@ -26,3 +26,7 @@ export async function createRoomForEvent(
     .select()
     .single();
 }
+
+export async function deleteRoomById(supabase: SupabaseClient<Database>, id: string) {
+  return supabase.from('rooms').delete().eq('id', id);
+}

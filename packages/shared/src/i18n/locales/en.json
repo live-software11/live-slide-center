@@ -67,7 +67,8 @@
     "errors": {
       "load": "Unable to load events",
       "missingTenant": "No tenant on this session. Sign out and sign in again, or contact support.",
-      "invalidRoute": "Invalid event id in the URL."
+      "invalidRoute": "Invalid event id in the URL.",
+      "deleteFailed": "Deletion failed"
     }
   },
   "room": {
@@ -84,6 +85,8 @@
     "typePoster": "Poster",
     "eventDetailIntro": "Rooms linked to this event. Data is tenant-isolated (RLS).",
     "emptyEventList": "No rooms yet — add one using the form above.",
+    "deleteCascadeHint": "Deleting this room also removes linked sessions and speakers (PostgreSQL ON DELETE CASCADE).",
+    "deleteAriaLabel": "Delete room {{name}}",
     "errors": {
       "missingContext": "Incomplete context to create the room. Reload the page."
     }
@@ -107,6 +110,8 @@
     "eventDetailIntro": "Sessions linked to an event room. The list is ordered by start time.",
     "emptyEventList": "No sessions yet — add one using the form above.",
     "needRoomFirst": "Create at least one room in the section above before adding sessions.",
+    "deleteCascadeHint": "Deleting this session also removes linked speakers (PostgreSQL ON DELETE CASCADE).",
+    "deleteAriaLabel": "Delete session {{title}}",
     "errors": {
       "scheduleOrder": "The scheduled end must be on or after the scheduled start.",
       "missingContext": "Incomplete session context. Reload the page."
@@ -123,6 +128,7 @@
     "emptyEventList": "No speakers yet — add one using the form above.",
     "needSessionFirst": "Create at least one session in the section above before adding speakers.",
     "sessionUnknown": "Session not found in the current list",
+    "deleteAriaLabel": "Delete speaker {{name}}",
     "company": "Company",
     "jobTitle": "Job title",
     "bio": "Biography",
@@ -170,6 +176,7 @@
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
+    "confirmDelete": "Confirm deletion",
     "edit": "Edit",
     "create": "Create",
     "search": "Search",

@@ -88,6 +88,8 @@ const speakerFormSchema = (t: TFunction) =>
 
 type SpeakerFormValues = z.infer<ReturnType<typeof speakerFormSchema>>;
 
+type PendingDelete = { kind: 'room' | 'session' | 'speaker'; id: string };
+
 export default function EventDetailView() {
   const { t, i18n } = useTranslation();
   const { eventId } = useParams<{ eventId: string }>();
@@ -102,10 +104,14 @@ export default function EventDetailView() {
     [i18n.language],
   );
   const tenantId = getTenantIdFromSession(session);
-  const { state, reload, createRoom, createSession, createSpeaker } = useEventDetail(supabase, eventId, tenantId);
+  const { state, reload, createRoom, createSession, createSpeaker, deleteRoom, deleteSession, deleteSpeaker } =
+    useEventDetail(supabase, eventId, tenantId);
   const [roomCreateError, setRoomCreateError] = useState<string | null>(null);
   const [sessionCreateError, setSessionCreateError] = useState<string | null>(null);
   const [speakerCreateError, setSpeakerCreateError] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const {
     register,
@@ -328,6 +334,24 @@ export default function EventDetailView() {
         </p>
       </header>
 
+      {deleteError ? (
+        <div
+          className="mt-4 rounded-md border border-red-900/80 bg-red-950/50 px-4 py-3 text-sm text-red-200"
+          role="alert"
+        >
+          <p>
+            {t('event.errors.deleteFailed')}: {deleteError}
+          </p>
+          <button
+            type="button"
+            className="mt-2 text-xs text-red-300 underline hover:text-red-100"
+            onClick={() => setDeleteError(null)}
+          >
+            {t('common.close')}
+          </button>
+        </div>
+      ) : null}
+
       <section className="mt-8" aria-labelledby="rooms-section-title">
         <h2 id="rooms-section-title" className="text-lg font-semibold text-zinc-100">
           {t('room.titlePlural')}
@@ -389,10 +413,60 @@ export default function EventDetailView() {
         ) : (
           <ul className="mt-6 divide-y divide-zinc-800 rounded-lg border border-zinc-800">
             {rooms.map((r) => (
-              <li key={r.id} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <li key={r.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="font-medium text-zinc-100">{r.name}</p>
                   <p className="text-xs text-zinc-500">{roomTypeLabel(t, r.room_type)}</p>
+                </div>
+                <div className="flex flex-shrink-0 flex-col items-stretch gap-2 sm:items-end">
+                  {pendingDelete?.kind === 'room' && pendingDelete.id === r.id ? (
+                    <>
+                      <p className="max-w-xs text-xs text-amber-400/95">{t('room.deleteCascadeHint')}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={deleteBusy}
+                          className="rounded-md bg-red-900/80 px-3 py-1.5 text-xs font-medium text-red-100 hover:bg-red-800 disabled:opacity-50"
+                          onClick={async () => {
+                            setDeleteBusy(true);
+                            setDeleteError(null);
+                            const res = await deleteRoom(r.id);
+                            setDeleteBusy(false);
+                            if (res.errorMessage) {
+                              setDeleteError(res.errorMessage);
+                              return;
+                            }
+                            setPendingDelete(null);
+                          }}
+                        >
+                          {t('common.confirmDelete')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={deleteBusy}
+                          className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                          onClick={() => {
+                            setPendingDelete(null);
+                            setDeleteError(null);
+                          }}
+                        >
+                          {t('common.cancel')}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className="text-left text-sm text-red-400 hover:text-red-300 sm:text-right"
+                      aria-label={t('room.deleteAriaLabel', { name: r.name })}
+                      onClick={() => {
+                        setPendingDelete({ kind: 'room', id: r.id });
+                        setDeleteError(null);
+                      }}
+                    >
+                      {t('common.delete')}
+                    </button>
+                  )}
                 </div>
               </li>
             ))}
@@ -526,7 +600,7 @@ export default function EventDetailView() {
             {sessions.map((s) => {
               const roomName = rooms.find((r) => r.id === s.room_id)?.name ?? t('session.roomUnknown');
               return (
-                <li key={s.id} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <li key={s.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="font-medium text-zinc-100">{s.title}</p>
                     <p className="text-xs text-zinc-500">
@@ -535,6 +609,56 @@ export default function EventDetailView() {
                     <p className="text-xs text-zinc-400">
                       {dateTimeFmt.format(new Date(s.scheduled_start))} → {dateTimeFmt.format(new Date(s.scheduled_end))}
                     </p>
+                  </div>
+                  <div className="flex flex-shrink-0 flex-col items-stretch gap-2 sm:items-end">
+                    {pendingDelete?.kind === 'session' && pendingDelete.id === s.id ? (
+                      <>
+                        <p className="max-w-xs text-xs text-amber-400/95">{t('session.deleteCascadeHint')}</p>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            disabled={deleteBusy}
+                            className="rounded-md bg-red-900/80 px-3 py-1.5 text-xs font-medium text-red-100 hover:bg-red-800 disabled:opacity-50"
+                            onClick={async () => {
+                              setDeleteBusy(true);
+                              setDeleteError(null);
+                              const res = await deleteSession(s.id);
+                              setDeleteBusy(false);
+                              if (res.errorMessage) {
+                                setDeleteError(res.errorMessage);
+                                return;
+                              }
+                              setPendingDelete(null);
+                            }}
+                          >
+                            {t('common.confirmDelete')}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={deleteBusy}
+                            className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                            onClick={() => {
+                              setPendingDelete(null);
+                              setDeleteError(null);
+                            }}
+                          >
+                            {t('common.cancel')}
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        className="text-left text-sm text-red-400 hover:text-red-300 sm:text-right"
+                        aria-label={t('session.deleteAriaLabel', { title: s.title })}
+                        onClick={() => {
+                          setPendingDelete({ kind: 'session', id: s.id });
+                          setDeleteError(null);
+                        }}
+                      >
+                        {t('common.delete')}
+                      </button>
+                    )}
                   </div>
                 </li>
               );
@@ -637,11 +761,58 @@ export default function EventDetailView() {
               const sessionTitle =
                 sessions.find((s) => s.id === sp.session_id)?.title ?? t('speaker.sessionUnknown');
               return (
-                <li key={sp.id} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <li key={sp.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="font-medium text-zinc-100">{sp.full_name}</p>
                     <p className="text-xs text-zinc-500">{sessionTitle}</p>
                     {sp.email ? <p className="text-xs text-zinc-400">{sp.email}</p> : null}
+                  </div>
+                  <div className="flex flex-shrink-0 flex-col items-stretch gap-2 sm:items-end">
+                    {pendingDelete?.kind === 'speaker' && pendingDelete.id === sp.id ? (
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={deleteBusy}
+                          className="rounded-md bg-red-900/80 px-3 py-1.5 text-xs font-medium text-red-100 hover:bg-red-800 disabled:opacity-50"
+                          onClick={async () => {
+                            setDeleteBusy(true);
+                            setDeleteError(null);
+                            const res = await deleteSpeaker(sp.id);
+                            setDeleteBusy(false);
+                            if (res.errorMessage) {
+                              setDeleteError(res.errorMessage);
+                              return;
+                            }
+                            setPendingDelete(null);
+                          }}
+                        >
+                          {t('common.confirmDelete')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={deleteBusy}
+                          className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                          onClick={() => {
+                            setPendingDelete(null);
+                            setDeleteError(null);
+                          }}
+                        >
+                          {t('common.cancel')}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="text-left text-sm text-red-400 hover:text-red-300 sm:text-right"
+                        aria-label={t('speaker.deleteAriaLabel', { name: sp.full_name })}
+                        onClick={() => {
+                          setPendingDelete({ kind: 'speaker', id: sp.id });
+                          setDeleteError(null);
+                        }}
+                      >
+                        {t('common.delete')}
+                      </button>
+                    )}
                   </div>
                 </li>
               );

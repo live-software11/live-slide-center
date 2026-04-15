@@ -25,3 +25,7 @@ export async function createSpeakerForSession(
     .select()
     .single();
 }
+
+export async function deleteSpeakerById(supabase: SupabaseClient<Database>, id: string) {
+  return supabase.from('speakers').delete().eq('id', id);
+}
