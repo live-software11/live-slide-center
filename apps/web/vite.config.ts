@@ -8,6 +8,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
 
 export default defineConfig({
+  // Carica `.env` / `.env.local` dalla root del monorepo (come da `.env.example`), non solo da `apps/web/`.
+  envDir: repoRoot,
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
