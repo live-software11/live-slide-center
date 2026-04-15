@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'tech' | 'coordinator';
+export type UserRole = 'super_admin' | 'admin' | 'tech' | 'coordinator';
 export type EventStatus = 'draft' | 'setup' | 'active' | 'closed' | 'archived';
 export type RoomType = 'main' | 'breakout' | 'preview' | 'poster';
 export type SessionType = 'talk' | 'panel' | 'workshop' | 'break' | 'ceremony';

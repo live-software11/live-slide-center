@@ -1,7 +1,7 @@
 # GUIDA DEFINITIVA PROGETTO — Live SLIDE CENTER
 
 > **Documento UNICO di riferimento.** Questo file sostituisce e incorpora: `PIANO_MASTER_v3.md`, `SlideHub_Live_CURSOR_BUILD.md`, `PRE_CODE_PREPARATION.md`, `LIVE_SLIDE_CENTER_DEFINITIVO.md`. Nessun altro documento ha autorita su questo. Se trovi una contraddizione altrove, **questo vince**.
-> **Versione:** 3.0 Unificata — 15 Aprile 2026
+> **Versione:** 3.0.1 — 15 Aprile 2026 (Pre-Fase-1: migration pairing/quote, `plans.ts`, `UserRole`, regola Cursor doc-sync)
 > **Autore:** Andrea Rizzari + CTO Senior AI Review
 > **Stack:** React 19 + Vite 8 + TypeScript strict + Supabase + Vercel — gia funzionante nel repo
 
@@ -47,14 +47,14 @@
 
 ### Slidecrew (Olanda) — concorrente diretto piu forte
 
-| Aspetto | Dettaglio |
-|---------|-----------|
-| **Pricing** | €76/sala/giorno + €10/25GB extra + €700/giorno supporto on-site (IVA esclusa) |
-| **Modello** | Pay-per-event, NON SaaS subscription |
-| **Punti di forza** | Local caching server, app tecnici/moderatori/timer/kiosk, e-poster, branding, API |
-| **Clienti** | ECR 2025 (27 sale, 3037 presentazioni), FESSH 2024 (8 sale, 780 presentazioni) |
-| **Limiti** | No SaaS self-service, pricing opaco, no offline-first nativo |
-| **Calcolo esempio** | Congresso 3 giorni, 5 sale = 5 × 3 × €76 = **€1.140** per evento singolo |
+| Aspetto             | Dettaglio                                                                         |
+| ------------------- | --------------------------------------------------------------------------------- |
+| **Pricing**         | €76/sala/giorno + €10/25GB extra + €700/giorno supporto on-site (IVA esclusa)     |
+| **Modello**         | Pay-per-event, NON SaaS subscription                                              |
+| **Punti di forza**  | Local caching server, app tecnici/moderatori/timer/kiosk, e-poster, branding, API |
+| **Clienti**         | ECR 2025 (27 sale, 3037 presentazioni), FESSH 2024 (8 sale, 780 presentazioni)    |
+| **Limiti**          | No SaaS self-service, pricing opaco, no offline-first nativo                      |
+| **Calcolo esempio** | Congresso 3 giorni, 5 sale = 5 × 3 × €76 = **€1.140** per evento singolo          |
 
 ### SLIDEbit (TC Group, Firenze)
 
@@ -66,12 +66,12 @@ SaaS con app desktop Windows/Mac. Upload intuitivo, sync veloce, offline mode. M
 
 ### Posizionamento Live SLIDE CENTER
 
-| Differenziatore | Vs Slidecrew | Vs SLIDEbit | Vs Preseria |
-|-----------------|-------------|------------|------------|
-| **SaaS flat-rate** | €149/mese per 5 eventi vs €1.140/singolo evento | SaaS vs hardware | Comparabile + ecosistema |
-| **Zero-config PC** | Codice 6 cifre vs setup tecnico | Codice vs e-lectern | Codice vs app desktop |
-| **Offline-first** | Architettura nativa vs caching add-on | Comparabile | Comparabile |
-| **Ecosistema** | Timer + Teleprompter + CREW + PLAN | Standalone | Standalone |
+| Differenziatore    | Vs Slidecrew                                    | Vs SLIDEbit         | Vs Preseria              |
+| ------------------ | ----------------------------------------------- | ------------------- | ------------------------ |
+| **SaaS flat-rate** | €149/mese per 5 eventi vs €1.140/singolo evento | SaaS vs hardware    | Comparabile + ecosistema |
+| **Zero-config PC** | Codice 6 cifre vs setup tecnico                 | Codice vs e-lectern | Codice vs app desktop    |
+| **Offline-first**  | Architettura nativa vs caching add-on           | Comparabile         | Comparabile              |
+| **Ecosistema**     | Timer + Teleprompter + CREW + PLAN              | Standalone          | Standalone               |
 
 **Vantaggio prezzo:** cliente con 3 eventi/mese da 5 sale → €149/mese (Starter) vs ~€3.420/mese su Slidecrew. Risparmio **96%**.
 
@@ -107,13 +107,13 @@ Stessa app React, guard basato su `role='super_admin'`.
 
 ### ADR-006: Analisi storage — perche Supabase e non altri
 
-| Alternativa | Verdetto | Motivo |
-|-------------|----------|--------|
-| pCloud | Scartato | Consumer, zero isolamento tenant, sicurezza da costruire da zero |
-| Google Drive | Scartato | OAuth Google obbligatorio per speaker, UX distrutta |
-| AWS S3 | Sovradimensionato | Egress $0.09/GB, IAM complesso, costi imprevedibili |
-| Cloudflare R2 | Rimandato | Zero egress ma servizio separato da Supabase — quando egress > $50/mese |
-| **Supabase Storage** | **Vincitore** | TUS nativo, Auth integrata, RLS-like su bucket, un solo servizio |
+| Alternativa          | Verdetto          | Motivo                                                                  |
+| -------------------- | ----------------- | ----------------------------------------------------------------------- |
+| pCloud               | Scartato          | Consumer, zero isolamento tenant, sicurezza da costruire da zero        |
+| Google Drive         | Scartato          | OAuth Google obbligatorio per speaker, UX distrutta                     |
+| AWS S3               | Sovradimensionato | Egress $0.09/GB, IAM complesso, costi imprevedibili                     |
+| Cloudflare R2        | Rimandato         | Zero egress ma servizio separato da Supabase — quando egress > $50/mese |
+| **Supabase Storage** | **Vincitore**     | TUS nativo, Auth integrata, RLS-like su bucket, un solo servizio        |
 
 ---
 
@@ -159,12 +159,12 @@ Stessa app React, guard basato su `role='super_admin'`.
                                      internet assente
 ```
 
-| Scenario | Modalita | Cosa porta Andrea | Costo |
-|----------|---------|-------------------|-------|
-| Evento piccolo (1-3 sale, WiFi buono) | A — Cloud | Niente | €0 |
-| Evento medio (4-10 sale, WiFi incerto) | B — LAN + Cloud | Router + mini-PC | ~€500 una tantum |
-| Evento grande (10+ sale, centro congressi) | B — LAN + Cloud | Router + AP + mini-PC | ~€1000 una tantum |
-| Area senza internet | C — Offline | Router + mini-PC + file pre-caricati | Come sopra |
+| Scenario                                   | Modalita        | Cosa porta Andrea                    | Costo             |
+| ------------------------------------------ | --------------- | ------------------------------------ | ----------------- |
+| Evento piccolo (1-3 sale, WiFi buono)      | A — Cloud       | Niente                               | €0                |
+| Evento medio (4-10 sale, WiFi incerto)     | B — LAN + Cloud | Router + mini-PC                     | ~€500 una tantum  |
+| Evento grande (10+ sale, centro congressi) | B — LAN + Cloud | Router + AP + mini-PC                | ~€1000 una tantum |
+| Area senza internet                        | C — Offline     | Router + mini-PC + file pre-caricati | Come sopra        |
 
 ---
 
@@ -172,41 +172,41 @@ Stessa app React, guard basato su `role='super_admin'`.
 
 ### Web (apps/web — gia nel repo)
 
-| Layer | Tecnologia | Versione |
-|-------|-----------|---------|
-| Framework UI | React | 19 |
-| Build tool | Vite | 8 |
-| Linguaggio | TypeScript | strict |
-| Styling | Tailwind CSS | 4 |
-| Componenti | shadcn/ui + Radix | latest |
-| Routing | React Router | 7 |
-| State | Zustand | latest |
-| Tabelle | TanStack Table | latest |
-| Form | Zod + React Hook Form | latest |
-| i18n | i18next + react-i18next | latest |
-| Upload | tus-js-client + use-tus | latest |
-| PWA | vite-plugin-pwa (Workbox) | Fase 6 |
+| Layer        | Tecnologia                | Versione |
+| ------------ | ------------------------- | -------- |
+| Framework UI | React                     | 19       |
+| Build tool   | Vite                      | 8        |
+| Linguaggio   | TypeScript                | strict   |
+| Styling      | Tailwind CSS              | 4        |
+| Componenti   | shadcn/ui + Radix         | latest   |
+| Routing      | React Router              | 7        |
+| State        | Zustand                   | latest   |
+| Tabelle      | TanStack Table            | latest   |
+| Form         | Zod + React Hook Form     | latest   |
+| i18n         | i18next + react-i18next   | latest   |
+| Upload       | tus-js-client + use-tus   | latest   |
+| PWA          | vite-plugin-pwa (Workbox) | Fase 6   |
 
 ### Backend / Infrastruttura
 
-| Layer | Tecnologia | Note |
-|-------|-----------|------|
-| Database | Supabase PostgreSQL | RLS + trigger |
-| Auth | Supabase Auth | JWT custom claims con tenant_id |
-| Storage | Supabase Storage | TUS + S3 compatible, fino a 500GB/file |
-| Realtime | Supabase Realtime | room_state, versions, agents, paired_devices |
-| Edge Functions | Supabase + Deno | Pairing, upload validation, cleanup |
-| Deploy web | Vercel | Auto-deploy su push main |
+| Layer          | Tecnologia          | Note                                         |
+| -------------- | ------------------- | -------------------------------------------- |
+| Database       | Supabase PostgreSQL | RLS + trigger                                |
+| Auth           | Supabase Auth       | JWT custom claims con tenant_id              |
+| Storage        | Supabase Storage    | TUS + S3 compatible, fino a 500GB/file       |
+| Realtime       | Supabase Realtime   | room_state, versions, agents, paired_devices |
+| Edge Functions | Supabase + Deno     | Pairing, upload validation, cleanup          |
+| Deploy web     | Vercel              | Auto-deploy su push main                     |
 
 ### Desktop (Local Agent — Fase 8+)
 
-| Layer | Tecnologia | Note |
-|-------|-----------|------|
-| Framework | Tauri v2 | Rust backend + webview |
-| HTTP server LAN | Axum | Bind 0.0.0.0:8080 |
-| Database locale | SQLite (rusqlite) | WAL mode |
-| Discovery | Agent registra IP LAN al cloud | PWA lo interroga dal cloud |
-| Sync engine | reqwest + tokio | Pull realtime + heartbeat 30s |
+| Layer           | Tecnologia                     | Note                          |
+| --------------- | ------------------------------ | ----------------------------- |
+| Framework       | Tauri v2                       | Rust backend + webview        |
+| HTTP server LAN | Axum                           | Bind 0.0.0.0:8080             |
+| Database locale | SQLite (rusqlite)              | WAL mode                      |
+| Discovery       | Agent registra IP LAN al cloud | PWA lo interroga dal cloud    |
+| Sync engine     | reqwest + tokio                | Pull realtime + heartbeat 30s |
 
 ---
 
@@ -241,13 +241,13 @@ Trigger SQL al signup: crea `tenants` → crea `users` con `role='admin'` → in
 
 ### RBAC
 
-| Ruolo | Tipo | Accesso |
-|-------|------|---------|
-| `super_admin` | `user_role` enum | Tutto cross-tenant (solo Andrea) |
-| `admin` | `user_role` enum | Tutto nel proprio tenant |
-| `coordinator` | `user_role` enum | CRUD sessioni/speaker, vista regia |
-| `tech` | `user_role` enum | Vista sala, download, stato sync |
-| speaker | Record in tabella `speakers` (NO auth) | Upload via `upload_token` univoco |
+| Ruolo         | Tipo                                   | Accesso                            |
+| ------------- | -------------------------------------- | ---------------------------------- |
+| `super_admin` | `user_role` enum                       | Tutto cross-tenant (solo Andrea)   |
+| `admin`       | `user_role` enum                       | Tutto nel proprio tenant           |
+| `coordinator` | `user_role` enum                       | CRUD sessioni/speaker, vista regia |
+| `tech`        | `user_role` enum                       | Vista sala, download, stato sync   |
+| speaker       | Record in tabella `speakers` (NO auth) | Upload via `upload_token` univoco  |
 
 ---
 
@@ -257,21 +257,22 @@ Trigger SQL al signup: crea `tenants` → crea `users` con `role='admin'` → in
 
 **11 tabelle + RLS + trigger** (gia nel repo):
 
-| Tabella | Scopo |
-|---------|-------|
-| `tenants` | Organizzazioni SaaS con piano, quote storage, limiti |
-| `users` | Utenti con ruolo (admin/coordinator/tech/super_admin), FK a auth.users |
-| `events` | Congressi/convegni con status workflow (draft→setup→active→closed→archived) |
-| `rooms` | Sale fisiche per evento (main/breakout/preview/poster) |
-| `sessions` | Slot orari per sala (talk/panel/workshop/break/ceremony) |
-| `speakers` | Relatori con `upload_token` per accesso senza login |
-| `presentations` | Collegamento speaker→versione corrente |
-| `presentation_versions` | **Append-only.** Ogni upload = nuova riga. Mai UPDATE. |
-| `room_state` | Stato realtime sala (sessione, sync status, agent connection) |
-| `local_agents` | Agent registrati con IP LAN + heartbeat |
-| `activity_log` | Audit trail completo |
+| Tabella                 | Scopo                                                                       |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `tenants`               | Organizzazioni SaaS con piano, quote storage, limiti                        |
+| `users`                 | Utenti con ruolo (admin/coordinator/tech/super_admin), FK a auth.users      |
+| `events`                | Congressi/convegni con status workflow (draft→setup→active→closed→archived) |
+| `rooms`                 | Sale fisiche per evento (main/breakout/preview/poster)                      |
+| `sessions`              | Slot orari per sala (talk/panel/workshop/break/ceremony)                    |
+| `speakers`              | Relatori con `upload_token` per accesso senza login                         |
+| `presentations`         | Collegamento speaker→versione corrente                                      |
+| `presentation_versions` | **Append-only.** Ogni upload = nuova riga. Mai UPDATE.                      |
+| `room_state`            | Stato realtime sala (sessione, sync status, agent connection)               |
+| `local_agents`          | Agent registrati con IP LAN + heartbeat                                     |
+| `activity_log`          | Audit trail completo                                                        |
 
 **Invarianti immutabili:**
+
 - `presentation_versions` e append-only: mai UPDATE
 - `version_number` auto-increment via trigger SQL
 - Cloud = fonte di verita, conflict resolution = cloud vince
@@ -279,10 +280,13 @@ Trigger SQL al signup: crea `tenants` → crea `users` con `role='admin'` → in
 
 **Realtime:** attivo su `room_state`, `presentation_versions`, `local_agents`, `paired_devices`. NON su `activity_log` (polling ogni 10s).
 
-### Migration estensione: `<timestamp>_pairing_super_admin.sql`
+### Migration estensione — file nel repo: `supabase/migrations/20250415120000_pairing_super_admin.sql`
+
+**Realtime:** la stessa migration aggiunge `paired_devices` alla publication `supabase_realtime` e rimuove `activity_log` (allineamento a quanto sopra: audit via polling, non Realtime).
 
 ```sql
-ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'super_admin';
+-- Valore enum super_admin (nel repo: blocco DO $$ ... $$ su pg_enum, piu portabile di IF NOT EXISTS)
+ALTER TYPE user_role ADD VALUE 'super_admin';
 
 CREATE TABLE paired_devices (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -335,7 +339,9 @@ CREATE POLICY super_admin_all ON paired_devices FOR ALL USING (public.is_super_a
 CREATE POLICY super_admin_all ON activity_log FOR ALL USING (public.is_super_admin());
 ```
 
-### Migration quote: `<timestamp>_quotas_enforcement.sql`
+**Nota implementazione:** sul database e stata aggiunta anche `CREATE POLICY super_admin_all ON pairing_codes` per consentire ispezione cross-tenant dei codici in fase di strumentazione admin (stesso criterio GDPR: metadati, non file).
+
+### Migration quote — file nel repo: `supabase/migrations/20250415120100_quotas_enforcement.sql`
 
 ```sql
 CREATE OR REPLACE FUNCTION public.check_storage_quota() RETURNS TRIGGER AS $$
@@ -370,6 +376,8 @@ ALTER TABLE tenants ALTER COLUMN max_events_per_month SET DEFAULT 2;
 ALTER TABLE tenants ALTER COLUMN max_rooms_per_event SET DEFAULT 3;
 ```
 
+**Trigger quota:** la funzione `check_storage_quota()` nel repository considera `storage_limit_bytes < 0` come quota illimitata (Enterprise), cosi non si bloccano insert se il limite e segnato come illimitato nel dato tenant.
+
 ---
 
 ## 8. Pairing Dispositivi
@@ -400,14 +408,15 @@ ANDREA (dashboard)           PC SALA                 SUPABASE
 
 1. Bottone `+ Aggiungi PC` in pagina evento
 2. Modal con codice grande `8 4 7 2 9 1` + QR code
-3. Testo: *"Sul PC sala vai su app.liveslidecenter.com/pair e digita questo codice. Valido 10 minuti."*
-4. Spinner *"In attesa..."*
-5. PC si connette → checkmark verde → dropdown *"Assegna a una sala"*
+3. Testo: _"Sul PC sala vai su app.liveslidecenter.com/pair e digita questo codice. Valido 10 minuti."_
+4. Spinner _"In attesa..."_
+5. PC si connette → checkmark verde → dropdown _"Assegna a una sala"_
 6. Conferma → entry in lista: `PC1 — Auditorium A — online — Windows 11 Edge`
 
 ### UX lato tecnico (PC sala)
 
 **Primo avvio (30 secondi):**
+
 1. Apre Chrome/Edge → `app.liveslidecenter.com/pair`
 2. Campo grande per 6 cifre + tastierino numerico touch-friendly
 3. Digita codice → click "Connetti"
@@ -436,12 +445,12 @@ ANDREA (dashboard)           PC SALA                 SUPABASE
 
 ### Edge Functions per pairing
 
-| Funzione | Trigger | Azione |
-|----------|---------|--------|
-| `pair-init` | Andrea clicca "+ Aggiungi PC" | Genera codice 6 cifre, salva in `pairing_codes`, ritorna codice + QR URL |
-| `pair-claim` | Tecnico digita codice su `/pair` | Valida codice, crea record `paired_devices`, genera JWT, marca consumed |
-| `pair-poll` | Dashboard polling ogni 2s | Ritorna stato: pending/consumed con info device |
-| `cleanup-expired-codes` | pg_cron ogni ora | Elimina codici scaduti da > 1 giorno |
+| Funzione                | Trigger                          | Azione                                                                   |
+| ----------------------- | -------------------------------- | ------------------------------------------------------------------------ |
+| `pair-init`             | Andrea clicca "+ Aggiungi PC"    | Genera codice 6 cifre, salva in `pairing_codes`, ritorna codice + QR URL |
+| `pair-claim`            | Tecnico digita codice su `/pair` | Valida codice, crea record `paired_devices`, genera JWT, marca consumed  |
+| `pair-poll`             | Dashboard polling ogni 2s        | Ritorna stato: pending/consumed con info device                          |
+| `cleanup-expired-codes` | pg_cron ogni ora                 | Elimina codici scaduti da > 1 giorno                                     |
 
 ### Reset / cambio sala
 
@@ -479,13 +488,13 @@ PWA → HTTP polling Agent LAN ogni 5s → download se versione piu recente
 
 ### Scenari offline
 
-| Scenario | Comportamento | Indicatore UI |
-|----------|---------------|---------------|
-| Cloud + LAN OK | Sync completo | Verde: "v4 di 4 — Sync 14:32" |
-| Cloud OK, Agent offline | PWA cloud diretto | Verde: "CLOUD DIRECT" |
-| Cloud offline, Agent OK | Agent serve cache | Giallo: "LAN ONLY" |
-| Tutto offline | PWA cache locale | Rosso: "OFFLINE — v3 in cache" |
-| Agent torna online | Pull automatico mancanti | Giallo → Verde |
+| Scenario                | Comportamento            | Indicatore UI                  |
+| ----------------------- | ------------------------ | ------------------------------ |
+| Cloud + LAN OK          | Sync completo            | Verde: "v4 di 4 — Sync 14:32"  |
+| Cloud OK, Agent offline | PWA cloud diretto        | Verde: "CLOUD DIRECT"          |
+| Cloud offline, Agent OK | Agent serve cache        | Giallo: "LAN ONLY"             |
+| Tutto offline           | PWA cache locale         | Rosso: "OFFLINE — v3 in cache" |
+| Agent torna online      | Pull automatico mancanti | Giallo → Verde                 |
 
 ---
 
@@ -493,18 +502,19 @@ PWA → HTTP polling Agent LAN ogni 5s → download se versione piu recente
 
 Rotta `/admin/*`. Guard: se utente non ha `role='super_admin'`, redirect a `/dashboard`.
 
-| Rotta | Contenuto |
-|-------|-----------|
-| `/admin` | Tenant attivi, eventi in corso, storage totale, fatturato MTD |
-| `/admin/tenants` | Lista clienti: nome, piano, storage (barra %), MRR, stato |
-| `/admin/tenants/:id` | Dettaglio: team, eventi, fatture, log, "Sospendi", "Modifica quota" |
-| `/admin/quotas` | Override quote per cliente specifico |
-| `/admin/system-health` | Stato Supabase, Vercel, errori |
-| `/admin/audit` | Log cross-tenant (sicurezza, login, modifiche piano) |
+| Rotta                  | Contenuto                                                           |
+| ---------------------- | ------------------------------------------------------------------- |
+| `/admin`               | Tenant attivi, eventi in corso, storage totale, fatturato MTD       |
+| `/admin/tenants`       | Lista clienti: nome, piano, storage (barra %), MRR, stato           |
+| `/admin/tenants/:id`   | Dettaglio: team, eventi, fatture, log, "Sospendi", "Modifica quota" |
+| `/admin/quotas`        | Override quote per cliente specifico                                |
+| `/admin/system-health` | Stato Supabase, Vercel, errori                                      |
+| `/admin/audit`         | Log cross-tenant (sicurezza, login, modifiche piano)                |
 
 **Andrea NON puo (GDPR):** vedere contenuto file clienti, modificare dati eventi, inviare email ai relatori.
 
 **Bootstrap super-admin (una volta sola):**
+
 ```sql
 UPDATE auth.users SET raw_app_meta_data = raw_app_meta_data || '{"role":"super_admin"}'::jsonb
 WHERE email = 'live.software11@gmail.com';
@@ -530,14 +540,14 @@ WHERE email = 'live.software11@gmail.com';
 
 ### Dettaglio evento — tab
 
-| Tab | Contenuto |
-|-----|-----------|
-| **Sale** | CRUD sale, tipo, capacita, ordine |
-| **Sessioni** | Calendario drag & drop, timeline per sala |
-| **Relatori** | Lista speaker, QR upload, stato file |
-| **PC Sala** | Paired devices, stato live, "+ Aggiungi PC", drag & drop assegnazione |
-| **Vista Regia** | Griglia realtime sale, fullscreen, colori stato inequivocabili |
-| **Export** | ZIP file + CSV log + PDF report |
+| Tab             | Contenuto                                                             |
+| --------------- | --------------------------------------------------------------------- |
+| **Sale**        | CRUD sale, tipo, capacita, ordine                                     |
+| **Sessioni**    | Calendario drag & drop, timeline per sala                             |
+| **Relatori**    | Lista speaker, QR upload, stato file                                  |
+| **PC Sala**     | Paired devices, stato live, "+ Aggiungi PC", drag & drop assegnazione |
+| **Vista Regia** | Griglia realtime sale, fullscreen, colori stato inequivocabili        |
+| **Export**      | ZIP file + CSV log + PDF report                                       |
 
 ### Flusso creazione evento (5 min)
 
@@ -548,18 +558,35 @@ WHERE email = 'live.software11@gmail.com';
 5. "Pubblica" → stato `setup` → email automatica ai relatori
 6. Tutti i file caricati → stato `active`
 
+### Rotte applicazione (mappa completa)
+
+| Rotta          | Componente                             | Accesso              | Auth               |
+| -------------- | -------------------------------------- | -------------------- | ------------------ |
+| `/`            | `DashboardView`                        | Tenant (autenticato) | JWT tenant         |
+| `/events/*`    | Views eventi, sale, sessioni           | Tenant               | JWT tenant         |
+| `/team`        | `TeamView`                             | Admin tenant         | JWT admin          |
+| `/storage`     | `StorageView`                          | Tenant               | JWT tenant         |
+| `/billing`     | `BillingView`                          | Admin tenant         | JWT admin          |
+| `/settings`    | `SettingsView`                         | Tenant               | JWT tenant         |
+| `/admin/*`     | Dashboard Super-Admin                  | Solo `super_admin`   | JWT super_admin    |
+| `/pair`        | `PairView` — tastierino codice 6 cifre | Pubblico (tecnico)   | Nessuna            |
+| `/sala/:token` | `RoomPlayerView` — PWA file manager    | PC sala paired       | JWT sala (pairing) |
+| `/u/:token`    | `UploadPortalView` — upload relatore   | Speaker esterno      | `upload_token`     |
+| `/login`       | `LoginView`                            | Pubblico             | Nessuna            |
+| `/signup`      | `SignupView`                           | Pubblico             | Nessuna            |
+
 ---
 
 ## 12. Piani Commerciali e Quote
 
 ### Piani (valori DEFINITIVI — devono corrispondere a `packages/shared/src/constants/plans.ts`)
 
-| Piano | €/mese | Eventi/mese | Sale/evento | Storage | File max | Utenti | Agent |
-|-------|--------|-------------|-------------|---------|----------|--------|-------|
-| **Trial** | 0 | 2 | 3 | 5 GB | 100 MB | 3 | 1 |
-| **Starter** | 149 | 5 | 10 | 100 GB | 1 GB | 10 | 3 |
-| **Pro** | 399 | 20 | 20 | 1 TB | 2 GB | 50 | 10 |
-| **Enterprise** | da 990 | illimitato | illimitato | custom | 5 GB+ | illimitato | illimitato |
+| Piano          | €/mese | Eventi/mese | Sale/evento | Storage | File max | Utenti     | Agent      |
+| -------------- | ------ | ----------- | ----------- | ------- | -------- | ---------- | ---------- |
+| **Trial**      | 0      | 2           | 3           | 5 GB    | 100 MB   | 3          | 1          |
+| **Starter**    | 149    | 5           | 10          | 100 GB  | 1 GB     | 10         | 3          |
+| **Pro**        | 399    | 20          | 20          | 1 TB    | 2 GB     | 50         | 10         |
+| **Enterprise** | da 990 | illimitato  | illimitato  | custom  | 5 GB+    | illimitato | illimitato |
 
 ### TypeScript (`plans.ts`)
 
@@ -574,22 +601,50 @@ export interface PlanLimits {
 }
 
 export const PLAN_LIMITS: Record<TenantPlan, PlanLimits> = {
-  trial:      { storageLimitBytes: 5*1024**3,    maxEventsPerMonth: 2,  maxRoomsPerEvent: 3,  maxAgentsPerEvent: 1,  maxUsersPerTenant: 3,  maxFileSizeBytes: 100*1024**2 },
-  starter:    { storageLimitBytes: 100*1024**3,  maxEventsPerMonth: 5,  maxRoomsPerEvent: 10, maxAgentsPerEvent: 3,  maxUsersPerTenant: 10, maxFileSizeBytes: 1*1024**3   },
-  pro:        { storageLimitBytes: 1024*1024**3, maxEventsPerMonth: 20, maxRoomsPerEvent: 20, maxAgentsPerEvent: 10, maxUsersPerTenant: 50, maxFileSizeBytes: 2*1024**3   },
-  enterprise: { storageLimitBytes: -1,           maxEventsPerMonth: -1, maxRoomsPerEvent: -1, maxAgentsPerEvent: -1, maxUsersPerTenant: -1, maxFileSizeBytes: -1           },
+  trial: {
+    storageLimitBytes: 5 * 1024 ** 3,
+    maxEventsPerMonth: 2,
+    maxRoomsPerEvent: 3,
+    maxAgentsPerEvent: 1,
+    maxUsersPerTenant: 3,
+    maxFileSizeBytes: 100 * 1024 ** 2,
+  },
+  starter: {
+    storageLimitBytes: 100 * 1024 ** 3,
+    maxEventsPerMonth: 5,
+    maxRoomsPerEvent: 10,
+    maxAgentsPerEvent: 3,
+    maxUsersPerTenant: 10,
+    maxFileSizeBytes: 1 * 1024 ** 3,
+  },
+  pro: {
+    storageLimitBytes: 1024 * 1024 ** 3,
+    maxEventsPerMonth: 20,
+    maxRoomsPerEvent: 20,
+    maxAgentsPerEvent: 10,
+    maxUsersPerTenant: 50,
+    maxFileSizeBytes: 2 * 1024 ** 3,
+  },
+  enterprise: {
+    storageLimitBytes: -1,
+    maxEventsPerMonth: -1,
+    maxRoomsPerEvent: -1,
+    maxAgentsPerEvent: -1,
+    maxUsersPerTenant: -1,
+    maxFileSizeBytes: -1,
+  },
 };
 ```
 
 ### Costi infrastruttura (partenza)
 
-| Servizio | Piano | Costo | Upgrade quando |
-|---------|-------|-------|----------------|
-| Supabase | Free | 0€ | DB > 500MB o file > 50MB → Pro $25/mese |
-| Vercel | Hobby | 0€ | Primo cliente → Pro $20/mese |
-| Dominio | liveslidecenter.com | ~12€/anno | — |
-| GitHub | Free | 0€ | — |
-| Lemon Squeezy | Via Live WORKS APP | 0€ | Automatico a prima vendita |
+| Servizio      | Piano               | Costo     | Upgrade quando                          |
+| ------------- | ------------------- | --------- | --------------------------------------- |
+| Supabase      | Free                | 0€        | DB > 500MB o file > 50MB → Pro $25/mese |
+| Vercel        | Hobby               | 0€        | Primo cliente → Pro $20/mese            |
+| Dominio       | liveslidecenter.com | ~12€/anno | —                                       |
+| GitHub        | Free                | 0€        | —                                       |
+| Lemon Squeezy | Via Live WORKS APP  | 0€        | Automatico a prima vendita              |
 
 **Costo iniziale: ~1€/mese.** Primo upgrade con primo cliente pagante (~45€/mese).
 
@@ -599,16 +654,16 @@ export const PLAN_LIMITS: Record<TenantPlan, PlanLimits> = {
 
 ### Palette (dark mode only)
 
-| Ruolo | Colore | Uso |
-|-------|--------|-----|
-| Background | `#0A0A0B` | Ambiente regia buio |
-| Card | `#141416` | Pannelli, sidebar |
-| Accent | `#0066FF` | CTA, link, selezione |
-| Success | `#22C55E` | Synced, online, ready |
-| Warning | `#F59E0B` | Syncing, LAN only |
-| Danger | `#EF4444` | Offline, failed |
-| Text | `#FAFAFA` | Titoli |
-| Text secondario | `#A1A1AA` | Label, metadata |
+| Ruolo           | Colore    | Uso                   |
+| --------------- | --------- | --------------------- |
+| Background      | `#0A0A0B` | Ambiente regia buio   |
+| Card            | `#141416` | Pannelli, sidebar     |
+| Accent          | `#0066FF` | CTA, link, selezione  |
+| Success         | `#22C55E` | Synced, online, ready |
+| Warning         | `#F59E0B` | Syncing, LAN only     |
+| Danger          | `#EF4444` | Offline, failed       |
+| Text            | `#FAFAFA` | Titoli                |
+| Text secondario | `#A1A1AA` | Label, metadata       |
 
 ### Principi UX
 
@@ -633,12 +688,12 @@ export const PLAN_LIMITS: Record<TenantPlan, PlanLimits> = {
 
 **Hardware (una tantum, riutilizzabile):**
 
-| Componente | Esempio | Prezzo |
-|-----------|---------|--------|
-| Router WiFi | TP-Link Archer AX55 / Ubiquiti UniFi Express | €80-150 |
-| Access Point (opzionale) | Ubiquiti U6 Lite | €100-130 cad. |
-| Mini-PC Agent | Intel NUC / Beelink SER5 | €250-400 |
-| Cavi ethernet Cat6 | 5-10 cavi | €10-30 |
+| Componente               | Esempio                                      | Prezzo        |
+| ------------------------ | -------------------------------------------- | ------------- |
+| Router WiFi              | TP-Link Archer AX55 / Ubiquiti UniFi Express | €80-150       |
+| Access Point (opzionale) | Ubiquiti U6 Lite                             | €100-130 cad. |
+| Mini-PC Agent            | Intel NUC / Beelink SER5                     | €250-400      |
+| Cavi ethernet Cat6       | 5-10 cavi                                    | €10-30        |
 
 **Setup fisico:** router in regia → WAN a internet location → mini-PC Agent via ethernet → AP se sale lontane.
 **Setup software:** apri Agent → login → seleziona evento → Agent scarica file e registra IP al cloud.
@@ -656,23 +711,23 @@ export const PLAN_LIMITS: Record<TenantPlan, PlanLimits> = {
 
 ## 15. Roadmap Esecutiva
 
-| Fase | Nome | Stato | Note |
-|------|------|-------|------|
-| 0 | Bootstrap monorepo | **Completata** | Stack funzionante nel repo |
-| 1 | Auth multi-tenant + signup + super-admin | Da fare | Signup→tenant+admin, JWT tenant_id, guard route |
-| 2 | CRUD Eventi/Sale/Sessioni/Speaker | Da fare | Enforcement quote, import CSV |
-| 3 | Upload Portal relatori (TUS) | Da fare | SHA-256 client-side, QR per speaker |
-| 4 | Versioning + storico | Da fare | Append-only, status workflow, rollback |
-| 5 | Vista Regia realtime | Da fare | Subscribe Realtime, griglia sale, activity feed |
-| **6** | **Pairing Device + Room Player PWA** | **Da fare** | **Codice 6 cifre, Edge Functions, PWA offline** |
-| 7 | Dashboard Super-Admin | Da fare | Guard super_admin, pagine /admin/* |
-| 8 | Local Agent Tauri (Modalita B) | Da fare | Solo dopo primo cliente con rete incerta |
-| 9 | Offline architecture completa | Da fare | Cache PWA + fallback Agent |
-| 10 | Export fine evento | Da fare | ZIP + CSV + PDF |
-| 11 | Billing Lemon Squeezy | Da fare | Solo a primo cliente pagante |
-| 12 | i18n completamento | In corso | ~150 chiavi gia, completare |
-| 13 | Integrazioni ecosistema | Futuro | Timer, CREW, API pubblica |
-| 14 | Hardening + Sentry + E2E | Pre-vendita | Rate limiting, audit RLS, Playwright |
+| Fase  | Nome                                     | Stato          | Note                                            |
+| ----- | ---------------------------------------- | -------------- | ----------------------------------------------- |
+| 0     | Bootstrap monorepo                       | **Completata** | Stack funzionante nel repo                      |
+| 1     | Auth multi-tenant + signup + super-admin | Da fare        | Signup→tenant+admin, JWT tenant_id, guard route |
+| 2     | CRUD Eventi/Sale/Sessioni/Speaker        | Da fare        | Enforcement quote, import CSV                   |
+| 3     | Upload Portal relatori (TUS)             | Da fare        | SHA-256 client-side, QR per speaker             |
+| 4     | Versioning + storico                     | Da fare        | Append-only, status workflow, rollback          |
+| 5     | Vista Regia realtime                     | Da fare        | Subscribe Realtime, griglia sale, activity feed |
+| **6** | **Pairing Device + Room Player PWA**     | **Da fare**    | **Codice 6 cifre, Edge Functions, PWA offline** |
+| 7     | Dashboard Super-Admin                    | Da fare        | Guard super_admin, pagine /admin/\*             |
+| 8     | Local Agent Tauri (Modalita B)           | Da fare        | Solo dopo primo cliente con rete incerta        |
+| 9     | Offline architecture completa            | Da fare        | Cache PWA + fallback Agent                      |
+| 10    | Export fine evento                       | Da fare        | ZIP + CSV + PDF                                 |
+| 11    | Billing Lemon Squeezy                    | Da fare        | Solo a primo cliente pagante                    |
+| 12    | i18n completamento                       | In corso       | ~150 chiavi gia, completare                     |
+| 13    | Integrazioni ecosistema                  | Futuro         | Timer, CREW, API pubblica                       |
+| 14    | Hardening + Sentry + E2E                 | Pre-vendita    | Rate limiting, audit RLS, Playwright            |
 
 **Logica:** Fasi 1-6 = MVP cloud vendibile. Fase 7 = gestione clienti. Fasi 8-9 = offline premium. Fasi 10-14 = monetizzazione e polish.
 
@@ -707,14 +762,14 @@ Live SLIDE CENTER/
 
 ## 17. Account e Infrastruttura
 
-| Risorsa | Account | Note |
-|---------|---------|------|
-| GitHub | **live-software11** | `github.com/live-software11/live-slide-center` |
-| Supabase | **live.software11@gmail.com** | Project: `live-slide-center`, Ref: `cdjxxxkrhgdkcpkkozdl` |
-| Vercel | **live.software11@gmail.com** | Dominio: `app.liveslidecenter.com` |
-| Lemon Squeezy | Via Live WORKS APP | Fase 11 |
-| Sentry | **live.software11@gmail.com** | Fase 14 |
-| Cloudflare R2 | — | Solo quando egress > $50/mese |
+| Risorsa       | Account                       | Note                                                      |
+| ------------- | ----------------------------- | --------------------------------------------------------- |
+| GitHub        | **live-software11**           | `github.com/live-software11/live-slide-center`            |
+| Supabase      | **live.software11@gmail.com** | Project: `live-slide-center`, Ref: `cdjxxxkrhgdkcpkkozdl` |
+| Vercel        | **live.software11@gmail.com** | Dominio: `app.liveslidecenter.com`                        |
+| Lemon Squeezy | Via Live WORKS APP            | Fase 11                                                   |
+| Sentry        | **live.software11@gmail.com** | Fase 14                                                   |
+| Cloudflare R2 | —                             | Solo quando egress > $50/mese                             |
 
 **Prima di ogni push:** `gh auth status` → deve essere **live-software11**.
 
@@ -723,34 +778,45 @@ Live SLIDE CENTER/
 ## 18. Checklist Pre-Fase-1
 
 ### Documentazione
+
 - [ ] Letto questo documento per intero
-- [ ] `.cursor/rules/project-architecture.mdc` aggiornato con riferimento a questo file
+- [x] `.cursor/rules/project-architecture.mdc` — gia con riferimento esplicito a questo file
+- [x] Regola Cursor **obbligatoria** allineamento guida/codice: `.cursor/rules/guida-definitiva-doc-sync.mdc` (`alwaysApply: true`)
 
 ### Account
+
 - [ ] Supabase progetto EU Francoforte attivo
 - [ ] Vercel collegato al repo
 - [ ] Dominio `liveslidecenter.com` (o equivalente) acquisito
 
 ### Database
-- [ ] `supabase start` locale OK (Docker Desktop attivo)
-- [ ] Migration iniziale applicata senza errori
-- [ ] Migration pairing + super-admin creata e applicata
-- [ ] Migration quote creata e applicata
-- [ ] `supabase gen types typescript --local > packages/shared/src/types/database.ts`
+
+- [ ] `supabase start` locale OK (Docker Desktop attivo + CLI Supabase nel PATH)
+- [x] Migration iniziale nel repo: `20250411090000_init_slide_center.sql`
+- [x] Migration pairing + super-admin + Realtime: `20250415120000_pairing_super_admin.sql`
+- [x] Migration quote storage + default Trial: `20250415120100_quotas_enforcement.sql`
+- [ ] Verifica applicata: `supabase db reset` (o `db push` su progetto remoto) senza errori SQL
+- [ ] `supabase gen types typescript --local > packages/shared/src/types/database.ts` (o `--project-id` sul progetto collegato), sostituendo il placeholder in `packages/shared/src/types/database.ts`
+- [ ] **NOTA:** il bootstrap super-admin (sezione 10, `UPDATE auth.users`) va eseguito DOPO il primo signup con `live.software11@gmail.com`, non prima
 
 ### Codice
-- [ ] `packages/shared/src/types/enums.ts`: `UserRole` include `'super_admin'`
-- [ ] `packages/shared/src/constants/plans.ts`: valori allineati a sezione 12
-- [ ] `PlanLimits` include `maxFileSizeBytes`
-- [ ] `apps/player/README.md` eliminato (non deve esistere)
-- [ ] `pnpm run typecheck && pnpm run lint && pnpm run build` tutti verdi
+
+- [x] `packages/shared/src/types/enums.ts`: `UserRole` include `'super_admin'`
+- [x] `packages/shared/src/constants/plans.ts`: valori allineati a sezione 12
+- [x] `PlanLimits` include `maxFileSizeBytes`
+- [x] `apps/player/` eliminato (non deve esistere) — fatto
+- [x] `pnpm run typecheck` — verde in CI locale (aprile 2026)
+- [x] `pnpm run lint && pnpm run build` — verde in locale (aprile 2026)
 
 ### Design
+
 - [ ] Wireframe dashboard tenant
 - [ ] Wireframe modal "Aggiungi PC" con codice 6 cifre + QR
 - [ ] Wireframe pagina `/pair` con tastierino
 - [ ] Wireframe Room Player fullscreen
 - [ ] Wireframe dashboard super-admin
+
+**EN — Checklist status:** Pairing/super-admin and quota migrations are in-repo; shared `UserRole` and `PlanLimits.maxFileSizeBytes` match section 12. Remaining Pre-Phase 1 items are mostly infrastructure verification (Supabase CLI, lint/build), type generation from the live schema, and design wireframes.
 
 ---
 

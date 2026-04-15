@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Prima di modificare codice
 
-1. **Fonte di verita unica**: leggere `docs/GUIDA_DEFINITIVA_PROGETTO.md` — contiene TUTTO: architettura, schema DB, pairing, dashboard, piani, networking, roadmap
+1. **Fonte di verita unica**: leggere `docs/GUIDA_DEFINITIVA_PROGETTO.md` — contiene TUTTO: architettura, schema DB, pairing, dashboard, piani, networking, roadmap. Dopo modifiche strutturali aggiornare la guida nello stesso intervento (regola `.cursor/rules/guida-definitiva-doc-sync.mdc`)
 2. **Schema database / RLS**: sezione 7 della guida definitiva
 3. **Architettura sync/offline**: sezione 9 della guida definitiva
 4. **Permessi / ruoli**: sezione 6 della guida definitiva — RBAC: super_admin, admin, tech, coordinator, speaker (no auth)
