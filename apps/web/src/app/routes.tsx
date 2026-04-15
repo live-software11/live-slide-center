@@ -48,6 +48,10 @@ export const router = createBrowserRouter([
             lazy: () => import('@/features/events/EventsView'),
           },
           {
+            path: 'events/:eventId',
+            lazy: () => import('@/features/events/EventDetailView'),
+          },
+          {
             path: 'settings',
             lazy: () => import('@/features/settings/SettingsView'),
           },

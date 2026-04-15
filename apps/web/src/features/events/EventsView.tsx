@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import { z } from 'zod';
 import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
@@ -199,7 +200,12 @@ export default function EventsView() {
             {state.events.map((ev) => (
               <li key={ev.id} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="font-medium text-zinc-100">{ev.name}</p>
+                  <Link
+                    to={`/events/${ev.id}`}
+                    className="font-medium text-zinc-100 hover:text-blue-400 hover:underline"
+                  >
+                    {ev.name}
+                  </Link>
                   <p className="text-xs text-zinc-500">
                     {ev.start_date} → {ev.end_date} · {eventStatusLabel(t, ev.status)}
                   </p>

@@ -23,3 +23,7 @@ export async function createTenantEvent(
     .select()
     .single();
 }
+
+export async function getEventById(supabase: SupabaseClient<Database>, eventId: string) {
+  return supabase.from('events').select('*').eq('id', eventId).maybeSingle();
+}

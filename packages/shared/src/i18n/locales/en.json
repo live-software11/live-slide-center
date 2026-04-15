@@ -61,9 +61,13 @@
     "listTitle": "Your events",
     "emptyList": "No events yet. Use the form above to create one.",
     "dateOrderError": "End date must be on or after the start date.",
+    "detailBack": "Back to events list",
+    "notFound": "Event not found or not accessible for your account.",
+    "detailBreadcrumb": "Event path",
     "errors": {
       "load": "Unable to load events",
-      "missingTenant": "No tenant on this session. Sign out and sign in again, or contact support."
+      "missingTenant": "No tenant on this session. Sign out and sign in again, or contact support.",
+      "invalidRoute": "Invalid event id in the URL."
     }
   },
   "room": {
@@ -77,7 +81,12 @@
     "typeMain": "Main",
     "typeBreakout": "Breakout",
     "typePreview": "Preview",
-    "typePoster": "Poster"
+    "typePoster": "Poster",
+    "eventDetailIntro": "Rooms linked to this event. Data is tenant-isolated (RLS).",
+    "emptyEventList": "No rooms yet — add one using the form above.",
+    "errors": {
+      "missingContext": "Incomplete session context. Reload the page."
+    }
   },
   "session": {
     "title": "Session",

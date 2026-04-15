@@ -61,9 +61,13 @@
     "listTitle": "I tuoi eventi",
     "emptyList": "Nessun evento ancora. Compila il modulo sopra per crearne uno.",
     "dateOrderError": "La data di fine deve essere uguale o successiva alla data di inizio.",
+    "detailBack": "Torna all'elenco eventi",
+    "notFound": "Evento non trovato o non accessibile con il tuo account.",
+    "detailBreadcrumb": "Percorso evento",
     "errors": {
       "load": "Impossibile caricare gli eventi",
-      "missingTenant": "Sessione senza tenant associato. Esci e accedi di nuovo oppure contatta il supporto."
+      "missingTenant": "Sessione senza tenant associato. Esci e accedi di nuovo oppure contatta il supporto.",
+      "invalidRoute": "Identificativo evento non valido nell'URL."
     }
   },
   "room": {
@@ -77,7 +81,12 @@
     "typeMain": "Principale",
     "typeBreakout": "Breakout",
     "typePreview": "Anteprima",
-    "typePoster": "Poster"
+    "typePoster": "Poster",
+    "eventDetailIntro": "Sale collegate a questo evento. I dati sono isolati per tenant (RLS).",
+    "emptyEventList": "Nessuna sala: creane una con il modulo sopra.",
+    "errors": {
+      "missingContext": "Contesto sessione incompleto. Ricarica la pagina."
+    }
   },
   "session": {
     "title": "Sessione",
