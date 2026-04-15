@@ -78,6 +78,34 @@
       "deleteFailed": "Deletion failed"
     }
   },
+  "tenantQuota": {
+    "sectionTitle": "Subscription usage",
+    "sectionAria": "Subscription usage and plan limits for your organization",
+    "planLine": "Plan: {{plan}}",
+    "planLabels": {
+      "trial": "Trial",
+      "starter": "Starter",
+      "pro": "Pro",
+      "enterprise": "Enterprise"
+    },
+    "storageLabel": "Storage",
+    "storageUnlimited": "{{used}} used (unlimited quota)",
+    "storageMeterAria": "Storage used as a percentage of the plan limit",
+    "eventsThisMonthLabel": "Events starting this month",
+    "roomsThisEventLabel": "Rooms in this event",
+    "eventsMonthHint": "Events are counted by start date in the current calendar month ({{month}}), in your browser's local timezone.",
+    "eventDetailIntro": "Organization storage and the room limit for this event (per your subscription).",
+    "unlimited": "Unlimited",
+    "usedOf": "{{used}} / {{total}}",
+    "eventsAtCap": "You have reached the monthly event limit for your plan. Upgrade the plan or wait until next month.",
+    "roomsAtCap": "You have reached the maximum number of rooms for this event under your plan.",
+    "loadError": "Unable to load subscription limits.",
+    "loadErrorNoRow": "Organization limits are unavailable. Try again or contact support.",
+    "errors": {
+      "eventsPerMonthExceeded": "Cannot create the event: the monthly event limit for your plan has been reached.",
+      "roomsPerEventExceeded": "Cannot add another room: the per-event room limit for your plan has been reached."
+    }
+  },
   "room": {
     "title": "Room",
     "titlePlural": "Rooms",

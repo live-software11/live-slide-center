@@ -1,11 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { z } from 'zod';
 import { useAuth } from '@/app/use-auth';
+import { TenantQuotaPanel } from '@/features/tenant/components/TenantQuotaPanel';
+import { useTenantQuotaRow } from '@/features/tenant/hooks/useTenantQuotaRow';
+import {
+  countEventsWithStartInYearMonth,
+  currentYearMonthLocal,
+  isUnlimitedEventsPerMonth,
+} from '@/features/tenant/lib/quota-usage';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { getTenantIdFromSession } from '@/lib/session-tenant';
 import { useEvents } from './hooks/useEvents';
@@ -42,10 +49,17 @@ export default function EventsView() {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const tenantId = getTenantIdFromSession(session);
   const { state, reload, create } = useEvents(supabase, tenantId);
+  const quotaState = useTenantQuotaRow(supabase, tenantId);
   const [createError, setCreateError] = useState<string | null>(null);
+  const yearMonthNow = useMemo(() => currentYearMonthLocal(), []);
+  const eventsStartingThisMonth = useMemo(
+    () => (state.status === 'ready' ? countEventsWithStartInYearMonth(state.events, yearMonthNow) : 0),
+    [state, yearMonthNow],
+  );
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
@@ -58,8 +72,32 @@ export default function EventsView() {
     },
   });
 
+  const startDateWatch = useWatch({ control, name: 'start_date' });
+  const createDisabledByQuotaCap = useMemo(() => {
+    if (quotaState.state.status !== 'ready' || state.status !== 'ready') return false;
+    const row = quotaState.state.row;
+    if (isUnlimitedEventsPerMonth(row.plan, row.max_events_per_month)) return false;
+    const targetYm = (startDateWatch ?? '').slice(0, 7);
+    if (targetYm.length !== 7) return false;
+    return countEventsWithStartInYearMonth(state.events, targetYm) >= row.max_events_per_month;
+  }, [quotaState.state, state, startDateWatch]);
+
   const onSubmit = handleSubmit(async (values) => {
     setCreateError(null);
+    if (quotaState.state.status === 'ready') {
+      const row = quotaState.state.row;
+      if (!isUnlimitedEventsPerMonth(row.plan, row.max_events_per_month)) {
+        const targetYm = values.start_date.slice(0, 7);
+        const inTargetMonth = countEventsWithStartInYearMonth(
+          state.status === 'ready' ? state.events : [],
+          targetYm,
+        );
+        if (inTargetMonth >= row.max_events_per_month) {
+          setCreateError(t('tenantQuota.errors.eventsPerMonthExceeded'));
+          return;
+        }
+      }
+    }
     const result = await create(values);
     if (result.errorMessage) {
       setCreateError(
@@ -67,6 +105,7 @@ export default function EventsView() {
       );
       return;
     }
+    void quotaState.reload();
     reset({
       name: '',
       start_date: todayIsoDate(),
@@ -121,6 +160,25 @@ export default function EventsView() {
     <div className="p-8">
       <h1 className="text-2xl font-bold text-zinc-50">{t('event.titlePlural')}</h1>
       <p className="mt-2 max-w-xl text-sm text-zinc-400">{t('event.listIntro')}</p>
+
+      {quotaState.state.status === 'error' ? (
+        <p className="mt-4 max-w-xl text-sm text-amber-400" role="alert">
+          {quotaState.state.message === 'no_tenant_row'
+            ? t('tenantQuota.loadErrorNoRow')
+            : `${t('tenantQuota.loadError')} (${quotaState.state.message})`}
+        </p>
+      ) : null}
+      {quotaState.state.status === 'ready' ? (
+        <div className="mt-6 max-w-2xl">
+          <TenantQuotaPanel
+            variant="eventsPage"
+            row={quotaState.state.row}
+            eventsInCurrentMonth={eventsStartingThisMonth}
+          />
+        </div>
+      ) : quotaState.state.status === 'loading' ? (
+        <p className="mt-4 text-xs text-zinc-500">{t('common.loading')}</p>
+      ) : null}
 
       <section className="mt-8 rounded-lg border border-zinc-800 bg-zinc-900/50 p-6" aria-labelledby="new-event-title">
         <h2 id="new-event-title" className="text-lg font-semibold text-zinc-100">
@@ -181,7 +239,7 @@ export default function EventsView() {
           ) : null}
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || createDisabledByQuotaCap}
             className="w-fit rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
           >
             {t('common.create')}

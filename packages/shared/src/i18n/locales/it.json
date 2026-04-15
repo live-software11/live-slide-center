@@ -78,6 +78,34 @@
       "deleteFailed": "Eliminazione non riuscita"
     }
   },
+  "tenantQuota": {
+    "sectionTitle": "Utilizzo e limiti piano",
+    "sectionAria": "Utilizzo dell'abbonamento e limiti del piano per la tua organizzazione",
+    "planLine": "Piano: {{plan}}",
+    "planLabels": {
+      "trial": "Trial",
+      "starter": "Starter",
+      "pro": "Pro",
+      "enterprise": "Enterprise"
+    },
+    "storageLabel": "Storage",
+    "storageUnlimited": "{{used}} utilizzati (quota illimitata)",
+    "storageMeterAria": "Percentuale di storage utilizzato rispetto al limite del piano",
+    "eventsThisMonthLabel": "Eventi con inizio nel mese corrente",
+    "roomsThisEventLabel": "Sale in questo evento",
+    "eventsMonthHint": "Il conteggio considera la data di inizio evento nel mese di calendario corrente ({{month}}), nel fuso orario locale del browser.",
+    "eventDetailIntro": "Storage dell'organizzazione e limite sale per questo evento (in base all'abbonamento).",
+    "unlimited": "Illimitato",
+    "usedOf": "{{used}} / {{total}}",
+    "eventsAtCap": "Hai raggiunto il limite mensile di eventi previsto dal piano. Passa a un piano superiore o attendi il mese successivo.",
+    "roomsAtCap": "Hai raggiunto il numero massimo di sale per questo evento previsto dal piano.",
+    "loadError": "Impossibile caricare i limiti dell'abbonamento.",
+    "loadErrorNoRow": "Limiti organizzazione non disponibili. Riprova o contatta il supporto.",
+    "errors": {
+      "eventsPerMonthExceeded": "Impossibile creare l'evento: limite mensile di eventi del piano raggiunto.",
+      "roomsPerEventExceeded": "Impossibile aggiungere un'altra sala: limite sale per evento del piano raggiunto."
+    }
+  },
   "room": {
     "title": "Sala",
     "titlePlural": "Sale",

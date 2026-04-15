@@ -12,6 +12,9 @@ import { getUploadPortalAbsoluteUrl } from '@/lib/upload-portal-url';
 import { getTenantIdFromSession } from '@/lib/session-tenant';
 import type { RoomType } from '@/features/rooms/repository';
 import type { SessionType } from '@/features/sessions/repository';
+import { TenantQuotaPanel } from '@/features/tenant/components/TenantQuotaPanel';
+import { useTenantQuotaRow } from '@/features/tenant/hooks/useTenantQuotaRow';
+import { isUnlimitedRoomsPerEvent } from '@/features/tenant/lib/quota-usage';
 import { useEventDetail } from './hooks/useEventDetail';
 
 const ROOM_TYPES: RoomType[] = ['main', 'breakout', 'preview', 'poster'];
@@ -140,6 +143,7 @@ export default function EventDetailView() {
     deleteSpeaker,
     regenerateSpeakerUpload,
   } = useEventDetail(supabase, eventId, tenantId);
+  const quotaState = useTenantQuotaRow(supabase, tenantId);
   const [roomCreateError, setRoomCreateError] = useState<string | null>(null);
   const [sessionCreateError, setSessionCreateError] = useState<string | null>(null);
   const [speakerCreateError, setSpeakerCreateError] = useState<string | null>(null);
@@ -226,8 +230,25 @@ export default function EventDetailView() {
     resetSpeakerForm({ session_id: firstSessionId, full_name: '', email: '' });
   }, [readyEventId, sessionIdsKey, resetSpeakerForm]);
 
+  const roomsQuotaBlocked = useMemo(() => {
+    if (state.status !== 'ready' || quotaState.state.status !== 'ready') return false;
+    const row = quotaState.state.row;
+    if (isUnlimitedRoomsPerEvent(row.plan, row.max_rooms_per_event)) return false;
+    return state.rooms.length >= row.max_rooms_per_event;
+  }, [state, quotaState.state]);
+
   const onRoomSubmit = handleSubmit(async (values) => {
     setRoomCreateError(null);
+    if (state.status === 'ready' && quotaState.state.status === 'ready') {
+      const row = quotaState.state.row;
+      if (
+        !isUnlimitedRoomsPerEvent(row.plan, row.max_rooms_per_event) &&
+        state.rooms.length >= row.max_rooms_per_event
+      ) {
+        setRoomCreateError(t('tenantQuota.errors.roomsPerEventExceeded'));
+        return;
+      }
+    }
     const result = await createRoom(values);
     if (result.errorMessage) {
       setRoomCreateError(
@@ -235,6 +256,7 @@ export default function EventDetailView() {
       );
       return;
     }
+    void quotaState.reload();
     reset({ name: '', room_type: 'main' });
   });
 
@@ -481,6 +503,21 @@ export default function EventDetailView() {
         </div>
       ) : null}
 
+      {quotaState.state.status === 'error' ? (
+        <p className="mt-4 max-w-xl text-sm text-amber-400" role="alert">
+          {quotaState.state.message === 'no_tenant_row'
+            ? t('tenantQuota.loadErrorNoRow')
+            : `${t('tenantQuota.loadError')} (${quotaState.state.message})`}
+        </p>
+      ) : null}
+      {quotaState.state.status === 'ready' ? (
+        <div className="mt-6 max-w-2xl">
+          <TenantQuotaPanel variant="eventDetail" row={quotaState.state.row} roomsInThisEvent={rooms.length} />
+        </div>
+      ) : quotaState.state.status === 'loading' && state.status === 'ready' ? (
+        <p className="mt-4 text-xs text-zinc-500">{t('common.loading')}</p>
+      ) : null}
+
       <section className="mt-8" aria-labelledby="rooms-section-title">
         <h2 id="rooms-section-title" className="text-lg font-semibold text-zinc-100">
           {t('room.titlePlural')}
@@ -529,7 +566,7 @@ export default function EventDetailView() {
             ) : null}
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || roomsQuotaBlocked}
               className="w-fit rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
             >
               {t('common.create')}
