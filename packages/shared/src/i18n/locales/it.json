@@ -151,12 +151,21 @@
     "optional": "Facoltativo"
   },
   "role": {
+    "superAdmin": "Super amministratore",
     "admin": "Amministratore",
     "tech": "Tecnico",
     "coordinator": "Coordinatore",
     "speaker": "Relatore"
   },
+  "admin": {
+    "badge": "Super-Admin",
+    "navOverview": "Panoramica",
+    "backToTenant": "Torna alla dashboard tenant",
+    "dashboardTitle": "Panoramica piattaforma",
+    "dashboardIntro": "Vista globale tenant e metadati (nessun contenuto file). Le sezioni dettaglio (/admin/tenants, quote, audit) arriveranno in Fase 7."
+  },
   "a11y": {
+    "adminNav": "Navigazione area Super-Admin",
     "mainNav": "Navigazione principale",
     "sidebar": "Barra laterale",
     "toggleTheme": "Cambia tema",

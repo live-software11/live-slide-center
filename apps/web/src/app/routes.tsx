@@ -1,6 +1,8 @@
 import { createBrowserRouter } from 'react-router';
+import { AdminRootLayout } from './admin-root-layout';
 import { RootLayout } from './root-layout';
 import { RequireAuth } from './require-auth';
+import { RequireSuperAdmin } from './require-super-admin';
 
 export const router = createBrowserRouter([
   {
@@ -10,6 +12,21 @@ export const router = createBrowserRouter([
   {
     path: '/signup',
     lazy: () => import('@/features/auth/SignupView'),
+  },
+  {
+    path: '/admin',
+    element: <RequireSuperAdmin />,
+    children: [
+      {
+        element: <AdminRootLayout />,
+        children: [
+          {
+            index: true,
+            lazy: () => import('@/features/admin/AdminDashboardView'),
+          },
+        ],
+      },
+    ],
   },
   {
     path: '/',

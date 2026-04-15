@@ -1,8 +1,9 @@
+import type { Database } from '@slidecenter/shared';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-let browserClient: SupabaseClient | null = null;
+let browserClient: SupabaseClient<Database> | null = null;
 
-export function getSupabaseBrowserClient(): SupabaseClient {
+export function getSupabaseBrowserClient(): SupabaseClient<Database> {
   if (browserClient) return browserClient;
   const url = import.meta.env.VITE_SUPABASE_URL;
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -11,6 +12,6 @@ export function getSupabaseBrowserClient(): SupabaseClient {
       'Manca la configurazione Supabase: impostare VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY (vedi .env.example).',
     );
   }
-  browserClient = createClient(url, key);
+  browserClient = createClient<Database>(url, key);
   return browserClient;
 }

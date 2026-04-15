@@ -151,12 +151,21 @@
     "optional": "Optional"
   },
   "role": {
+    "superAdmin": "Super administrator",
     "admin": "Administrator",
     "tech": "Technician",
     "coordinator": "Coordinator",
     "speaker": "Speaker"
   },
+  "admin": {
+    "badge": "Super-Admin",
+    "navOverview": "Overview",
+    "backToTenant": "Back to tenant dashboard",
+    "dashboardTitle": "Platform overview",
+    "dashboardIntro": "Cross-tenant metadata view (no presentation file content). Detailed sections (/admin/tenants, quotas, audit) ship in Phase 7."
+  },
   "a11y": {
+    "adminNav": "Super-Admin area navigation",
     "mainNav": "Main navigation",
     "sidebar": "Sidebar",
     "toggleTheme": "Toggle theme",

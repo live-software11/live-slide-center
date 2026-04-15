@@ -1,11 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import { Link, Outlet, useNavigate } from 'react-router';
 import { Suspense } from 'react';
+import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 
 export function RootLayout() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { session } = useAuth();
+  const isSuperAdmin = session?.user?.app_metadata?.role === 'super_admin';
 
   async function handleLogout() {
     await getSupabaseBrowserClient().auth.signOut();
@@ -34,6 +37,14 @@ export function RootLayout() {
           >
             {t('nav.settings')}
           </Link>
+          {isSuperAdmin ? (
+            <Link
+              to="/admin"
+              className="rounded-md px-3 py-2 text-sm font-medium text-amber-500/90 hover:bg-zinc-800 hover:text-amber-400"
+            >
+              {t('admin.navOverview')}
+            </Link>
+          ) : null}
           <button
             type="button"
             onClick={() => void handleLogout()}

@@ -3,4 +3,6 @@ dist
 .turbo
 pnpm-lock.yaml
 supabase/.temp
+# SQL: Prettier spezza clausole (es. ON DELETE SET NULL) e altera la semantica
+supabase/migrations/
 coverage
