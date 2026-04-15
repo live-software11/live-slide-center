@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Link, Outlet, useLocation } from 'react-router';
 import { Suspense } from 'react';
+import { AppBrandLogo } from '@/components/AppBrandLogo';
 
 export function AdminRootLayout() {
   const { t } = useTranslation();
@@ -20,10 +21,14 @@ export function AdminRootLayout() {
   return (
     <div className="flex min-h-screen bg-sc-bg text-sc-text">
       <aside className="hidden w-56 shrink-0 border-r border-sc-accent/15 bg-sc-surface/80 backdrop-blur-xl lg:flex lg:flex-col">
-        <div className="flex h-16 items-center border-b border-sc-accent/15 px-5">
-          <p className="text-xs font-bold uppercase tracking-widest text-sc-accent">
-            {t('admin.badge')}
-          </p>
+        <div className="flex h-16 items-center gap-2.5 border-b border-sc-accent/15 px-5">
+          <AppBrandLogo size="sm" className="shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold tracking-tight text-sc-text">{t('app.displayName')}</p>
+            <p className="truncate text-[10px] font-bold uppercase tracking-widest text-sc-accent">
+              {t('admin.badge')}
+            </p>
+          </div>
         </div>
         <nav className="flex flex-1 flex-col gap-1 p-3" aria-label={t('a11y.adminNav')}>
           <Link to="/admin" className={linkClass('/admin')}>

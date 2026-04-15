@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { waitForTenantIdAfterSignup } from './lib/wait-for-tenant-jwt';
+import { AppBrandLogo } from '@/components/AppBrandLogo';
 
 function signupSchema(t: (key: string, opts?: Record<string, unknown>) => string) {
   return z.object({
@@ -109,11 +110,14 @@ export default function SignupView() {
         <div className="absolute -top-20 left-1/3 h-60 w-[400px] -translate-x-1/2 rounded-full bg-sc-accent/5 blur-3xl" />
       </div>
       <div className="relative w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-sc-navy ring-1 ring-white/10">
-            <span className="text-lg font-bold text-sc-primary">SC</span>
+        <div className="mb-8 flex flex-col items-center text-center">
+          <div className="flex items-center gap-3">
+            <AppBrandLogo size="lg" className="shrink-0" />
+            <p className="text-left text-lg font-bold leading-tight tracking-tight text-sc-text">
+              {t('app.displayName')}
+            </p>
           </div>
-          <h1 className="mt-4 text-xl font-semibold tracking-tight" id="signup-title">
+          <h1 className="mt-3 text-base font-medium text-sc-text-muted" id="signup-title">
             {t('auth.signupPageTitle')}
           </h1>
         </div>

@@ -1,6 +1,8 @@
 {
   "app": {
     "name": "Live SLIDE CENTER",
+    "displayName": "Live Slide Center",
+    "logoAlt": "Logo Live Slide Center",
     "tagline": "Gestione centralizzata presentazioni per eventi live"
   },
   "nav": {
