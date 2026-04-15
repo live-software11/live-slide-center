@@ -21,6 +21,7 @@ alwaysApply: true
 | i18n              | i18next + react-i18next                                            | IT + EN obbligatori      |
 | Upload            | tus-js-client + use-tus                                            | Resumable TUS            |
 | PWA (Room Player) | vite-plugin-pwa + Workbox                                          | Fase 6                   |
+| Brand (logo)      | `icons/Logo Live Slide Center.jpg` + `apps/web/scripts/generate-brand-icons.mjs` (`sharp`, `prebuild`/`predev`) + `AppBrandLogo` | Favicon, manifest, UI |
 | Backend/DB        | Supabase (PostgreSQL + Auth + Realtime + Edge Functions + Storage) | EU Francoforte           |
 | Deploy web        | Vercel                                                             | Auto-deploy su push main |
 | Desktop Agent     | Tauri v2 + Axum (Rust) + SQLite (rusqlite)                         | Local Agent Fase 7       |
@@ -33,6 +34,8 @@ alwaysApply: true
 Live SLIDE CENTER/
 ├── apps/
 │   ├── web/                  # Dashboard + Upload Portal + Room Player PWA (React 19)
+│   │   ├── scripts/          # generate-brand-icons.mjs (Sharp → public/)
+│   │   ├── public/           # favicon, apple-touch, PWA PNG, logo JPEG (generati)
 │   │   └── src/
 │   │       ├── features/
 │   │       │   ├── auth/         # Login, signup, onboarding
@@ -46,6 +49,7 @@ Live SLIDE CENTER/
 │   │       │   ├── live-view/    # Vista Regia realtime
 │   │       │   ├── admin/        # Super-Admin /admin/*
 │   │       │   └── billing/      # Piani, quote, Lemon Squeezy (Fase 11)
+│   │       ├── components/       # AppBrandLogo (marchio), shared layout UI
 │   │       ├── routes/           # React Router 7 config
 │   │       └── lib/              # supabase.ts, utils
 │   └── agent/                # Local Agent (Tauri v2) — Fase 7 — mini-PC regia
@@ -64,6 +68,7 @@ Live SLIDE CENTER/
 │   │   └── _shared/          # auth.ts, cors.ts
 │   ├── seed.sql
 │   └── config.toml
+├── icons/                  # Logo sorgente ufficiale (JPG) — input script brand
 ├── docs/
 │   ├── GUIDA_DEFINITIVA_PROGETTO.md  ← UNICA FONTE DI VERITA
 │   └── Setup_Strumenti_e_MCP.md      ← Setup ambiente e MCP

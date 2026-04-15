@@ -236,7 +236,7 @@ Elevated:      bg-sc-elevated     (#132844)
 Primary:       bg-sc-primary      (#3FA9F5)  — CTA, link, selezione
 Primary deep:  bg-sc-primary-deep (#0B5ED7)  — hover primary
 Accent:        bg-sc-accent       (#FF7A00)  — admin badge, avvisi
-Navy:          bg-sc-navy         (#0A2540)  — logo box
+Navy:          bg-sc-navy         (#0A2540)  — superfici compatte (non sostituiscono il logo immagine)
 
 Text:          text-sc-text            (#f0f2f5)
 Secondary:     text-sc-text-secondary  (#b8c5d4)
@@ -269,3 +269,9 @@ Focus ring:    ring-sc-ring/25 + focus:border-sc-primary/40
 - Dark mode only — coerenza con sito marketing
 - Densita informativa alta — utenti target: tecnici AV esperti
 - MAI usare classi `zinc-*` o `blue-600` dirette — sempre token `sc-*`
+
+## Logo e marchio (web)
+
+- **Marchio grafico:** usare il componente `AppBrandLogo` in `apps/web/src/components/AppBrandLogo.tsx` (src `/logo-live-slide-center.jpg`, generato dallo script brand). Non duplicare `<img src="...">` verso altri path nelle feature.
+- **Wordmark:** accanto al logo usare `t('app.displayName')` (e aggiornare IT/EN in `packages/shared/src/i18n/locales/` se cambia il nome commerciale).
+- **Sorgente e build:** file JPG unico in `icons/Logo Live Slide Center.jpg`; `pnpm --filter @slidecenter/web run icons:brand` oppure build/dev (hook `prebuild` / `predev`). Dettaglio in `docs/GUIDA_DEFINITIVA_PROGETTO.md` §13.

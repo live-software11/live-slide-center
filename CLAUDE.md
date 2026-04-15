@@ -40,9 +40,11 @@
 Live SLIDE CENTER/
 ├── apps/
 │   ├── web/                 # Dashboard + Upload Portal + Room Player PWA (React 19)
+│   │   ├── scripts/         # generate-brand-icons.mjs — Sharp: icons/ → public/ (prebuild/predev)
+│   │   ├── public/          # favicon, apple-touch, PWA PNG, logo JPEG (generati dallo script)
 │   │   └── src/features/    # auth, events, rooms, sessions, speakers, presentations,
 │   │                        # upload-portal, devices (lib/fs-access.ts, hooks/useFileSync.ts),
-│   │                        # live-view, admin, billing
+│   │                        # live-view, admin, billing; src/components/AppBrandLogo.tsx (marchio)
 │   ├── agent/               # Local Agent (Tauri v2) — Fase 7 — mini-PC regia
 │   │   ├── src-tauri/       # Rust: Axum HTTP :8080, SQLite WAL, sync engine (streaming)
 │   │   └── ui/              # HTML standalone dashboard
@@ -56,6 +58,7 @@ Live SLIDE CENTER/
 │   ├── migrations/          # Schema SQL + RLS (8 file ad aprile 2026)
 │   ├── functions/           # Edge Functions Deno (health, pair-init/claim/poll, cleanup)
 │   └── config.toml
+├── icons/                   # Logo sorgente ufficiale: Logo Live Slide Center.jpg (input asset brand)
 ├── docs/
 │   └── GUIDA_DEFINITIVA_PROGETTO.md  ← UNICA FONTE DI VERITA
 ├── turbo.json
@@ -74,6 +77,16 @@ src/features/{nome}/
 ├── service.ts      # Logica business
 └── MyView.tsx      # Page-level view
 ```
+
+---
+
+## Brand, favicon e PWA (web)
+
+- **Sorgente:** `icons/Logo Live Slide Center.jpg` (unico file master, in git).
+- **Pipeline:** `apps/web/scripts/generate-brand-icons.mjs` + devDependency `sharp`; eseguito da **`prebuild`** e **`predev`** su `@slidecenter/web` prima di Vite.
+- **Output:** `apps/web/public/` — `logo-live-slide-center.jpg` (UI), `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `pwa-192x192.png`, `pwa-512x512.png`.
+- **React:** usare solo `AppBrandLogo` da `src/components/AppBrandLogo.tsx` e `t('app.displayName')` per il wordmark; chiavi i18n in `packages/shared/src/i18n/locales/`.
+- **Dettaglio:** `docs/GUIDA_DEFINITIVA_PROGETTO.md` §13 (sottosezione Logo prodotto, favicon e PWA).
 
 ---
 

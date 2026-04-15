@@ -29,6 +29,7 @@ Aggiornare quando:
 - Si aggiunge o modifica un ruolo / permission
 - Cambiano vincoli architetturali o pattern
 - Si modificano flussi pairing / networking
+- Si aggiorna il logo, favicon, manifest PWA o il flusso di generazione asset brand (`icons/`, `generate-brand-icons.mjs`, `AppBrandLogo`)
 
 ---
 

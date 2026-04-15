@@ -38,6 +38,8 @@ alwaysApply: true
 | Caricamento        | Upload                   |
 | Scaricamento       | Download                 |
 
+Il **nome commerciale** mostrato accanto al logo in auth e sidebar e `t('app.displayName')` (`app` in `it.json` / `en.json`). Non duplicarlo come stringa hardcoded nelle view.
+
 ### Accessibilita
 
 - `aria-label` e `title` tramite `t()` con coppia IT/EN

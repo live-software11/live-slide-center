@@ -1,7 +1,7 @@
 ﻿# GUIDA DEFINITIVA PROGETTO � Live SLIDE CENTER
 
 > **Documento UNICO di riferimento.** Questo file sostituisce e incorpora: `PIANO_MASTER_v3.md`, `SlideHub_Live_CURSOR_BUILD.md`, `PRE_CODE_PREPARATION.md`, `LIVE_SLIDE_CENTER_DEFINITIVO.md`. Nessun altro documento ha autorita su questo. Se trovi una contraddizione altrove, **questo vince**.
-> **Versione:** 4.0.0 - 15 Aprile 2026 (Fase 7 completata: Dual-Mode File Sync � Blocco A: File System Access API nel Room Player PWA per download automatico su disco; Blocco B: Local Agent Tauri v2 `apps/agent/` con Axum HTTP :8080, SQLite WAL, sync engine da Supabase Storage; Blocco C: Room Agent Tauri v2 `apps/room-agent/` con polling LAN, autostart HKCU, tray icon; Blocco D: colonna `network_mode` ENUM `cloud|intranet|hybrid` sulla tabella `events`; i18n `event.networkMode_*` IT/EN; selettore modalita rete nel form modifica evento; ADR-007 dual-mode per evento. Fasi precedenti: 0-6 completate al 100% inclusi MVP Cloud, Upload Portal TUS, versioning presentazioni, Vista Regia realtime, Pairing Device + Room Player PWA.)
+> **Versione:** 4.0.0 - 15 Aprile 2026 (Fase 7 completata: Dual-Mode File Sync � Blocco A: File System Access API nel Room Player PWA per download automatico su disco; Blocco B: Local Agent Tauri v2 `apps/agent/` con Axum HTTP :8080, SQLite WAL, sync engine da Supabase Storage; Blocco C: Room Agent Tauri v2 `apps/room-agent/` con polling LAN, autostart HKCU, tray icon; Blocco D: colonna `network_mode` ENUM `cloud|intranet|hybrid` sulla tabella `events`; i18n `event.networkMode_*` IT/EN; selettore modalita rete nel form modifica evento; ADR-007 dual-mode per evento. Fasi precedenti: 0-6 completate al 100% inclusi MVP Cloud, Upload Portal TUS, versioning presentazioni, Vista Regia realtime, Pairing Device + Room Player PWA. Brand: logo ufficiale `icons/Logo Live Slide Center.jpg`, generazione favicon/PWA/UI con Sharp in prebuild/predev, componente `AppBrandLogo` e i18n `app.displayName` — vedi §13.)
 > **Autore:** Andrea Rizzari + CTO Senior AI Review
 > **Stack:** React 19 + Vite 8 + TypeScript strict + Supabase + Vercel � gia funzionante nel repo
 
@@ -730,26 +730,39 @@ export const PLAN_LIMITS: Record<TenantPlan, PlanLimits> = {
 
 Allineata al sito marketing **www.liveworksapp.com**: navy profondo, blu brand, arancio accento, font DM Sans, superfici con bordi blu-tinti, card `rounded-2xl`. Dark mode only.
 
+### Logo prodotto, favicon e PWA
+
+- **Sorgente unica (versionata in git):** `icons/Logo Live Slide Center.jpg`. Non sostituire il marchio con placeholder testuali nelle schermate principali: usare il componente React dedicato.
+- **Generazione asset:** `apps/web/scripts/generate-brand-icons.mjs` (Node + libreria **`sharp`** in `devDependencies` di `@slidecenter/web`). Lo script viene eseguito in **`prebuild`** e **`predev`** (`apps/web/package.json`) prima di Vite, cosi ogni build/deploy (incluso Vercel) rigenera le derivate dalla sorgente.
+- **File generati in `apps/web/public/`:** `logo-live-slide-center.jpg` (JPEG ottimizzato, max ~512 px lato, usato in UI), `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `pwa-192x192.png`, `pwa-512x512.png` (PNG da crop centrato ad alta qualita).
+- **UI web:** `src/components/AppBrandLogo.tsx` — unico punto per `<img>` del marchio in sidebar tenant (`root-layout`), sidebar admin (`admin-root-layout`), login e signup. Il nome accanto al logo e sempre `t('app.displayName')` (chiavi `app.displayName` / `app.logoAlt` in `packages/shared/src/i18n/locales/it.json` e `en.json`).
+- **HTML:** `apps/web/index.html` — `link rel="icon"` (16 + 32) e `apple-touch-icon` verso i PNG in `public/`.
+- **PWA:** `vite.config.ts` (`vite-plugin-pwa`) — `manifest.icons` sui PNG 192/512; `includeAssets` elenca favicon, apple-touch e JPEG logo; Workbox `globPatterns` include estensione `jpg` per la precache.
+
+**Workflow modifica logo:** sostituire il JPG in `icons/`, poi `pnpm --filter @slidecenter/web run icons:brand` oppure qualsiasi `pnpm run build` / `pnpm dev` dalla root (grazie a prebuild/predev). Verificare visivamente login, header e installazione PWA.
+
+**EN — Brand & PWA assets:** One canonical JPG under `icons/` drives everything. A Sharp script runs on `prebuild`/`predev`, writes optimized web JPEG + favicon/apple-touch/PWA PNGs into `apps/web/public/`. Use `AppBrandLogo` plus `t('app.displayName')` for the wordmark—avoid ad-hoc `/logo...` URLs scattered across features.
+
 ### Palette (Tailwind 4 `@theme` tokens in `index.css`)
 
-| Token Tailwind       | Valore hex             | Uso                                  |
-| -------------------- | ---------------------- | ------------------------------------ |
-| `sc-bg`              | `#07101f`              | Sfondo principale (navy profondo)    |
-| `sc-surface`         | `#0d1c30`              | Card, sidebar, pannelli              |
-| `sc-elevated`        | `#132844`              | Superfici hover, elementi rialzati   |
-| `sc-primary`         | `#3FA9F5`              | CTA, link, selezione, brand blue     |
-| `sc-primary-deep`    | `#0B5ED7`              | Hover su primary, gradienti          |
-| `sc-accent`          | `#FF7A00`              | Badge admin, avvisi importanti       |
-| `sc-accent-light`    | `#FF9A40`              | Accento secondario                   |
-| `sc-navy`            | `#0A2540`              | Logo box, elementi brand             |
-| `sc-text`            | `#f0f2f5`              | Testo primario (titoli, contenuto)   |
-| `sc-text-secondary`  | `#b8c5d4`              | Testo secondario                     |
-| `sc-text-muted`      | `#7a8da3`              | Label, metadata, placeholder         |
-| `sc-text-dim`        | `#556577`              | Testo terziario, hint                |
-| `sc-ring`            | `#3FA9F5`              | Focus ring                           |
-| `sc-success`         | `#4ade80`              | Synced, online, ready                |
-| `sc-warning`         | `#fbbf24`              | Syncing, LAN only, cap raggiunto     |
-| `sc-danger`          | `#f87171`              | Offline, failed, errori              |
+| Token Tailwind      | Valore hex | Uso                                |
+| ------------------- | ---------- | ---------------------------------- |
+| `sc-bg`             | `#07101f`  | Sfondo principale (navy profondo)  |
+| `sc-surface`        | `#0d1c30`  | Card, sidebar, pannelli            |
+| `sc-elevated`       | `#132844`  | Superfici hover, elementi rialzati |
+| `sc-primary`        | `#3FA9F5`  | CTA, link, selezione, brand blue   |
+| `sc-primary-deep`   | `#0B5ED7`  | Hover su primary, gradienti        |
+| `sc-accent`         | `#FF7A00`  | Badge admin, avvisi importanti     |
+| `sc-accent-light`   | `#FF9A40`  | Accento secondario                 |
+| `sc-navy`           | `#0A2540`  | Superfici brand compatte (non sostituiscono il logo immagine `AppBrandLogo`) |
+| `sc-text`           | `#f0f2f5`  | Testo primario (titoli, contenuto) |
+| `sc-text-secondary` | `#b8c5d4`  | Testo secondario                   |
+| `sc-text-muted`     | `#7a8da3`  | Label, metadata, placeholder       |
+| `sc-text-dim`       | `#556577`  | Testo terziario, hint              |
+| `sc-ring`           | `#3FA9F5`  | Focus ring                         |
+| `sc-success`        | `#4ade80`  | Synced, online, ready              |
+| `sc-warning`        | `#fbbf24`  | Syncing, LAN only, cap raggiunto   |
+| `sc-danger`         | `#f87171`  | Offline, failed, errori            |
 
 ### Bordi e opacita
 
@@ -889,6 +902,7 @@ Live SLIDE CENTER/
 �   +-- functions/           # Edge Functions Deno (health, pair-init, pair-claim, pair-poll, cleanup)
 �   +-- seed.sql
 �   +-- config.toml
++-- icons/                   # Logo sorgente ufficiale (JPG) -> genera apps/web/public/* (script prebuild)
 +-- scripts/                 # Setup PowerShell (MCP Supabase)
 +-- docs/
 �   +-- GUIDA_DEFINITIVA_PROGETTO.md  ? QUESTO FILE (unico)
@@ -921,6 +935,7 @@ Live SLIDE CENTER/
 ### Documentazione
 
 - [ ] Letto questo documento per intero
+- [x] Logo / favicon / PWA: sorgente `icons/Logo Live Slide Center.jpg`, script `apps/web/scripts/generate-brand-icons.mjs`, componente `AppBrandLogo`, i18n `app.displayName` (dettaglio §13)
 - [x] `.cursor/rules/project-architecture.mdc` � gia con riferimento esplicito a questo file
 - [x] Regola Cursor **obbligatoria** allineamento guida/codice: `.cursor/rules/guida-definitiva-doc-sync.mdc` (`alwaysApply: true`)
 - [x] Regola Cursor review + step successivo: `.cursor/rules/surgical-review-next-step.mdc` (`alwaysApply: true`)

@@ -15,7 +15,8 @@ alwaysApply: true
 6. **i18n**: ogni stringa IT ha coppia EN professionale nello stesso commit — ZERO eccezioni
 7. **Tenant isolation**: ogni query PostgreSQL deve avere RLS o filtro esplicito `tenant_id`
 8. **Delete su dati evento:** usare funzioni in `features/{rooms,sessions,speakers}/repository.ts` con `delete().eq('id', id)`; RLS = barriera tenant. In UI (`EventDetailView`) conferma a due passaggi e hint CASCADE (sala → sessioni+relatori; sessione → relatori) come in `docs/GUIDA_DEFINITIVA_PROGETTO.md` §11 — non omettere i18n IT/EN.
-9. **Chiusura intervento**: `.cursor/rules/surgical-review-next-step.mdc` — typecheck/lint/build e messaggio con step successivo solo a semaforo verde
+9. **Logo / marchio / PWA:** sorgente `icons/Logo Live Slide Center.jpg`; asset generati in `apps/web/public/` via `apps/web/scripts/generate-brand-icons.mjs` (prebuild/predev). In React usare solo `AppBrandLogo` + `t('app.displayName')`. Modifiche al logo aggiornano anche favicon/manifest — documentare in `docs/GUIDA_DEFINITIVA_PROGETTO.md` §13 se cambia il flusso.
+10. **Chiusura intervento**: `.cursor/rules/surgical-review-next-step.mdc` — typecheck/lint/build e messaggio con step successivo solo a semaforo verde
 
 ## Ordine di esecuzione per task complessi
 
