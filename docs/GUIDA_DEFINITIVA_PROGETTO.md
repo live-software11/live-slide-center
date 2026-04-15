@@ -1,7 +1,7 @@
 # GUIDA DEFINITIVA PROGETTO — Live SLIDE CENTER
 
 > **Documento UNICO di riferimento.** Questo file sostituisce e incorpora: `PIANO_MASTER_v3.md`, `SlideHub_Live_CURSOR_BUILD.md`, `PRE_CODE_PREPARATION.md`, `LIVE_SLIDE_CENTER_DEFINITIVO.md`. Nessun altro documento ha autorita su questo. Se trovi una contraddizione altrove, **questo vince**.
-> **Versione:** 3.0.10 — 15 Aprile 2026 (signup: verifica JWT `tenant_id` dopo trigger + gestione errori refresh; nota Trial `maxAgentsPerEvent`; stima MVP §15)
+> **Versione:** 3.0.11 — 15 Aprile 2026 (signup: conferma email senza sessione; login: refresh + `getUser` e tenant o `super_admin`; guida Auth §6)
 > **Autore:** Andrea Rizzari + CTO Senior AI Review
 > **Stack:** React 19 + Vite 8 + TypeScript strict + Supabase + Vercel — gia funzionante nel repo
 
@@ -241,7 +241,11 @@ Trigger SQL al signup: crea `tenants` → crea `users` con `role='admin'` → ag
 
 **File migration:** `supabase/migrations/20250415130000_handle_new_user_tenant.sql` (`handle_new_user` + trigger `on_auth_user_created` su `auth.users`).
 
-**EN:** After `signUp`, the SPA must obtain a JWT that includes `tenant_id` in `app_metadata` before running tenant-scoped queries: call `refreshSession()` (handle failures), then `getUser()` to validate claims, with short retries if the DB trigger lags. Do not navigate to the tenant app until `tenant_id` is present; surface a clear error otherwise (`SignupView` + i18n keys `auth.errorSessionRefresh` / `auth.errorTenantProvisioning`).
+**Conferma email (progetto Supabase):** se `signUp` restituisce utente ma **nessuna** `session` (flusso conferma obbligatoria), il client **non** chiama il loop JWT: mostra istruzioni “controlla la posta” e link al login (`SignupView`, chiavi `auth.signupCheckEmail*`).
+
+**Login tenant:** dopo `signInWithPassword`, `refreshSession()` + `getUser()`; consentire l’accesso alla dashboard tenant solo se `app_metadata.tenant_id` è valorizzato **oppure** `app_metadata.role === 'super_admin'` (policy `is_super_admin()` su `tenants` ecc.). In caso contrario, messaggio i18n e `signOut` (`LoginView`).
+
+**EN:** After `signUp`, the SPA must obtain a JWT that includes `tenant_id` in `app_metadata` before running tenant-scoped queries: call `refreshSession()` (handle failures), then `getUser()` to validate claims, with short retries if the DB trigger lags. Do not navigate to the tenant app until `tenant_id` is present; surface a clear error otherwise (`SignupView` + i18n keys `auth.errorSessionRefresh` / `auth.errorTenantProvisioning`). If **email confirmation** is enabled and `signUp` returns **no session**, show the inbox + sign-in guidance instead of the JWT wait loop (`auth.signupCheckEmail*`). After **sign-in**, refresh + `getUser()` and allow navigation only when `tenant_id` is present **or** the user is `super_admin` (`LoginView`).
 
 ### RBAC
 
@@ -860,7 +864,7 @@ Live SLIDE CENTER/
 - [ ] Wireframe Room Player fullscreen
 - [ ] Wireframe dashboard super-admin
 
-**EN — Checklist status:** Migrations are in-repo; tenant routes are auth-guarded; `SignupView` waits for `tenant_id` on the JWT via `refreshSession()` + `getUser()` with retries before navigating home. `database.ts` is hand-maintained until `supabase gen types --local` runs. Super-admin has `/admin` and `/admin/tenants` (metadata only). Tenant `/events` lists and creates events (RLS); `/events/:eventId` shows event detail, rooms, sessions, and speakers (list + create + delete with two-step confirm and CASCADE hints; upload token/QR not wired yet). **§15** now includes a quantitative MVP estimate and a “known issues / tooling” note (Docker vs checklist §18). Remaining: Docker `db reset` + type regen, wireframes, Phase 1 invites, upload portal/TUS, inline edit for rooms/sessions/speakers, further admin routes.
+**EN — Checklist status:** Migrations are in-repo; tenant routes are auth-guarded; `SignupView` shows check-email when `signUp` returns no session, otherwise waits for `tenant_id` on the JWT via `refreshSession()` + `getUser()` with retries before navigating home; `LoginView` refreshes and requires `tenant_id` or `super_admin` before navigating. `database.ts` is hand-maintained until `supabase gen types --local` runs. Super-admin has `/admin` and `/admin/tenants` (metadata only). Tenant `/events` lists and creates events (RLS); `/events/:eventId` shows event detail, rooms, sessions, and speakers (list + create + delete with two-step confirm and CASCADE hints; upload token/QR not wired yet). **§15** now includes a quantitative MVP estimate and a “known issues / tooling” note (Docker vs checklist §18). Remaining: Docker `db reset` + type regen, wireframes, Phase 1 invites, upload portal/TUS, inline edit for rooms/sessions/speakers, further admin routes.
 
 ---
 

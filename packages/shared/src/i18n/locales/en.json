@@ -37,6 +37,11 @@
     "errorInvalidCredentials": "Invalid email or password.",
     "errorSessionRefresh": "Could not refresh your session after sign-up. Please try again in a moment or sign in with the same email.",
     "errorTenantProvisioning": "Your tenant workspace is not yet present on the access token. Wait a few seconds and try again, or sign in with the same email.",
+    "signupCheckEmailTitle": "Check your inbox",
+    "signupCheckEmailBody": "We sent a confirmation link to the address you provided. After you confirm your email, sign in to finish tenant activation and refresh your access token.",
+    "signupCheckEmailCta": "Go to sign in",
+    "errorLoginRefresh": "Could not confirm your access profile after sign-in. Please try again.",
+    "errorTenantMissingLogin": "Your access profile does not include the organization (tenant) required for Slide Center. Contact your administrator or use a different account.",
     "loadingSession": "Checking session…",
     "a11yLoginTitle": "Slide Center sign-in",
     "a11ySignupTitle": "New tenant registration"

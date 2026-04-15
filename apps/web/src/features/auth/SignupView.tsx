@@ -21,6 +21,7 @@ export default function SignupView() {
   const navigate = useNavigate();
   const { session, loading } = useAuth();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [awaitingEmailConfirm, setAwaitingEmailConfirm] = useState(false);
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
 
   const {
@@ -41,9 +42,35 @@ export default function SignupView() {
     return <Navigate to="/" replace />;
   }
 
+  if (awaitingEmailConfirm) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4 text-zinc-100">
+        <div
+          className="w-full max-w-sm rounded-lg border border-zinc-800 bg-zinc-900 p-6 shadow-xl"
+          role="status"
+          aria-live="polite"
+          aria-labelledby="signup-email-sent-title"
+        >
+          <h1 className="text-xl font-semibold tracking-tight" id="signup-email-sent-title">
+            {t('auth.signupCheckEmailTitle')}
+          </h1>
+          <p className="mt-4 text-sm leading-relaxed text-zinc-400">{t('auth.signupCheckEmailBody')}</p>
+          <p className="mt-6">
+            <Link
+              to="/login"
+              className="text-sm font-medium text-blue-500 hover:text-blue-400 hover:underline"
+            >
+              {t('auth.signupCheckEmailCta')} →
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
       options: {
@@ -51,6 +78,14 @@ export default function SignupView() {
       },
     });
     if (error) {
+      setSubmitError(t('auth.errorGeneric'));
+      return;
+    }
+    if (!data.session) {
+      if (data.user) {
+        setAwaitingEmailConfirm(true);
+        return;
+      }
       setSubmitError(t('auth.errorGeneric'));
       return;
     }

@@ -37,6 +37,11 @@
     "errorInvalidCredentials": "Email o password non validi.",
     "errorSessionRefresh": "Impossibile aggiornare la sessione dopo la registrazione. Riprova tra un attimo oppure accedi con la stessa email.",
     "errorTenantProvisioning": "Il tenant non risulta ancora nel profilo di accesso (JWT). Attendi qualche secondo e riprova, oppure accedi con la stessa email.",
+    "signupCheckEmailTitle": "Controlla la posta",
+    "signupCheckEmailBody": "Abbiamo inviato un link di conferma all’indirizzo indicato. Dopo aver confermato l’email, accedi per completare l’attivazione del tenant e del profilo JWT.",
+    "signupCheckEmailCta": "Vai al login",
+    "errorLoginRefresh": "Impossibile confermare il profilo di accesso dopo il login. Riprova.",
+    "errorTenantMissingLogin": "Il profilo non include l’organizzazione (tenant) richiesta per il Centro Slide. Contatta l’amministratore o usa un account corretto.",
     "loadingSession": "Verifica sessione…",
     "a11yLoginTitle": "Accesso al Centro Slide",
     "a11ySignupTitle": "Registrazione nuovo tenant"

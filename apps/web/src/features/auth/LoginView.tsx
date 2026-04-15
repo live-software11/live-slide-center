@@ -6,6 +6,7 @@ import { Link, Navigate, useNavigate } from 'react-router';
 import { z } from 'zod';
 import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { getTenantIdFromUser } from '@/lib/session-tenant';
 
 const schema = z.object({
   email: z.string().email(),
@@ -51,6 +52,24 @@ export default function LoginView() {
           ? t('auth.errorInvalidCredentials')
           : t('auth.errorGeneric'),
       );
+      return;
+    }
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) {
+      setSubmitError(t('auth.errorLoginRefresh'));
+      await supabase.auth.signOut();
+      return;
+    }
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      setSubmitError(t('auth.errorLoginRefresh'));
+      await supabase.auth.signOut();
+      return;
+    }
+    const isSuperAdmin = userData.user.app_metadata?.role === 'super_admin';
+    if (!isSuperAdmin && !getTenantIdFromUser(userData.user)) {
+      setSubmitError(t('auth.errorTenantMissingLogin'));
+      await supabase.auth.signOut();
       return;
     }
     navigate('/', { replace: true });
