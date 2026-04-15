@@ -1,7 +1,7 @@
 # GUIDA DEFINITIVA PROGETTO — Live SLIDE CENTER
 
 > **Documento UNICO di riferimento.** Questo file sostituisce e incorpora: `PIANO_MASTER_v3.md`, `SlideHub_Live_CURSOR_BUILD.md`, `PRE_CODE_PREPARATION.md`, `LIVE_SLIDE_CENTER_DEFINITIVO.md`. Nessun altro documento ha autorita su questo. Se trovi una contraddizione altrove, **questo vince**.
-> **Versione:** 3.0.5 — 15 Aprile 2026 (`/events/:eventId` + sale: lista + insert; `/admin/tenants`, `/events`; Docker ancora richiesto per `db reset` / `gen types --local`)
+> **Versione:** 3.0.6 — 15 Aprile 2026 (`/events/:eventId` + sale + sessioni: lista + insert; `/admin/tenants`, `/events`; Docker ancora richiesto per `db reset` / `gen types --local`)
 > **Autore:** Andrea Rizzari + CTO Senior AI Review
 > **Stack:** React 19 + Vite 8 + TypeScript strict + Supabase + Vercel — gia funzionante nel repo
 
@@ -554,9 +554,9 @@ WHERE email = 'live.software11@gmail.com';
 
 ### Implementazione corrente (aprile 2026)
 
-L'interfaccia tenant espone `/events` (lista + nuovo evento) e `/events/:eventId` con **Sale**: elenco e creazione (nome, `room_type`). Le altre tab elencate sotto (Sessioni, Relatori, PC Sala, …) restano in roadmap Fase 2+.
+L'interfaccia tenant espone `/events` (lista + nuovo evento) e `/events/:eventId` con **Sale** (elenco e creazione: nome, `room_type`) e **Sessioni** (elenco e creazione: titolo, sala, `session_type`, orari `datetime-local` convertiti in UTC al salvataggio). Restano in roadmap Fase 2+: relatori, calendario drag&drop, edit/delete sale e sessioni, quote.
 
-**EN:** Tenant UI exposes `/events` (list + create) and `/events/:eventId` with **Rooms** (list + create: name, `room_type`). The other tabs below remain on the Phase 2+ roadmap.
+**EN:** Tenant UI exposes `/events` (list + create) and `/events/:eventId` with **Rooms** (list + create: name, `room_type`) and **Sessions** (list + create: title, room, `session_type`, `datetime-local` range stored as UTC). Still on the Phase 2+ roadmap: speakers, drag-and-drop calendar, room/session edit-delete, quotas.
 
 ### Dettaglio evento — tab
 
@@ -580,23 +580,23 @@ L'interfaccia tenant espone `/events` (lista + nuovo evento) e `/events/:eventId
 
 ### Rotte applicazione (mappa completa)
 
-| Rotta            | Componente                              | Accesso              | Auth                    |
-| ---------------- | --------------------------------------- | -------------------- | ----------------------- |
-| `/`              | `DashboardView`                         | Tenant (autenticato) | JWT tenant              |
-| `/events`        | `EventsView` — lista + creazione evento | Tenant               | JWT tenant              |
-| `/events/:eventId` | `EventDetailView` — dettaglio + lista sale + creazione sala | Tenant        | JWT tenant              |
-| `/team`          | `TeamView`                              | Admin tenant         | JWT admin               |
-| `/storage`       | `StorageView`                           | Tenant               | JWT tenant              |
-| `/billing`       | `BillingView`                           | Admin tenant         | JWT admin               |
-| `/settings`      | `SettingsView`                          | Tenant               | JWT tenant              |
-| `/admin`         | `AdminDashboardView` (stub)             | Solo `super_admin`   | JWT `app_metadata.role` |
-| `/admin/tenants` | `AdminTenantsView` — tabella tenant     | Solo `super_admin`   | JWT super_admin         |
-| `/admin/*`       | Altre viste Super-Admin (Fase 7)        | Solo `super_admin`   | JWT super_admin         |
-| `/pair`          | `PairView` — tastierino codice 6 cifre  | Pubblico (tecnico)   | Nessuna                 |
-| `/sala/:token`   | `RoomPlayerView` — PWA file manager     | PC sala paired       | JWT sala (pairing)      |
-| `/u/:token`      | `UploadPortalView` — upload relatore    | Speaker esterno      | `upload_token`          |
-| `/login`         | `LoginView`                             | Pubblico             | Nessuna                 |
-| `/signup`        | `SignupView`                            | Pubblico             | Nessuna                 |
+| Rotta              | Componente                                                  | Accesso              | Auth                    |
+| ------------------ | ----------------------------------------------------------- | -------------------- | ----------------------- |
+| `/`                | `DashboardView`                                             | Tenant (autenticato) | JWT tenant              |
+| `/events`          | `EventsView` — lista + creazione evento                     | Tenant               | JWT tenant              |
+| `/events/:eventId` | `EventDetailView` — dettaglio + lista sale + creazione sala | Tenant               | JWT tenant              |
+| `/team`            | `TeamView`                                                  | Admin tenant         | JWT admin               |
+| `/storage`         | `StorageView`                                               | Tenant               | JWT tenant              |
+| `/billing`         | `BillingView`                                               | Admin tenant         | JWT admin               |
+| `/settings`        | `SettingsView`                                              | Tenant               | JWT tenant              |
+| `/admin`           | `AdminDashboardView` (stub)                                 | Solo `super_admin`   | JWT `app_metadata.role` |
+| `/admin/tenants`   | `AdminTenantsView` — tabella tenant                         | Solo `super_admin`   | JWT super_admin         |
+| `/admin/*`         | Altre viste Super-Admin (Fase 7)                            | Solo `super_admin`   | JWT super_admin         |
+| `/pair`            | `PairView` — tastierino codice 6 cifre                      | Pubblico (tecnico)   | Nessuna                 |
+| `/sala/:token`     | `RoomPlayerView` — PWA file manager                         | PC sala paired       | JWT sala (pairing)      |
+| `/u/:token`        | `UploadPortalView` — upload relatore                        | Speaker esterno      | `upload_token`          |
+| `/login`           | `LoginView`                                                 | Pubblico             | Nessuna                 |
+| `/signup`          | `SignupView`                                                | Pubblico             | Nessuna                 |
 
 ---
 
@@ -738,7 +738,7 @@ export const PLAN_LIMITS: Record<TenantPlan, PlanLimits> = {
 | ----- | ---------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0     | Bootstrap monorepo                       | **Completata** | Stack funzionante nel repo                                                                                                                                                       |
 | 1     | Auth multi-tenant + signup + super-admin | **In corso**   | Trigger DB + `/login` `/signup` + `RequireAuth` + `/admin` + `RequireSuperAdmin`; tipi `Database` in `packages/shared` (allineati migration); restano inviti team, hardening JWT |
-| 2     | CRUD Eventi/Sale/Sessioni/Speaker        | **In corso**   | `/events` lista+insert; `/events/:eventId` dettaglio + sale (lista+insert); restano sessioni/speaker, quote, import CSV                                                         |
+| 2     | CRUD Eventi/Sale/Sessioni/Speaker        | **In corso**   | `/events` lista+insert; `/events/:eventId` dettaglio + sale + sessioni (lista+insert); restano speaker, quote, import CSV, edit/delete, calendario                               |
 | 3     | Upload Portal relatori (TUS)             | Da fare        | SHA-256 client-side, QR per speaker                                                                                                                                              |
 | 4     | Versioning + storico                     | Da fare        | Append-only, status workflow, rollback                                                                                                                                           |
 | 5     | Vista Regia realtime                     | Da fare        | Subscribe Realtime, griglia sale, activity feed                                                                                                                                  |
@@ -842,7 +842,7 @@ Live SLIDE CENTER/
 - [ ] Wireframe Room Player fullscreen
 - [ ] Wireframe dashboard super-admin
 
-**EN — Checklist status:** Migrations are in-repo; tenant routes are auth-guarded; `SignupView` calls `refreshSession()` after signup. `database.ts` is hand-maintained until `supabase gen types --local` runs. Super-admin has `/admin` and `/admin/tenants` (metadata only). Tenant `/events` lists and creates events (RLS); `/events/:eventId` shows event detail and rooms (list + create). Remaining: Docker `db reset` + type regen, wireframes, Phase 1 invites, sessions/speakers/room edit/delete, further admin routes.
+**EN — Checklist status:** Migrations are in-repo; tenant routes are auth-guarded; `SignupView` calls `refreshSession()` after signup. `database.ts` is hand-maintained until `supabase gen types --local` runs. Super-admin has `/admin` and `/admin/tenants` (metadata only). Tenant `/events` lists and creates events (RLS); `/events/:eventId` shows event detail, rooms, and sessions (list + create). Remaining: Docker `db reset` + type regen, wireframes, Phase 1 invites, speakers, room/session edit-delete, further admin routes.
 
 ---
 

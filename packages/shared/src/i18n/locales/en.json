@@ -85,13 +85,17 @@
     "eventDetailIntro": "Rooms linked to this event. Data is tenant-isolated (RLS).",
     "emptyEventList": "No rooms yet — add one using the form above.",
     "errors": {
-      "missingContext": "Incomplete session context. Reload the page."
+      "missingContext": "Incomplete context to create the room. Reload the page."
     }
   },
   "session": {
     "title": "Session",
     "titlePlural": "Sessions",
     "create": "New session",
+    "sessionTitle": "Session title",
+    "type": "Type",
+    "room": "Room",
+    "roomUnknown": "Room not found in the current list",
     "scheduledStart": "Scheduled start",
     "scheduledEnd": "Scheduled end",
     "chair": "Chair",
@@ -99,7 +103,14 @@
     "typePanel": "Panel",
     "typeWorkshop": "Workshop",
     "typeBreak": "Break",
-    "typeCeremony": "Ceremony"
+    "typeCeremony": "Ceremony",
+    "eventDetailIntro": "Sessions linked to an event room. The list is ordered by start time.",
+    "emptyEventList": "No sessions yet — add one using the form above.",
+    "needRoomFirst": "Create at least one room in the section above before adding sessions.",
+    "errors": {
+      "scheduleOrder": "The scheduled end must be on or after the scheduled start.",
+      "missingContext": "Incomplete session context. Reload the page."
+    }
   },
   "speaker": {
     "title": "Speaker",

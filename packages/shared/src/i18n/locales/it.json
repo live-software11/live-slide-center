@@ -85,13 +85,17 @@
     "eventDetailIntro": "Sale collegate a questo evento. I dati sono isolati per tenant (RLS).",
     "emptyEventList": "Nessuna sala: creane una con il modulo sopra.",
     "errors": {
-      "missingContext": "Contesto sessione incompleto. Ricarica la pagina."
+      "missingContext": "Contesto incompleto per creare la sala. Ricarica la pagina."
     }
   },
   "session": {
     "title": "Sessione",
     "titlePlural": "Sessioni",
     "create": "Nuova sessione",
+    "sessionTitle": "Titolo sessione",
+    "type": "Tipologia",
+    "room": "Sala",
+    "roomUnknown": "Sala non disponibile nell'elenco",
     "scheduledStart": "Inizio previsto",
     "scheduledEnd": "Fine prevista",
     "chair": "Moderatore",
@@ -99,7 +103,14 @@
     "typePanel": "Tavola rotonda",
     "typeWorkshop": "Workshop",
     "typeBreak": "Pausa",
-    "typeCeremony": "Cerimonia"
+    "typeCeremony": "Cerimonia",
+    "eventDetailIntro": "Sessioni collegate a una sala dell'evento. Elenco ordinato per orario di inizio.",
+    "emptyEventList": "Nessuna sessione: aggiungine una dal modulo sopra.",
+    "needRoomFirst": "Per creare una sessione serve almeno una sala: aggiungila nella sezione precedente.",
+    "errors": {
+      "scheduleOrder": "L'orario di fine deve essere uguale o successivo all'inizio.",
+      "missingContext": "Contesto sessione incompleto. Ricarica la pagina."
+    }
   },
   "speaker": {
     "title": "Relatore",

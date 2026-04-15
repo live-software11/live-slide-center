@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -9,9 +9,11 @@ import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { getTenantIdFromSession } from '@/lib/session-tenant';
 import type { RoomType } from '@/features/rooms/repository';
+import type { SessionType } from '@/features/sessions/repository';
 import { useEventDetail } from './hooks/useEventDetail';
 
 const ROOM_TYPES: RoomType[] = ['main', 'breakout', 'preview', 'poster'];
+const SESSION_TYPES: SessionType[] = ['talk', 'panel', 'workshop', 'break', 'ceremony'];
 
 const roomSchema = z.object({
   name: z.string().min(1).max(200),
@@ -31,6 +33,18 @@ function roomTypeLabel(t: TFunction, roomType: string): string {
   return key ? t(key) : roomType;
 }
 
+function sessionTypeLabel(t: TFunction, sessionType: string): string {
+  const map: Record<string, string> = {
+    talk: 'session.typeTalk',
+    panel: 'session.typePanel',
+    workshop: 'session.typeWorkshop',
+    break: 'session.typeBreak',
+    ceremony: 'session.typeCeremony',
+  };
+  const key = map[sessionType];
+  return key ? t(key) : sessionType;
+}
+
 function eventStatusLabel(t: TFunction, status: string): string {
   const map: Record<string, string> = {
     draft: 'event.statusDraft',
@@ -43,14 +57,39 @@ function eventStatusLabel(t: TFunction, status: string): string {
   return key ? t(key) : status;
 }
 
+const sessionFormSchema = (t: TFunction) =>
+  z
+    .object({
+      title: z.string().min(1).max(300),
+      room_id: z.string().uuid(),
+      session_type: z.enum(['talk', 'panel', 'workshop', 'break', 'ceremony']),
+      scheduled_start: z.string().min(1),
+      scheduled_end: z.string().min(1),
+    })
+    .refine(
+      (data) => new Date(data.scheduled_end).getTime() >= new Date(data.scheduled_start).getTime(),
+      { path: ['scheduled_end'], message: t('session.errors.scheduleOrder') },
+    );
+
+type SessionFormValues = z.infer<ReturnType<typeof sessionFormSchema>>;
+
 export default function EventDetailView() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { eventId } = useParams<{ eventId: string }>();
   const { session, loading: authLoading } = useAuth();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
+  const dateTimeFmt = useMemo(
+    () =>
+      new Intl.DateTimeFormat(i18n.language.startsWith('en') ? 'en-GB' : 'it-IT', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      }),
+    [i18n.language],
+  );
   const tenantId = getTenantIdFromSession(session);
-  const { state, reload, createRoom } = useEventDetail(supabase, eventId, tenantId);
+  const { state, reload, createRoom, createSession } = useEventDetail(supabase, eventId, tenantId);
   const [roomCreateError, setRoomCreateError] = useState<string | null>(null);
+  const [sessionCreateError, setSessionCreateError] = useState<string | null>(null);
 
   const {
     register,
@@ -62,6 +101,40 @@ export default function EventDetailView() {
     defaultValues: { name: '', room_type: 'main' },
   });
 
+  const sessionSchemaResolved = useMemo(() => sessionFormSchema(t), [t]);
+  const {
+    register: registerSession,
+    handleSubmit: handleSessionSubmit,
+    reset: resetSessionForm,
+    formState: { errors: sessionErrors, isSubmitting: sessionSubmitting },
+  } = useForm<SessionFormValues>({
+    resolver: zodResolver(sessionSchemaResolved),
+    defaultValues: {
+      title: '',
+      room_id: '',
+      session_type: 'talk',
+      scheduled_start: '',
+      scheduled_end: '',
+    },
+  });
+
+  const readyEventId = state.status === 'ready' ? state.event.id : null;
+  const eventStartDate = state.status === 'ready' ? state.event.start_date : null;
+  const roomIdsKey = state.status === 'ready' ? state.rooms.map((r) => r.id).join(',') : null;
+
+  useEffect(() => {
+    if (!readyEventId || !eventStartDate || !roomIdsKey) return;
+    const firstRoomId = roomIdsKey.split(',')[0];
+    if (!firstRoomId) return;
+    resetSessionForm({
+      title: '',
+      room_id: firstRoomId,
+      session_type: 'talk',
+      scheduled_start: `${eventStartDate}T09:00`,
+      scheduled_end: `${eventStartDate}T10:00`,
+    });
+  }, [readyEventId, roomIdsKey, eventStartDate, resetSessionForm]);
+
   const onRoomSubmit = handleSubmit(async (values) => {
     setRoomCreateError(null);
     const result = await createRoom(values);
@@ -72,6 +145,26 @@ export default function EventDetailView() {
       return;
     }
     reset({ name: '', room_type: 'main' });
+  });
+
+  const onSessionSubmit = handleSessionSubmit(async (values) => {
+    setSessionCreateError(null);
+    const result = await createSession(values);
+    if (result.errorMessage) {
+      setSessionCreateError(
+        result.errorMessage === 'missing_context' ? t('session.errors.missingContext') : result.errorMessage,
+      );
+      return;
+    }
+    if (eventStartDate) {
+      resetSessionForm({
+        title: '',
+        room_id: values.room_id,
+        session_type: 'talk',
+        scheduled_start: `${eventStartDate}T09:00`,
+        scheduled_end: `${eventStartDate}T10:00`,
+      });
+    }
   });
 
   if (authLoading) {
@@ -148,7 +241,7 @@ export default function EventDetailView() {
     );
   }
 
-  const { event, rooms } = state;
+  const { event, rooms, sessions } = state;
 
   return (
     <div className="p-8">
@@ -235,6 +328,149 @@ export default function EventDetailView() {
                 </div>
               </li>
             ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-12" aria-labelledby="sessions-section-title">
+        <h2 id="sessions-section-title" className="text-lg font-semibold text-zinc-100">
+          {t('session.titlePlural')}
+        </h2>
+        <p className="mt-1 text-sm text-zinc-500">{t('session.eventDetailIntro')}</p>
+
+        {rooms.length === 0 ? (
+          <p className="mt-6 text-sm text-amber-400/90" role="status">
+            {t('session.needRoomFirst')}
+          </p>
+        ) : (
+          <div className="mt-6 rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
+            <h3 className="text-sm font-medium text-zinc-200">{t('session.create')}</h3>
+            <form className="mt-4 flex max-w-lg flex-col gap-4" onSubmit={onSessionSubmit} noValidate>
+              <div>
+                <label htmlFor="session-title" className="mb-1 block text-sm text-zinc-400">
+                  {t('session.sessionTitle')}
+                </label>
+                <input
+                  id="session-title"
+                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                  aria-invalid={sessionErrors.title ? true : undefined}
+                  {...registerSession('title')}
+                />
+                {sessionErrors.title ? (
+                  <p className="mt-1 text-xs text-red-400" role="alert">
+                    {sessionErrors.title.message}
+                  </p>
+                ) : null}
+              </div>
+              <div>
+                <label htmlFor="session-room" className="mb-1 block text-sm text-zinc-400">
+                  {t('session.room')}
+                </label>
+                <select
+                  id="session-room"
+                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                  {...registerSession('room_id')}
+                >
+                  {rooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+                {sessionErrors.room_id ? (
+                  <p className="mt-1 text-xs text-red-400" role="alert">
+                    {sessionErrors.room_id.message}
+                  </p>
+                ) : null}
+              </div>
+              <div>
+                <label htmlFor="session-type" className="mb-1 block text-sm text-zinc-400">
+                  {t('session.type')}
+                </label>
+                <select
+                  id="session-type"
+                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                  {...registerSession('session_type')}
+                >
+                  {SESSION_TYPES.map((st) => (
+                    <option key={st} value={st}>
+                      {sessionTypeLabel(t, st)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="session-start" className="mb-1 block text-sm text-zinc-400">
+                  {t('session.scheduledStart')}
+                </label>
+                <input
+                  id="session-start"
+                  type="datetime-local"
+                  step={60}
+                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                  aria-invalid={sessionErrors.scheduled_start ? true : undefined}
+                  {...registerSession('scheduled_start')}
+                />
+                {sessionErrors.scheduled_start ? (
+                  <p className="mt-1 text-xs text-red-400" role="alert">
+                    {sessionErrors.scheduled_start.message}
+                  </p>
+                ) : null}
+              </div>
+              <div>
+                <label htmlFor="session-end" className="mb-1 block text-sm text-zinc-400">
+                  {t('session.scheduledEnd')}
+                </label>
+                <input
+                  id="session-end"
+                  type="datetime-local"
+                  step={60}
+                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                  aria-invalid={sessionErrors.scheduled_end ? true : undefined}
+                  {...registerSession('scheduled_end')}
+                />
+                {sessionErrors.scheduled_end ? (
+                  <p className="mt-1 text-xs text-red-400" role="alert">
+                    {sessionErrors.scheduled_end.message}
+                  </p>
+                ) : null}
+              </div>
+              {sessionCreateError ? (
+                <p className="text-sm text-red-400" role="alert">
+                  {sessionCreateError}
+                </p>
+              ) : null}
+              <button
+                type="submit"
+                disabled={sessionSubmitting}
+                className="w-fit rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+              >
+                {t('common.create')}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {sessions.length === 0 ? (
+          <p className="mt-6 text-sm text-zinc-500">{t('session.emptyEventList')}</p>
+        ) : (
+          <ul className="mt-6 divide-y divide-zinc-800 rounded-lg border border-zinc-800">
+            {sessions.map((s) => {
+              const roomName = rooms.find((r) => r.id === s.room_id)?.name ?? t('session.roomUnknown');
+              return (
+                <li key={s.id} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-medium text-zinc-100">{s.title}</p>
+                    <p className="text-xs text-zinc-500">
+                      {roomName} · {sessionTypeLabel(t, s.session_type)}
+                    </p>
+                    <p className="text-xs text-zinc-400">
+                      {dateTimeFmt.format(new Date(s.scheduled_start))} → {dateTimeFmt.format(new Date(s.scheduled_end))}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
