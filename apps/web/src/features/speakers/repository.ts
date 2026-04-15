@@ -31,6 +31,23 @@ export async function createSpeakerForSession(
     .single();
 }
 
+export async function updateSpeakerById(
+  supabase: SupabaseClient<Database>,
+  speakerId: string,
+  input: { session_id: string; full_name: string; email: string | null },
+) {
+  return supabase
+    .from('speakers')
+    .update({
+      session_id: input.session_id,
+      full_name: input.full_name,
+      email: input.email,
+    })
+    .eq('id', speakerId)
+    .select()
+    .single();
+}
+
 export async function regenerateSpeakerUploadToken(
   supabase: SupabaseClient<Database>,
   speakerId: string,

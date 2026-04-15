@@ -116,14 +116,16 @@
     "typeWorkshop": "Workshop",
     "typeBreak": "Pausa",
     "typeCeremony": "Cerimonia",
-    "eventDetailIntro": "Sessioni collegate a una sala dell'evento. Elenco ordinato per orario di inizio.",
+    "eventDetailIntro": "Sessioni per sala: creazione, modifica inline (titolo, sala, tipologia, orari) ed eliminazione a due passaggi. Elenco per orario di inizio.",
     "emptyEventList": "Nessuna sessione: aggiungine una dal modulo sopra.",
     "needRoomFirst": "Per creare una sessione serve almeno una sala: aggiungila nella sezione precedente.",
     "deleteCascadeHint": "Eliminando la sessione vengono rimossi in cascata anche i relatori collegati (vincoli PostgreSQL).",
     "deleteAriaLabel": "Elimina la sessione {{title}}",
+    "editAriaLabel": "Modifica la sessione {{title}}",
     "errors": {
       "scheduleOrder": "L'orario di fine deve essere uguale o successivo all'inizio.",
-      "missingContext": "Contesto sessione incompleto. Ricarica la pagina."
+      "missingContext": "Contesto sessione incompleto. Ricarica la pagina.",
+      "titleRequired": "Il titolo della sessione non può essere vuoto."
     }
   },
   "speaker": {
@@ -133,11 +135,12 @@
     "fullName": "Nome completo",
     "linkedSession": "Sessione collegata",
     "emailOptional": "Email (opzionale)",
-    "eventDetailIntro": "Relatori per sessione: ogni nuovo relatore riceve un link e un QR al portale caricamento (validità 90 giorni). L'upload resumibile è in roadmap Fase 3.",
+    "eventDetailIntro": "Relatori per sessione: creazione, modifica inline (sessione, nome, email), link e QR al portale (90 giorni) per i nuovi record. Upload resumabile in Fase 3.",
     "emptyEventList": "Nessun relatore: aggiungine uno dal modulo sopra.",
     "needSessionFirst": "Per aggiungere un relatore serve almeno una sessione: creala nella sezione precedente.",
     "sessionUnknown": "Sessione non disponibile nell'elenco",
     "deleteAriaLabel": "Elimina il relatore {{name}}",
+    "editAriaLabel": "Modifica il relatore {{name}}",
     "company": "Azienda",
     "jobTitle": "Ruolo",
     "bio": "Biografia",
@@ -154,7 +157,8 @@
     "sendInvite": "Invia invito upload",
     "errors": {
       "invalidEmail": "Indirizzo email non valido.",
-      "missingContext": "Contesto incompleto. Ricarica la pagina."
+      "missingContext": "Contesto incompleto. Ricarica la pagina.",
+      "nameRequired": "Il nome del relatore non può essere vuoto."
     }
   },
   "uploadPortal": {

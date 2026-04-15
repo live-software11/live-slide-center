@@ -94,6 +94,24 @@ type PendingDelete = { kind: 'room' | 'session' | 'speaker'; id: string };
 
 type RoomEditDraft = { id: string; name: string; room_type: RoomType };
 
+type SessionEditDraft = {
+  id: string;
+  title: string;
+  room_id: string;
+  session_type: SessionType;
+  scheduled_start: string;
+  scheduled_end: string;
+};
+
+type SpeakerEditDraft = { id: string; session_id: string; full_name: string; email: string };
+
+/** Valore `datetime-local` nel fuso del browser da stringa ISO salvata in DB. */
+function toDatetimeLocalValue(isoUtc: string): string {
+  const d = new Date(isoUtc);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 export default function EventDetailView() {
   const { t, i18n } = useTranslation();
   const { eventId } = useParams<{ eventId: string }>();
@@ -114,7 +132,9 @@ export default function EventDetailView() {
     createRoom,
     updateRoom,
     createSession,
+    updateSession,
     createSpeaker,
+    updateSpeaker,
     deleteRoom,
     deleteSession,
     deleteSpeaker,
@@ -129,6 +149,12 @@ export default function EventDetailView() {
   const [roomEditDraft, setRoomEditDraft] = useState<RoomEditDraft | null>(null);
   const [roomEditBusy, setRoomEditBusy] = useState(false);
   const [roomEditError, setRoomEditError] = useState<string | null>(null);
+  const [sessionEditDraft, setSessionEditDraft] = useState<SessionEditDraft | null>(null);
+  const [sessionEditBusy, setSessionEditBusy] = useState(false);
+  const [sessionEditError, setSessionEditError] = useState<string | null>(null);
+  const [speakerEditDraft, setSpeakerEditDraft] = useState<SpeakerEditDraft | null>(null);
+  const [speakerEditBusy, setSpeakerEditBusy] = useState(false);
+  const [speakerEditError, setSpeakerEditError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -232,6 +258,66 @@ export default function EventDetailView() {
     setRoomEditDraft(null);
   }, [roomEditDraft, updateRoom, t]);
 
+  const submitSessionEdit = useCallback(async () => {
+    if (!sessionEditDraft) return;
+    const title = sessionEditDraft.title.trim();
+    if (title.length < 1) {
+      setSessionEditError(t('session.errors.titleRequired'));
+      return;
+    }
+    if (new Date(sessionEditDraft.scheduled_end).getTime() < new Date(sessionEditDraft.scheduled_start).getTime()) {
+      setSessionEditError(t('session.errors.scheduleOrder'));
+      return;
+    }
+    setSessionEditBusy(true);
+    setSessionEditError(null);
+    const res = await updateSession(sessionEditDraft.id, {
+      title,
+      room_id: sessionEditDraft.room_id,
+      session_type: sessionEditDraft.session_type,
+      scheduled_start: sessionEditDraft.scheduled_start,
+      scheduled_end: sessionEditDraft.scheduled_end,
+    });
+    setSessionEditBusy(false);
+    if (res.errorMessage) {
+      setSessionEditError(
+        res.errorMessage === 'missing_context' ? t('session.errors.missingContext') : res.errorMessage,
+      );
+      return;
+    }
+    setSessionEditDraft(null);
+  }, [sessionEditDraft, updateSession, t]);
+
+  const submitSpeakerEdit = useCallback(async () => {
+    if (!speakerEditDraft) return;
+    const name = speakerEditDraft.full_name.trim();
+    if (name.length < 1) {
+      setSpeakerEditError(t('speaker.errors.nameRequired'));
+      return;
+    }
+    const emailTrim = speakerEditDraft.email.trim();
+    if (emailTrim !== '' && !z.string().email().safeParse(emailTrim).success) {
+      setSpeakerEditError(t('speaker.errors.invalidEmail'));
+      return;
+    }
+    const emailForDb = emailTrim === '' ? null : emailTrim;
+    setSpeakerEditBusy(true);
+    setSpeakerEditError(null);
+    const res = await updateSpeaker(speakerEditDraft.id, {
+      session_id: speakerEditDraft.session_id,
+      full_name: name,
+      email: emailForDb,
+    });
+    setSpeakerEditBusy(false);
+    if (res.errorMessage) {
+      setSpeakerEditError(
+        res.errorMessage === 'missing_context' ? t('speaker.errors.missingContext') : res.errorMessage,
+      );
+      return;
+    }
+    setSpeakerEditDraft(null);
+  }, [speakerEditDraft, updateSpeaker, t]);
+
   const onSessionSubmit = handleSessionSubmit(async (values) => {
     setSessionCreateError(null);
     const result = await createSession(values);
@@ -273,6 +359,8 @@ export default function EventDetailView() {
       full_name: '',
       email: '',
     });
+    setSpeakerEditDraft(null);
+    setSpeakerEditError(null);
   });
 
   if (authLoading) {
@@ -576,6 +664,10 @@ export default function EventDetailView() {
                         className="text-sm text-zinc-400 hover:text-zinc-200"
                         aria-label={t('room.editAriaLabel', { name: r.name })}
                         onClick={() => {
+                          setSessionEditDraft(null);
+                          setSessionEditError(null);
+                          setSpeakerEditDraft(null);
+                          setSpeakerEditError(null);
                           setRoomEditError(null);
                           setDeleteError(null);
                           setPendingDelete(null);
@@ -589,6 +681,10 @@ export default function EventDetailView() {
                         className="text-sm text-red-400 hover:text-red-300"
                         aria-label={t('room.deleteAriaLabel', { name: r.name })}
                         onClick={() => {
+                          setSessionEditDraft(null);
+                          setSessionEditError(null);
+                          setSpeakerEditDraft(null);
+                          setSpeakerEditError(null);
                           setRoomEditDraft((d) => (d?.id === r.id ? null : d));
                           setRoomEditError(null);
                           setPendingDelete({ kind: 'room', id: r.id });
@@ -733,14 +829,138 @@ export default function EventDetailView() {
               const roomName = rooms.find((r) => r.id === s.room_id)?.name ?? t('session.roomUnknown');
               return (
                 <li key={s.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="font-medium text-zinc-100">{s.title}</p>
-                    <p className="text-xs text-zinc-500">
-                      {roomName} · {sessionTypeLabel(t, s.session_type)}
-                    </p>
-                    <p className="text-xs text-zinc-400">
-                      {dateTimeFmt.format(new Date(s.scheduled_start))} → {dateTimeFmt.format(new Date(s.scheduled_end))}
-                    </p>
+                  <div className="min-w-0 flex-1">
+                    {sessionEditDraft?.id === s.id ? (
+                      <form
+                        className="flex max-w-lg flex-col gap-3"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          void submitSessionEdit();
+                        }}
+                      >
+                        <div>
+                          <label htmlFor={`session-edit-title-${s.id}`} className="mb-1 block text-sm text-zinc-400">
+                            {t('session.sessionTitle')}
+                          </label>
+                          <input
+                            id={`session-edit-title-${s.id}`}
+                            value={sessionEditDraft.title}
+                            onChange={(e) =>
+                              setSessionEditDraft((d) => (d?.id === s.id ? { ...d, title: e.target.value } : d))
+                            }
+                            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`session-edit-room-${s.id}`} className="mb-1 block text-sm text-zinc-400">
+                            {t('session.room')}
+                          </label>
+                          <select
+                            id={`session-edit-room-${s.id}`}
+                            value={sessionEditDraft.room_id}
+                            onChange={(e) =>
+                              setSessionEditDraft((d) => (d?.id === s.id ? { ...d, room_id: e.target.value } : d))
+                            }
+                            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                          >
+                            {rooms.map((r) => (
+                              <option key={r.id} value={r.id}>
+                                {r.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label htmlFor={`session-edit-type-${s.id}`} className="mb-1 block text-sm text-zinc-400">
+                            {t('session.type')}
+                          </label>
+                          <select
+                            id={`session-edit-type-${s.id}`}
+                            value={sessionEditDraft.session_type}
+                            onChange={(e) =>
+                              setSessionEditDraft((d) =>
+                                d?.id === s.id ? { ...d, session_type: e.target.value as SessionType } : d,
+                              )
+                            }
+                            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                          >
+                            {SESSION_TYPES.map((st) => (
+                              <option key={st} value={st}>
+                                {sessionTypeLabel(t, st)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label htmlFor={`session-edit-start-${s.id}`} className="mb-1 block text-sm text-zinc-400">
+                            {t('session.scheduledStart')}
+                          </label>
+                          <input
+                            id={`session-edit-start-${s.id}`}
+                            type="datetime-local"
+                            step={60}
+                            value={sessionEditDraft.scheduled_start}
+                            onChange={(e) =>
+                              setSessionEditDraft((d) =>
+                                d?.id === s.id ? { ...d, scheduled_start: e.target.value } : d,
+                              )
+                            }
+                            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`session-edit-end-${s.id}`} className="mb-1 block text-sm text-zinc-400">
+                            {t('session.scheduledEnd')}
+                          </label>
+                          <input
+                            id={`session-edit-end-${s.id}`}
+                            type="datetime-local"
+                            step={60}
+                            value={sessionEditDraft.scheduled_end}
+                            onChange={(e) =>
+                              setSessionEditDraft((d) => (d?.id === s.id ? { ...d, scheduled_end: e.target.value } : d))
+                            }
+                            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                          />
+                        </div>
+                        {sessionEditError ? (
+                          <p className="text-xs text-red-400" role="alert">
+                            {sessionEditError}
+                          </p>
+                        ) : null}
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="submit"
+                            disabled={sessionEditBusy}
+                            className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                          >
+                            {t('common.save')}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={sessionEditBusy}
+                            className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                            onClick={() => {
+                              setSessionEditDraft(null);
+                              setSessionEditError(null);
+                            }}
+                          >
+                            {t('common.cancel')}
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <>
+                        <p className="font-medium text-zinc-100">{s.title}</p>
+                        <p className="text-xs text-zinc-500">
+                          {roomName} · {sessionTypeLabel(t, s.session_type)}
+                        </p>
+                        <p className="text-xs text-zinc-400">
+                          {dateTimeFmt.format(new Date(s.scheduled_start))} →{' '}
+                          {dateTimeFmt.format(new Date(s.scheduled_end))}
+                        </p>
+                      </>
+                    )}
                   </div>
                   <div className="flex flex-shrink-0 flex-col items-stretch gap-2 sm:items-end">
                     {pendingDelete?.kind === 'session' && pendingDelete.id === s.id ? (
@@ -761,6 +981,7 @@ export default function EventDetailView() {
                                 return;
                               }
                               setPendingDelete(null);
+                              setSessionEditDraft((d) => (d?.id === s.id ? null : d));
                             }}
                           >
                             {t('common.confirmDelete')}
@@ -778,18 +999,46 @@ export default function EventDetailView() {
                           </button>
                         </div>
                       </>
-                    ) : (
-                      <button
-                        type="button"
-                        className="text-left text-sm text-red-400 hover:text-red-300 sm:text-right"
-                        aria-label={t('session.deleteAriaLabel', { title: s.title })}
-                        onClick={() => {
-                          setPendingDelete({ kind: 'session', id: s.id });
-                          setDeleteError(null);
-                        }}
-                      >
-                        {t('common.delete')}
-                      </button>
+                    ) : sessionEditDraft?.id === s.id ? null : (
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          className="text-sm text-zinc-400 hover:text-zinc-200"
+                          aria-label={t('session.editAriaLabel', { title: s.title })}
+                          onClick={() => {
+                            setRoomEditDraft(null);
+                            setRoomEditError(null);
+                            setSpeakerEditDraft(null);
+                            setSpeakerEditError(null);
+                            setSessionEditError(null);
+                            setDeleteError(null);
+                            setPendingDelete(null);
+                            setSessionEditDraft({
+                              id: s.id,
+                              title: s.title,
+                              room_id: s.room_id,
+                              session_type: s.session_type,
+                              scheduled_start: toDatetimeLocalValue(s.scheduled_start),
+                              scheduled_end: toDatetimeLocalValue(s.scheduled_end),
+                            });
+                          }}
+                        >
+                          {t('common.edit')}
+                        </button>
+                        <button
+                          type="button"
+                          className="text-sm text-red-400 hover:text-red-300"
+                          aria-label={t('session.deleteAriaLabel', { title: s.title })}
+                          onClick={() => {
+                            setSessionEditDraft((d) => (d?.id === s.id ? null : d));
+                            setSessionEditError(null);
+                            setPendingDelete({ kind: 'session', id: s.id });
+                            setDeleteError(null);
+                          }}
+                        >
+                          {t('common.delete')}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </li>
@@ -908,9 +1157,99 @@ export default function EventDetailView() {
               return (
                 <li key={sp.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-zinc-100">{sp.full_name}</p>
-                    <p className="text-xs text-zinc-500">{sessionTitle}</p>
-                    {sp.email ? <p className="text-xs text-zinc-400">{sp.email}</p> : null}
+                    {speakerEditDraft?.id === sp.id ? (
+                      <form
+                        className="mb-3 flex max-w-lg flex-col gap-3"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          void submitSpeakerEdit();
+                        }}
+                      >
+                        <div>
+                          <label htmlFor={`speaker-edit-session-${sp.id}`} className="mb-1 block text-sm text-zinc-400">
+                            {t('speaker.linkedSession')}
+                          </label>
+                          <select
+                            id={`speaker-edit-session-${sp.id}`}
+                            value={speakerEditDraft.session_id}
+                            onChange={(e) =>
+                              setSpeakerEditDraft((d) =>
+                                d?.id === sp.id ? { ...d, session_id: e.target.value } : d,
+                              )
+                            }
+                            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                          >
+                            {sessions.map((sess) => (
+                              <option key={sess.id} value={sess.id}>
+                                {sess.title}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label htmlFor={`speaker-edit-name-${sp.id}`} className="mb-1 block text-sm text-zinc-400">
+                            {t('speaker.fullName')}
+                          </label>
+                          <input
+                            id={`speaker-edit-name-${sp.id}`}
+                            value={speakerEditDraft.full_name}
+                            onChange={(e) =>
+                              setSpeakerEditDraft((d) =>
+                                d?.id === sp.id ? { ...d, full_name: e.target.value } : d,
+                              )
+                            }
+                            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                            autoComplete="name"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`speaker-edit-email-${sp.id}`} className="mb-1 block text-sm text-zinc-400">
+                            {t('speaker.emailOptional')}
+                          </label>
+                          <input
+                            id={`speaker-edit-email-${sp.id}`}
+                            type="email"
+                            value={speakerEditDraft.email}
+                            onChange={(e) =>
+                              setSpeakerEditDraft((d) => (d?.id === sp.id ? { ...d, email: e.target.value } : d))
+                            }
+                            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                            autoComplete="email"
+                          />
+                        </div>
+                        {speakerEditError ? (
+                          <p className="text-xs text-red-400" role="alert">
+                            {speakerEditError}
+                          </p>
+                        ) : null}
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="submit"
+                            disabled={speakerEditBusy}
+                            className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                          >
+                            {t('common.save')}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={speakerEditBusy}
+                            className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                            onClick={() => {
+                              setSpeakerEditDraft(null);
+                              setSpeakerEditError(null);
+                            }}
+                          >
+                            {t('common.cancel')}
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <>
+                        <p className="font-medium text-zinc-100">{sp.full_name}</p>
+                        <p className="text-xs text-zinc-500">{sessionTitle}</p>
+                        {sp.email ? <p className="text-xs text-zinc-400">{sp.email}</p> : null}
+                      </>
+                    )}
                     {portalUrl ? (
                       <div className="mt-3 flex flex-col gap-2 border-t border-zinc-800/80 pt-3 sm:flex-row sm:items-start sm:gap-4">
                         <div className="min-w-0 flex-1">
@@ -991,6 +1330,7 @@ export default function EventDetailView() {
                               return;
                             }
                             setPendingDelete(null);
+                            setSpeakerEditDraft((d) => (d?.id === sp.id ? null : d));
                           }}
                         >
                           {t('common.confirmDelete')}
@@ -1007,19 +1347,46 @@ export default function EventDetailView() {
                           {t('common.cancel')}
                         </button>
                       </div>
-                    ) : (
-                      <button
-                        type="button"
-                        className="text-left text-sm text-red-400 hover:text-red-300 sm:text-right"
-                        aria-label={t('speaker.deleteAriaLabel', { name: sp.full_name })}
-                        onClick={() => {
-                          setSpeakerAuxError(null);
-                          setPendingDelete({ kind: 'speaker', id: sp.id });
-                          setDeleteError(null);
-                        }}
-                      >
-                        {t('common.delete')}
-                      </button>
+                    ) : speakerEditDraft?.id === sp.id ? null : (
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          className="text-sm text-zinc-400 hover:text-zinc-200"
+                          aria-label={t('speaker.editAriaLabel', { name: sp.full_name })}
+                          onClick={() => {
+                            setRoomEditDraft(null);
+                            setRoomEditError(null);
+                            setSessionEditDraft(null);
+                            setSessionEditError(null);
+                            setSpeakerAuxError(null);
+                            setSpeakerEditError(null);
+                            setDeleteError(null);
+                            setPendingDelete(null);
+                            setSpeakerEditDraft({
+                              id: sp.id,
+                              session_id: sp.session_id,
+                              full_name: sp.full_name,
+                              email: sp.email ?? '',
+                            });
+                          }}
+                        >
+                          {t('common.edit')}
+                        </button>
+                        <button
+                          type="button"
+                          className="text-sm text-red-400 hover:text-red-300"
+                          aria-label={t('speaker.deleteAriaLabel', { name: sp.full_name })}
+                          onClick={() => {
+                            setSpeakerEditDraft((d) => (d?.id === sp.id ? null : d));
+                            setSpeakerEditError(null);
+                            setSpeakerAuxError(null);
+                            setPendingDelete({ kind: 'speaker', id: sp.id });
+                            setDeleteError(null);
+                          }}
+                        >
+                          {t('common.delete')}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </li>

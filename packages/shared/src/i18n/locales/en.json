@@ -116,14 +116,16 @@
     "typeWorkshop": "Workshop",
     "typeBreak": "Break",
     "typeCeremony": "Ceremony",
-    "eventDetailIntro": "Sessions linked to an event room. The list is ordered by start time.",
+    "eventDetailIntro": "Sessions per room: create, inline edit (title, room, type, schedule), and two-step delete. List is ordered by start time.",
     "emptyEventList": "No sessions yet — add one using the form above.",
     "needRoomFirst": "Create at least one room in the section above before adding sessions.",
     "deleteCascadeHint": "Deleting this session also removes linked speakers (PostgreSQL ON DELETE CASCADE).",
     "deleteAriaLabel": "Delete session {{title}}",
+    "editAriaLabel": "Edit session {{title}}",
     "errors": {
       "scheduleOrder": "The scheduled end must be on or after the scheduled start.",
-      "missingContext": "Incomplete session context. Reload the page."
+      "missingContext": "Incomplete session context. Reload the page.",
+      "titleRequired": "The session title cannot be empty."
     }
   },
   "speaker": {
@@ -133,11 +135,12 @@
     "fullName": "Full name",
     "linkedSession": "Linked session",
     "emailOptional": "Email (optional)",
-    "eventDetailIntro": "Speakers per session: each new speaker gets a personal upload portal link and QR code (90-day validity). Resumable uploads (TUS) are planned for Phase 3.",
+    "eventDetailIntro": "Speakers per session: create, inline edit (session, name, email), plus portal link and QR (90-day validity) for new records. Resumable uploads (TUS) are planned for Phase 3.",
     "emptyEventList": "No speakers yet — add one using the form above.",
     "needSessionFirst": "Create at least one session in the section above before adding speakers.",
     "sessionUnknown": "Session not found in the current list",
     "deleteAriaLabel": "Delete speaker {{name}}",
+    "editAriaLabel": "Edit speaker {{name}}",
     "company": "Company",
     "jobTitle": "Job title",
     "bio": "Biography",
@@ -154,7 +157,8 @@
     "sendInvite": "Send upload invite",
     "errors": {
       "invalidEmail": "Invalid email address.",
-      "missingContext": "Incomplete context. Reload the page."
+      "missingContext": "Incomplete context. Reload the page.",
+      "nameRequired": "The speaker name cannot be empty."
     }
   },
   "uploadPortal": {

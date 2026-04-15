@@ -13,6 +13,7 @@ import {
   createSessionForEvent,
   deleteSessionById,
   listSessionsByEvent,
+  updateSessionById,
   type SessionRow,
   type SessionType,
 } from '../../sessions/repository';
@@ -21,6 +22,7 @@ import {
   deleteSpeakerById,
   listSpeakersByEvent,
   regenerateSpeakerUploadToken,
+  updateSpeakerById,
   type SpeakerRow,
 } from '../../speakers/repository';
 import { getEventById, type EventRow } from '../repository';
@@ -127,6 +129,32 @@ export function useEventDetail(
     [supabase, tenantId, eventId, load],
   );
 
+  const updateSession = useCallback(
+    async (
+      sessionId: string,
+      input: {
+        room_id: string;
+        title: string;
+        session_type: SessionType;
+        scheduled_start: string;
+        scheduled_end: string;
+      },
+    ) => {
+      if (!tenantId) return { errorMessage: 'missing_context' as const };
+      const { error } = await updateSessionById(supabase, sessionId, {
+        room_id: input.room_id,
+        title: input.title,
+        session_type: input.session_type,
+        scheduled_start: new Date(input.scheduled_start).toISOString(),
+        scheduled_end: new Date(input.scheduled_end).toISOString(),
+      });
+      if (error) return { errorMessage: error.message };
+      await load();
+      return { errorMessage: null as string | null };
+    },
+    [supabase, tenantId, load],
+  );
+
   const createSpeaker = useCallback(
     async (input: { session_id: string; full_name: string; email: string | null }) => {
       if (!eventId || !tenantId) return { errorMessage: 'missing_context' as const };
@@ -136,6 +164,17 @@ export function useEventDetail(
       return { errorMessage: null as string | null };
     },
     [supabase, tenantId, eventId, load],
+  );
+
+  const updateSpeaker = useCallback(
+    async (speakerId: string, input: { session_id: string; full_name: string; email: string | null }) => {
+      if (!tenantId) return { errorMessage: 'missing_context' as const };
+      const { error } = await updateSpeakerById(supabase, speakerId, input);
+      if (error) return { errorMessage: error.message };
+      await load();
+      return { errorMessage: null as string | null };
+    },
+    [supabase, tenantId, load],
   );
 
   const deleteRoom = useCallback(
@@ -188,7 +227,9 @@ export function useEventDetail(
     createRoom,
     updateRoom,
     createSession,
+    updateSession,
     createSpeaker,
+    updateSpeaker,
     deleteRoom,
     deleteSession,
     deleteSpeaker,

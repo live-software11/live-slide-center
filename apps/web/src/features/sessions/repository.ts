@@ -35,6 +35,31 @@ export async function createSessionForEvent(
     .single();
 }
 
+export async function updateSessionById(
+  supabase: SupabaseClient<Database>,
+  sessionId: string,
+  input: {
+    room_id: string;
+    title: string;
+    session_type: SessionType;
+    scheduled_start: string;
+    scheduled_end: string;
+  },
+) {
+  return supabase
+    .from('sessions')
+    .update({
+      room_id: input.room_id,
+      title: input.title,
+      session_type: input.session_type,
+      scheduled_start: input.scheduled_start,
+      scheduled_end: input.scheduled_end,
+    })
+    .eq('id', sessionId)
+    .select()
+    .single();
+}
+
 export async function deleteSessionById(supabase: SupabaseClient<Database>, id: string) {
   return supabase.from('sessions').delete().eq('id', id);
 }
