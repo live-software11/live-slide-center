@@ -305,6 +305,14 @@
     "colPlan": "Plan",
     "colStorage": "Storage"
   },
+  "config": {
+    "supabaseMissingTitle": "Supabase configuration missing",
+    "supabaseMissingSubtitle": "To use sign-in and live data in development, set your project URL and the anonymous public API key.",
+    "supabaseMissingStep1": "At the monorepo root, copy `.env.example` to `.env` (never commit `.env`).",
+    "supabaseMissingStep2": "In Supabase: Settings → API. Paste Project URL into `VITE_SUPABASE_URL` and the anon public key into `VITE_SUPABASE_ANON_KEY`.",
+    "supabaseMissingStep3": "Save `.env` and restart the dev server (`pnpm run dev`).",
+    "supabaseMissingNote": "Without these variables the browser client cannot reach the backend — this is expected, not a UI defect."
+  },
   "a11y": {
     "adminNav": "Super-Admin area navigation",
     "mainNav": "Main navigation",

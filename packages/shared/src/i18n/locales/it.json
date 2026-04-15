@@ -305,6 +305,14 @@
     "colPlan": "Piano",
     "colStorage": "Storage"
   },
+  "config": {
+    "supabaseMissingTitle": "Configurazione Supabase assente",
+    "supabaseMissingSubtitle": "Per usare login e dati in sviluppo servono URL progetto e chiave anonima (anon key).",
+    "supabaseMissingStep1": "Nella root del monorepo, copia `.env.example` in `.env` (il file `.env` non va in repository).",
+    "supabaseMissingStep2": "In Supabase: Settings → API. Incolla `Project URL` in `VITE_SUPABASE_URL` e `anon public` in `VITE_SUPABASE_ANON_KEY`.",
+    "supabaseMissingStep3": "Salva `.env` e riavvia il server di sviluppo (`pnpm run dev`).",
+    "supabaseMissingNote": "Senza queste variabili il client non può connettersi al backend: non è un bug dell’interfaccia."
+  },
   "a11y": {
     "adminNav": "Navigazione area Super-Admin",
     "mainNav": "Navigazione principale",
