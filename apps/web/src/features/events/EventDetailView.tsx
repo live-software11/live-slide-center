@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -92,6 +92,8 @@ type SpeakerFormValues = z.infer<ReturnType<typeof speakerFormSchema>>;
 
 type PendingDelete = { kind: 'room' | 'session' | 'speaker'; id: string };
 
+type RoomEditDraft = { id: string; name: string; room_type: RoomType };
+
 export default function EventDetailView() {
   const { t, i18n } = useTranslation();
   const { eventId } = useParams<{ eventId: string }>();
@@ -110,6 +112,7 @@ export default function EventDetailView() {
     state,
     reload,
     createRoom,
+    updateRoom,
     createSession,
     createSpeaker,
     deleteRoom,
@@ -123,6 +126,9 @@ export default function EventDetailView() {
   const [speakerAuxError, setSpeakerAuxError] = useState<string | null>(null);
   const [copiedSpeakerId, setCopiedSpeakerId] = useState<string | null>(null);
   const [regenerateBusyId, setRegenerateBusyId] = useState<string | null>(null);
+  const [roomEditDraft, setRoomEditDraft] = useState<RoomEditDraft | null>(null);
+  const [roomEditBusy, setRoomEditBusy] = useState(false);
+  const [roomEditError, setRoomEditError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -205,6 +211,26 @@ export default function EventDetailView() {
     }
     reset({ name: '', room_type: 'main' });
   });
+
+  const submitRoomEdit = useCallback(async () => {
+    if (!roomEditDraft) return;
+    const name = roomEditDraft.name.trim();
+    if (name.length < 1) {
+      setRoomEditError(t('room.errors.nameRequired'));
+      return;
+    }
+    setRoomEditBusy(true);
+    setRoomEditError(null);
+    const res = await updateRoom(roomEditDraft.id, { name, room_type: roomEditDraft.room_type });
+    setRoomEditBusy(false);
+    if (res.errorMessage) {
+      setRoomEditError(
+        res.errorMessage === 'missing_context' ? t('room.errors.missingContext') : res.errorMessage,
+      );
+      return;
+    }
+    setRoomEditDraft(null);
+  }, [roomEditDraft, updateRoom, t]);
 
   const onSessionSubmit = handleSessionSubmit(async (values) => {
     setSessionCreateError(null);
@@ -429,9 +455,82 @@ export default function EventDetailView() {
           <ul className="mt-6 divide-y divide-zinc-800 rounded-lg border border-zinc-800">
             {rooms.map((r) => (
               <li key={r.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="font-medium text-zinc-100">{r.name}</p>
-                  <p className="text-xs text-zinc-500">{roomTypeLabel(t, r.room_type)}</p>
+                <div className="min-w-0 flex-1">
+                  {roomEditDraft?.id === r.id ? (
+                    <form
+                      className="flex max-w-lg flex-col gap-3"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        void submitRoomEdit();
+                      }}
+                    >
+                      <div>
+                        <label htmlFor={`room-edit-name-${r.id}`} className="mb-1 block text-sm text-zinc-400">
+                          {t('room.name')}
+                        </label>
+                        <input
+                          id={`room-edit-name-${r.id}`}
+                          value={roomEditDraft.name}
+                          onChange={(e) =>
+                            setRoomEditDraft((d) => (d?.id === r.id ? { ...d, name: e.target.value } : d))
+                          }
+                          className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                          autoComplete="off"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor={`room-edit-type-${r.id}`} className="mb-1 block text-sm text-zinc-400">
+                          {t('room.type')}
+                        </label>
+                        <select
+                          id={`room-edit-type-${r.id}`}
+                          value={roomEditDraft.room_type}
+                          onChange={(e) =>
+                            setRoomEditDraft((d) =>
+                              d?.id === r.id ? { ...d, room_type: e.target.value as RoomType } : d,
+                            )
+                          }
+                          className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                        >
+                          {ROOM_TYPES.map((rt) => (
+                            <option key={rt} value={rt}>
+                              {roomTypeLabel(t, rt)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {roomEditError ? (
+                        <p className="text-xs text-red-400" role="alert">
+                          {roomEditError}
+                        </p>
+                      ) : null}
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="submit"
+                          disabled={roomEditBusy}
+                          className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                        >
+                          {t('common.save')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={roomEditBusy}
+                          className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                          onClick={() => {
+                            setRoomEditDraft(null);
+                            setRoomEditError(null);
+                          }}
+                        >
+                          {t('common.cancel')}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <p className="font-medium text-zinc-100">{r.name}</p>
+                      <p className="text-xs text-zinc-500">{roomTypeLabel(t, r.room_type)}</p>
+                    </>
+                  )}
                 </div>
                 <div className="flex flex-shrink-0 flex-col items-stretch gap-2 sm:items-end">
                   {pendingDelete?.kind === 'room' && pendingDelete.id === r.id ? (
@@ -452,6 +551,7 @@ export default function EventDetailView() {
                               return;
                             }
                             setPendingDelete(null);
+                            setRoomEditDraft((d) => (d?.id === r.id ? null : d));
                           }}
                         >
                           {t('common.confirmDelete')}
@@ -469,18 +569,35 @@ export default function EventDetailView() {
                         </button>
                       </div>
                     </>
-                  ) : (
-                    <button
-                      type="button"
-                      className="text-left text-sm text-red-400 hover:text-red-300 sm:text-right"
-                      aria-label={t('room.deleteAriaLabel', { name: r.name })}
-                      onClick={() => {
-                        setPendingDelete({ kind: 'room', id: r.id });
-                        setDeleteError(null);
-                      }}
-                    >
-                      {t('common.delete')}
-                    </button>
+                  ) : roomEditDraft?.id === r.id ? null : (
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        className="text-sm text-zinc-400 hover:text-zinc-200"
+                        aria-label={t('room.editAriaLabel', { name: r.name })}
+                        onClick={() => {
+                          setRoomEditError(null);
+                          setDeleteError(null);
+                          setPendingDelete(null);
+                          setRoomEditDraft({ id: r.id, name: r.name, room_type: r.room_type });
+                        }}
+                      >
+                        {t('common.edit')}
+                      </button>
+                      <button
+                        type="button"
+                        className="text-sm text-red-400 hover:text-red-300"
+                        aria-label={t('room.deleteAriaLabel', { name: r.name })}
+                        onClick={() => {
+                          setRoomEditDraft((d) => (d?.id === r.id ? null : d));
+                          setRoomEditError(null);
+                          setPendingDelete({ kind: 'room', id: r.id });
+                          setDeleteError(null);
+                        }}
+                      >
+                        {t('common.delete')}
+                      </button>
+                    </div>
                   )}
                 </div>
               </li>

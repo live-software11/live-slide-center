@@ -74,15 +74,15 @@ Live SLIDE CENTER/
 
 ## Rotte applicazione
 
-| Rotta               | Componente             | Accesso                |
-| ------------------- | ---------------------- | ---------------------- |
-| `/`                 | `DashboardView`        | tenant (autenticato)   |
-| `/events/*`         | Vari views eventi      | tenant                 |
-| `/admin/*`          | Admin views            | `super_admin` only     |
-| `/pair`             | `PairView`             | pubblico (tecnico)     |
-| `/sala/:token`      | `RoomPlayerView` (PWA) | JWT sala (pairing)     |
+| Rotta               | Componente                                 | Accesso                |
+| ------------------- | ------------------------------------------ | ---------------------- |
+| `/`                 | `DashboardView`                            | tenant (autenticato)   |
+| `/events/*`         | Vari views eventi                          | tenant                 |
+| `/admin/*`          | Admin views                                | `super_admin` only     |
+| `/pair`             | `PairView`                                 | pubblico (tecnico)     |
+| `/sala/:token`      | `RoomPlayerView` (PWA)                     | JWT sala (pairing)     |
 | `/u/:token`         | `UploadPortalStubView` (stub → TUS Fase 3) | `upload_token` speaker |
-| `/login`, `/signup` | Auth views             | pubblico               |
+| `/login`, `/signup` | Auth views                                 | pubblico               |
 
 ## Decisioni Architetturali Chiave (ADR)
 

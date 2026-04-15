@@ -90,12 +90,14 @@
     "typeBreakout": "Breakout",
     "typePreview": "Anteprima",
     "typePoster": "Poster",
-    "eventDetailIntro": "Sale collegate a questo evento. I dati sono isolati per tenant (RLS).",
+    "eventDetailIntro": "Sale collegate a questo evento (creazione, modifica inline nome/tipologia, eliminazione). Dati isolati per tenant (RLS).",
     "emptyEventList": "Nessuna sala: creane una con il modulo sopra.",
     "deleteCascadeHint": "Eliminando la sala vengono rimosse in cascata anche le sessioni e i relatori collegati (vincoli PostgreSQL).",
     "deleteAriaLabel": "Elimina la sala {{name}}",
+    "editAriaLabel": "Modifica la sala {{name}}",
     "errors": {
-      "missingContext": "Contesto incompleto per creare la sala. Ricarica la pagina."
+      "missingContext": "Contesto incompleto per la sala. Ricarica la pagina.",
+      "nameRequired": "Il nome della sala non può essere vuoto."
     }
   },
   "session": {

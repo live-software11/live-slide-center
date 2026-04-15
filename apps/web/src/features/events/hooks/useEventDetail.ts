@@ -5,6 +5,7 @@ import {
   createRoomForEvent,
   deleteRoomById,
   listRoomsByEvent,
+  updateRoomById,
   type RoomRow,
   type RoomType,
 } from '../../rooms/repository';
@@ -92,6 +93,17 @@ export function useEventDetail(
     [supabase, tenantId, eventId, load],
   );
 
+  const updateRoom = useCallback(
+    async (roomId: string, input: { name: string; room_type: RoomType }) => {
+      if (!tenantId) return { errorMessage: 'missing_context' as const };
+      const { error } = await updateRoomById(supabase, roomId, input);
+      if (error) return { errorMessage: error.message };
+      await load();
+      return { errorMessage: null as string | null };
+    },
+    [supabase, tenantId, load],
+  );
+
   const createSession = useCallback(
     async (input: {
       room_id: string;
@@ -174,6 +186,7 @@ export function useEventDetail(
     state,
     reload: load,
     createRoom,
+    updateRoom,
     createSession,
     createSpeaker,
     deleteRoom,

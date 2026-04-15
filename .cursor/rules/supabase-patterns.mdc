@@ -66,6 +66,8 @@ export async function getEventWithRooms(eventId: string) {
 
 **Delete:** `from('tabella').delete().eq('id', id)` — la RLS deve consentire solo righe del tenant corrente (stessa policy `tenant_isolation` delle SELECT). Attenzione a `ON DELETE CASCADE` nello schema: eliminare una **sala** rimuove sessioni e relatori collegati; eliminare una **sessione** rimuove i relatori. Allineare messaggi UI/i18n alla guida §11.
 
+**Update:** `from('tabella').update({ ... }).eq('id', id).select().single()` — stessa barriera RLS; aggiornare solo campi consentiti dal modello (es. `rooms.name`, `rooms.room_type`).
+
 ## Realtime Pattern — Hook
 
 ```typescript

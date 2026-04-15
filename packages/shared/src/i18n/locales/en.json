@@ -90,12 +90,14 @@
     "typeBreakout": "Breakout",
     "typePreview": "Preview",
     "typePoster": "Poster",
-    "eventDetailIntro": "Rooms linked to this event. Data is tenant-isolated (RLS).",
+    "eventDetailIntro": "Rooms linked to this event (create, inline edit of name/type, delete). Data is tenant-isolated (RLS).",
     "emptyEventList": "No rooms yet — add one using the form above.",
     "deleteCascadeHint": "Deleting this room also removes linked sessions and speakers (PostgreSQL ON DELETE CASCADE).",
     "deleteAriaLabel": "Delete room {{name}}",
+    "editAriaLabel": "Edit room {{name}}",
     "errors": {
-      "missingContext": "Incomplete context to create the room. Reload the page."
+      "missingContext": "Incomplete context for this room. Reload the page.",
+      "nameRequired": "The room name cannot be empty."
     }
   },
   "session": {
