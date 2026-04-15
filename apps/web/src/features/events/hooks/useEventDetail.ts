@@ -19,6 +19,7 @@ import {
   createSpeakerForSession,
   deleteSpeakerById,
   listSpeakersByEvent,
+  regenerateSpeakerUploadToken,
   type SpeakerRow,
 } from '../../speakers/repository';
 import { getEventById, type EventRow } from '../repository';
@@ -158,5 +159,26 @@ export function useEventDetail(
     [supabase, tenantId, load],
   );
 
-  return { state, reload: load, createRoom, createSession, createSpeaker, deleteRoom, deleteSession, deleteSpeaker };
+  const regenerateSpeakerUpload = useCallback(
+    async (speakerId: string) => {
+      if (!tenantId) return { errorMessage: 'missing_context' as const };
+      const { error } = await regenerateSpeakerUploadToken(supabase, speakerId);
+      if (error) return { errorMessage: error.message };
+      await load();
+      return { errorMessage: null as string | null };
+    },
+    [supabase, tenantId, load],
+  );
+
+  return {
+    state,
+    reload: load,
+    createRoom,
+    createSession,
+    createSpeaker,
+    deleteRoom,
+    deleteSession,
+    deleteSpeaker,
+    regenerateSpeakerUpload,
+  };
 }

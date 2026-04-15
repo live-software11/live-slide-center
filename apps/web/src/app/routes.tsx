@@ -6,6 +6,10 @@ import { RequireSuperAdmin } from './require-super-admin';
 
 export const router = createBrowserRouter([
   {
+    path: '/u/:token',
+    lazy: () => import('@/features/upload-portal/UploadPortalStubView'),
+  },
+  {
     path: '/login',
     lazy: () => import('@/features/auth/LoginView'),
   },

@@ -4,9 +4,11 @@ import { useForm } from 'react-hook-form';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
+import QRCode from 'react-qr-code';
 import { z } from 'zod';
 import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { getUploadPortalAbsoluteUrl } from '@/lib/upload-portal-url';
 import { getTenantIdFromSession } from '@/lib/session-tenant';
 import type { RoomType } from '@/features/rooms/repository';
 import type { SessionType } from '@/features/sessions/repository';
@@ -104,11 +106,23 @@ export default function EventDetailView() {
     [i18n.language],
   );
   const tenantId = getTenantIdFromSession(session);
-  const { state, reload, createRoom, createSession, createSpeaker, deleteRoom, deleteSession, deleteSpeaker } =
-    useEventDetail(supabase, eventId, tenantId);
+  const {
+    state,
+    reload,
+    createRoom,
+    createSession,
+    createSpeaker,
+    deleteRoom,
+    deleteSession,
+    deleteSpeaker,
+    regenerateSpeakerUpload,
+  } = useEventDetail(supabase, eventId, tenantId);
   const [roomCreateError, setRoomCreateError] = useState<string | null>(null);
   const [sessionCreateError, setSessionCreateError] = useState<string | null>(null);
   const [speakerCreateError, setSpeakerCreateError] = useState<string | null>(null);
+  const [speakerAuxError, setSpeakerAuxError] = useState<string | null>(null);
+  const [copiedSpeakerId, setCopiedSpeakerId] = useState<string | null>(null);
+  const [regenerateBusyId, setRegenerateBusyId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -214,6 +228,7 @@ export default function EventDetailView() {
 
   const onSpeakerSubmit = handleSpeakerSubmit(async (values) => {
     setSpeakerCreateError(null);
+    setSpeakerAuxError(null);
     const emailTrimmed = typeof values.email === 'string' ? values.email.trim() : '';
     const emailForDb = emailTrimmed === '' ? null : emailTrimmed;
     const result = await createSpeaker({
@@ -672,6 +687,11 @@ export default function EventDetailView() {
           {t('speaker.titlePlural')}
         </h2>
         <p className="mt-1 text-sm text-zinc-500">{t('speaker.eventDetailIntro')}</p>
+        {speakerAuxError ? (
+          <p className="mt-3 text-sm text-red-400" role="alert">
+            {speakerAuxError}
+          </p>
+        ) : null}
 
         {sessions.length === 0 ? (
           <p className="mt-6 text-sm text-amber-400/90" role="status">
@@ -760,12 +780,82 @@ export default function EventDetailView() {
             {speakersSorted.map((sp) => {
               const sessionTitle =
                 sessions.find((s) => s.id === sp.session_id)?.title ?? t('speaker.sessionUnknown');
+              const portalUrl =
+                sp.upload_token && sp.upload_token.length > 0
+                  ? getUploadPortalAbsoluteUrl(sp.upload_token)
+                  : null;
+              const expiresLabel =
+                sp.upload_token_expires_at && portalUrl
+                  ? dateTimeFmt.format(new Date(sp.upload_token_expires_at))
+                  : null;
               return (
                 <li key={sp.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium text-zinc-100">{sp.full_name}</p>
                     <p className="text-xs text-zinc-500">{sessionTitle}</p>
                     {sp.email ? <p className="text-xs text-zinc-400">{sp.email}</p> : null}
+                    {portalUrl ? (
+                      <div className="mt-3 flex flex-col gap-2 border-t border-zinc-800/80 pt-3 sm:flex-row sm:items-start sm:gap-4">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium text-zinc-400">{t('speaker.uploadLinkLabel')}</p>
+                          <p className="mt-1 break-all font-mono text-xs text-zinc-300">{portalUrl}</p>
+                          {expiresLabel ? (
+                            <p className="mt-1 text-xs text-zinc-500">
+                              {t('speaker.uploadExpires', { date: expiresLabel })}
+                            </p>
+                          ) : null}
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-800"
+                              onClick={async () => {
+                                setSpeakerAuxError(null);
+                                try {
+                                  await navigator.clipboard.writeText(portalUrl);
+                                  setCopiedSpeakerId(sp.id);
+                                  window.setTimeout(() => setCopiedSpeakerId((cur) => (cur === sp.id ? null : cur)), 2200);
+                                } catch {
+                                  setSpeakerAuxError(t('speaker.copyUploadLinkFailed'));
+                                }
+                              }}
+                            >
+                              {copiedSpeakerId === sp.id ? t('speaker.linkCopied') : t('speaker.copyUploadLink')}
+                            </button>
+                          </div>
+                        </div>
+                        <div
+                          className="shrink-0 rounded-md bg-white p-2"
+                          role="img"
+                          aria-label={t('speaker.uploadQrAria', { name: sp.full_name })}
+                        >
+                          <QRCode value={portalUrl} size={104} level="M" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-3 border-t border-zinc-800/80 pt-3">
+                        <p className="text-xs text-zinc-500">{t('speaker.uploadLinkMissing')}</p>
+                        <button
+                          type="button"
+                          disabled={regenerateBusyId === sp.id}
+                          className="mt-2 rounded-md border border-amber-700/60 px-3 py-1.5 text-xs font-medium text-amber-200/90 hover:bg-amber-950/40 disabled:opacity-50"
+                          onClick={async () => {
+                            setSpeakerAuxError(null);
+                            setRegenerateBusyId(sp.id);
+                            const res = await regenerateSpeakerUpload(sp.id);
+                            setRegenerateBusyId(null);
+                            if (res.errorMessage) {
+                              setSpeakerAuxError(
+                                res.errorMessage === 'missing_context'
+                                  ? t('speaker.errors.missingContext')
+                                  : res.errorMessage,
+                              );
+                            }
+                          }}
+                        >
+                          {regenerateBusyId === sp.id ? t('speaker.generatingUploadLink') : t('speaker.generateUploadLink')}
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-shrink-0 flex-col items-stretch gap-2 sm:items-end">
                     {pendingDelete?.kind === 'speaker' && pendingDelete.id === sp.id ? (
@@ -806,6 +896,7 @@ export default function EventDetailView() {
                         className="text-left text-sm text-red-400 hover:text-red-300 sm:text-right"
                         aria-label={t('speaker.deleteAriaLabel', { name: sp.full_name })}
                         onClick={() => {
+                          setSpeakerAuxError(null);
                           setPendingDelete({ kind: 'speaker', id: sp.id });
                           setDeleteError(null);
                         }}

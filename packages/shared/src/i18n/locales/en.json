@@ -131,7 +131,7 @@
     "fullName": "Full name",
     "linkedSession": "Linked session",
     "emailOptional": "Email (optional)",
-    "eventDetailIntro": "Speakers linked to an event session. The list is ordered by session start time.",
+    "eventDetailIntro": "Speakers per session: each new speaker gets a personal upload portal link and QR code (90-day validity). Resumable uploads (TUS) are planned for Phase 3.",
     "emptyEventList": "No speakers yet — add one using the form above.",
     "needSessionFirst": "Create at least one session in the section above before adding speakers.",
     "sessionUnknown": "Session not found in the current list",
@@ -140,11 +140,26 @@
     "jobTitle": "Job title",
     "bio": "Biography",
     "uploadToken": "Upload token",
+    "uploadLinkLabel": "Speaker upload invite link",
+    "copyUploadLink": "Copy link",
+    "linkCopied": "Link copied",
+    "copyUploadLinkFailed": "Could not copy to the clipboard. Select the link manually.",
+    "uploadQrAria": "QR code for the upload link for {{name}}",
+    "uploadExpires": "Link expires: {{date}}",
+    "uploadLinkMissing": "This speaker has no portal link yet (legacy record). Generate a link or delete and recreate the speaker.",
+    "generateUploadLink": "Generate invite link",
+    "generatingUploadLink": "Generating…",
     "sendInvite": "Send upload invite",
     "errors": {
       "invalidEmail": "Invalid email address.",
       "missingContext": "Incomplete context. Reload the page."
     }
+  },
+  "uploadPortal": {
+    "badge": "Speaker portal",
+    "pageTitle": "Upload portal",
+    "intro": "This public URL is reserved for presenter file uploads. Resumable uploads (TUS), virus scanning, and quota checks are not enabled yet — the Slide Center team dashboard remains the primary workflow until Phase 3 ships.",
+    "goToLogin": "Organizer sign-in"
   },
   "presentation": {
     "title": "Presentation",

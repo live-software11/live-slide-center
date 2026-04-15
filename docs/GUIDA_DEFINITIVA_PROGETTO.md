@@ -1,7 +1,7 @@
 # GUIDA DEFINITIVA PROGETTO — Live SLIDE CENTER
 
 > **Documento UNICO di riferimento.** Questo file sostituisce e incorpora: `PIANO_MASTER_v3.md`, `SlideHub_Live_CURSOR_BUILD.md`, `PRE_CODE_PREPARATION.md`, `LIVE_SLIDE_CENTER_DEFINITIVO.md`. Nessun altro documento ha autorita su questo. Se trovi una contraddizione altrove, **questo vince**.
-> **Versione:** 3.0.11 — 15 Aprile 2026 (signup: conferma email senza sessione; login: refresh + `getUser` e tenant o `super_admin`; guida Auth §6)
+> **Versione:** 3.0.12 — 15 Aprile 2026 (relatori: `upload_token` + link/QR in evento; route `/u/:token` stub; guida §11)
 > **Autore:** Andrea Rizzari + CTO Senior AI Review
 > **Stack:** React 19 + Vite 8 + TypeScript strict + Supabase + Vercel — gia funzionante nel repo
 
@@ -558,7 +558,9 @@ WHERE email = 'live.software11@gmail.com';
 
 ### Implementazione corrente (aprile 2026)
 
-L'interfaccia tenant espone `/events` (lista + nuovo evento) e `/events/:eventId` con **Sale**, **Sessioni** (titolo, sala, `session_type`, orari `datetime-local` → UTC) e **Relatori** (sessione, nome, email opzionale; niente ancora `upload_token` / QR). **Eliminazione:** pulsante Elimina con secondo passo di conferma; messaggi su CASCADE PostgreSQL (sala → sessioni e relatori; sessione → relatori). Restano in roadmap Fase 2+: modifica inline, calendario drag&drop, quote, portale upload.
+L'interfaccia tenant espone `/events` (lista + nuovo evento) e `/events/:eventId` con **Sale**, **Sessioni** (titolo, sala, `session_type`, orari `datetime-local` → UTC) e **Relatori** (sessione, nome, email opzionale). Alla creazione (o rigenerazione manuale su record legacy) il sistema assegna `upload_token` + `upload_token_expires_at` (90 giorni); in elenco compaiono **link assoluto** `/u/:token`, **copia negli appunti** e **QR** (pacchetto `react-qr-code`). La pagina `/u/:token` e uno **stub** informativo fino alla Fase 3 (TUS, validazione token, Storage). **Eliminazione:** pulsante Elimina con secondo passo di conferma; messaggi su CASCADE PostgreSQL (sala → sessioni e relatori; sessione → relatori). Restano in roadmap Fase 2+: modifica inline, calendario drag&drop, quote; Fase 3: upload effettivo nel portale.
+
+**EN — Tenant UI:** Event detail lists speakers with a **90-day upload portal URL**, **copy-to-clipboard**, and **QR** after each insert (or manual regenerate for legacy rows without a token). `/u/:token` is a **placeholder page** until Phase 3 ships resumable uploads and server-side checks.
 
 **EN:** Tenant UI exposes `/events` (list + create) and `/events/:eventId` with **Rooms**, **Sessions**, and **Speakers** as above. **Deletion:** two-step confirm in UI; copy explains PostgreSQL `ON DELETE CASCADE` (room → sessions and speakers; session → speakers). Still on the Phase 2+ roadmap: inline edit, drag-and-drop calendar, quotas, upload portal.
 
@@ -746,7 +748,7 @@ export const PLAN_LIMITS: Record<TenantPlan, PlanLimits> = {
 | ----- | ---------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0     | Bootstrap monorepo                       | **Completata** | Stack funzionante nel repo                                                                                                                                                       |
 | 1     | Auth multi-tenant + signup + super-admin | **In corso**   | Trigger DB + `/login` `/signup` + `RequireAuth` + `/admin` + `RequireSuperAdmin`; tipi `Database` in `packages/shared` (allineati migration); restano inviti team, hardening JWT |
-| 2     | CRUD Eventi/Sale/Sessioni/Speaker        | **In corso**   | `/events` lista+insert; `/events/:eventId` sale+sessioni+relatori (lista+insert+delete conferma); restano token upload/QR, quote, import CSV, modifica, calendario               |
+| 2     | CRUD Eventi/Sale/Sessioni/Speaker        | **In corso**   | `/events` lista+insert; `/events/:eventId` sale+sessioni+relatori (lista+insert+delete conferma; link+QR invite, token 90gg; legacy rigenerabile); restano quote, import CSV, modifica, calendario |
 | 3     | Upload Portal relatori (TUS)             | Da fare        | SHA-256 client-side, QR per speaker                                                                                                                                              |
 | 4     | Versioning + storico                     | Da fare        | Append-only, status workflow, rollback                                                                                                                                           |
 | 5     | Vista Regia realtime                     | Da fare        | Subscribe Realtime, griglia sale, activity feed                                                                                                                                  |
@@ -864,7 +866,7 @@ Live SLIDE CENTER/
 - [ ] Wireframe Room Player fullscreen
 - [ ] Wireframe dashboard super-admin
 
-**EN — Checklist status:** Migrations are in-repo; tenant routes are auth-guarded; `SignupView` shows check-email when `signUp` returns no session, otherwise waits for `tenant_id` on the JWT via `refreshSession()` + `getUser()` with retries before navigating home; `LoginView` refreshes and requires `tenant_id` or `super_admin` before navigating. `database.ts` is hand-maintained until `supabase gen types --local` runs. Super-admin has `/admin` and `/admin/tenants` (metadata only). Tenant `/events` lists and creates events (RLS); `/events/:eventId` shows event detail, rooms, sessions, and speakers (list + create + delete with two-step confirm and CASCADE hints; upload token/QR not wired yet). **§15** now includes a quantitative MVP estimate and a “known issues / tooling” note (Docker vs checklist §18). Remaining: Docker `db reset` + type regen, wireframes, Phase 1 invites, upload portal/TUS, inline edit for rooms/sessions/speakers, further admin routes.
+**EN — Checklist status:** Migrations are in-repo; tenant routes are auth-guarded; `SignupView` shows check-email when `signUp` returns no session, otherwise waits for `tenant_id` on the JWT via `refreshSession()` + `getUser()` with retries before navigating home; `LoginView` refreshes and requires `tenant_id` or `super_admin` before navigating. `database.ts` is hand-maintained until `supabase gen types --local` runs. Super-admin has `/admin` and `/admin/tenants` (metadata only). Tenant `/events` lists and creates events (RLS); `/events/:eventId` shows event detail, rooms, sessions, and speakers (list + create + delete with two-step confirm and CASCADE hints; **upload invite link + QR** on each speaker; `/u/:token` is a **stub** until TUS). **§15** now includes a quantitative MVP estimate and a “known issues / tooling” note (Docker vs checklist §18). Remaining: Docker `db reset` + type regen, wireframes, Phase 1 invites, **upload portal TUS + Storage**, inline edit for rooms/sessions/speakers, further admin routes.
 
 ---
 

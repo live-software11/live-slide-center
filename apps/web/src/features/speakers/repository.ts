@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@slidecenter/shared';
+import { defaultUploadTokenExpiresAtIso, generateSpeakerUploadToken } from './lib/upload-token';
 
 export type SpeakerRow = Database['public']['Tables']['speakers']['Row'];
 
@@ -13,6 +14,8 @@ export async function createSpeakerForSession(
   eventId: string,
   input: { session_id: string; full_name: string; email: string | null },
 ) {
+  const upload_token = generateSpeakerUploadToken();
+  const upload_token_expires_at = defaultUploadTokenExpiresAtIso();
   return supabase
     .from('speakers')
     .insert({
@@ -21,7 +24,23 @@ export async function createSpeakerForSession(
       session_id: input.session_id,
       full_name: input.full_name,
       email: input.email,
+      upload_token,
+      upload_token_expires_at,
     })
+    .select()
+    .single();
+}
+
+export async function regenerateSpeakerUploadToken(
+  supabase: SupabaseClient<Database>,
+  speakerId: string,
+) {
+  const upload_token = generateSpeakerUploadToken();
+  const upload_token_expires_at = defaultUploadTokenExpiresAtIso();
+  return supabase
+    .from('speakers')
+    .update({ upload_token, upload_token_expires_at })
+    .eq('id', speakerId)
     .select()
     .single();
 }

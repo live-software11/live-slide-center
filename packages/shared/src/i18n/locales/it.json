@@ -131,7 +131,7 @@
     "fullName": "Nome completo",
     "linkedSession": "Sessione collegata",
     "emailOptional": "Email (opzionale)",
-    "eventDetailIntro": "Relatori associati a una sessione dell'evento. Elenco ordinato per orario sessione.",
+    "eventDetailIntro": "Relatori per sessione: ogni nuovo relatore riceve un link e un QR al portale caricamento (validità 90 giorni). L'upload resumibile è in roadmap Fase 3.",
     "emptyEventList": "Nessun relatore: aggiungine uno dal modulo sopra.",
     "needSessionFirst": "Per aggiungere un relatore serve almeno una sessione: creala nella sezione precedente.",
     "sessionUnknown": "Sessione non disponibile nell'elenco",
@@ -140,11 +140,26 @@
     "jobTitle": "Ruolo",
     "bio": "Biografia",
     "uploadToken": "Token upload",
+    "uploadLinkLabel": "Link invito caricamento (speaker)",
+    "copyUploadLink": "Copia link",
+    "linkCopied": "Link copiato",
+    "copyUploadLinkFailed": "Impossibile copiare negli appunti. Seleziona il link manualmente.",
+    "uploadQrAria": "QR code al link di caricamento per {{name}}",
+    "uploadExpires": "Scadenza link: {{date}}",
+    "uploadLinkMissing": "Questo relatore non ha ancora un link (record precedente alla funzione). Genera un link oppure elimina e ricrea il relatore.",
+    "generateUploadLink": "Genera link invito",
+    "generatingUploadLink": "Generazione…",
     "sendInvite": "Invia invito upload",
     "errors": {
       "invalidEmail": "Indirizzo email non valido.",
       "missingContext": "Contesto incompleto. Ricarica la pagina."
     }
+  },
+  "uploadPortal": {
+    "badge": "Portale relatore",
+    "pageTitle": "Portale caricamento",
+    "intro": "Questo URL pubblico è riservato al caricamento file da parte del relatore. Upload resumabile (TUS), antivirus e controlli quota non sono ancora attivi: fino alla Fase 3 il flusso operativo resta prioritariamente in dashboard organizzatori.",
+    "goToLogin": "Accesso organizzatori"
   },
   "presentation": {
     "title": "Presentazione",
