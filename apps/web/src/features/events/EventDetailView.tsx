@@ -11,7 +11,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { getUploadPortalAbsoluteUrl } from '@/lib/upload-portal-url';
 import { getTenantIdFromSession } from '@/lib/session-tenant';
 import type { RoomType } from '@/features/rooms/repository';
-import type { SessionType } from '@/features/sessions/repository';
+import type { SessionRow, SessionType } from '@/features/sessions/repository';
 import { TenantQuotaPanel } from '@/features/tenant/components/TenantQuotaPanel';
 import { useTenantQuotaRow } from '@/features/tenant/hooks/useTenantQuotaRow';
 import { isUnlimitedRoomsPerEvent } from '@/features/tenant/lib/quota-usage';
@@ -165,6 +165,7 @@ export default function EventDetailView() {
   const [sessionCreateError, setSessionCreateError] = useState<string | null>(null);
   const [sessionReorderBusy, setSessionReorderBusy] = useState(false);
   const [sessionReorderError, setSessionReorderError] = useState<string | null>(null);
+  const [sessionScheduleView, setSessionScheduleView] = useState<'list' | 'byRoom'>('list');
   const [speakerCreateError, setSpeakerCreateError] = useState<string | null>(null);
   const [speakerAuxError, setSpeakerAuxError] = useState<string | null>(null);
   const [copiedSpeakerId, setCopiedSpeakerId] = useState<string | null>(null);
@@ -264,6 +265,23 @@ export default function EventDetailView() {
     return [...state.sessions].sort(
       (a, b) => a.display_order - b.display_order || a.scheduled_start.localeCompare(b.scheduled_start),
     );
+  }, [state]);
+
+  const sessionsByRoom = useMemo(() => {
+    if (state.status !== 'ready') return new Map<string, SessionRow[]>();
+    const map = new Map<string, SessionRow[]>();
+    for (const r of state.rooms) {
+      map.set(r.id, []);
+    }
+    for (const s of state.sessions) {
+      const list = map.get(s.room_id) ?? [];
+      list.push(s);
+      map.set(s.room_id, list);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => a.scheduled_start.localeCompare(b.scheduled_start));
+    }
+    return map;
   }, [state]);
 
   const downloadSpeakerCsvTemplate = useCallback(() => {
@@ -837,6 +855,36 @@ export default function EventDetailView() {
           </p>
         ) : null}
 
+        {sessions.length > 0 && rooms.length > 0 ? (
+          <div className="mt-4 flex flex-wrap items-center gap-2" role="tablist" aria-label={t('session.viewModeAria')}>
+            <span className="text-xs text-zinc-500">{t('session.viewModeLabel')}</span>
+            <div className="inline-flex rounded-md border border-zinc-700 bg-zinc-950 p-0.5">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={sessionScheduleView === 'list'}
+                className={`rounded px-3 py-1.5 text-xs font-medium ${
+                  sessionScheduleView === 'list' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+                onClick={() => setSessionScheduleView('list')}
+              >
+                {t('session.viewList')}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={sessionScheduleView === 'byRoom'}
+                className={`rounded px-3 py-1.5 text-xs font-medium ${
+                  sessionScheduleView === 'byRoom' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+                onClick={() => setSessionScheduleView('byRoom')}
+              >
+                {t('session.viewByRoom')}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         {rooms.length === 0 ? (
           <p className="mt-6 text-sm text-amber-400/90" role="status">
             {t('session.needRoomFirst')}
@@ -952,7 +1000,7 @@ export default function EventDetailView() {
 
         {sessions.length === 0 ? (
           <p className="mt-6 text-sm text-zinc-500">{t('session.emptyEventList')}</p>
-        ) : (
+        ) : sessionScheduleView === 'list' ? (
           <ul className="mt-6 divide-y divide-zinc-800 rounded-lg border border-zinc-800">
             {sessionsOrdered.map((s) => {
               const roomName = rooms.find((r) => r.id === s.room_id)?.name ?? t('session.roomUnknown');
@@ -1006,137 +1054,137 @@ export default function EventDetailView() {
                       <span className="w-7 flex-shrink-0" aria-hidden />
                     )}
                     <div className="min-w-0 flex-1">
-                    {sessionEditDraft?.id === s.id ? (
-                      <form
-                        className="flex max-w-lg flex-col gap-3"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          void submitSessionEdit();
-                        }}
-                      >
-                        <div>
-                          <label htmlFor={`session-edit-title-${s.id}`} className="mb-1 block text-sm text-zinc-400">
-                            {t('session.sessionTitle')}
-                          </label>
-                          <input
-                            id={`session-edit-title-${s.id}`}
-                            value={sessionEditDraft.title}
-                            onChange={(e) =>
-                              setSessionEditDraft((d) => (d?.id === s.id ? { ...d, title: e.target.value } : d))
-                            }
-                            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor={`session-edit-room-${s.id}`} className="mb-1 block text-sm text-zinc-400">
-                            {t('session.room')}
-                          </label>
-                          <select
-                            id={`session-edit-room-${s.id}`}
-                            value={sessionEditDraft.room_id}
-                            onChange={(e) =>
-                              setSessionEditDraft((d) => (d?.id === s.id ? { ...d, room_id: e.target.value } : d))
-                            }
-                            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
-                          >
-                            {rooms.map((r) => (
-                              <option key={r.id} value={r.id}>
-                                {r.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label htmlFor={`session-edit-type-${s.id}`} className="mb-1 block text-sm text-zinc-400">
-                            {t('session.type')}
-                          </label>
-                          <select
-                            id={`session-edit-type-${s.id}`}
-                            value={sessionEditDraft.session_type}
-                            onChange={(e) =>
-                              setSessionEditDraft((d) =>
-                                d?.id === s.id ? { ...d, session_type: e.target.value as SessionType } : d,
-                              )
-                            }
-                            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
-                          >
-                            {SESSION_TYPES.map((st) => (
-                              <option key={st} value={st}>
-                                {sessionTypeLabel(t, st)}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label htmlFor={`session-edit-start-${s.id}`} className="mb-1 block text-sm text-zinc-400">
-                            {t('session.scheduledStart')}
-                          </label>
-                          <input
-                            id={`session-edit-start-${s.id}`}
-                            type="datetime-local"
-                            step={60}
-                            value={sessionEditDraft.scheduled_start}
-                            onChange={(e) =>
-                              setSessionEditDraft((d) =>
-                                d?.id === s.id ? { ...d, scheduled_start: e.target.value } : d,
-                              )
-                            }
-                            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor={`session-edit-end-${s.id}`} className="mb-1 block text-sm text-zinc-400">
-                            {t('session.scheduledEnd')}
-                          </label>
-                          <input
-                            id={`session-edit-end-${s.id}`}
-                            type="datetime-local"
-                            step={60}
-                            value={sessionEditDraft.scheduled_end}
-                            onChange={(e) =>
-                              setSessionEditDraft((d) => (d?.id === s.id ? { ...d, scheduled_end: e.target.value } : d))
-                            }
-                            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
-                          />
-                        </div>
-                        {sessionEditError ? (
-                          <p className="text-xs text-red-400" role="alert">
-                            {sessionEditError}
+                      {sessionEditDraft?.id === s.id ? (
+                        <form
+                          className="flex max-w-lg flex-col gap-3"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            void submitSessionEdit();
+                          }}
+                        >
+                          <div>
+                            <label htmlFor={`session-edit-title-${s.id}`} className="mb-1 block text-sm text-zinc-400">
+                              {t('session.sessionTitle')}
+                            </label>
+                            <input
+                              id={`session-edit-title-${s.id}`}
+                              value={sessionEditDraft.title}
+                              onChange={(e) =>
+                                setSessionEditDraft((d) => (d?.id === s.id ? { ...d, title: e.target.value } : d))
+                              }
+                              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor={`session-edit-room-${s.id}`} className="mb-1 block text-sm text-zinc-400">
+                              {t('session.room')}
+                            </label>
+                            <select
+                              id={`session-edit-room-${s.id}`}
+                              value={sessionEditDraft.room_id}
+                              onChange={(e) =>
+                                setSessionEditDraft((d) => (d?.id === s.id ? { ...d, room_id: e.target.value } : d))
+                              }
+                              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                            >
+                              {rooms.map((r) => (
+                                <option key={r.id} value={r.id}>
+                                  {r.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label htmlFor={`session-edit-type-${s.id}`} className="mb-1 block text-sm text-zinc-400">
+                              {t('session.type')}
+                            </label>
+                            <select
+                              id={`session-edit-type-${s.id}`}
+                              value={sessionEditDraft.session_type}
+                              onChange={(e) =>
+                                setSessionEditDraft((d) =>
+                                  d?.id === s.id ? { ...d, session_type: e.target.value as SessionType } : d,
+                                )
+                              }
+                              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                            >
+                              {SESSION_TYPES.map((st) => (
+                                <option key={st} value={st}>
+                                  {sessionTypeLabel(t, st)}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label htmlFor={`session-edit-start-${s.id}`} className="mb-1 block text-sm text-zinc-400">
+                              {t('session.scheduledStart')}
+                            </label>
+                            <input
+                              id={`session-edit-start-${s.id}`}
+                              type="datetime-local"
+                              step={60}
+                              value={sessionEditDraft.scheduled_start}
+                              onChange={(e) =>
+                                setSessionEditDraft((d) =>
+                                  d?.id === s.id ? { ...d, scheduled_start: e.target.value } : d,
+                                )
+                              }
+                              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor={`session-edit-end-${s.id}`} className="mb-1 block text-sm text-zinc-400">
+                              {t('session.scheduledEnd')}
+                            </label>
+                            <input
+                              id={`session-edit-end-${s.id}`}
+                              type="datetime-local"
+                              step={60}
+                              value={sessionEditDraft.scheduled_end}
+                              onChange={(e) =>
+                                setSessionEditDraft((d) => (d?.id === s.id ? { ...d, scheduled_end: e.target.value } : d))
+                              }
+                              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                            />
+                          </div>
+                          {sessionEditError ? (
+                            <p className="text-xs text-red-400" role="alert">
+                              {sessionEditError}
+                            </p>
+                          ) : null}
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="submit"
+                              disabled={sessionEditBusy}
+                              className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                            >
+                              {t('common.save')}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={sessionEditBusy}
+                              className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                              onClick={() => {
+                                setSessionEditDraft(null);
+                                setSessionEditError(null);
+                              }}
+                            >
+                              {t('common.cancel')}
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <>
+                          <p className="font-medium text-zinc-100">{s.title}</p>
+                          <p className="text-xs text-zinc-500">
+                            {roomName} · {sessionTypeLabel(t, s.session_type)}
                           </p>
-                        ) : null}
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="submit"
-                            disabled={sessionEditBusy}
-                            className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
-                          >
-                            {t('common.save')}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={sessionEditBusy}
-                            className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
-                            onClick={() => {
-                              setSessionEditDraft(null);
-                              setSessionEditError(null);
-                            }}
-                          >
-                            {t('common.cancel')}
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <>
-                        <p className="font-medium text-zinc-100">{s.title}</p>
-                        <p className="text-xs text-zinc-500">
-                          {roomName} · {sessionTypeLabel(t, s.session_type)}
-                        </p>
-                        <p className="text-xs text-zinc-400">
-                          {dateTimeFmt.format(new Date(s.scheduled_start))} →{' '}
-                          {dateTimeFmt.format(new Date(s.scheduled_end))}
-                        </p>
-                      </>
-                    )}
+                          <p className="text-xs text-zinc-400">
+                            {dateTimeFmt.format(new Date(s.scheduled_start))} →{' '}
+                            {dateTimeFmt.format(new Date(s.scheduled_end))}
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-shrink-0 flex-col items-stretch gap-2 sm:items-end">
@@ -1222,6 +1270,42 @@ export default function EventDetailView() {
               );
             })}
           </ul>
+        ) : (
+          <div className="mt-6 space-y-6" aria-label={t('session.byRoomSectionAria')}>
+            <p className="text-xs text-zinc-500">{t('session.byRoomIntro')}</p>
+            {rooms.map((room) => {
+              const roomSessions = sessionsByRoom.get(room.id) ?? [];
+              return (
+                <div key={room.id} className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+                  <h3 className="text-sm font-semibold text-zinc-100">{room.name}</h3>
+                  <p className="text-xs text-zinc-500">{roomTypeLabel(t, room.room_type)}</p>
+                  {roomSessions.length === 0 ? (
+                    <p className="mt-3 text-xs text-zinc-600">{t('session.byRoomEmpty')}</p>
+                  ) : (
+                    <ul className="mt-3 space-y-2">
+                      {roomSessions.map((s) => (
+                        <li
+                          key={s.id}
+                          className="flex gap-3 rounded-md border border-zinc-800/90 bg-zinc-900/60 px-3 py-2.5"
+                        >
+                          <div className="w-1 flex-shrink-0 rounded-full bg-blue-600" aria-hidden />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-zinc-100">{s.title}</p>
+                            <p className="text-xs text-zinc-500">{sessionTypeLabel(t, s.session_type)}</p>
+                            <p className="text-xs text-zinc-400">
+                              {dateTimeFmt.format(new Date(s.scheduled_start))}
+                              {' → '}
+                              {dateTimeFmt.format(new Date(s.scheduled_end))}
+                            </p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </section>
 
