@@ -28,7 +28,7 @@ alwaysApply: false
    - Crea riga in `tenants` (nuova org) con `storage_limit_bytes = 5368709120` (5 GB Trial)
    - Crea riga in `users` con `role = 'admin'`
    - Imposta `app_metadata.tenant_id` nel JWT
-3. Invito team: admin invita tech/coordinator via email → Edge Function `invite_user`
+3. Invito team (da implementare, rimandato a pre-vendita): admin invitera tech/coordinator via email → Edge Function `invite_user`
 
 ### JWT Custom Claims (`app_metadata`)
 

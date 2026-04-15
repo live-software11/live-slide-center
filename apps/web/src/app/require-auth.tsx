@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Navigate, Outlet } from 'react-router';
 import { useAuth } from './use-auth';
+import { getTenantIdFromSession } from '@/lib/session-tenant';
 
 export function RequireAuth() {
   const { t } = useTranslation();
@@ -15,6 +16,11 @@ export function RequireAuth() {
   }
 
   if (!session) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const isSuperAdmin = session.user.app_metadata?.role === 'super_admin';
+  if (!isSuperAdmin && !getTenantIdFromSession(session)) {
     return <Navigate to="/login" replace />;
   }
 

@@ -71,11 +71,17 @@
     "detailBack": "Back to events list",
     "notFound": "Event not found or not accessible for your account.",
     "detailBreadcrumb": "Event path",
+    "delete": "Delete event",
+    "deleteCascadeHint": "Deleting this event permanently removes all linked rooms, sessions, speakers, and presentations (PostgreSQL ON DELETE CASCADE).",
+    "deleteAriaLabel": "Delete event {{name}}",
+    "deleteSuccess": "Event deleted.",
+    "updateSuccess": "Event updated.",
     "errors": {
       "load": "Unable to load events",
       "missingTenant": "No tenant on this session. Sign out and sign in again, or contact support.",
       "invalidRoute": "Invalid event id in the URL.",
-      "deleteFailed": "Deletion failed"
+      "deleteFailed": "Deletion failed",
+      "updateFailed": "Event update failed"
     }
   },
   "tenantQuota": {
@@ -281,6 +287,13 @@
     "success": "Operation completed",
     "required": "Required field",
     "optional": "Optional"
+  },
+  "validation": {
+    "required": "This field is required.",
+    "emailInvalid": "Invalid email address.",
+    "minLength": "At least {{min}} characters.",
+    "maxLength": "Maximum {{max}} characters.",
+    "dateEndBeforeStart": "The end date must be on or after the start date."
   },
   "role": {
     "superAdmin": "Super administrator",

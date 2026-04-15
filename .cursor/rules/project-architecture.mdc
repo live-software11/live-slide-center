@@ -37,7 +37,7 @@ Live SLIDE CENTER/
 │   │       │   ├── auth/         # Login, signup, onboarding
 │   │       │   ├── events/       # Eventi + EventDetailView (sale/sessioni/relatori: insert/delete conferma, RLS)
 │   │       │   ├── rooms/        # CRUD sale
-│   │       │   ├── sessions/     # Sessioni / calendario
+│   │       │   ├── sessions/     # Sessioni (CRUD + reorder DnD; timeline interattiva rinviata)
 │   │       │   ├── speakers/     # Relatori + QR upload
 │   │       │   ├── presentations/# Versioning file
 │   │       │   ├── upload-portal/# /u/:token — speaker upload

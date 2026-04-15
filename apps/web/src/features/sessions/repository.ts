@@ -71,14 +71,17 @@ export async function deleteSessionById(supabase: SupabaseClient<Database>, id: 
   return supabase.from('sessions').delete().eq('id', id);
 }
 
-/** Aggiorna `display_order` in sequenza (0..n-1) per l’ordine elenco tenant; RLS per riga. */
-export async function reorderSessionsDisplayOrder(supabase: SupabaseClient<Database>, orderedSessionIds: string[]) {
-  for (let i = 0; i < orderedSessionIds.length; i += 1) {
-    const { error } = await supabase
-      .from('sessions')
-      .update({ display_order: i })
-      .eq('id', orderedSessionIds[i]!);
-    if (error) return { errorMessage: error.message };
-  }
+/** Aggiorna `display_order` atomicamente via RPC PostgreSQL (singola transazione, RLS rispettata). */
+export async function reorderSessionsDisplayOrder(
+  supabase: SupabaseClient<Database>,
+  orderedSessionIds: string[],
+  eventId: string,
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC non in types generati fino a `supabase gen types`
+  const { error } = await (supabase.rpc as any)('rpc_reorder_sessions', {
+    p_ids: orderedSessionIds,
+    p_event_id: eventId,
+  });
+  if (error) return { errorMessage: (error as { message: string }).message };
   return { errorMessage: null as string | null };
 }

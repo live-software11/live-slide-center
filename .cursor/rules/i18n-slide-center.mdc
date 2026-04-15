@@ -23,20 +23,20 @@ alwaysApply: true
 
 ### Terminologia di dominio
 
-| IT | EN |
-|----|----|
-| Evento | Event |
-| Sala | Room |
-| Sessione | Session |
-| Relatore / Speaker | Speaker / Presenter |
-| Presentazione | Presentation |
-| Centro Slide | Slide Center |
-| Regia | Control Room / Live View |
-| Agente Locale | Local Agent |
-| Versione | Version |
-| Sincronizzazione | Synchronization |
-| Caricamento | Upload |
-| Scaricamento | Download |
+| IT                 | EN                       |
+| ------------------ | ------------------------ |
+| Evento             | Event                    |
+| Sala               | Room                     |
+| Sessione           | Session                  |
+| Relatore / Speaker | Speaker / Presenter      |
+| Presentazione      | Presentation             |
+| Centro Slide       | Slide Center             |
+| Regia              | Control Room / Live View |
+| Agente Locale      | Local Agent              |
+| Versione           | Version                  |
+| Sincronizzazione   | Synchronization          |
+| Caricamento        | Upload                   |
+| Scaricamento       | Download                 |
 
 ### Accessibilita
 
@@ -52,12 +52,14 @@ alwaysApply: true
 
 ---
 
-## Desktop (Agent + Player)
+## Desktop (Local Agent — Fase 8+)
 
 - **Installer:** in inglese (coerente con ecosistema Live Software)
 - **Primo avvio:** selezione lingua (IT/EN)
 - **Lingua salvata** alla chiusura, ripristinata al riavvio
 - **Stringhe UI desktop:** stessi file i18n condivisi da `packages/shared/`
+
+**Nota:** il Room Player NON e un'app desktop — e la route `/sala/:token` in `apps/web/` (PWA). Le stringhe del Player seguono le stesse regole web.
 
 ---
 

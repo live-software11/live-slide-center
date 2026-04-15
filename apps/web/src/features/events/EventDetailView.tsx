@@ -3,15 +3,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import QRCode from 'react-qr-code';
 import { z } from 'zod';
 import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { getUploadPortalAbsoluteUrl } from '@/lib/upload-portal-url';
 import { getTenantIdFromSession } from '@/lib/session-tenant';
+import type { EventStatus } from '@/features/events/repository';
 import type { RoomType } from '@/features/rooms/repository';
 import type { SessionRow, SessionType } from '@/features/sessions/repository';
+
+const EVENT_STATUSES: EventStatus[] = ['draft', 'setup', 'active', 'closed', 'archived'];
 import { TenantQuotaPanel } from '@/features/tenant/components/TenantQuotaPanel';
 import { useTenantQuotaRow } from '@/features/tenant/hooks/useTenantQuotaRow';
 import { isUnlimitedRoomsPerEvent } from '@/features/tenant/lib/quota-usage';
@@ -25,12 +28,13 @@ import { useEventDetail } from './hooks/useEventDetail';
 const ROOM_TYPES: RoomType[] = ['main', 'breakout', 'preview', 'poster'];
 const SESSION_TYPES: SessionType[] = ['talk', 'panel', 'workshop', 'break', 'ceremony'];
 
-const roomSchema = z.object({
-  name: z.string().min(1).max(200),
-  room_type: z.enum(['main', 'breakout', 'preview', 'poster']),
-});
+const roomSchema = (t: TFunction) =>
+  z.object({
+    name: z.string().min(1, t('room.errors.nameRequired')).max(200),
+    room_type: z.enum(['main', 'breakout', 'preview', 'poster']),
+  });
 
-type RoomFormValues = z.infer<typeof roomSchema>;
+type RoomFormValues = z.infer<ReturnType<typeof roomSchema>>;
 
 function roomTypeLabel(t: TFunction, roomType: string): string {
   const map: Record<string, string> = {
@@ -144,9 +148,12 @@ export default function EventDetailView() {
     [i18n.language],
   );
   const tenantId = getTenantIdFromSession(session);
+  const navigate = useNavigate();
   const {
     state,
     reload,
+    updateEvent,
+    deleteEvent,
     createRoom,
     updateRoom,
     createSession,
@@ -185,14 +192,20 @@ export default function EventDetailView() {
   const speakerCsvInputRef = useRef<HTMLInputElement>(null);
   const [csvImportBusy, setCsvImportBusy] = useState(false);
   const [csvFeedback, setCsvFeedback] = useState<{ variant: 'success' | 'error'; message: string } | null>(null);
+  const [eventEditMode, setEventEditMode] = useState(false);
+  const [eventEditBusy, setEventEditBusy] = useState(false);
+  const [eventEditError, setEventEditError] = useState<string | null>(null);
+  const [pendingEventDelete, setPendingEventDelete] = useState(false);
+  const [eventDeleteBusy, setEventDeleteBusy] = useState(false);
 
+  const roomSchemaResolved = useMemo(() => roomSchema(t), [t]);
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<RoomFormValues>({
-    resolver: zodResolver(roomSchema),
+    resolver: zodResolver(roomSchemaResolved),
     defaultValues: { name: '', room_type: 'main' },
   });
 
@@ -581,10 +594,123 @@ export default function EventDetailView() {
       </nav>
 
       <header className="border-b border-zinc-800 pb-6">
-        <h1 className="text-2xl font-bold text-zinc-50">{event.name}</h1>
-        <p className="mt-2 text-sm text-zinc-400">
-          {event.start_date} → {event.end_date} · {eventStatusLabel(t, event.status)}
-        </p>
+        {eventEditMode ? (
+          <form
+            className="flex max-w-xl flex-col gap-3"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const fd = new FormData(e.currentTarget);
+              const name = (fd.get('ev_name') as string).trim();
+              const start = fd.get('ev_start') as string;
+              const end = fd.get('ev_end') as string;
+              const status = fd.get('ev_status') as EventStatus;
+              if (!name || !start || !end) return;
+              if (new Date(end) < new Date(start)) {
+                setEventEditError(t('validation.dateEndBeforeStart'));
+                return;
+              }
+              setEventEditBusy(true);
+              setEventEditError(null);
+              const res = await updateEvent({ name, start_date: start, end_date: end, status });
+              setEventEditBusy(false);
+              if (res.errorMessage) {
+                setEventEditError(res.errorMessage);
+              } else {
+                setEventEditMode(false);
+              }
+            }}
+          >
+            <div>
+              <label htmlFor="ev-name" className="mb-1 block text-sm text-zinc-400">{t('event.name')}</label>
+              <input id="ev-name" name="ev_name" defaultValue={event.name} required
+                className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2" />
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label htmlFor="ev-start" className="mb-1 block text-sm text-zinc-400">{t('event.startDate')}</label>
+                <input id="ev-start" name="ev_start" type="date" defaultValue={event.start_date} required
+                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2" />
+              </div>
+              <div className="flex-1">
+                <label htmlFor="ev-end" className="mb-1 block text-sm text-zinc-400">{t('event.endDate')}</label>
+                <input id="ev-end" name="ev_end" type="date" defaultValue={event.end_date} required
+                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2" />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="ev-status" className="mb-1 block text-sm text-zinc-400">{t('event.status')}</label>
+              <select id="ev-status" name="ev_status" defaultValue={event.status}
+                className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2">
+                {EVENT_STATUSES.map((s) => (
+                  <option key={s} value={s}>{eventStatusLabel(t, s)}</option>
+                ))}
+              </select>
+            </div>
+            {eventEditError ? <p className="text-xs text-red-400" role="alert">{eventEditError}</p> : null}
+            <div className="flex gap-2">
+              <button type="submit" disabled={eventEditBusy}
+                className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50">
+                {t('common.save')}
+              </button>
+              <button type="button" disabled={eventEditBusy}
+                className="rounded-md bg-zinc-800 px-4 py-1.5 text-sm font-medium text-zinc-300 hover:bg-zinc-700"
+                onClick={() => { setEventEditMode(false); setEventEditError(null); }}>
+                {t('common.cancel')}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-zinc-50">{event.name}</h1>
+              <p className="mt-2 text-sm text-zinc-400">
+                {event.start_date} → {event.end_date} · {eventStatusLabel(t, event.status)}
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <button type="button"
+                className="rounded-md bg-zinc-800 px-3 py-1.5 text-sm font-medium text-zinc-300 hover:bg-zinc-700"
+                onClick={() => setEventEditMode(true)}>
+                {t('event.edit')}
+              </button>
+              {pendingEventDelete ? (
+                <div className="flex flex-col items-end gap-1">
+                  <p className="max-w-xs text-right text-xs text-amber-400/95">{t('event.deleteCascadeHint')}</p>
+                  <div className="flex gap-2">
+                    <button type="button" disabled={eventDeleteBusy}
+                      className="rounded-md bg-red-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
+                      onClick={async () => {
+                        setEventDeleteBusy(true);
+                        setDeleteError(null);
+                        const res = await deleteEvent();
+                        setEventDeleteBusy(false);
+                        if (res.errorMessage) {
+                          setDeleteError(res.errorMessage);
+                          setPendingEventDelete(false);
+                        } else {
+                          navigate('/events', { replace: true });
+                        }
+                      }}>
+                      {t('common.confirmDelete')}
+                    </button>
+                    <button type="button" disabled={eventDeleteBusy}
+                      className="rounded-md bg-zinc-800 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-700"
+                      onClick={() => setPendingEventDelete(false)}>
+                      {t('common.cancel')}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button"
+                  className="rounded-md bg-red-900/60 px-3 py-1.5 text-sm font-medium text-red-300 hover:bg-red-800/60"
+                  aria-label={t('event.deleteAriaLabel', { name: event.name })}
+                  onClick={() => setPendingEventDelete(true)}>
+                  {t('event.delete')}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {deleteError ? (
@@ -759,7 +885,7 @@ export default function EventDetailView() {
                     </>
                   )}
                 </div>
-                <div className="flex flex-shrink-0 flex-col items-stretch gap-2 sm:items-end">
+                <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
                   {pendingDelete?.kind === 'room' && pendingDelete.id === r.id ? (
                     <>
                       <p className="max-w-xs text-xs text-amber-400/95">{t('room.deleteCascadeHint')}</p>
@@ -863,9 +989,8 @@ export default function EventDetailView() {
                 type="button"
                 role="tab"
                 aria-selected={sessionScheduleView === 'list'}
-                className={`rounded px-3 py-1.5 text-xs font-medium ${
-                  sessionScheduleView === 'list' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'
-                }`}
+                className={`rounded px-3 py-1.5 text-xs font-medium ${sessionScheduleView === 'list' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
                 onClick={() => setSessionScheduleView('list')}
               >
                 {t('session.viewList')}
@@ -874,9 +999,8 @@ export default function EventDetailView() {
                 type="button"
                 role="tab"
                 aria-selected={sessionScheduleView === 'byRoom'}
-                className={`rounded px-3 py-1.5 text-xs font-medium ${
-                  sessionScheduleView === 'byRoom' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'
-                }`}
+                className={`rounded px-3 py-1.5 text-xs font-medium ${sessionScheduleView === 'byRoom' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
                 onClick={() => setSessionScheduleView('byRoom')}
               >
                 {t('session.viewByRoom')}
@@ -1036,7 +1160,7 @@ export default function EventDetailView() {
                     {sessionEditDraft?.id !== s.id ? (
                       <div
                         draggable
-                        className="mt-0.5 flex h-8 w-7 flex-shrink-0 cursor-grab select-none items-center justify-center rounded border border-zinc-700 bg-zinc-900 text-sm text-zinc-500 hover:bg-zinc-800 active:cursor-grabbing"
+                        className="mt-0.5 flex h-8 w-7 shrink-0 cursor-grab select-none items-center justify-center rounded border border-zinc-700 bg-zinc-900 text-sm text-zinc-500 hover:bg-zinc-800 active:cursor-grabbing"
                         aria-label={t('session.dragHandleAriaLabel', { title: s.title })}
                         title={t('session.dragHint')}
                         onDragStart={(e) => {
@@ -1051,7 +1175,7 @@ export default function EventDetailView() {
                         <span aria-hidden>⋮⋮</span>
                       </div>
                     ) : (
-                      <span className="w-7 flex-shrink-0" aria-hidden />
+                      <span className="w-7 shrink-0" aria-hidden />
                     )}
                     <div className="min-w-0 flex-1">
                       {sessionEditDraft?.id === s.id ? (
@@ -1187,7 +1311,7 @@ export default function EventDetailView() {
                       )}
                     </div>
                   </div>
-                  <div className="flex flex-shrink-0 flex-col items-stretch gap-2 sm:items-end">
+                  <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
                     {pendingDelete?.kind === 'session' && pendingDelete.id === s.id ? (
                       <>
                         <p className="max-w-xs text-xs text-amber-400/95">{t('session.deleteCascadeHint')}</p>
@@ -1288,7 +1412,7 @@ export default function EventDetailView() {
                           key={s.id}
                           className="flex gap-3 rounded-md border border-zinc-800/90 bg-zinc-900/60 px-3 py-2.5"
                         >
-                          <div className="w-1 flex-shrink-0 rounded-full bg-blue-600" aria-hidden />
+                          <div className="w-1 shrink-0 rounded-full bg-blue-600" aria-hidden />
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium text-zinc-100">{s.title}</p>
                             <p className="text-xs text-zinc-500">{sessionTypeLabel(t, s.session_type)}</p>
@@ -1620,7 +1744,7 @@ export default function EventDetailView() {
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-shrink-0 flex-col items-stretch gap-2 sm:items-end">
+                  <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
                     {pendingDelete?.kind === 'speaker' && pendingDelete.id === sp.id ? (
                       <div className="flex flex-wrap gap-2">
                         <button

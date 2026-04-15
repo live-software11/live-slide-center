@@ -8,6 +8,7 @@ alwaysApply: true
 ## Esecuzione rapida
 
 Quando l'utente chiede **"deploy"**, **"commit and push"** o simili:
+
 1. **Esegui subito** senza chiedere conferma
 2. **Working directory**: root monorepo `Live SLIDE CENTER`
 3. **PowerShell**: usa `;` al posto di `&&`
@@ -32,6 +33,7 @@ git commit -m "feat: descrizione breve"
 ```
 
 **Formato messaggi commit:**
+
 - `feat:` nuova funzionalita
 - `fix:` correzione bug
 - `refactor:` refactoring
@@ -81,17 +83,14 @@ supabase functions deploy           # Deploy tutte le funzioni
 supabase db reset                   # ATTENZIONE: resetta DB locale
 ```
 
-### Deploy Desktop (Tauri)
+### Deploy Desktop — Local Agent (Tauri v2, Fase 8+)
 
 ```bash
-# Build Agent
 cd apps/agent
 pnpm tauri build
-
-# Build Player
-cd apps/player
-pnpm tauri build
 ```
+
+**ATTENZIONE:** `apps/player/` NON esiste — il Room Player e la route `/sala/:token` in `apps/web/` (PWA).
 
 ## Verifica Pre-Deploy
 
@@ -103,15 +102,16 @@ pnpm tauri build
 
 ## Account
 
-| Servizio | Account | Verifica |
-|----------|---------|----------|
-| GitHub | live-software11 | `gh auth status` |
+| Servizio | Account                   | Verifica                 |
+| -------- | ------------------------- | ------------------------ |
+| GitHub   | live-software11           | `gh auth status`         |
 | Supabase | live.software11@gmail.com | `supabase projects list` |
-| Vercel | live.software11@gmail.com | Dashboard Vercel |
+| Vercel   | live.software11@gmail.com | Dashboard Vercel         |
 
 ## Troubleshooting
 
 ### Migration fallita
+
 ```bash
 supabase db diff          # Vedi differenze
 supabase migration list   # Lista migrations
@@ -119,6 +119,7 @@ supabase db reset         # Reset DB locale (SOLO sviluppo)
 ```
 
 ### Types non aggiornati
+
 ```bash
 supabase gen types typescript --project-id <PROJECT_ID> \
   --schema public > packages/shared/src/types/database.ts

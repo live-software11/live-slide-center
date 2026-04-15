@@ -26,7 +26,7 @@ import {
   updateSpeakerById,
   type SpeakerRow,
 } from '../../speakers/repository';
-import { getEventById, type EventRow } from '../repository';
+import { deleteEventById, getEventById, updateEventById, type EventRow, type EventStatus } from '../repository';
 
 type DetailState =
   | { status: 'loading' }
@@ -134,13 +134,13 @@ export function useEventDetail(
 
   const reorderSessions = useCallback(
     async (orderedSessionIds: string[]) => {
-      if (!tenantId) return { errorMessage: 'missing_context' as const };
-      const res = await reorderSessionsDisplayOrder(supabase, orderedSessionIds);
+      if (!eventId || !tenantId) return { errorMessage: 'missing_context' as const };
+      const res = await reorderSessionsDisplayOrder(supabase, orderedSessionIds, eventId);
       if (res.errorMessage) return { errorMessage: res.errorMessage };
       await load();
       return { errorMessage: null as string | null };
     },
-    [supabase, tenantId, load],
+    [supabase, tenantId, eventId, load],
   );
 
   const updateSession = useCallback(
@@ -252,9 +252,29 @@ export function useEventDetail(
     [supabase, tenantId, eventId, load],
   );
 
+  const updateEvent = useCallback(
+    async (input: { name: string; start_date: string; end_date: string; status: EventStatus }) => {
+      if (!eventId || !tenantId) return { errorMessage: 'missing_context' as const };
+      const { error } = await updateEventById(supabase, eventId, input);
+      if (error) return { errorMessage: error.message };
+      await load();
+      return { errorMessage: null as string | null };
+    },
+    [supabase, tenantId, eventId, load],
+  );
+
+  const deleteEvent = useCallback(async () => {
+    if (!eventId || !tenantId) return { errorMessage: 'missing_context' as const };
+    const { error } = await deleteEventById(supabase, eventId);
+    if (error) return { errorMessage: error.message };
+    return { errorMessage: null as string | null };
+  }, [supabase, tenantId, eventId]);
+
   return {
     state,
     reload: load,
+    updateEvent,
+    deleteEvent,
     createRoom,
     updateRoom,
     createSession,

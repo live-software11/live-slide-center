@@ -71,11 +71,17 @@
     "detailBack": "Torna all'elenco eventi",
     "notFound": "Evento non trovato o non accessibile con il tuo account.",
     "detailBreadcrumb": "Percorso evento",
+    "delete": "Elimina evento",
+    "deleteCascadeHint": "Eliminando l'evento vengono rimosse in cascata tutte le sale, sessioni, relatori e presentazioni collegate (vincoli PostgreSQL).",
+    "deleteAriaLabel": "Elimina l'evento {{name}}",
+    "deleteSuccess": "Evento eliminato.",
+    "updateSuccess": "Evento aggiornato.",
     "errors": {
       "load": "Impossibile caricare gli eventi",
       "missingTenant": "Sessione senza tenant associato. Esci e accedi di nuovo oppure contatta il supporto.",
       "invalidRoute": "Identificativo evento non valido nell'URL.",
-      "deleteFailed": "Eliminazione non riuscita"
+      "deleteFailed": "Eliminazione non riuscita",
+      "updateFailed": "Aggiornamento evento non riuscito"
     }
   },
   "tenantQuota": {
@@ -281,6 +287,13 @@
     "success": "Operazione completata",
     "required": "Campo obbligatorio",
     "optional": "Facoltativo"
+  },
+  "validation": {
+    "required": "Campo obbligatorio.",
+    "emailInvalid": "Indirizzo email non valido.",
+    "minLength": "Almeno {{min}} caratteri.",
+    "maxLength": "Massimo {{max}} caratteri.",
+    "dateEndBeforeStart": "La data di fine deve essere uguale o successiva alla data di inizio."
   },
   "role": {
     "superAdmin": "Super amministratore",

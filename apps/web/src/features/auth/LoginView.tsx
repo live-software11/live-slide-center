@@ -8,12 +8,14 @@ import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { getTenantIdFromUser } from '@/lib/session-tenant';
 
-const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-});
+function loginSchema(t: (key: string, opts?: Record<string, unknown>) => string) {
+  return z.object({
+    email: z.string().min(1, t('validation.required')).email(t('validation.emailInvalid')),
+    password: z.string().min(8, t('validation.minLength', { min: 8 })),
+  });
+}
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.infer<ReturnType<typeof loginSchema>>;
 
 export default function LoginView() {
   const { t } = useTranslation();
@@ -21,12 +23,13 @@ export default function LoginView() {
   const { session, loading } = useAuth();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
+  const resolvedSchema = useMemo(() => loginSchema(t), [t]);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  } = useForm<FormValues>({ resolver: zodResolver(resolvedSchema) });
 
   if (loading) {
     return (

@@ -8,13 +8,15 @@ import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { waitForTenantIdAfterSignup } from './lib/wait-for-tenant-jwt';
 
-const schema = z.object({
-  fullName: z.string().min(2).max(200),
-  email: z.string().email(),
-  password: z.string().min(8),
-});
+function signupSchema(t: (key: string, opts?: Record<string, unknown>) => string) {
+  return z.object({
+    fullName: z.string().min(2, t('validation.minLength', { min: 2 })).max(200, t('validation.maxLength', { max: 200 })),
+    email: z.string().min(1, t('validation.required')).email(t('validation.emailInvalid')),
+    password: z.string().min(8, t('validation.minLength', { min: 8 })),
+  });
+}
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.infer<ReturnType<typeof signupSchema>>;
 
 export default function SignupView() {
   const { t } = useTranslation();
@@ -24,11 +26,12 @@ export default function SignupView() {
   const [awaitingEmailConfirm, setAwaitingEmailConfirm] = useState(false);
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
 
+  const resolvedSchema = useMemo(() => signupSchema(t), [t]);
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  } = useForm<FormValues>({ resolver: zodResolver(resolvedSchema) });
 
   if (loading) {
     return (
