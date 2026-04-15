@@ -35,6 +35,8 @@
     "goToLogin": "Hai già un account? Accedi",
     "errorGeneric": "Operazione non riuscita. Riprova.",
     "errorInvalidCredentials": "Email o password non validi.",
+    "errorSessionRefresh": "Impossibile aggiornare la sessione dopo la registrazione. Riprova tra un attimo oppure accedi con la stessa email.",
+    "errorTenantProvisioning": "Il tenant non risulta ancora nel profilo di accesso (JWT). Attendi qualche secondo e riprova, oppure accedi con la stessa email.",
     "loadingSession": "Verifica sessione…",
     "a11yLoginTitle": "Accesso al Centro Slide",
     "a11ySignupTitle": "Registrazione nuovo tenant"

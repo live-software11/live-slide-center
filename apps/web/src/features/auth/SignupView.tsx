@@ -6,6 +6,7 @@ import { Link, Navigate, useNavigate } from 'react-router';
 import { z } from 'zod';
 import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { waitForTenantIdAfterSignup } from './lib/wait-for-tenant-jwt';
 
 const schema = z.object({
   fullName: z.string().min(2).max(200),
@@ -53,8 +54,13 @@ export default function SignupView() {
       setSubmitError(t('auth.errorGeneric'));
       return;
     }
-    // Il trigger DB aggiorna app_metadata dopo INSERT: rinnovare il JWT prima delle query RLS.
-    await supabase.auth.refreshSession();
+    const jwtReady = await waitForTenantIdAfterSignup(supabase);
+    if (!jwtReady.ok) {
+      setSubmitError(
+        jwtReady.code === 'refresh_failed' ? t('auth.errorSessionRefresh') : t('auth.errorTenantProvisioning'),
+      );
+      return;
+    }
     navigate('/', { replace: true });
   });
 

@@ -35,6 +35,8 @@
     "goToLogin": "Already have an account? Sign in",
     "errorGeneric": "The operation could not be completed. Please try again.",
     "errorInvalidCredentials": "Invalid email or password.",
+    "errorSessionRefresh": "Could not refresh your session after sign-up. Please try again in a moment or sign in with the same email.",
+    "errorTenantProvisioning": "Your tenant workspace is not yet present on the access token. Wait a few seconds and try again, or sign in with the same email.",
     "loadingSession": "Checking session…",
     "a11yLoginTitle": "Slide Center sign-in",
     "a11ySignupTitle": "New tenant registration"

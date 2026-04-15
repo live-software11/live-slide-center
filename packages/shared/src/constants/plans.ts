@@ -18,6 +18,7 @@ export const PLAN_LIMITS: Record<TenantPlan, PlanLimits> = {
     storageLimitBytes: 5 * 1024 ** 3,
     maxEventsPerMonth: 2,
     maxRoomsPerEvent: 3,
+    /** Trial: 1 Local Agent per evento (tabella §12 guida; allineare DB/quote se si cambia). */
     maxAgentsPerEvent: 1,
     maxUsersPerTenant: 3,
     maxFileSizeBytes: 100 * 1024 ** 2,
