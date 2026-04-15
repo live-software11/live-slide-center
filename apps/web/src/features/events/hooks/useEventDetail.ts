@@ -13,6 +13,7 @@ import {
   createSessionForEvent,
   deleteSessionById,
   listSessionsByEvent,
+  reorderSessionsDisplayOrder,
   updateSessionById,
   type SessionRow,
   type SessionType,
@@ -113,6 +114,7 @@ export function useEventDetail(
       session_type: SessionType;
       scheduled_start: string;
       scheduled_end: string;
+      display_order?: number;
     }) => {
       if (!eventId || !tenantId) return { errorMessage: 'missing_context' as const };
       const { error } = await createSessionForEvent(supabase, tenantId, eventId, {
@@ -121,12 +123,24 @@ export function useEventDetail(
         session_type: input.session_type,
         scheduled_start: new Date(input.scheduled_start).toISOString(),
         scheduled_end: new Date(input.scheduled_end).toISOString(),
+        display_order: input.display_order,
       });
       if (error) return { errorMessage: error.message };
       await load();
       return { errorMessage: null as string | null };
     },
     [supabase, tenantId, eventId, load],
+  );
+
+  const reorderSessions = useCallback(
+    async (orderedSessionIds: string[]) => {
+      if (!tenantId) return { errorMessage: 'missing_context' as const };
+      const res = await reorderSessionsDisplayOrder(supabase, orderedSessionIds);
+      if (res.errorMessage) return { errorMessage: res.errorMessage };
+      await load();
+      return { errorMessage: null as string | null };
+    },
+    [supabase, tenantId, load],
   );
 
   const updateSession = useCallback(
@@ -244,6 +258,7 @@ export function useEventDetail(
     createRoom,
     updateRoom,
     createSession,
+    reorderSessions,
     updateSession,
     createSpeaker,
     updateSpeaker,

@@ -100,6 +100,16 @@ type SpeakerFormValues = z.infer<ReturnType<typeof speakerFormSchema>>;
 
 type PendingDelete = { kind: 'room' | 'session' | 'speaker'; id: string };
 
+function reorderSessionIdList(ids: readonly string[], fromId: string, toId: string): string[] {
+  const arr = [...ids];
+  const fromIdx = arr.indexOf(fromId);
+  const toIdx = arr.indexOf(toId);
+  if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return [...ids];
+  const [moved] = arr.splice(fromIdx, 1);
+  arr.splice(toIdx, 0, moved);
+  return arr;
+}
+
 type RoomEditDraft = { id: string; name: string; room_type: RoomType };
 
 type SessionEditDraft = {
@@ -140,6 +150,7 @@ export default function EventDetailView() {
     createRoom,
     updateRoom,
     createSession,
+    reorderSessions,
     updateSession,
     createSpeaker,
     updateSpeaker,
@@ -152,6 +163,8 @@ export default function EventDetailView() {
   const quotaState = useTenantQuotaRow(supabase, tenantId);
   const [roomCreateError, setRoomCreateError] = useState<string | null>(null);
   const [sessionCreateError, setSessionCreateError] = useState<string | null>(null);
+  const [sessionReorderBusy, setSessionReorderBusy] = useState(false);
+  const [sessionReorderError, setSessionReorderError] = useState<string | null>(null);
   const [speakerCreateError, setSpeakerCreateError] = useState<string | null>(null);
   const [speakerAuxError, setSpeakerAuxError] = useState<string | null>(null);
   const [copiedSpeakerId, setCopiedSpeakerId] = useState<string | null>(null);
@@ -245,6 +258,13 @@ export default function EventDetailView() {
     if (isUnlimitedRoomsPerEvent(row.plan, row.max_rooms_per_event)) return false;
     return state.rooms.length >= row.max_rooms_per_event;
   }, [state, quotaState.state]);
+
+  const sessionsOrdered = useMemo(() => {
+    if (state.status !== 'ready') return [];
+    return [...state.sessions].sort(
+      (a, b) => a.display_order - b.display_order || a.scheduled_start.localeCompare(b.scheduled_start),
+    );
+  }, [state]);
 
   const downloadSpeakerCsvTemplate = useCallback(() => {
     const blob = new Blob([speakerCsvTemplateContent()], { type: 'text/csv;charset=utf-8' });
@@ -401,7 +421,12 @@ export default function EventDetailView() {
 
   const onSessionSubmit = handleSessionSubmit(async (values) => {
     setSessionCreateError(null);
-    const result = await createSession(values);
+    const maxOrder =
+      state.status === 'ready' ? state.sessions.reduce((m, s) => Math.max(m, s.display_order), -1) : -1;
+    const result = await createSession({
+      ...values,
+      display_order: maxOrder + 1,
+    });
     if (result.errorMessage) {
       setSessionCreateError(
         result.errorMessage === 'missing_context' ? t('session.errors.missingContext') : result.errorMessage,
@@ -803,6 +828,14 @@ export default function EventDetailView() {
           {t('session.titlePlural')}
         </h2>
         <p className="mt-1 text-sm text-zinc-500">{t('session.eventDetailIntro')}</p>
+        {sessions.length > 1 ? (
+          <p className="mt-2 text-xs text-zinc-500">{t('session.dragListHint')}</p>
+        ) : null}
+        {sessionReorderError ? (
+          <p className="mt-2 text-sm text-amber-400" role="alert">
+            {t('session.reorderFailed')}: {sessionReorderError}
+          </p>
+        ) : null}
 
         {rooms.length === 0 ? (
           <p className="mt-6 text-sm text-amber-400/90" role="status">
@@ -921,11 +954,58 @@ export default function EventDetailView() {
           <p className="mt-6 text-sm text-zinc-500">{t('session.emptyEventList')}</p>
         ) : (
           <ul className="mt-6 divide-y divide-zinc-800 rounded-lg border border-zinc-800">
-            {sessions.map((s) => {
+            {sessionsOrdered.map((s) => {
               const roomName = rooms.find((r) => r.id === s.room_id)?.name ?? t('session.roomUnknown');
+              const canDragReorder = !sessionEditDraft && !sessionReorderBusy;
               return (
-                <li key={s.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0 flex-1">
+                <li
+                  key={s.id}
+                  className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between"
+                  onDragOver={(e) => {
+                    if (!canDragReorder) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (!canDragReorder) return;
+                    const fromId = e.dataTransfer.getData('text/plain');
+                    if (!fromId || fromId === s.id) return;
+                    const currentIds = sessionsOrdered.map((x) => x.id);
+                    const newOrder = reorderSessionIdList(currentIds, fromId, s.id);
+                    void (async () => {
+                      setSessionReorderError(null);
+                      setSessionReorderBusy(true);
+                      const res = await reorderSessions(newOrder);
+                      setSessionReorderBusy(false);
+                      if (res.errorMessage) {
+                        setSessionReorderError(res.errorMessage);
+                      }
+                    })();
+                  }}
+                >
+                  <div className="flex min-w-0 flex-1 gap-2">
+                    {sessionEditDraft?.id !== s.id ? (
+                      <div
+                        draggable
+                        className="mt-0.5 flex h-8 w-7 flex-shrink-0 cursor-grab select-none items-center justify-center rounded border border-zinc-700 bg-zinc-900 text-sm text-zinc-500 hover:bg-zinc-800 active:cursor-grabbing"
+                        aria-label={t('session.dragHandleAriaLabel', { title: s.title })}
+                        title={t('session.dragHint')}
+                        onDragStart={(e) => {
+                          if (!canDragReorder) {
+                            e.preventDefault();
+                            return;
+                          }
+                          e.dataTransfer.setData('text/plain', s.id);
+                          e.dataTransfer.effectAllowed = 'move';
+                        }}
+                      >
+                        <span aria-hidden>⋮⋮</span>
+                      </div>
+                    ) : (
+                      <span className="w-7 flex-shrink-0" aria-hidden />
+                    )}
+                    <div className="min-w-0 flex-1">
                     {sessionEditDraft?.id === s.id ? (
                       <form
                         className="flex max-w-lg flex-col gap-3"
@@ -1057,6 +1137,7 @@ export default function EventDetailView() {
                         </p>
                       </>
                     )}
+                    </div>
                   </div>
                   <div className="flex flex-shrink-0 flex-col items-stretch gap-2 sm:items-end">
                     {pendingDelete?.kind === 'session' && pendingDelete.id === s.id ? (
@@ -1185,9 +1266,8 @@ export default function EventDetailView() {
             </div>
             {csvFeedback ? (
               <pre
-                className={`mt-3 max-h-40 overflow-y-auto whitespace-pre-wrap font-sans text-xs ${
-                  csvFeedback.variant === 'error' ? 'text-amber-400' : 'text-emerald-400/95'
-                }`}
+                className={`mt-3 max-h-40 overflow-y-auto whitespace-pre-wrap font-sans text-xs ${csvFeedback.variant === 'error' ? 'text-amber-400' : 'text-emerald-400/95'
+                  }`}
                 role="status"
               >
                 {csvFeedback.message}
