@@ -23,7 +23,8 @@ alwaysApply: true
 | PWA (Room Player) | vite-plugin-pwa + Workbox                                          | Fase 6                   |
 | Backend/DB        | Supabase (PostgreSQL + Auth + Realtime + Edge Functions + Storage) | EU Francoforte           |
 | Deploy web        | Vercel                                                             | Auto-deploy su push main |
-| Desktop Agent     | Tauri v2 + Axum (Rust) + SQLite (rusqlite)                         | Fase 8                   |
+| Desktop Agent     | Tauri v2 + Axum (Rust) + SQLite (rusqlite)                         | Local Agent Fase 7       |
+| Room Agent        | Tauri v2 lite (Rust) + polling LAN                                 | Room Agent Fase 7        |
 | Monorepo          | Turborepo + pnpm                                                   |                          |
 
 ## Struttura Monorepo
@@ -47,7 +48,8 @@ Live SLIDE CENTER/
 │   │       │   └── billing/      # Piani, quote, Lemon Squeezy (Fase 11)
 │   │       ├── routes/           # React Router 7 config
 │   │       └── lib/              # supabase.ts, utils
-│   └── agent/                # Local Agent (Tauri v2) — stub, Fase 8
+│   └── agent/                # Local Agent (Tauri v2) — Fase 7 — mini-PC regia
+│   └── room-agent/           # Room Agent (Tauri v2 lite) — Fase 7 — ogni PC sala
 ├── packages/
 │   ├── shared/               # Types (database.ts generato), Zod, constants, i18n locales
 │   └── ui/                   # cn() utility, componenti shadcn condivisi
@@ -74,20 +76,24 @@ Live SLIDE CENTER/
 
 ## Rotte applicazione
 
-| Rotta               | Componente                                 | Accesso                |
-| ------------------- | ------------------------------------------ | ---------------------- |
-| `/`                 | `DashboardView`                            | tenant (autenticato)   |
-| `/events/*`         | Vari views eventi                          | tenant                 |
-| `/admin/*`          | Admin views                                | `super_admin` only     |
-| `/pair`             | `PairView`                                 | pubblico (tecnico)     |
-| `/sala/:token`      | `RoomPlayerView` (PWA)                     | JWT sala (pairing)     |
-| `/u/:token`         | `UploadPortalStubView` (stub → TUS Fase 3) | `upload_token` speaker |
-| `/login`, `/signup` | Auth views                                 | pubblico               |
+| Rotta                   | Componente                             | Accesso                |
+| ----------------------- | -------------------------------------- | ---------------------- |
+| `/`                     | `DashboardView`                        | tenant (autenticato)   |
+| `/events/*`             | Vari views eventi                      | tenant                 |
+| `/admin/*`              | Admin views                            | `super_admin` only     |
+| `/pair`                 | `PairView`                             | pubblico (tecnico)     |
+| `/events/:eventId/live` | `LiveRegiaView` — Vista Regia realtime | tenant (autenticato)   |
+| `/sala/:token`          | `RoomPlayerView` (PWA)                 | JWT sala (pairing)     |
+| `/u/:token`             | `UploadPortalView` (TUS upload)        | `upload_token` speaker |
+| `/login`, `/signup`     | Auth views                             | pubblico               |
 
 ## Decisioni Architetturali Chiave (ADR)
 
-**ADR-001 — Room Player = file manager passivo**
-Il tecnico apre manualmente PowerPoint/Keynote. Il Player mostra file disponibili + stato sync. Zero automazione COM/AppleScript.
+**ADR-001 — Room Player = file manager ATTIVO con download locale**
+Il tecnico apre la cartella una sola volta (File System Access API). La PWA scarica i file automaticamente via Supabase signed URL + streaming su disco. Il tecnico apre il file manualmente dal proprio software.
+
+**ADR-007 — Dual-mode per evento (cloud/intranet/hybrid)**
+Colonna `network_mode ENUM(cloud|intranet|hybrid)` su `events`. Cloud: PWA + File System Access API + Supabase Storage signed URL. Intranet: Local Agent (Axum LAN :8080) + Room Agent (polling + auto-download). Hybrid: LAN con fallback cloud. **Stato attuale:** la colonna e' salvata e mostrata nel form evento; PWA opera in cloud, Room Agent opera in intranet. Il routing runtime automatico (Room Player sceglie percorso in base a `network_mode`) e' pianificato per Fase 9.
 
 **ADR-002 — Pairing = OAuth Device Flow (RFC 8628)**
 Codice 6 cifre generato dalla dashboard → tecnico lo digita su `/pair` → riceve JWT permanente sala. Funziona in qualsiasi rete.
@@ -126,12 +132,25 @@ src/features/{nome}/
 - **Types generati**: `supabase gen types typescript --project-id <id> > packages/shared/src/types/database.ts`
 - **`presentation_versions`** e append-only: mai UPDATE su righe esistenti
 
-## Desktop Agent (Fase 8+)
+## Desktop Agent (Fase 7 — implementato)
 
-- `apps/agent/`: Axum HTTP su `0.0.0.0:8080`, SQLite (WAL), cache filesystem
+- `apps/agent/src-tauri/`: Axum HTTP su `0.0.0.0:8080`, SQLite (WAL, rusqlite), cache filesystem
+- Sync engine: REST query Supabase filtrata per `event_id` → signed URL 5min → download streaming con SHA-256
+- File serviti via HTTP streaming (`ReaderStream`) — no caricamento intero in RAM
 - Agent registra il proprio IP LAN al cloud (tabella `local_agents`)
 - PWA interroga il cloud per l'IP dell'Agent → connessione diretta LAN
 - **MAI mDNS da browser** — i browser non risolvono hostname `.local`
+- Build: `cd apps/agent/src-tauri && cargo tauri build`
+
+## Room Agent (Fase 7 — implementato)
+
+- `apps/room-agent/src-tauri/`: polling LAN ogni 5s verso Local Agent HTTP
+- Download file in `C:\Users\…\AppData\Local\SlideCenter\{roomId}\`
+- CancellationToken per stop/restart polling su cambio evento
+- Pre-scan file su disco al boot (sopravvive a restart senza ri-scaricare)
+- Autostart HKCU (no admin), tray icon con stato
+- `set_network_private`: sanitizzazione input contro PowerShell injection
+- Build: `cd apps/room-agent/src-tauri && cargo tauri build`
 
 ## Vincoli ASSOLUTI
 

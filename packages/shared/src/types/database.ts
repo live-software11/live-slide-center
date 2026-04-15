@@ -63,6 +63,7 @@ export type Database = {
           end_date: string;
           timezone: string;
           status: Database['public']['Enums']['event_status'];
+          network_mode: Database['public']['Enums']['network_mode'];
           settings: Json;
           created_by: string | null;
           created_at: string;
@@ -79,6 +80,7 @@ export type Database = {
           end_date: string;
           timezone?: string;
           status?: Database['public']['Enums']['event_status'];
+          network_mode?: Database['public']['Enums']['network_mode'];
           settings?: Json;
           created_by?: string | null;
           created_at?: string;
@@ -95,6 +97,7 @@ export type Database = {
           end_date?: string;
           timezone?: string;
           status?: Database['public']['Enums']['event_status'];
+          network_mode?: Database['public']['Enums']['network_mode'];
           settings?: Json;
           created_by?: string | null;
           created_at?: string;
@@ -310,6 +313,9 @@ export type Database = {
           current_version_id: string | null;
           total_versions: number;
           status: Database['public']['Enums']['presentation_status'];
+          reviewer_note: string | null;
+          reviewed_at: string | null;
+          reviewed_by_user_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -322,6 +328,9 @@ export type Database = {
           current_version_id?: string | null;
           total_versions?: number;
           status?: Database['public']['Enums']['presentation_status'];
+          reviewer_note?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by_user_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -334,6 +343,9 @@ export type Database = {
           current_version_id?: string | null;
           total_versions?: number;
           status?: Database['public']['Enums']['presentation_status'];
+          reviewer_note?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by_user_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -608,11 +620,35 @@ export type Database = {
     Functions: {
       app_tenant_id: { Args: Record<string, never>; Returns: string | null };
       is_super_admin: { Args: Record<string, never>; Returns: boolean };
+      rpc_reorder_sessions: { Args: { p_ids: string[]; p_event_id: string }; Returns: void };
+      tenant_max_file_size: { Args: { p_tenant_id: string }; Returns: number | null };
+      validate_upload_token: { Args: { p_token: string }; Returns: Json };
+      init_upload_version: {
+        Args: { p_token: string; p_filename: string; p_size: number; p_mime: string };
+        Returns: Json;
+      };
+      finalize_upload_version: {
+        Args: { p_token: string; p_version_id: string; p_sha256: string };
+        Returns: Json;
+      };
+      abort_upload_version: {
+        Args: { p_token: string; p_version_id: string };
+        Returns: Json;
+      };
+      rpc_set_current_version: {
+        Args: { p_presentation_id: string; p_version_id: string };
+        Returns: Json;
+      };
+      rpc_update_presentation_status: {
+        Args: { p_presentation_id: string; p_status: string; p_note: string | null };
+        Returns: Json;
+      };
     };
     Enums: {
       actor_type: 'user' | 'speaker' | 'agent' | 'system';
       connection_status: 'online' | 'offline' | 'degraded';
       event_status: 'draft' | 'setup' | 'active' | 'closed' | 'archived';
+      network_mode: 'cloud' | 'intranet' | 'hybrid';
       presentation_status: 'pending' | 'uploaded' | 'reviewed' | 'approved' | 'rejected';
       room_type: 'main' | 'breakout' | 'preview' | 'poster';
       session_type: 'talk' | 'panel' | 'workshop' | 'break' | 'ceremony';

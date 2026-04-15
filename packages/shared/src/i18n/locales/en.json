@@ -76,6 +76,13 @@
     "deleteAriaLabel": "Delete event {{name}}",
     "deleteSuccess": "Event deleted.",
     "updateSuccess": "Event updated.",
+    "networkMode": "Network mode",
+    "networkMode_cloud": "Cloud",
+    "networkMode_intranet": "Intranet LAN",
+    "networkMode_hybrid": "Hybrid",
+    "networkModeHint_cloud": "Each room PC connects via the internet. Files are downloaded directly from Supabase Storage via the PWA.",
+    "networkModeHint_intranet": "Local network (own router). Files are distributed through a Local Agent and Room Agents installed on each room PC.",
+    "networkModeHint_hybrid": "LAN with cloud fallback. The Room Agent uses the Local Agent when reachable, otherwise falls back to Supabase.",
     "errors": {
       "load": "Unable to load events",
       "missingTenant": "No tenant on this session. Sign out and sign in again, or contact support.",
@@ -229,8 +236,44 @@
   "uploadPortal": {
     "badge": "Speaker portal",
     "pageTitle": "Upload portal",
-    "intro": "This public URL is reserved for presenter file uploads. Resumable uploads (TUS), virus scanning, and quota checks are not enabled yet — the Slide Center team dashboard remains the primary workflow until Phase 3 ships.",
-    "goToLogin": "Organizer sign-in"
+    "intro": "Upload your presentation here. Every new upload creates a new version — history is preserved automatically.",
+    "goToLogin": "Organizer sign-in",
+    "validating": "Validating link…",
+    "invalidTitle": "Invalid link",
+    "invalidReasonInvalidToken": "The upload code in this link is not valid.",
+    "invalidReasonNotFound": "No active invitation matches this link.",
+    "invalidReasonExpired": "This link has expired. Please request a new invitation from the organizer.",
+    "invalidGeneric": "This link cannot be used right now.",
+    "speakerLabel": "Speaker",
+    "eventLabel": "Event",
+    "sessionLabel": "Session",
+    "scheduledLabel": "Scheduled start",
+    "maxFileSize": "Max file size: {{size}}",
+    "storageRemaining": "Tenant storage remaining: {{size}}",
+    "dropzoneTitle": "Drop a file here or pick one",
+    "dropzoneHint": "Recommended formats: .pptx, .pdf, .key. Single file.",
+    "selectFile": "Select file",
+    "replaceFile": "Replace file",
+    "fileName": "File name",
+    "fileSize": "Size",
+    "fileType": "Type",
+    "startUpload": "Start upload",
+    "cancelUpload": "Cancel",
+    "uploading": "Uploading…",
+    "hashing": "Computing SHA-256…",
+    "finalizing": "Finalizing…",
+    "progressLabel": "{{pct}}% — {{uploaded}} of {{total}}",
+    "successTitle": "Upload complete",
+    "successBody": "Your presentation has been recorded as version {{version}}. You can upload an update at any time: a new version will be created.",
+    "uploadAnother": "Upload another version",
+    "errorTooLarge": "File too large. Max allowed size: {{size}}.",
+    "errorQuotaExceeded": "Tenant storage quota exceeded. Please contact the organizer.",
+    "errorNetwork": "Network error. Upload will resume automatically.",
+    "errorGeneric": "An error occurred during upload.",
+    "errorHashMismatch": "Integrity check failed. Please retry.",
+    "errorInitFailed": "Could not initialize the upload.",
+    "errorFinalizeFailed": "Could not finalize the upload.",
+    "noticeResumable": "This upload is resumable: if the network drops you can continue from where you left off."
   },
   "presentation": {
     "title": "Presentation",
@@ -245,7 +288,37 @@
     "statusApproved": "Approved",
     "statusRejected": "Rejected",
     "fileSize": "File size",
-    "hash": "SHA-256 hash"
+    "hash": "SHA-256 hash",
+    "versions": {
+      "title": "Version history",
+      "show": "Show versions",
+      "hide": "Hide versions",
+      "loading": "Loading versions…",
+      "loadError": "Could not load version history.",
+      "actionError": "Operation failed. Please retry.",
+      "none": "No presentation uploaded yet.",
+      "emptyList": "No versions present.",
+      "totalCount_one": "{{count}} version total",
+      "totalCount_other": "{{count}} versions total",
+      "currentBadge": "Current",
+      "download": "Download",
+      "downloading": "Downloading…",
+      "setCurrent": "Set as current",
+      "settingCurrent": "Setting…",
+      "markReviewed": "Mark as reviewed",
+      "markApproved": "Approve",
+      "markRejected": "Reject",
+      "reviewerNoteLabel": "Reviewer note",
+      "reviewerNotePlaceholder": "Internal notes for {{name}} (not visible to the speaker).",
+      "hashShort": "sha256:{{hash}}…",
+      "vstatus": {
+        "uploading": "Uploading",
+        "processing": "Processing",
+        "ready": "Ready",
+        "failed": "Failed",
+        "superseded": "Superseded"
+      }
+    }
   },
   "sync": {
     "status": "Sync status",
@@ -326,6 +399,28 @@
     "supabaseMissingStep3": "Save `.env` and restart the dev server (`pnpm run dev`).",
     "supabaseMissingNote": "Without these variables the browser client cannot reach the backend — this is expected, not a UI defect."
   },
+  "liveView": {
+    "badge": "Control Room",
+    "backToEvent": "Back to event",
+    "loadError": "Unable to load the control room view",
+    "connected": "Connected in real time",
+    "toggleFullscreen": "Toggle fullscreen",
+    "enterFullscreen": "Fullscreen",
+    "exitFullscreen": "Exit fullscreen",
+    "noRooms": "No rooms configured for this event.",
+    "nowPlaying": "Now",
+    "noCurrentSession": "No session in progress",
+    "upNext": "Up next",
+    "moreItems": "+{{count}} more",
+    "approvedCount": "{{count}}/{{total}} approved",
+    "statRooms": "rooms",
+    "statSpeakers": "speakers",
+    "statUploaded": "uploaded",
+    "statApproved": "approved",
+    "statRejected": "rejected",
+    "activityTitle": "Recent activity",
+    "noActivity": "No activity recorded for this event."
+  },
   "a11y": {
     "adminNav": "Super-Admin area navigation",
     "mainNav": "Main navigation",
@@ -334,5 +429,81 @@
     "toggleLang": "Switch language",
     "openMenu": "Open menu",
     "closeMenu": "Close menu"
+  },
+  "devices": {
+    "panel": {
+      "title": "Room PCs",
+      "sectionTitle": "Room PCs",
+      "sectionIntro": "Pair room computers to display the file manager in real time.",
+      "addDevice": "+ Add PC"
+    },
+    "list": {
+      "empty": "No paired PCs for this event.",
+      "rename": "Rename",
+      "assignRoom": "Assign room",
+      "noRoom": "No room",
+      "noRoomAssigned": "Room not assigned",
+      "revoke": "Remove",
+      "revokeConfirm": "Remove device {{name}}? This action cannot be undone.",
+      "actions": "Device actions",
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "pairing": {
+      "title": "Pair Room PC",
+      "generating": "Generating code…",
+      "openUrl": "Open on the room PC:",
+      "enterCode": "Enter this code",
+      "expiresIn": "Expires in {{countdown}}",
+      "waitingForDevice": "Waiting for the technician to enter the code…",
+      "success": "PC paired successfully: {{name}}",
+      "expired": "The code has expired.",
+      "regenerate": "Generate new code",
+      "errorGeneric": "Error: {{message}}"
+    }
+  },
+  "pair": {
+    "title": "Pair this PC",
+    "subtitle": "Enter the 6-digit code shown in the event panel.",
+    "codeInputLabel": "6-digit code",
+    "delete": "Delete",
+    "connecting": "Connecting…",
+    "errorInvalid": "Invalid code. Please try again.",
+    "errorExpired": "Code expired. Request a new code from the organizer.",
+    "errorUsed": "Code already used. Request a new code.",
+    "errorGeneric": "Connection error. Please try again."
+  },
+  "roomPlayer": {
+    "noFiles": "No files uploaded for this room.",
+    "untitled": "(untitled)",
+    "sync": {
+      "synced": "Synced",
+      "syncing": "Syncing…",
+      "outdated": "Outdated",
+      "offline": "Offline"
+    },
+    "menu": {
+      "openFolder": "Choose local folder",
+      "changeFolder": "Change folder",
+      "changeRoom": "Change room",
+      "disconnect": "Disconnect"
+    },
+    "fileSync": {
+      "pickFolderTitle": "Select a folder to save files",
+      "pickFolderHint": "Choose a folder on this PC: presentation files will be downloaded automatically as soon as they are available.",
+      "pickFolderCta": "Choose folder",
+      "folderActive": "Active folder: {{name}}",
+      "notSupported": "Automatic local download requires Chrome 86+ or Edge 86+. Please use a compatible browser.",
+      "statusPending": "Pending",
+      "statusSynced": "On disk",
+      "retry": "Retry"
+    },
+    "error": {
+      "invalidToken": "Invalid token. Please pair this PC again.",
+      "noRoom": "No room assigned to this device.",
+      "missingToken": "Token missing.",
+      "generic": "Load error.",
+      "reconnect": "Pair again"
+    }
   }
 }

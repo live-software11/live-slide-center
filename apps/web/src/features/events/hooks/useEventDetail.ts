@@ -26,7 +26,7 @@ import {
   updateSpeakerById,
   type SpeakerRow,
 } from '../../speakers/repository';
-import { deleteEventById, getEventById, updateEventById, type EventRow, type EventStatus } from '../repository';
+import { deleteEventById, getEventById, updateEventById, type EventRow, type EventStatus, type NetworkMode } from '../repository';
 
 type DetailState =
   | { status: 'loading' }
@@ -253,7 +253,7 @@ export function useEventDetail(
   );
 
   const updateEvent = useCallback(
-    async (input: { name: string; start_date: string; end_date: string; status: EventStatus }) => {
+    async (input: { name: string; start_date: string; end_date: string; status: EventStatus; network_mode?: NetworkMode }) => {
       if (!eventId || !tenantId) return { errorMessage: 'missing_context' as const };
       const { error } = await updateEventById(supabase, eventId, input);
       if (error) return { errorMessage: error.message };

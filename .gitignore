@@ -44,4 +44,10 @@ supabase/.temp
 
 # Tauri build (fasi successive)
 apps/agent/src-tauri/target
+apps/room-agent/src-tauri/target
 apps/player/src-tauri/target
+
+# Claude Code impostazioni locali
+.claude/
+
+.vercel

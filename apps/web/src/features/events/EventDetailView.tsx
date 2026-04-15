@@ -10,9 +10,11 @@ import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { getUploadPortalAbsoluteUrl } from '@/lib/upload-portal-url';
 import { getTenantIdFromSession } from '@/lib/session-tenant';
-import type { EventStatus } from '@/features/events/repository';
+import type { EventStatus, NetworkMode } from '@/features/events/repository';
 import type { RoomType } from '@/features/rooms/repository';
 import type { SessionRow, SessionType } from '@/features/sessions/repository';
+
+const NETWORK_MODES: NetworkMode[] = ['cloud', 'intranet', 'hybrid'];
 
 const EVENT_STATUSES: EventStatus[] = ['draft', 'setup', 'active', 'closed', 'archived'];
 import { TenantQuotaPanel } from '@/features/tenant/components/TenantQuotaPanel';
@@ -24,6 +26,8 @@ import {
   speakerCsvTemplateContent,
 } from '@/features/speakers/lib/speaker-csv-import';
 import { useEventDetail } from './hooks/useEventDetail';
+import { PresentationVersionsPanel } from '@/features/presentations/components/PresentationVersionsPanel';
+import { DevicesPanel } from '@/features/devices/DevicesPanel';
 
 const ROOM_TYPES: RoomType[] = ['main', 'breakout', 'preview', 'poster'];
 const SESSION_TYPES: SessionType[] = ['talk', 'panel', 'workshop', 'break', 'ceremony'];
@@ -184,6 +188,7 @@ export default function EventDetailView() {
   const [sessionEditBusy, setSessionEditBusy] = useState(false);
   const [sessionEditError, setSessionEditError] = useState<string | null>(null);
   const [speakerEditDraft, setSpeakerEditDraft] = useState<SpeakerEditDraft | null>(null);
+  const [versionsExpandedSpeakerId, setVersionsExpandedSpeakerId] = useState<string | null>(null);
   const [speakerEditBusy, setSpeakerEditBusy] = useState(false);
   const [speakerEditError, setSpeakerEditError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
@@ -604,6 +609,7 @@ export default function EventDetailView() {
               const start = fd.get('ev_start') as string;
               const end = fd.get('ev_end') as string;
               const status = fd.get('ev_status') as EventStatus;
+              const networkMode = fd.get('ev_network_mode') as NetworkMode;
               if (!name || !start || !end) return;
               if (new Date(end) < new Date(start)) {
                 setEventEditError(t('validation.dateEndBeforeStart'));
@@ -611,7 +617,7 @@ export default function EventDetailView() {
               }
               setEventEditBusy(true);
               setEventEditError(null);
-              const res = await updateEvent({ name, start_date: start, end_date: end, status });
+              const res = await updateEvent({ name, start_date: start, end_date: end, status, network_mode: networkMode });
               setEventEditBusy(false);
               if (res.errorMessage) {
                 setEventEditError(res.errorMessage);
@@ -646,6 +652,16 @@ export default function EventDetailView() {
                 ))}
               </select>
             </div>
+            <div>
+              <label htmlFor="ev-network-mode" className="mb-1 block text-sm text-zinc-400">{t('event.networkMode')}</label>
+              <select id="ev-network-mode" name="ev_network_mode" defaultValue={event.network_mode ?? 'cloud'}
+                className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2">
+                {NETWORK_MODES.map((m) => (
+                  <option key={m} value={m}>{t(`event.networkMode_${m}`)}</option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-zinc-500">{t(`event.networkModeHint_${event.network_mode ?? 'cloud'}`)}</p>
+            </div>
             {eventEditError ? <p className="text-xs text-red-400" role="alert">{eventEditError}</p> : null}
             <div className="flex gap-2">
               <button type="submit" disabled={eventEditBusy}
@@ -665,9 +681,20 @@ export default function EventDetailView() {
               <h1 className="text-2xl font-bold text-zinc-50">{event.name}</h1>
               <p className="mt-2 text-sm text-zinc-400">
                 {event.start_date} → {event.end_date} · {eventStatusLabel(t, event.status)}
+                {' · '}
+                <span className="inline-flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-900 px-2 py-0.5 text-xs font-medium text-zinc-300">
+                  {t(`event.networkMode_${event.network_mode ?? 'cloud'}`)}
+                </span>
               </p>
             </div>
             <div className="flex shrink-0 gap-2">
+              <Link
+                to={`/events/${event.id}/live`}
+                className="inline-flex items-center gap-1.5 rounded-md border border-blue-900/60 bg-blue-950/40 px-3 py-1.5 text-sm font-medium text-blue-300 hover:bg-blue-900/40"
+              >
+                <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" aria-hidden />
+                {t('liveView.badge')}
+              </Link>
               <button type="button"
                 className="rounded-md bg-zinc-800 px-3 py-1.5 text-sm font-medium text-zinc-300 hover:bg-zinc-700"
                 onClick={() => setEventEditMode(true)}>
@@ -1585,246 +1612,279 @@ export default function EventDetailView() {
                 sp.upload_token_expires_at && portalUrl
                   ? dateTimeFmt.format(new Date(sp.upload_token_expires_at))
                   : null;
+              const versionsOpen = versionsExpandedSpeakerId === sp.id;
               return (
-                <li key={sp.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0 flex-1">
-                    {speakerEditDraft?.id === sp.id ? (
-                      <form
-                        className="mb-3 flex max-w-lg flex-col gap-3"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          void submitSpeakerEdit();
-                        }}
-                      >
-                        <div>
-                          <label htmlFor={`speaker-edit-session-${sp.id}`} className="mb-1 block text-sm text-zinc-400">
-                            {t('speaker.linkedSession')}
-                          </label>
-                          <select
-                            id={`speaker-edit-session-${sp.id}`}
-                            value={speakerEditDraft.session_id}
-                            onChange={(e) =>
-                              setSpeakerEditDraft((d) =>
-                                d?.id === sp.id ? { ...d, session_id: e.target.value } : d,
-                              )
-                            }
-                            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                <li key={sp.id} className="flex flex-col gap-2 px-4 py-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      {speakerEditDraft?.id === sp.id ? (
+                        <form
+                          className="mb-3 flex max-w-lg flex-col gap-3"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            void submitSpeakerEdit();
+                          }}
+                        >
+                          <div>
+                            <label htmlFor={`speaker-edit-session-${sp.id}`} className="mb-1 block text-sm text-zinc-400">
+                              {t('speaker.linkedSession')}
+                            </label>
+                            <select
+                              id={`speaker-edit-session-${sp.id}`}
+                              value={speakerEditDraft.session_id}
+                              onChange={(e) =>
+                                setSpeakerEditDraft((d) =>
+                                  d?.id === sp.id ? { ...d, session_id: e.target.value } : d,
+                                )
+                              }
+                              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                            >
+                              {sessions.map((sess) => (
+                                <option key={sess.id} value={sess.id}>
+                                  {sess.title}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label htmlFor={`speaker-edit-name-${sp.id}`} className="mb-1 block text-sm text-zinc-400">
+                              {t('speaker.fullName')}
+                            </label>
+                            <input
+                              id={`speaker-edit-name-${sp.id}`}
+                              value={speakerEditDraft.full_name}
+                              onChange={(e) =>
+                                setSpeakerEditDraft((d) =>
+                                  d?.id === sp.id ? { ...d, full_name: e.target.value } : d,
+                                )
+                              }
+                              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                              autoComplete="name"
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor={`speaker-edit-email-${sp.id}`} className="mb-1 block text-sm text-zinc-400">
+                              {t('speaker.emailOptional')}
+                            </label>
+                            <input
+                              id={`speaker-edit-email-${sp.id}`}
+                              type="email"
+                              value={speakerEditDraft.email}
+                              onChange={(e) =>
+                                setSpeakerEditDraft((d) => (d?.id === sp.id ? { ...d, email: e.target.value } : d))
+                              }
+                              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                              autoComplete="email"
+                            />
+                          </div>
+                          {speakerEditError ? (
+                            <p className="text-xs text-red-400" role="alert">
+                              {speakerEditError}
+                            </p>
+                          ) : null}
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="submit"
+                              disabled={speakerEditBusy}
+                              className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                            >
+                              {t('common.save')}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={speakerEditBusy}
+                              className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                              onClick={() => {
+                                setSpeakerEditDraft(null);
+                                setSpeakerEditError(null);
+                              }}
+                            >
+                              {t('common.cancel')}
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <>
+                          <p className="font-medium text-zinc-100">{sp.full_name}</p>
+                          <p className="text-xs text-zinc-500">{sessionTitle}</p>
+                          {sp.email ? <p className="text-xs text-zinc-400">{sp.email}</p> : null}
+                        </>
+                      )}
+                      {portalUrl ? (
+                        <div className="mt-3 flex flex-col gap-2 border-t border-zinc-800/80 pt-3 sm:flex-row sm:items-start sm:gap-4">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-medium text-zinc-400">{t('speaker.uploadLinkLabel')}</p>
+                            <p className="mt-1 break-all font-mono text-xs text-zinc-300">{portalUrl}</p>
+                            {expiresLabel ? (
+                              <p className="mt-1 text-xs text-zinc-500">
+                                {t('speaker.uploadExpires', { date: expiresLabel })}
+                              </p>
+                            ) : null}
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-800"
+                                onClick={async () => {
+                                  setSpeakerAuxError(null);
+                                  try {
+                                    await navigator.clipboard.writeText(portalUrl);
+                                    setCopiedSpeakerId(sp.id);
+                                    window.setTimeout(() => setCopiedSpeakerId((cur) => (cur === sp.id ? null : cur)), 2200);
+                                  } catch {
+                                    setSpeakerAuxError(t('speaker.copyUploadLinkFailed'));
+                                  }
+                                }}
+                              >
+                                {copiedSpeakerId === sp.id ? t('speaker.linkCopied') : t('speaker.copyUploadLink')}
+                              </button>
+                            </div>
+                          </div>
+                          <div
+                            className="shrink-0 rounded-md bg-white p-2"
+                            role="img"
+                            aria-label={t('speaker.uploadQrAria', { name: sp.full_name })}
                           >
-                            {sessions.map((sess) => (
-                              <option key={sess.id} value={sess.id}>
-                                {sess.title}
-                              </option>
-                            ))}
-                          </select>
+                            <QRCode value={portalUrl} size={104} level="M" />
+                          </div>
                         </div>
-                        <div>
-                          <label htmlFor={`speaker-edit-name-${sp.id}`} className="mb-1 block text-sm text-zinc-400">
-                            {t('speaker.fullName')}
-                          </label>
-                          <input
-                            id={`speaker-edit-name-${sp.id}`}
-                            value={speakerEditDraft.full_name}
-                            onChange={(e) =>
-                              setSpeakerEditDraft((d) =>
-                                d?.id === sp.id ? { ...d, full_name: e.target.value } : d,
-                              )
-                            }
-                            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
-                            autoComplete="name"
-                          />
+                      ) : (
+                        <div className="mt-3 border-t border-zinc-800/80 pt-3">
+                          <p className="text-xs text-zinc-500">{t('speaker.uploadLinkMissing')}</p>
+                          <button
+                            type="button"
+                            disabled={regenerateBusyId === sp.id}
+                            className="mt-2 rounded-md border border-amber-700/60 px-3 py-1.5 text-xs font-medium text-amber-200/90 hover:bg-amber-950/40 disabled:opacity-50"
+                            onClick={async () => {
+                              setSpeakerAuxError(null);
+                              setRegenerateBusyId(sp.id);
+                              const res = await regenerateSpeakerUpload(sp.id);
+                              setRegenerateBusyId(null);
+                              if (res.errorMessage) {
+                                setSpeakerAuxError(
+                                  res.errorMessage === 'missing_context'
+                                    ? t('speaker.errors.missingContext')
+                                    : res.errorMessage,
+                                );
+                              }
+                            }}
+                          >
+                            {regenerateBusyId === sp.id ? t('speaker.generatingUploadLink') : t('speaker.generateUploadLink')}
+                          </button>
                         </div>
-                        <div>
-                          <label htmlFor={`speaker-edit-email-${sp.id}`} className="mb-1 block text-sm text-zinc-400">
-                            {t('speaker.emailOptional')}
-                          </label>
-                          <input
-                            id={`speaker-edit-email-${sp.id}`}
-                            type="email"
-                            value={speakerEditDraft.email}
-                            onChange={(e) =>
-                              setSpeakerEditDraft((d) => (d?.id === sp.id ? { ...d, email: e.target.value } : d))
-                            }
-                            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
-                            autoComplete="email"
-                          />
-                        </div>
-                        {speakerEditError ? (
-                          <p className="text-xs text-red-400" role="alert">
-                            {speakerEditError}
-                          </p>
-                        ) : null}
+                      )}
+                    </div>
+                    <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+                      {pendingDelete?.kind === 'speaker' && pendingDelete.id === sp.id ? (
                         <div className="flex flex-wrap gap-2">
                           <button
-                            type="submit"
-                            disabled={speakerEditBusy}
-                            className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                            type="button"
+                            disabled={deleteBusy}
+                            className="rounded-md bg-red-900/80 px-3 py-1.5 text-xs font-medium text-red-100 hover:bg-red-800 disabled:opacity-50"
+                            onClick={async () => {
+                              setDeleteBusy(true);
+                              setDeleteError(null);
+                              const res = await deleteSpeaker(sp.id);
+                              setDeleteBusy(false);
+                              if (res.errorMessage) {
+                                setDeleteError(res.errorMessage);
+                                return;
+                              }
+                              setPendingDelete(null);
+                              setSpeakerEditDraft((d) => (d?.id === sp.id ? null : d));
+                            }}
                           >
-                            {t('common.save')}
+                            {t('common.confirmDelete')}
                           </button>
                           <button
                             type="button"
-                            disabled={speakerEditBusy}
+                            disabled={deleteBusy}
                             className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
                             onClick={() => {
-                              setSpeakerEditDraft(null);
-                              setSpeakerEditError(null);
+                              setPendingDelete(null);
+                              setDeleteError(null);
                             }}
                           >
                             {t('common.cancel')}
                           </button>
                         </div>
-                      </form>
-                    ) : (
-                      <>
-                        <p className="font-medium text-zinc-100">{sp.full_name}</p>
-                        <p className="text-xs text-zinc-500">{sessionTitle}</p>
-                        {sp.email ? <p className="text-xs text-zinc-400">{sp.email}</p> : null}
-                      </>
-                    )}
-                    {portalUrl ? (
-                      <div className="mt-3 flex flex-col gap-2 border-t border-zinc-800/80 pt-3 sm:flex-row sm:items-start sm:gap-4">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-zinc-400">{t('speaker.uploadLinkLabel')}</p>
-                          <p className="mt-1 break-all font-mono text-xs text-zinc-300">{portalUrl}</p>
-                          {expiresLabel ? (
-                            <p className="mt-1 text-xs text-zinc-500">
-                              {t('speaker.uploadExpires', { date: expiresLabel })}
-                            </p>
-                          ) : null}
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <button
-                              type="button"
-                              className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-800"
-                              onClick={async () => {
-                                setSpeakerAuxError(null);
-                                try {
-                                  await navigator.clipboard.writeText(portalUrl);
-                                  setCopiedSpeakerId(sp.id);
-                                  window.setTimeout(() => setCopiedSpeakerId((cur) => (cur === sp.id ? null : cur)), 2200);
-                                } catch {
-                                  setSpeakerAuxError(t('speaker.copyUploadLinkFailed'));
-                                }
-                              }}
-                            >
-                              {copiedSpeakerId === sp.id ? t('speaker.linkCopied') : t('speaker.copyUploadLink')}
-                            </button>
-                          </div>
+                      ) : speakerEditDraft?.id === sp.id ? null : (
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            className="text-sm text-zinc-400 hover:text-zinc-200"
+                            aria-label={t('speaker.editAriaLabel', { name: sp.full_name })}
+                            onClick={() => {
+                              setRoomEditDraft(null);
+                              setRoomEditError(null);
+                              setSessionEditDraft(null);
+                              setSessionEditError(null);
+                              setSpeakerAuxError(null);
+                              setSpeakerEditError(null);
+                              setDeleteError(null);
+                              setPendingDelete(null);
+                              setSpeakerEditDraft({
+                                id: sp.id,
+                                session_id: sp.session_id,
+                                full_name: sp.full_name,
+                                email: sp.email ?? '',
+                              });
+                            }}
+                          >
+                            {t('common.edit')}
+                          </button>
+                          <button
+                            type="button"
+                            className="text-sm text-red-400 hover:text-red-300"
+                            aria-label={t('speaker.deleteAriaLabel', { name: sp.full_name })}
+                            onClick={() => {
+                              setSpeakerEditDraft((d) => (d?.id === sp.id ? null : d));
+                              setSpeakerEditError(null);
+                              setSpeakerAuxError(null);
+                              setPendingDelete({ kind: 'speaker', id: sp.id });
+                              setDeleteError(null);
+                            }}
+                          >
+                            {t('common.delete')}
+                          </button>
                         </div>
-                        <div
-                          className="shrink-0 rounded-md bg-white p-2"
-                          role="img"
-                          aria-label={t('speaker.uploadQrAria', { name: sp.full_name })}
-                        >
-                          <QRCode value={portalUrl} size={104} level="M" />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-3 border-t border-zinc-800/80 pt-3">
-                        <p className="text-xs text-zinc-500">{t('speaker.uploadLinkMissing')}</p>
-                        <button
-                          type="button"
-                          disabled={regenerateBusyId === sp.id}
-                          className="mt-2 rounded-md border border-amber-700/60 px-3 py-1.5 text-xs font-medium text-amber-200/90 hover:bg-amber-950/40 disabled:opacity-50"
-                          onClick={async () => {
-                            setSpeakerAuxError(null);
-                            setRegenerateBusyId(sp.id);
-                            const res = await regenerateSpeakerUpload(sp.id);
-                            setRegenerateBusyId(null);
-                            if (res.errorMessage) {
-                              setSpeakerAuxError(
-                                res.errorMessage === 'missing_context'
-                                  ? t('speaker.errors.missingContext')
-                                  : res.errorMessage,
-                              );
-                            }
-                          }}
-                        >
-                          {regenerateBusyId === sp.id ? t('speaker.generatingUploadLink') : t('speaker.generateUploadLink')}
-                        </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                  <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
-                    {pendingDelete?.kind === 'speaker' && pendingDelete.id === sp.id ? (
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          disabled={deleteBusy}
-                          className="rounded-md bg-red-900/80 px-3 py-1.5 text-xs font-medium text-red-100 hover:bg-red-800 disabled:opacity-50"
-                          onClick={async () => {
-                            setDeleteBusy(true);
-                            setDeleteError(null);
-                            const res = await deleteSpeaker(sp.id);
-                            setDeleteBusy(false);
-                            if (res.errorMessage) {
-                              setDeleteError(res.errorMessage);
-                              return;
-                            }
-                            setPendingDelete(null);
-                            setSpeakerEditDraft((d) => (d?.id === sp.id ? null : d));
-                          }}
-                        >
-                          {t('common.confirmDelete')}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={deleteBusy}
-                          className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
-                          onClick={() => {
-                            setPendingDelete(null);
-                            setDeleteError(null);
-                          }}
-                        >
-                          {t('common.cancel')}
-                        </button>
-                      </div>
-                    ) : speakerEditDraft?.id === sp.id ? null : (
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          className="text-sm text-zinc-400 hover:text-zinc-200"
-                          aria-label={t('speaker.editAriaLabel', { name: sp.full_name })}
-                          onClick={() => {
-                            setRoomEditDraft(null);
-                            setRoomEditError(null);
-                            setSessionEditDraft(null);
-                            setSessionEditError(null);
-                            setSpeakerAuxError(null);
-                            setSpeakerEditError(null);
-                            setDeleteError(null);
-                            setPendingDelete(null);
-                            setSpeakerEditDraft({
-                              id: sp.id,
-                              session_id: sp.session_id,
-                              full_name: sp.full_name,
-                              email: sp.email ?? '',
-                            });
-                          }}
-                        >
-                          {t('common.edit')}
-                        </button>
-                        <button
-                          type="button"
-                          className="text-sm text-red-400 hover:text-red-300"
-                          aria-label={t('speaker.deleteAriaLabel', { name: sp.full_name })}
-                          onClick={() => {
-                            setSpeakerEditDraft((d) => (d?.id === sp.id ? null : d));
-                            setSpeakerEditError(null);
-                            setSpeakerAuxError(null);
-                            setPendingDelete({ kind: 'speaker', id: sp.id });
-                            setDeleteError(null);
-                          }}
-                        >
-                          {t('common.delete')}
-                        </button>
-                      </div>
-                    )}
+                  <div className="border-t border-zinc-800/80 pt-2">
+                    <button
+                      type="button"
+                      aria-expanded={versionsOpen}
+                      className="inline-flex items-center gap-2 text-xs font-medium text-blue-400 hover:text-blue-300"
+                      onClick={() =>
+                        setVersionsExpandedSpeakerId((cur) => (cur === sp.id ? null : sp.id))
+                      }
+                    >
+                      <span aria-hidden="true">{versionsOpen ? '▾' : '▸'}</span>
+                      {versionsOpen
+                        ? t('presentation.versions.hide')
+                        : t('presentation.versions.show')}
+                    </button>
+                    <PresentationVersionsPanel
+                      speakerId={sp.id}
+                      speakerName={sp.full_name}
+                      enabled={versionsOpen}
+                    />
                   </div>
                 </li>
               );
             })}
           </ul>
         )}
+      </section>
+
+      <section className="mt-12" aria-labelledby="devices-section-title">
+        <h2 id="devices-section-title" className="text-lg font-semibold text-zinc-100">
+          {t('devices.panel.sectionTitle')}
+        </h2>
+        <p className="mt-1 text-sm text-zinc-500">{t('devices.panel.sectionIntro')}</p>
+        <div className="mt-6 max-w-2xl">
+          <DevicesPanel eventId={event.id} rooms={rooms} />
+        </div>
       </section>
     </div>
   );

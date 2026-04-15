@@ -83,11 +83,18 @@ supabase functions deploy           # Deploy tutte le funzioni
 supabase db reset                   # ATTENZIONE: resetta DB locale
 ```
 
-### Deploy Desktop — Local Agent (Tauri v2, Fase 8+)
+### Deploy Desktop — Local Agent (Tauri v2, Fase 7)
 
 ```bash
-cd apps/agent
-pnpm tauri build
+cd apps/agent/src-tauri
+cargo tauri build    # Produce NSIS installer Windows
+```
+
+### Deploy Desktop — Room Agent (Tauri v2 lite, Fase 7)
+
+```bash
+cd apps/room-agent/src-tauri
+cargo tauri build    # Produce NSIS installer Windows (autostart HKCU)
 ```
 
 **ATTENZIONE:** `apps/player/` NON esiste — il Room Player e la route `/sala/:token` in `apps/web/` (PWA).

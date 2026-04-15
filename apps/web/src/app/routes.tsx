@@ -1,63 +1,86 @@
+import { Outlet } from 'react-router';
 import { createBrowserRouter } from 'react-router';
 import { AdminRootLayout } from './admin-root-layout';
 import { RootLayout } from './root-layout';
 import { RequireAuth } from './require-auth';
 import { RequireSuperAdmin } from './require-super-admin';
 
+function HydrateFallback() {
+  return <p className="p-8 text-zinc-400">Loading…</p>;
+}
+
 export const router = createBrowserRouter([
   {
-    path: '/u/:token',
-    lazy: () => import('@/features/upload-portal/UploadPortalStubView'),
-  },
-  {
-    path: '/login',
-    lazy: () => import('@/features/auth/LoginView'),
-  },
-  {
-    path: '/signup',
-    lazy: () => import('@/features/auth/SignupView'),
-  },
-  {
-    path: '/admin',
-    element: <RequireSuperAdmin />,
+    HydrateFallback,
+    Component: Outlet,
     children: [
       {
-        element: <AdminRootLayout />,
+        path: '/u/:token',
+        lazy: () => import('@/features/upload-portal/UploadPortalView'),
+      },
+      {
+        path: '/pair',
+        lazy: () => import('@/features/devices/PairView'),
+      },
+      {
+        path: '/sala/:token',
+        lazy: () => import('@/features/devices/RoomPlayerView'),
+      },
+      {
+        path: '/login',
+        lazy: () => import('@/features/auth/LoginView'),
+      },
+      {
+        path: '/signup',
+        lazy: () => import('@/features/auth/SignupView'),
+      },
+      {
+        path: '/admin',
+        element: <RequireSuperAdmin />,
         children: [
           {
-            index: true,
-            lazy: () => import('@/features/admin/AdminDashboardView'),
-          },
-          {
-            path: 'tenants',
-            lazy: () => import('@/features/admin/AdminTenantsView'),
+            element: <AdminRootLayout />,
+            children: [
+              {
+                index: true,
+                lazy: () => import('@/features/admin/AdminDashboardView'),
+              },
+              {
+                path: 'tenants',
+                lazy: () => import('@/features/admin/AdminTenantsView'),
+              },
+            ],
           },
         ],
       },
-    ],
-  },
-  {
-    path: '/',
-    element: <RequireAuth />,
-    children: [
       {
-        element: <RootLayout />,
+        path: '/',
+        element: <RequireAuth />,
         children: [
           {
-            index: true,
-            lazy: () => import('@/features/dashboard/DashboardView'),
-          },
-          {
-            path: 'events',
-            lazy: () => import('@/features/events/EventsView'),
-          },
-          {
-            path: 'events/:eventId',
-            lazy: () => import('@/features/events/EventDetailView'),
-          },
-          {
-            path: 'settings',
-            lazy: () => import('@/features/settings/SettingsView'),
+            element: <RootLayout />,
+            children: [
+              {
+                index: true,
+                lazy: () => import('@/features/dashboard/DashboardView'),
+              },
+              {
+                path: 'events',
+                lazy: () => import('@/features/events/EventsView'),
+              },
+              {
+                path: 'events/:eventId',
+                lazy: () => import('@/features/events/EventDetailView'),
+              },
+              {
+                path: 'events/:eventId/live',
+                lazy: () => import('@/features/live-view/LiveRegiaView'),
+              },
+              {
+                path: 'settings',
+                lazy: () => import('@/features/settings/SettingsView'),
+              },
+            ],
           },
         ],
       },

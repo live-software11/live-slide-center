@@ -10,3 +10,20 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+// File System Access API (Chrome 86+ / Edge 86+)
+// https://wicg.github.io/file-system-access/
+type FileSystemPermissionMode = 'read' | 'readwrite';
+
+interface FileSystemHandlePermissionDescriptor {
+  mode?: FileSystemPermissionMode;
+}
+
+interface FileSystemDirectoryHandle {
+  queryPermission(descriptor: FileSystemHandlePermissionDescriptor): Promise<PermissionState>;
+  requestPermission(descriptor: FileSystemHandlePermissionDescriptor): Promise<PermissionState>;
+}
+
+interface Window {
+  showDirectoryPicker(options?: { mode?: FileSystemPermissionMode }): Promise<FileSystemDirectoryHandle>;
+}

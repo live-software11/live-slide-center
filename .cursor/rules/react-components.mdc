@@ -43,7 +43,7 @@ const router = createBrowserRouter([
       { index: true,                        element: <DashboardView /> },
       { path: 'events',                     element: <EventsView /> },
       { path: 'events/:eventId',            element: <EventDetailView /> },
-      { path: 'events/:eventId/live',       element: <LiveRegiaView /> },
+      { path: 'events/:eventId/live',       element: <LiveRegiaView /> },   // Fase 5 ✓
       { path: 'events/:eventId/devices',    element: <DevicesView /> },
       { path: 'team',                       element: <TeamView /> },
       { path: 'storage',                    element: <StorageView /> },

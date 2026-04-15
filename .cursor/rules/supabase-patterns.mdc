@@ -121,9 +121,11 @@ export function useRoomStates(eventId: string | null) {
 **Regole Realtime:**
 
 - Sempre cleanup con `supabase.removeChannel(channel)` nel return
-- Channel name include context (eventId) per evitare conflitti
-- Usare `filter` nel `on()` per ridurre il traffico
-- Realtime attivo su: `room_state`, `presentation_versions`, `local_agents`, `paired_devices`
+- Channel name include context (eventId/roomId) per evitare conflitti
+- Usare `filter` nel `on()` per ridurre il traffico — **MAI filter globali** come `status=eq.ready` su tabelle condivise (riceveresti eventi di tutti i tenant)
+- Per scoping corretto: ascoltare tabelle intermedie (es. `presentations` per la sala) e ri-fetchare i dati necessari nel callback
+- Estrarre valori usati nel dependency array in variabili (`const roomId = roomData?.id`) prima dell'useEffect
+- Realtime attivo su: `room_state`, `presentations`, `presentation_versions`, `local_agents`, `paired_devices`
 - NON su `activity_log` — polling ogni 10s
 
 ## Storage Pattern — Upload TUS
@@ -256,11 +258,20 @@ CREATE INDEX IF NOT EXISTS idx_presentations_session
 
 ## Tabelle con Realtime abilitato
 
-| Tabella                 | Trigger evento                  |
-| ----------------------- | ------------------------------- |
-| `room_state`            | Update sala in tempo reale      |
-| `presentation_versions` | Nuova versione file disponibile |
-| `local_agents`          | Heartbeat agent, IP LAN         |
-| `paired_devices`        | PC sala connesso/disconnesso    |
+| Tabella                 | Trigger evento                                    |
+| ----------------------- | ------------------------------------------------- |
+| `room_state`            | Update sala in tempo reale                        |
+| `presentations`         | Cambio `current_version_id` (trigger resync sala) |
+| `presentation_versions` | Nuova versione file disponibile                   |
+| `local_agents`          | Heartbeat agent, IP LAN                           |
+| `paired_devices`        | PC sala connesso/disconnesso                      |
 
 `activity_log` → polling ogni 10s (non Realtime).
+
+## File Sync Pattern (Fase 7 — `devices/hooks/useFileSync.ts`)
+
+- **Cloud mode:** PWA usa File System Access API → signed URL Supabase → streaming su disco locale
+- **Race condition prevention:** `inflightRef` (Set) impedisce download concorrenti per lo stesso `versionId`
+- **N+1 prevention:** batch query `.in('id', versionIds)` invece di loop singole query
+- **Realtime scoped:** subscription su `presentations` (INSERT+UPDATE) → resync solo per sessioni della sala corrente
+- **IndexedDB:** handle `FileSystemDirectoryHandle` persistito per ripristino automatico al riavvio browser

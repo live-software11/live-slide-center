@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slide Center — Room Agent</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #09090b; color: #f4f4f5; font-family: system-ui, sans-serif; min-height: 100vh; }
+    header { background: #18181b; border-bottom: 1px solid #27272a; padding: 14px 20px; display: flex; align-items: center; gap: 10px; }
+    header h1 { font-size: 14px; font-weight: 600; }
+    .badge { font-size: 11px; border-radius: 999px; padding: 2px 10px; font-weight: 600; }
+    .badge-synced { background: #14532d; color: #86efac; }
+    .badge-syncing { background: #713f12; color: #fde68a; }
+    .badge-offline { background: #450a0a; color: #fca5a5; }
+    .badge-connecting { background: #1e3a5f; color: #93c5fd; }
+    main { padding: 20px; max-width: 640px; }
+    .card { background: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 14px 18px; margin-bottom: 14px; }
+    .card h2 { font-size: 12px; font-weight: 600; color: #a1a1aa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+    input[type="text"] { background: #09090b; border: 1px solid #27272a; border-radius: 6px; color: #f4f4f5; padding: 7px 10px; font-size: 13px; width: 100%; outline: none; }
+    input[type="text"]:focus { border-color: #2563eb; }
+    button { border: none; cursor: pointer; border-radius: 6px; font-size: 13px; font-weight: 500; padding: 7px 14px; }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-ghost { background: #27272a; color: #d4d4d8; }
+    .btn-ghost:hover { background: #3f3f46; }
+    .btn-danger { background: #7f1d1d; color: #fca5a5; }
+    .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+    .form-group { margin-bottom: 10px; }
+    label { font-size: 12px; color: #71717a; display: block; margin-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th { text-align: left; color: #52525b; padding: 5px 6px; border-bottom: 1px solid #27272a; font-weight: 500; }
+    tbody td { padding: 7px 6px; border-bottom: 1px solid #18181b; color: #d4d4d8; }
+    .tick { color: #4ade80; font-weight: 700; }
+    .meta { font-size: 11px; color: #52525b; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div style="flex:1">
+      <h1>Room Agent — <span id="deviceName">…</span></h1>
+      <div class="meta">Cartella: <span id="outputDir">…</span></div>
+    </div>
+    <span class="badge badge-connecting" id="statusBadge">Connessione…</span>
+  </header>
+
+  <main>
+    <!-- Connessione al Local Agent -->
+    <div class="card">
+      <h2>Connessione al Local Agent</h2>
+      <div class="form-group">
+        <label for="inputAgentAddr">Indirizzo IP:porta del Local Agent</label>
+        <input type="text" id="inputAgentAddr" placeholder="192.168.1.100:8080" />
+      </div>
+      <div class="form-group">
+        <label for="inputRoomId">ID Sala (UUID)</label>
+        <input type="text" id="inputRoomId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+      </div>
+      <div class="form-group">
+        <label for="inputEventId">ID Evento (UUID)</label>
+        <input type="text" id="inputEventId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+      </div>
+      <div class="row">
+        <button class="btn-primary" onclick="connect()">Connetti e avvia sync</button>
+        <button class="btn-ghost" onclick="openFolder()">Apri cartella file</button>
+      </div>
+    </div>
+
+    <!-- Autostart -->
+    <div class="card">
+      <h2>Avvio automatico</h2>
+      <p style="font-size:12px;color:#71717a;margin-bottom:10px;">
+        Attiva per avviare il Room Agent automaticamente all'accensione del PC (registro HKCU, nessuna UAC).
+      </p>
+      <div class="row">
+        <button class="btn-ghost" onclick="enableAutostart()">Attiva avvio automatico</button>
+        <button class="btn-danger" onclick="disableAutostart()">Disattiva</button>
+      </div>
+    </div>
+
+    <!-- File scaricati -->
+    <div class="card">
+      <h2>File nella cartella sala (<span id="fileCount">0</span>)</h2>
+      <table>
+        <thead><tr><th>File</th><th>Stato</th></tr></thead>
+        <tbody id="fileTable"><tr><td colspan="2" style="color:#52525b;padding:10px 6px;">Nessun file ancora.</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script>
+    const { invoke } = window.__TAURI__.core;
+
+    async function refreshStatus() {
+      try {
+        const s = await invoke('cmd_get_status');
+        document.getElementById('deviceName').textContent = s.device_name || '—';
+        document.getElementById('outputDir').textContent = s.output_dir || '—';
+        document.getElementById('fileCount').textContent = s.downloaded_files || 0;
+
+        const badge = document.getElementById('statusBadge');
+        badge.textContent = {
+          synced: 'Sincronizzato',
+          syncing: 'Download…',
+          offline: 'Offline',
+          connecting: 'Connessione…',
+        }[s.status] || s.status;
+        badge.className = 'badge badge-' + (s.status || 'offline');
+
+        if (s.agent_address) document.getElementById('inputAgentAddr').value = s.agent_address;
+        if (s.room_id) document.getElementById('inputRoomId').value = s.room_id;
+      } catch {}
+    }
+
+    async function connect() {
+      const addr = document.getElementById('inputAgentAddr').value.trim();
+      const roomId = document.getElementById('inputRoomId').value.trim();
+      const eventId = document.getElementById('inputEventId').value.trim();
+      if (!addr || !eventId) { alert('Indirizzo agente e ID evento sono obbligatori.'); return; }
+      await invoke('cmd_set_agent', { address: addr });
+      if (roomId) await invoke('cmd_set_room', { roomId });
+      await invoke('cmd_set_event_and_start', { eventId });
+      await refreshStatus();
+    }
+
+    async function openFolder() {
+      await invoke('cmd_open_folder');
+    }
+
+    async function enableAutostart() {
+      try { await invoke('cmd_enable_autostart'); alert('Avvio automatico attivato.'); }
+      catch(e) { alert('Errore: ' + e); }
+    }
+
+    async function disableAutostart() {
+      try { await invoke('cmd_disable_autostart'); alert('Avvio automatico disattivato.'); }
+      catch(e) { alert('Errore: ' + e); }
+    }
+
+    setInterval(refreshStatus, 5000);
+    refreshStatus();
+  </script>
+</body>
+</html>

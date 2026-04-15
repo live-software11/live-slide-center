@@ -76,6 +76,13 @@
     "deleteAriaLabel": "Elimina l'evento {{name}}",
     "deleteSuccess": "Evento eliminato.",
     "updateSuccess": "Evento aggiornato.",
+    "networkMode": "Modalità rete",
+    "networkMode_cloud": "Cloud",
+    "networkMode_intranet": "Intranet LAN",
+    "networkMode_hybrid": "Ibrida",
+    "networkModeHint_cloud": "Ogni PC sala si connette via internet. Download diretto da Supabase Storage tramite PWA.",
+    "networkModeHint_intranet": "Rete locale (router proprio). I file vengono distribuiti tramite Local Agent + Room Agent installati sui PC sala.",
+    "networkModeHint_hybrid": "LAN con fallback cloud. Room Agent usa il Local Agent se disponibile, altrimenti scarica da Supabase.",
     "errors": {
       "load": "Impossibile caricare gli eventi",
       "missingTenant": "Sessione senza tenant associato. Esci e accedi di nuovo oppure contatta il supporto.",
@@ -229,8 +236,44 @@
   "uploadPortal": {
     "badge": "Portale relatore",
     "pageTitle": "Portale caricamento",
-    "intro": "Questo URL pubblico è riservato al caricamento file da parte del relatore. Upload resumabile (TUS), antivirus e controlli quota non sono ancora attivi: fino alla Fase 3 il flusso operativo resta prioritariamente in dashboard organizzatori.",
-    "goToLogin": "Accesso organizzatori"
+    "intro": "Carica qui la tua presentazione. Ogni nuovo caricamento crea una versione: lo storico è conservato automaticamente.",
+    "goToLogin": "Accesso organizzatori",
+    "validating": "Verifica link in corso…",
+    "invalidTitle": "Link non valido",
+    "invalidReasonInvalidToken": "Il codice di caricamento nel link non è valido.",
+    "invalidReasonNotFound": "Nessun invito attivo per questo link.",
+    "invalidReasonExpired": "Il link è scaduto. Richiedi un nuovo invito all'organizzatore.",
+    "invalidGeneric": "Non è possibile utilizzare questo link al momento.",
+    "speakerLabel": "Relatore",
+    "eventLabel": "Evento",
+    "sessionLabel": "Sessione",
+    "scheduledLabel": "Inizio previsto",
+    "maxFileSize": "Dimensione massima file: {{size}}",
+    "storageRemaining": "Spazio residuo tenant: {{size}}",
+    "dropzoneTitle": "Trascina qui il file o seleziona",
+    "dropzoneHint": "Formati consigliati: .pptx, .pdf, .key. File singolo.",
+    "selectFile": "Seleziona file",
+    "replaceFile": "Cambia file",
+    "fileName": "Nome file",
+    "fileSize": "Dimensione",
+    "fileType": "Tipo",
+    "startUpload": "Avvia caricamento",
+    "cancelUpload": "Annulla",
+    "uploading": "Caricamento…",
+    "hashing": "Calcolo hash SHA-256…",
+    "finalizing": "Finalizzazione…",
+    "progressLabel": "{{pct}}% — {{uploaded}} di {{total}}",
+    "successTitle": "Caricamento completato",
+    "successBody": "La presentazione è stata registrata come versione {{version}}. Puoi caricare un aggiornamento in qualsiasi momento: verrà creata una nuova versione.",
+    "uploadAnother": "Carica un'altra versione",
+    "errorTooLarge": "File troppo grande. Dimensione massima consentita: {{size}}.",
+    "errorQuotaExceeded": "Quota di archiviazione esaurita. Contatta l'organizzatore.",
+    "errorNetwork": "Errore di rete. Il caricamento verrà ripreso automaticamente.",
+    "errorGeneric": "Si è verificato un errore durante il caricamento.",
+    "errorHashMismatch": "Verifica integrità fallita. Riprova.",
+    "errorInitFailed": "Impossibile inizializzare il caricamento.",
+    "errorFinalizeFailed": "Impossibile finalizzare il caricamento.",
+    "noticeResumable": "Il caricamento è resumabile: in caso di interruzione di rete puoi riprendere da dove eri rimasto."
   },
   "presentation": {
     "title": "Presentazione",
@@ -245,7 +288,37 @@
     "statusApproved": "Approvata",
     "statusRejected": "Rifiutata",
     "fileSize": "Dimensione file",
-    "hash": "Hash SHA-256"
+    "hash": "Hash SHA-256",
+    "versions": {
+      "title": "Storico versioni",
+      "show": "Mostra versioni",
+      "hide": "Nascondi versioni",
+      "loading": "Caricamento versioni…",
+      "loadError": "Impossibile caricare lo storico versioni.",
+      "actionError": "Operazione non riuscita. Riprova.",
+      "none": "Nessuna presentazione caricata ancora.",
+      "emptyList": "Nessuna versione presente.",
+      "totalCount_one": "{{count}} versione totale",
+      "totalCount_other": "{{count}} versioni totali",
+      "currentBadge": "Attuale",
+      "download": "Scarica",
+      "downloading": "Scaricamento…",
+      "setCurrent": "Imposta come attuale",
+      "settingCurrent": "Impostazione…",
+      "markReviewed": "Segna come revisionata",
+      "markApproved": "Approva",
+      "markRejected": "Rifiuta",
+      "reviewerNoteLabel": "Nota revisore",
+      "reviewerNotePlaceholder": "Note interne per {{name}} (non visibili al relatore).",
+      "hashShort": "sha256:{{hash}}…",
+      "vstatus": {
+        "uploading": "Upload",
+        "processing": "Elaborazione",
+        "ready": "Pronta",
+        "failed": "Fallita",
+        "superseded": "Superata"
+      }
+    }
   },
   "sync": {
     "status": "Stato sincronizzazione",
@@ -326,6 +399,28 @@
     "supabaseMissingStep3": "Salva `.env` e riavvia il server di sviluppo (`pnpm run dev`).",
     "supabaseMissingNote": "Senza queste variabili il client non può connettersi al backend: non è un bug dell’interfaccia."
   },
+  "liveView": {
+    "badge": "Vista Regia",
+    "backToEvent": "Torna all'evento",
+    "loadError": "Impossibile caricare la vista regia",
+    "connected": "Connesso in tempo reale",
+    "toggleFullscreen": "Attiva/disattiva schermo intero",
+    "enterFullscreen": "Schermo intero",
+    "exitFullscreen": "Esci da schermo intero",
+    "noRooms": "Nessuna sala configurata per questo evento.",
+    "nowPlaying": "In corso",
+    "noCurrentSession": "Nessuna sessione in corso",
+    "upNext": "Prossima",
+    "moreItems": "+{{count}} altri",
+    "approvedCount": "{{count}}/{{total}} approvate",
+    "statRooms": "sale",
+    "statSpeakers": "relatori",
+    "statUploaded": "caricati",
+    "statApproved": "approvati",
+    "statRejected": "rifiutati",
+    "activityTitle": "Attività recente",
+    "noActivity": "Nessuna attività registrata per questo evento."
+  },
   "a11y": {
     "adminNav": "Navigazione area Super-Admin",
     "mainNav": "Navigazione principale",
@@ -334,5 +429,81 @@
     "toggleLang": "Cambia lingua",
     "openMenu": "Apri menu",
     "closeMenu": "Chiudi menu"
+  },
+  "devices": {
+    "panel": {
+      "title": "PC Sala",
+      "sectionTitle": "PC Sala",
+      "sectionIntro": "Abbina i computer delle sale per visualizzare il file manager in tempo reale.",
+      "addDevice": "+ Aggiungi PC"
+    },
+    "list": {
+      "empty": "Nessun PC abbinato per questo evento.",
+      "rename": "Rinomina",
+      "assignRoom": "Assegna sala",
+      "noRoom": "Nessuna sala",
+      "noRoomAssigned": "Sala non assegnata",
+      "revoke": "Rimuovi",
+      "revokeConfirm": "Rimuovere il dispositivo {{name}}? Questa azione è irreversibile.",
+      "actions": "Azioni dispositivo",
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "pairing": {
+      "title": "Abbina PC Sala",
+      "generating": "Generazione codice in corso…",
+      "openUrl": "Apri sul PC della sala:",
+      "enterCode": "Inserisci questo codice",
+      "expiresIn": "Scade tra {{countdown}}",
+      "waitingForDevice": "In attesa che il tecnico inserisca il codice…",
+      "success": "PC abbinato con successo: {{name}}",
+      "expired": "Il codice è scaduto.",
+      "regenerate": "Genera nuovo codice",
+      "errorGeneric": "Errore: {{message}}"
+    }
+  },
+  "pair": {
+    "title": "Abbina questo PC",
+    "subtitle": "Inserisci il codice a 6 cifre mostrato nel pannello evento.",
+    "codeInputLabel": "Codice a 6 cifre",
+    "delete": "Cancella",
+    "connecting": "Connessione in corso…",
+    "errorInvalid": "Codice non valido. Riprova.",
+    "errorExpired": "Codice scaduto. Richiedi un nuovo codice all'organizzatore.",
+    "errorUsed": "Codice già utilizzato. Richiedi un nuovo codice.",
+    "errorGeneric": "Errore di connessione. Riprova."
+  },
+  "roomPlayer": {
+    "noFiles": "Nessun file caricato per questa sala.",
+    "untitled": "(senza titolo)",
+    "sync": {
+      "synced": "Sincronizzato",
+      "syncing": "Sincronizzazione…",
+      "outdated": "Non aggiornato",
+      "offline": "Offline"
+    },
+    "menu": {
+      "openFolder": "Scegli cartella locale",
+      "changeFolder": "Cambia cartella",
+      "changeRoom": "Cambia sala",
+      "disconnect": "Disconnetti"
+    },
+    "fileSync": {
+      "pickFolderTitle": "Scegli dove salvare i file",
+      "pickFolderHint": "Scegli una cartella sul PC: i file delle presentazioni verranno scaricati automaticamente appena disponibili.",
+      "pickFolderCta": "Scegli cartella",
+      "folderActive": "Cartella attiva: {{name}}",
+      "notSupported": "Il download automatico su disco richiede Chrome 86+ o Edge 86+. Usa un browser compatibile.",
+      "statusPending": "In attesa",
+      "statusSynced": "Sul disco",
+      "retry": "Riprova"
+    },
+    "error": {
+      "invalidToken": "Token non valido. Abbina nuovamente questo PC.",
+      "noRoom": "Nessuna sala assegnata a questo dispositivo.",
+      "missingToken": "Token mancante.",
+      "generic": "Errore di caricamento.",
+      "reconnect": "Abbina nuovamente"
+    }
   }
 }
