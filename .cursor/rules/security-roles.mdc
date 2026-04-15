@@ -2,7 +2,7 @@
 description: Sicurezza, ruoli RBAC e RLS per Live SLIDE CENTER (multi-tenant SaaS)
 globs:
   [
-    "{supabase/**/*.sql,supabase/**/*.ts,apps/web/src/features/auth/**,apps/web/src/features/settings/**}",
+    '{supabase/**/*.sql,supabase/**/*.ts,apps/web/src/features/auth/**,apps/web/src/features/settings/**}',
   ]
 alwaysApply: false
 ---
@@ -11,20 +11,21 @@ alwaysApply: false
 
 ## Ruoli applicativi
 
-| Ruolo               | Descrizione                              | Accessi                                                                |
-| ------------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
-| **admin**           | Proprietario/manager dell'organizzazione | Tutto: CRUD eventi/sale/sessioni, gestione team, billing, export       |
-| **coordinator**     | Coordinatore evento                      | CRUD sessioni/speaker, vista regia, gestione upload, assegnazione sale |
-| **tech**            | Tecnico di sala                          | Vista sala assegnata, download file, stato sync — NO gestione eventi   |
-| **speaker** (guest) | Relatore esterno                         | Solo upload via token — nessun account, accesso limitato a `/u/:token` |
+| Ruolo           | Tipo                           | Accesso                                                                             |
+| --------------- | ------------------------------ | ----------------------------------------------------------------------------------- |
+| `super_admin`   | `user_role` enum               | Cross-tenant: vede tutti i tenant, quote, log audit. NON vede contenuto file (GDPR) |
+| `admin`         | `user_role` enum               | Tutto nel proprio tenant: CRUD eventi/sale/sessioni, team, billing, export          |
+| `coordinator`   | `user_role` enum               | CRUD sessioni/speaker, vista regia, gestione upload, assegnazione sale              |
+| `tech`          | `user_role` enum               | Vista sala assegnata, download file, stato sync — NO gestione eventi                |
+| speaker (guest) | Record in `speakers` (NO auth) | Solo upload via `upload_token` univoco — nessun account Supabase                    |
 
 ## Auth (Supabase Auth)
 
 ### Registrazione e onboarding
 
 1. Signup via email/password → crea utente in `auth.users`
-2. Trigger/Edge Function `on_auth_user_created`:
-   - Crea riga in `tenants` (nuova org)
+2. Trigger SQL `on_auth_user_created`:
+   - Crea riga in `tenants` (nuova org) con `storage_limit_bytes = 5368709120` (5 GB Trial)
    - Crea riga in `users` con `role = 'admin'`
    - Imposta `app_metadata.tenant_id` nel JWT
 3. Invito team: admin invita tech/coordinator via email → Edge Function `invite_user`
@@ -34,73 +35,91 @@ alwaysApply: false
 ```json
 {
   "tenant_id": "uuid",
-  "role": "admin|coordinator|tech",
+  "role": "admin|coordinator|tech|super_admin",
   "user_id": "uuid"
 }
+```
+
+### Bootstrap super_admin (una sola volta)
+
+```sql
+UPDATE auth.users
+SET raw_app_meta_data = raw_app_meta_data || '{"role":"super_admin"}'::jsonb
+WHERE email = 'live.software11@gmail.com';
 ```
 
 ### Speaker (guest access)
 
 - Nessun account Supabase Auth
 - Accesso tramite `upload_token` univoco con scadenza
-- Edge Function `validate_upload_token` verifica token → restituisce info speaker/sessione
+- Edge Function `validate-upload-token` verifica token → restituisce info speaker/sessione
 - Upload autenticato via service role (Edge Function proxy)
 
 ## RLS — Principi
 
-1. **Ogni tabella** ha `tenant_id` + RLS policy
+1. **Ogni tabella** con dati business ha `tenant_id` + RLS policy abilitata
 2. **`public.app_tenant_id()`** estrae il tenant dal JWT (`app_metadata` / `user_metadata`)
-3. **Admin** puo fare tutto nel suo tenant
-4. **Tech** vede solo sale assegnate (filtro aggiuntivo su `room_state.assigned_agent_id` o assegnazione)
+3. **`public.is_super_admin()`** — policy aggiuntiva per accesso cross-tenant
+4. **Admin** puo fare tutto nel suo tenant
 5. **Coordinator** vede tutto l'evento ma non gestisce billing/team
-6. **Speaker** non ha accesso diretto alle tabelle — solo Edge Function proxy
+6. **Tech** vede solo sale assegnate
+7. **Speaker** non ha accesso diretto alle tabelle — solo Edge Function proxy
 
-## RLS Policy Pattern
+## RLS Pattern
 
 ```sql
--- Base: tutti gli utenti autenticati vedono solo il loro tenant
+-- Funzione tenant dal JWT
+CREATE OR REPLACE FUNCTION public.app_tenant_id() RETURNS uuid
+LANGUAGE sql STABLE SET search_path = public AS $$
+  SELECT COALESCE(
+    NULLIF(trim(both '"' from (auth.jwt() -> 'app_metadata' ->> 'tenant_id')), '')::uuid,
+    NULLIF(trim(both '"' from (auth.jwt() -> 'user_metadata' ->> 'tenant_id')), '')::uuid
+  );
+$$;
+
+-- Funzione super_admin
+CREATE OR REPLACE FUNCTION public.is_super_admin() RETURNS boolean
+LANGUAGE sql STABLE SET search_path = public AS $$
+  SELECT COALESCE((auth.jwt() -> 'app_metadata' ->> 'role') = 'super_admin', false);
+$$;
+
+-- Policy standard per ogni tabella con dati tenant
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON events
   FOR ALL USING (tenant_id = public.app_tenant_id());
+CREATE POLICY super_admin_all ON events
+  FOR ALL USING (public.is_super_admin());
 
--- Restrittiva: tech vede solo eventi a cui e assegnato
-CREATE POLICY tech_assigned_events ON events
-  FOR SELECT USING (
-    tenant_id = public.app_tenant_id()
-    AND (
-      auth.jwt()->>'role' IN ('admin', 'coordinator')
-      OR id IN (
-        SELECT event_id FROM local_agents
-        WHERE tenant_id = public.app_tenant_id()
-      )
-    )
-  );
+-- Tabelle paired_devices e pairing_codes (stessa struttura)
+ALTER TABLE paired_devices ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON paired_devices
+  FOR ALL USING (tenant_id = public.app_tenant_id());
+CREATE POLICY super_admin_all ON paired_devices
+  FOR ALL USING (public.is_super_admin());
 ```
 
 ## Edge Functions — Pattern sicuro
 
 ```typescript
-// Ogni Edge Function deve:
-import { createClient } from "@supabase/supabase-js";
+// Ogni Edge Function deve verificare auth + tenant
+import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 Deno.serve(async (req) => {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return new Response("Unauthorized", { status: 401 });
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) return new Response('Unauthorized', { status: 401 });
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: authHeader } } },
-  );
+  const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: { headers: { Authorization: authHeader } },
+  });
 
-  // Verifica utente
   const {
     data: { user },
     error,
   } = await supabase.auth.getUser();
-  if (error || !user) return new Response("Unauthorized", { status: 401 });
+  if (error || !user) return new Response('Unauthorized', { status: 401 });
 
   const tenantId = user.app_metadata?.tenant_id;
-  if (!tenantId) return new Response("No tenant", { status: 403 });
+  if (!tenantId) return new Response('No tenant', { status: 403 });
 
   // Operazioni scoped per tenant...
 });
@@ -109,20 +128,39 @@ Deno.serve(async (req) => {
 ## Gate piano (abbonamento)
 
 ```typescript
-// In app: verificare limiti del piano
+// In app: verificare limiti del piano prima di creare
 const { tenant } = useTenant();
 
 const canCreateEvent =
-  tenant.plan !== "trial" || activeEventsCount < tenant.max_events_per_month;
+  tenant.plan === 'enterprise' || activeEventsCount < tenant.max_events_per_month;
 
 const canAddRoom = rooms.length < tenant.max_rooms_per_event;
-
 const storageOk = tenant.storage_used_bytes < tenant.storage_limit_bytes;
+// quota storage e anche enforced lato DB via trigger check_storage_quota()
 ```
 
-| Piano      | Eventi/mese | Sale/evento | Storage | Agent  |
-| ---------- | ----------- | ----------- | ------- | ------ |
-| Trial      | 1           | 3           | 10GB    | 1      |
-| Starter    | 3           | 5           | 50GB    | 1      |
-| Pro        | 10          | 20          | 500GB   | 3      |
-| Enterprise | Illimitato  | Illimitato  | Custom  | Custom |
+## Piani — limiti definitivi (allineati a `packages/shared/src/constants/plans.ts`)
+
+| Piano      | €/mese | Eventi/mese | Sale/evento | Storage | File max | Utenti     | Agent      |
+| ---------- | ------ | ----------- | ----------- | ------- | -------- | ---------- | ---------- |
+| Trial      | 0      | 2           | 3           | 5 GB    | 100 MB   | 3          | 1          |
+| Starter    | 149    | 5           | 10          | 100 GB  | 1 GB     | 10         | 3          |
+| Pro        | 399    | 20          | 20          | 1 TB    | 2 GB     | 50         | 10         |
+| Enterprise | da 990 | illimitato  | illimitato  | custom  | 5 GB+    | illimitato | illimitato |
+
+## Super-Admin — cosa puo e NON puo fare
+
+**Puo:**
+
+- Vedere lista tenant, piano, storage (%), MRR, stato
+- Modificare quote tenant: `storage_limit_bytes`, `max_events_per_month`
+- Sospendere/riattivare tenant
+- Leggere `activity_log` cross-tenant
+- Vedere `/admin/system-health`
+
+**NON puo (GDPR):**
+
+- Vedere contenuto file dei clienti (binari, PDF, PPTX)
+- Modificare dati eventi o presentazioni dei clienti
+- Inviare email ai relatori dei clienti
+- Accedere a sessioni autenticate dei tenant

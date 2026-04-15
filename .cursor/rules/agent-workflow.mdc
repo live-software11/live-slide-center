@@ -7,10 +7,10 @@ alwaysApply: true
 
 ## Prima di modificare codice
 
-1. **Fonte di verita master**: leggere `docs/GUIDA_DEFINITIVA_PROGETTO.md` per architettura, decisioni storage, PWA vs Tauri, roadmap
-2. **Schema database / RLS**: leggere `docs/SlideHub_Live_CURSOR_BUILD.md` sezione 5 (Schema Database)
-3. **Architettura sync/offline**: leggere `docs/SlideHub_Live_CURSOR_BUILD.md` sezione 6 (Sync & Offline)
-4. **Permessi / ruoli**: verificare che la modifica rispetti il sistema RBAC (admin, tech, coordinator, speaker guest)
+1. **Fonte di verita unica**: leggere `docs/GUIDA_DEFINITIVA_PROGETTO.md` — contiene TUTTO: architettura, schema DB, pairing, dashboard, piani, networking, roadmap
+2. **Schema database / RLS**: sezione 7 della guida definitiva
+3. **Architettura sync/offline**: sezione 9 della guida definitiva
+4. **Permessi / ruoli**: sezione 6 della guida definitiva — RBAC: super_admin, admin, tech, coordinator, speaker (no auth)
 5. **Gate piano**: verificare limiti tenant (storage, eventi/mese, sale/evento, agenti)
 6. **i18n**: ogni stringa IT ha coppia EN professionale nello stesso commit — ZERO eccezioni
 7. **Tenant isolation**: ogni query PostgreSQL deve avere RLS o filtro esplicito `tenant_id`

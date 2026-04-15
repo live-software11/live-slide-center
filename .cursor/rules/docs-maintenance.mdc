@@ -12,9 +12,10 @@ La documentazione e parte del codice. Un'architettura non documentata e un'archi
 
 ## Mappa: modifica → documento da aggiornare
 
-### `docs/SlideHub_Live_CURSOR_BUILD.md` (documento architettura principale)
+### `docs/GUIDA_DEFINITIVA_PROGETTO.md` (UNICA fonte di verita — contiene tutto)
 
 Aggiornare quando:
+
 - Si modifica lo schema PostgreSQL (nuove tabelle, campi, indici, RLS)
 - Si aggiungono Edge Functions
 - Si modifica l'architettura sync/offline
@@ -23,39 +24,30 @@ Aggiornare quando:
 - Si aggiornano dipendenze significative
 - Si modificano i piani SaaS o i limiti tenant
 - Si completa una fase della roadmap (segnarla come completata)
-
-### `docs/Ruoli_Permessi_Live_Slide_Center.md` (quando creato)
-
-Aggiornare quando:
-- Si aggiunge o modifica un ruolo
-- Si aggiunge una nuova permission/capability
-- Si modifica la logica di accesso per ruolo
-- Si aggiungono Edge Functions con controllo ruolo
-
-### `docs/Istruzioni_Progetto_Claude_Live_Slide_Center.md`
-
-Aggiornare quando:
-- Cambiano vincoli architetturali
-- Si aggiungono nuovi pattern o invarianti
-- Si modificano le priorita di analisi
+- Si aggiunge o modifica un ruolo / permission
+- Cambiano vincoli architetturali o pattern
+- Si modificano flussi pairing / networking
 
 ---
 
 ## Come aggiornare
 
 ### Stile
+
 - Italiano, chiaro, focalizzato sul valore tecnico
 - Tabelle per confronti e matrici
 - Blocchi SQL/TypeScript per pattern e invarianti
 - Sezioni con `##` e `###`
 
 ### Cosa includere
+
 - Il **perche** di una scelta, non solo il **cosa**
 - Le **invarianti** (cosa non deve mai cambiare)
 - I **pattern** con esempi reali
 - I **file chiave** con percorso relativo
 
 ### Cosa NON includere
+
 - Dettagli implementativi banali (si leggono dal codice)
 - Changelog storici (git log e il changelog)
 - TODO gia risolti
@@ -64,6 +56,6 @@ Aggiornare quando:
 
 ## Checklist documentazione post-modifica
 
-- [ ] `docs/SlideHub_Live_CURSOR_BUILD.md` riflette struttura, schema, sync attuali?
+- [ ] `docs/GUIDA_DEFINITIVA_PROGETTO.md` riflette struttura, schema, sync attuali?
 - [ ] Le regole Cursor in `.cursor/rules/` sono ancora valide?
 - [ ] La roadmap e aggiornata (fasi completate marcate)?

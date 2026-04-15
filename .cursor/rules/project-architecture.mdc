@@ -1,90 +1,147 @@
 ---
-description: Architettura progetto Live SLIDE CENTER — stack, struttura, moduli, dipendenze
+description: Architettura progetto Live SLIDE CENTER — stack, struttura monorepo, moduli, decisioni tecniche
 alwaysApply: true
 ---
 
 # Architettura — Live SLIDE CENTER
 
+> **Fonte di verita unica:** `docs/GUIDA_DEFINITIVA_PROGETTO.md` — in caso di conflitto con qualsiasi altra regola, il documento definitivo vince.
+
 ## Stack Tecnologico
 
-| Layer | Tecnologia | Versione |
-|-------|-----------|----------|
-| Frontend web | React 19 + TypeScript strict | latest |
-| Build | Vite 8 | latest |
-| Styling | Tailwind CSS 4 + shadcn/ui + Radix | latest |
-| Routing | React Router 7 | latest |
-| State | Zustand | latest |
-| Table | TanStack Table | latest |
-| Form | Zod + React Hook Form | latest |
-| i18n | i18next + react-i18next | latest |
-| Upload | tus-js-client + use-tus | latest |
-| PWA (Room Player) | vite-plugin-pwa + Workbox | latest (Fase 6) |
-| Backend/DB | Supabase (PostgreSQL + Auth + Realtime + Edge Functions + Storage) | latest |
-| Desktop Agent | Tauri v2 + Axum (Rust) + SQLite (rusqlite) | latest (Fase 7) |
-| Monorepo | Turborepo + pnpm | latest |
+| Layer             | Tecnologia                                                         | Note                     |
+| ----------------- | ------------------------------------------------------------------ | ------------------------ |
+| Framework UI      | React 19 + TypeScript strict                                       | SPA, no SSR              |
+| Build             | Vite 8                                                             |                          |
+| Styling           | Tailwind CSS 4 + shadcn/ui + Radix                                 | Dark mode only           |
+| Routing           | React Router 7                                                     | createBrowserRouter      |
+| State             | Zustand                                                            |                          |
+| Tabelle           | TanStack Table                                                     |                          |
+| Form              | Zod + React Hook Form                                              |                          |
+| i18n              | i18next + react-i18next                                            | IT + EN obbligatori      |
+| Upload            | tus-js-client + use-tus                                            | Resumable TUS            |
+| PWA (Room Player) | vite-plugin-pwa + Workbox                                          | Fase 6                   |
+| Backend/DB        | Supabase (PostgreSQL + Auth + Realtime + Edge Functions + Storage) | EU Francoforte           |
+| Deploy web        | Vercel                                                             | Auto-deploy su push main |
+| Desktop Agent     | Tauri v2 + Axum (Rust) + SQLite (rusqlite)                         | Fase 8                   |
+| Monorepo          | Turborepo + pnpm                                                   |                          |
 
 ## Struttura Monorepo
 
 ```
 Live SLIDE CENTER/
 ├── apps/
-│   ├── web/              # Dashboard + Upload Portal + Room Player PWA (React 19 + Vite)
-│   └── agent/            # Local Agent (Tauri v2 + Axum + SQLite) — Fase 7
+│   ├── web/                  # Dashboard + Upload Portal + Room Player PWA (React 19)
+│   │   └── src/
+│   │       ├── features/
+│   │       │   ├── auth/         # Login, signup, onboarding
+│   │       │   ├── events/       # CRUD eventi
+│   │       │   ├── rooms/        # CRUD sale
+│   │       │   ├── sessions/     # Sessioni / calendario
+│   │       │   ├── speakers/     # Relatori + QR upload
+│   │       │   ├── presentations/# Versioning file
+│   │       │   ├── upload-portal/# /u/:token — speaker upload
+│   │       │   ├── devices/      # Pairing PC sala (/pair, /sala/:token)
+│   │       │   ├── live-view/    # Vista Regia realtime
+│   │       │   ├── admin/        # Super-Admin /admin/*
+│   │       │   └── billing/      # Piani, quote, Lemon Squeezy (Fase 11)
+│   │       ├── routes/           # React Router 7 config
+│   │       └── lib/              # supabase.ts, utils
+│   └── agent/                # Local Agent (Tauri v2) — stub, Fase 8
 ├── packages/
-│   ├── shared/           # Types, validators Zod, constants, utils
-│   └── ui/               # Componenti shadcn condivisi
+│   ├── shared/               # Types (database.ts generato), Zod, constants, i18n locales
+│   └── ui/                   # cn() utility, componenti shadcn condivisi
 ├── supabase/
-│   ├── migrations/       # SQL schema versioning
-│   ├── functions/        # Edge Functions (Deno)
+│   ├── migrations/           # SQL schema versioning (una file per modifica)
+│   ├── functions/            # Edge Functions Deno
+│   │   ├── health/           # Healthcheck
+│   │   ├── pair-init/        # Genera codice 6 cifre + QR
+│   │   ├── pair-claim/       # Tecnico riscatta codice → JWT sala
+│   │   ├── pair-poll/        # Dashboard fa polling stato pairing
+│   │   ├── cleanup-expired-codes/ # Cron: elimina codici scaduti
+│   │   └── _shared/          # auth.ts, cors.ts
 │   ├── seed.sql
 │   └── config.toml
 ├── docs/
-├── scripts/              # Setup Windows (es. `pnpm run setup:supabase-mcp`)
+│   ├── GUIDA_DEFINITIVA_PROGETTO.md  ← UNICA FONTE DI VERITA
+│   └── Setup_Strumenti_e_MCP.md      ← Setup ambiente e MCP
+├── scripts/                  # Setup PowerShell (MCP Supabase)
 ├── .cursor/rules/
 ├── turbo.json
 ├── pnpm-workspace.yaml
 └── .env.example
 ```
 
-**IMPORTANTE:** NON esiste `apps/player/`. Il Room Player e una **PWA** — route `/sala/:token` in `apps/web/`. Non creare mai un progetto Tauri separato per il Player.
+## Rotte applicazione
 
-**GitHub (sorgente):** `https://github.com/live-software11/live-slide-center` — account org **live-software11** (vedi `.cursor/rules/github-account-live-software11.mdc`).
+| Rotta               | Componente             | Accesso                |
+| ------------------- | ---------------------- | ---------------------- |
+| `/`                 | `DashboardView`        | tenant (autenticato)   |
+| `/events/*`         | Vari views eventi      | tenant                 |
+| `/admin/*`          | Admin views            | `super_admin` only     |
+| `/pair`             | `PairView`             | pubblico (tecnico)     |
+| `/sala/:token`      | `RoomPlayerView` (PWA) | JWT sala (pairing)     |
+| `/u/:token`         | `UploadPortalView`     | `upload_token` speaker |
+| `/login`, `/signup` | Auth views             | pubblico               |
 
-## Storage File (Supabase Storage — decisione definitiva MVP)
+## Decisioni Architetturali Chiave (ADR)
 
-- **Blob storage**: Supabase Storage (TUS nativo, S3-compatible, fino a 500GB/file su Pro)
-- **Path**: `tenants/{tenant_id}/events/{event_id}/presentations/{id}/v{n}/{file}`
-- **Upgrade futuro**: Cloudflare R2 (stesso SDK S3) quando egress > $50/mese — codice invariato
-- **NON configurare R2 adesso**: aggiunge complessita senza benefici nella fase attuale
+**ADR-001 — Room Player = file manager passivo**
+Il tecnico apre manualmente PowerPoint/Keynote. Il Player mostra file disponibili + stato sync. Zero automazione COM/AppleScript.
+
+**ADR-002 — Pairing = OAuth Device Flow (RFC 8628)**
+Codice 6 cifre generato dalla dashboard → tecnico lo digita su `/pair` → riceve JWT permanente sala. Funziona in qualsiasi rete.
+
+**ADR-003 — Due modalita di rete**
+
+- Modalita A (Cloud Puro): ogni PC usa internet. Zero hardware aggiuntivo.
+- Modalita B (Rete Locale): router + mini-PC Agent in regia. Modalita B = acceleratore opzionale, non prerequisito.
+
+**ADR-004 — Supabase (non Firebase)**
+Modello relazionale, TUS nativo, RLS potente, pricing prevedibile. Storage = Supabase per MVP, R2 quando egress > $50/mese.
+
+**ADR-005 — Due dashboard, un solo codebase**
+`/admin/*` per super_admin (Andrea), `/dashboard` (sotto `/`) per tenant. Guard basato su `role` in JWT.
 
 ## Pattern Moduli (apps/web)
 
-Ogni feature segue il pattern: `repository → service → hook → view`
-
 ```
 src/features/{nome}/
-├── components/         # Componenti UI del modulo
-├── hooks/              # useMyData.ts, useMyActions.ts
-├── lib/                # Logica pura, utilities
-├── types.ts            # Tipi TypeScript del modulo
-├── repository.ts       # CRUD Supabase (query, insert, update, delete)
-├── service.ts          # Logica business (validazione, trasformazioni)
-└── MyView.tsx          # Page-level view
+├── components/     # Componenti UI del modulo
+├── hooks/          # useMyData.ts, useMyActions.ts
+├── lib/            # Logica pura, utilities
+├── types.ts        # Tipi TypeScript del modulo
+├── repository.ts   # CRUD Supabase (query, insert, update, delete)
+├── service.ts      # Logica business (validazione, trasformazioni)
+└── MyView.tsx      # Page-level view
 ```
 
 ## Database: Supabase (PostgreSQL)
 
 - **RLS obbligatorio** su ogni tabella con `tenant_id`
-- **Realtime** abilitato su: `room_state`, `presentation_versions`, `local_agents` (NON su `activity_log` — polling)
+- **Trigger `check_storage_quota()`** blocca INSERT su `presentation_versions` se quota superata
+- **Trigger `update_storage_used()`** aggiorna `tenants.storage_used_bytes` automaticamente
+- **Realtime** attivo su: `room_state`, `presentation_versions`, `local_agents`, `paired_devices`
+- **NON Realtime** su `activity_log` — polling ogni 10s
 - **Types generati**: `supabase gen types typescript --project-id <id> > packages/shared/src/types/database.ts`
-- **Migrations**: `supabase/migrations/` — ogni modifica schema e una nuova migration
+- **`presentation_versions`** e append-only: mai UPDATE su righe esistenti
 
-## Desktop: Tauri v2 (solo Local Agent, Fase 7+)
+## Desktop Agent (Fase 8+)
 
-- **Agent** (`apps/agent/`): Axum HTTP server su `0.0.0.0:8080`, rusqlite per SQLite, cache filesystem, mDNS
-- **Player**: PWA in `apps/web/` (non Tauri) — connessione Supabase Realtime diretta + fallback LAN Agent
+- `apps/agent/`: Axum HTTP su `0.0.0.0:8080`, SQLite (WAL), cache filesystem
+- Agent registra il proprio IP LAN al cloud (tabella `local_agents`)
+- PWA interroga il cloud per l'IP dell'Agent → connessione diretta LAN
+- **MAI mDNS da browser** — i browser non risolvono hostname `.local`
+
+## Vincoli ASSOLUTI
+
+- **`apps/player/` NON deve esistere** — Room Player = route `/sala/:token` in `apps/web/`
+- **NON configurare Cloudflare R2** finche egress Supabase < $50/mese
+- **`presentation_versions` e append-only** — ogni nuova versione = nuova riga, mai UPDATE
+- **MAI mDNS da browser** — discovery Agent = registro IP LAN sul cloud
+- **Dark mode only** — UI in tema scuro, ambiente operativo regia
 
 ## Documenti di riferimento
 
-- `docs/GUIDA_DEFINITIVA_PROGETTO.md` — **FONTE DI VERITA MASTER**: architettura, storage, PWA vs Tauri, roadmap, checklist. In caso di conflitto, questo vince.
-- `docs/SlideHub_Live_CURSOR_BUILD.md` — schema SQL dettagliato, flussi sync, design system, struttura codice.
+- `docs/GUIDA_DEFINITIVA_PROGETTO.md` — **UNICA FONTE DI VERITA**: tutto in un documento
+- `docs/Setup_Strumenti_e_MCP.md` — guida setup ambiente, MCP, Docker, Supabase CLI

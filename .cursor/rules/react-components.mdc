@@ -1,6 +1,6 @@
 ---
-description: Pattern React per componenti, hooks, performance in Live SLIDE CENTER
-globs: ["**/*.tsx", "**/*.ts"]
+description: Pattern React per componenti, hooks, routing, performance in Live SLIDE CENTER
+globs: ['**/*.tsx', '**/*.ts']
 alwaysApply: false
 ---
 
@@ -8,19 +8,90 @@ alwaysApply: false
 
 ## Struttura componenti
 
-| Tipo | Naming | Dimensione ideale | Note |
-|------|--------|------------------|------|
-| View (page-level) | `*View.tsx` | ≤600 righe | Oltre: split in sotto-componenti |
-| Componenti UI | `components/*.tsx` | ≤300 righe | Riusabili, memoizzati |
-| Hook dati | `use*.ts` | ≤200 righe | Stato + subscription Supabase |
-| Popup/Modal | `*Modal.tsx` / `*Dialog.tsx` | ≤400 righe | Usa shadcn Dialog |
-| Repository | `repository.ts` | — | Solo CRUD Supabase |
+| Tipo              | Naming                       | Dimensione ideale | Note                             |
+| ----------------- | ---------------------------- | ----------------- | -------------------------------- |
+| View (page-level) | `*View.tsx`                  | ≤600 righe        | Oltre: split in sotto-componenti |
+| Componenti UI     | `components/*.tsx`           | ≤300 righe        | Riusabili, memoizzati            |
+| Hook dati         | `use*.ts`                    | ≤200 righe        | Stato + subscription Supabase    |
+| Modal / Dialog    | `*Modal.tsx` / `*Dialog.tsx` | ≤400 righe        | Usa shadcn Dialog                |
+| Repository        | `repository.ts`              | —                 | Solo CRUD Supabase               |
+
+## Struttura feature
+
+```
+src/features/{nome}/
+├── components/     # UI del modulo
+├── hooks/          # useMyData.ts, useMyActions.ts
+├── lib/            # Logica pura, utilities
+├── types.ts        # Tipi TypeScript del modulo
+├── repository.ts   # CRUD Supabase
+├── service.ts      # Logica business (validazione, trasformazioni)
+└── MyView.tsx      # Page-level view
+```
+
+## Routing React Router 7 — Struttura rotte
+
+```typescript
+// apps/web/src/routes/index.tsx
+const router = createBrowserRouter([
+  // --- Tenant dashboard ---
+  {
+    path: '/',
+    element: <DashboardLayout />,
+    errorElement: <ErrorBoundaryView />,
+    children: [
+      { index: true,                        element: <DashboardView /> },
+      { path: 'events',                     element: <EventsView /> },
+      { path: 'events/:eventId',            element: <EventDetailView /> },
+      { path: 'events/:eventId/live',       element: <LiveRegiaView /> },
+      { path: 'events/:eventId/devices',    element: <DevicesView /> },
+      { path: 'team',                       element: <TeamView /> },
+      { path: 'storage',                    element: <StorageView /> },
+      { path: 'billing',                    element: <BillingView /> },
+      { path: 'settings',                   element: <SettingsView /> },
+    ],
+  },
+  // --- Super-Admin (solo super_admin) ---
+  {
+    path: '/admin',
+    element: <AdminLayout />,
+    children: [
+      { index: true,                        element: <AdminDashboardView /> },
+      { path: 'tenants',                    element: <AdminTenantsView /> },
+      { path: 'tenants/:id',                element: <AdminTenantDetailView /> },
+      { path: 'quotas',                     element: <AdminQuotasView /> },
+      { path: 'system-health',              element: <AdminSystemHealthView /> },
+      { path: 'audit',                      element: <AdminAuditView /> },
+    ],
+  },
+  // --- Pairing PC sala ---
+  { path: '/pair',          element: <PairView /> },           // tecnico digita codice 6 cifre
+  // --- Room Player PWA ---
+  { path: '/sala/:token',   element: <RoomPlayerView /> },    // PC sala dopo pairing
+  // --- Speaker upload ---
+  { path: '/u/:token',      element: <UploadPortalView /> },  // link inviato ai relatori
+  // --- Auth ---
+  { path: '/login',         element: <LoginView /> },
+  { path: '/signup',        element: <SignupView /> },
+]);
+```
+
+**Guard di navigazione:**
+
+```typescript
+// Admin guard: redirect se non super_admin
+function AdminLayout() {
+  const { user } = useAuth();
+  if (user?.app_metadata?.role !== 'super_admin') return <Navigate to="/dashboard" />;
+  return <Outlet />;
+}
+```
 
 ## Performance — Regole
 
 1. **Memoizzazione**: `React.memo()` per componenti che ricevono oggetti/array come props
 2. **useCallback**: per handler passati a componenti figli memoizzati
-3. **useMemo**: per trasformazioni costose (non abusare)
+3. **useMemo**: per trasformazioni costose (non abusare — misurare prima)
 4. **Virtualizzazione**: `@tanstack/react-virtual` per liste >50 elementi
 5. **Lazy loading**: tutti i moduli non-landing → `React.lazy()` + `Suspense`
 
@@ -31,7 +102,6 @@ const EventsView = lazy(() =>
   import('./features/events/EventsView').then(m => ({ default: m.EventsView }))
 );
 
-// Wrap
 <ErrorBoundary moduleName="Events">
   <Suspense fallback={<LoadingSkeleton />}>
     <EventsView />
@@ -50,17 +120,25 @@ export function useEvents() {
   useEffect(() => {
     let cancelled = false;
 
-    async function fetch() {
+    async function load() {
       try {
         const data = await listEvents();
-        if (!cancelled) { setEvents(data); setLoading(false); }
+        if (!cancelled) {
+          setEvents(data);
+          setLoading(false);
+        }
       } catch (err) {
-        if (!cancelled) { setError(err as Error); setLoading(false); }
+        if (!cancelled) {
+          setError(err as Error);
+          setLoading(false);
+        }
       }
     }
 
-    fetch();
-    return () => { cancelled = true; };
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { events, loading, error };
@@ -68,30 +146,60 @@ export function useEvents() {
 ```
 
 **Regole hook:**
+
 - Sempre `cancelled` flag per evitare setState su componente smontato
 - Sempre cleanup nel return di useEffect
-- Dipendenze useEffect complete — ESLint lo verifica
+- Dipendenze useEffect complete — ESLint `react-hooks/exhaustive-deps` lo verifica
 
-## Stato sync — Componente riusabile
+## Stato sync — Componente riusabile (visibile sempre in Room Player)
 
 ```typescript
-// Indicatore di stato — SEMPRE visibile in ogni sala
 type SyncStatus = 'synced' | 'syncing' | 'outdated' | 'offline';
 
 const STATUS_COLORS: Record<SyncStatus, string> = {
-  synced: 'bg-green-500',
-  syncing: 'bg-yellow-500 animate-pulse',
+  synced:   'bg-green-500',
+  syncing:  'bg-yellow-500 animate-pulse',
   outdated: 'bg-orange-500',
-  offline: 'bg-red-500',
+  offline:  'bg-red-500',
 };
 
 function SyncIndicator({ status, version, totalVersions, lastSync }: Props) {
   return (
     <div className="flex items-center gap-2">
       <span className={cn('w-3 h-3 rounded-full', STATUS_COLORS[status])} />
-      <span className="text-sm font-mono">
+      <span className="text-sm font-mono text-zinc-300">
         v{version}/{totalVersions} — {formatRelative(lastSync)}
       </span>
+    </div>
+  );
+}
+```
+
+## Componente PairingCodeDisplay (dashboard)
+
+```typescript
+// features/devices/components/PairingCodeDisplay.tsx
+function PairingCodeDisplay({ code, qrDataUrl, expiresAt, onRefresh }: Props) {
+  const { t } = useTranslation();
+  const [remaining, setRemaining] = useState(getSecondsRemaining(expiresAt));
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setRemaining(getSecondsRemaining(expiresAt));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [expiresAt]);
+
+  return (
+    <div className="flex flex-col items-center gap-4 p-6">
+      <span className="text-5xl font-mono tracking-[0.25em] text-white">{code}</span>
+      <img src={qrDataUrl} alt={t('devices.pairingQrAlt')} className="w-48 h-48" />
+      <p className="text-sm text-zinc-400">
+        {t('devices.codeExpiresIn', { seconds: remaining })}
+      </p>
+      {remaining <= 0 && (
+        <Button onClick={onRefresh}>{t('devices.refreshCode')}</Button>
+      )}
     </div>
   );
 }
@@ -104,36 +212,37 @@ import { useTranslation } from 'react-i18next';
 
 function MyComponent() {
   const { t } = useTranslation();
-
-  return (
-    <Button>{t('events.create')}</Button>
-    // IT: "Crea evento" / EN: "Create Event"
-  );
+  return <Button>{t('events.create')}</Button>;
+  // IT: "Crea evento" / EN: "Create Event"
 }
 ```
 
-**Regola**: mai stringhe IT hardcoded in JSX — sempre `t('chiave')` con coppia IT/EN.
-
-## Navigazione (React Router 7)
-
-```typescript
-// routes/index.tsx
-const router = createBrowserRouter([
-  { path: '/', element: <DashboardLayout />, children: [
-    { index: true, element: <DashboardView /> },
-    { path: 'events', element: <EventsView /> },
-    { path: 'events/:eventId', element: <EventDetailView /> },
-    { path: 'events/:eventId/live', element: <LiveRegiView /> },
-    { path: 'settings', element: <SettingsView /> },
-  ]},
-  { path: '/u/:token', element: <UploadPortalView /> },
-  { path: '/login', element: <LoginView /> },
-  { path: '/signup', element: <SignupView /> },
-]);
-```
+**Regola assoluta:** mai stringhe IT hardcoded in JSX — sempre `t('chiave')` con coppia IT/EN nello stesso commit.
 
 ## Error Boundary
 
 - Ogni feature wrappata in `<ErrorBoundary>` nel router
 - `<AppErrorBoundary>` globale in `main.tsx`
-- MAI swallowing silenzioso in operazioni critiche (upload, sync)
+- MAI swallowing silenzioso in operazioni critiche (upload, sync, pairing)
+
+## Design system — Dark mode only
+
+```typescript
+// Palette obbligatoria (da tailwind.config.ts)
+// bg-[#0A0A0B]  → background regia
+// bg-[#141416]  → card, sidebar
+// text-[#FAFAFA] → titoli
+// text-[#A1A1AA] → label, metadata
+// accent: blue-600 (#0066FF)
+// success: green-500 (#22C55E)
+// warning: amber-500 (#F59E0B)
+// danger: red-500 (#EF4444)
+```
+
+**Principi UX:**
+
+- Stato sempre visibile con colore inequivocabile
+- Zero ambiguita sulla versione (numero + timestamp + hash troncato)
+- Feedback entro 200ms per azioni UI
+- Solo componenti shadcn/ui (no librerie UI aggiuntive)
+- Densita informativa alta — utenti target: tecnici AV esperti

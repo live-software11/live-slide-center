@@ -1,6 +1,6 @@
 ---
-description: Pattern Supabase — query, RLS, Realtime, Storage, Edge Functions per Live SLIDE CENTER
-globs: ["**/*.ts", "**/*.tsx", "supabase/**"]
+description: Pattern Supabase — query, RLS, Realtime, Storage, Edge Functions, pairing per Live SLIDE CENTER
+globs: ['**/*.ts', '**/*.tsx', 'supabase/**']
 alwaysApply: false
 ---
 
@@ -15,7 +15,7 @@ import type { Database } from '@slidecenter/shared/types/database';
 
 export const supabase = createClient<Database>(
   import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
+  import.meta.env.VITE_SUPABASE_ANON_KEY,
 );
 ```
 
@@ -27,7 +27,6 @@ import { supabase } from '../../lib/supabase';
 import type { Database } from '@slidecenter/shared/types/database';
 
 type Event = Database['public']['Tables']['events']['Row'];
-type EventInsert = Database['public']['Tables']['events']['Insert'];
 
 export async function listEvents(): Promise<Event[]> {
   const { data, error } = await supabase
@@ -42,16 +41,15 @@ export async function listEvents(): Promise<Event[]> {
 export async function getEventWithRooms(eventId: string) {
   const { data, error } = await supabase
     .from('events')
-    .select(`
+    .select(
+      `
       *,
       rooms (
         *,
-        sessions (
-          *,
-          speakers (*)
-        )
+        sessions (*, speakers (*))
       )
-    `)
+    `,
+    )
     .eq('id', eventId)
     .single();
   if (error) throw error;
@@ -60,18 +58,16 @@ export async function getEventWithRooms(eventId: string) {
 ```
 
 **Regole query:**
+
 - Sempre `limit()` sulle liste
-- RLS filtra automaticamente per `tenant_id` — non serve `where tenant_id = ...` nel client
-- Usare `select('campo1, campo2')` instead di `select('*')` per query frequenti
+- RLS filtra automaticamente per `tenant_id` — NON aggiungere `.eq('tenant_id', ...)` nel client
+- `select('campo1, campo2')` invece di `select('*')` per query frequenti
 - Join con sintassi embedded: `select('*, rooms(*)')`
 
 ## Realtime Pattern — Hook
 
 ```typescript
 // features/live-view/hooks/useRoomStates.ts
-import { useEffect, useState } from 'react';
-import { supabase } from '../../../lib/supabase';
-
 export function useRoomStates(eventId: string | null) {
   const [states, setStates] = useState<RoomState[]>([]);
 
@@ -82,25 +78,36 @@ export function useRoomStates(eventId: string | null) {
     supabase
       .from('room_state')
       .select('*, rooms(*)')
-      .then(({ data }) => { if (data) setStates(data); });
+      .eq('event_id', eventId)
+      .then(({ data }) => {
+        if (data) setStates(data);
+      });
 
     // Realtime subscription
     const channel = supabase
       .channel(`room_state:${eventId}`)
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'room_state' },
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'room_state', filter: `event_id=eq.${eventId}` },
         (payload) => {
-          setStates(prev => {
-            const idx = prev.findIndex(s => s.room_id === payload.new?.room_id);
-            if (payload.eventType === 'DELETE') return prev.filter(s => s.room_id !== payload.old?.room_id);
-            if (idx >= 0) { const next = [...prev]; next[idx] = payload.new as RoomState; return next; }
+          setStates((prev) => {
+            const idx = prev.findIndex((s) => s.room_id === payload.new?.room_id);
+            if (payload.eventType === 'DELETE')
+              return prev.filter((s) => s.room_id !== payload.old?.room_id);
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = payload.new as RoomState;
+              return next;
+            }
             return [...prev, payload.new as RoomState];
           });
-        }
+        },
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [eventId]);
 
   return states;
@@ -108,10 +115,12 @@ export function useRoomStates(eventId: string | null) {
 ```
 
 **Regole Realtime:**
-- Sempre cleanup con `supabase.removeChannel(channel)` nel return di useEffect
+
+- Sempre cleanup con `supabase.removeChannel(channel)` nel return
 - Channel name include context (eventId) per evitare conflitti
-- RLS filtra automaticamente — solo eventi del tenant arrivano
-- Per dati critici (room_state): fetch iniziale + subscription
+- Usare `filter` nel `on()` per ridurre il traffico
+- Realtime attivo su: `room_state`, `presentation_versions`, `local_agents`, `paired_devices`
+- NON su `activity_log` — polling ogni 10s
 
 ## Storage Pattern — Upload TUS
 
@@ -122,26 +131,28 @@ import * as tus from 'tus-js-client';
 export function startTusUpload(
   file: File,
   sessionToken: string,
+  tenantId: string,
+  eventId: string,
+  presentationId: string,
+  versionNumber: number,
   onProgress: (pct: number) => void,
   onSuccess: () => void,
-  onError: (err: Error) => void
+  onError: (err: Error) => void,
 ) {
+  const storagePath = `tenants/${tenantId}/events/${eventId}/presentations/${presentationId}/v${versionNumber}/${file.name}`;
+
   const upload = new tus.Upload(file, {
     endpoint: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/upload/resumable`,
     retryDelays: [0, 3000, 5000, 10000, 20000],
-    headers: {
-      authorization: `Bearer ${sessionToken}`,
-    },
-    chunkSize: 6 * 1024 * 1024, // Supabase richiede 6MB chunks
+    headers: { authorization: `Bearer ${sessionToken}` },
+    chunkSize: 6 * 1024 * 1024, // 6 MB obbligatorio per Supabase TUS
     metadata: {
       bucketName: 'presentations',
-      objectName: `${tenantId}/${eventId}/${presentationId}/${file.name}`,
+      objectName: storagePath,
       contentType: file.type,
       cacheControl: '3600',
     },
-    onProgress: (bytesUploaded, bytesTotal) => {
-      onProgress(Math.round((bytesUploaded / bytesTotal) * 100));
-    },
+    onProgress: (uploaded, total) => onProgress(Math.round((uploaded / total) * 100)),
     onSuccess,
     onError,
   });
@@ -151,61 +162,101 @@ export function startTusUpload(
     upload.start();
   });
 
-  return upload; // Per pause/resume: upload.abort() / upload.start()
+  return upload;
 }
 ```
 
-## Edge Functions Pattern
+**Path storage obbligatorio:** `tenants/{tenant_id}/events/{event_id}/presentations/{id}/v{n}/{file}`
+
+**SHA-256 client-side (obbligatorio prima dell'upload):**
 
 ```typescript
-// supabase/functions/validate-upload-token/index.ts
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+async function computeSha256(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  const hash = await crypto.subtle.digest('SHA-256', buffer);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+```
 
-Deno.serve(async (req) => {
-  const { token } = await req.json();
+## Pairing Device — Edge Functions
 
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  );
+```
+pair-init    → genera codice 6 cifre + QR, inserisce in pairing_codes
+pair-claim   → tecnico inserisce codice → verifica → emette JWT permanente per sala
+pair-poll    → dashboard fa polling → status paired/pending
+cleanup-expired-codes → cron: elimina codici scaduti
+```
 
-  const { data: speaker, error } = await supabase
-    .from('speakers')
-    .select('*, sessions(*, rooms(*))')
-    .eq('upload_token', token)
-    .gt('upload_token_expires_at', new Date().toISOString())
-    .single();
-
-  if (error || !speaker) {
-    return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  return new Response(JSON.stringify({ speaker }), {
-    headers: { 'Content-Type': 'application/json' },
-  });
+```typescript
+// Esempio chiamata pair-init dalla dashboard
+const { data } = await supabase.functions.invoke('pair-init', {
+  body: { event_id: eventId, room_id: roomId, device_name: 'Sala Auditorium A' },
 });
+// data = { code: '847291', qr_data_url: 'data:image/png;base64,...', expires_at: '...' }
+
+// Polling pair-poll ogni 3 secondi
+const { data: poll } = await supabase.functions.invoke('pair-poll', {
+  body: { code: '847291' },
+});
+// poll = { status: 'pending' | 'consumed', device_id?: string }
+```
+
+## Edge Functions Pattern — Pattern sicuro
+
+```typescript
+// supabase/functions/_shared/auth.ts
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+
+export async function getAuthenticatedUser(req: Request) {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) throw new Response('Unauthorized', { status: 401 });
+
+  const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user) throw new Response('Unauthorized', { status: 401 });
+
+  const tenantId = user.app_metadata?.tenant_id;
+  if (!tenantId) throw new Response('No tenant', { status: 403 });
+
+  return { user, tenantId, supabase };
+}
 ```
 
 ## Migration Pattern
 
 ```sql
 -- supabase/migrations/YYYYMMDDHHMMSS_add_feature.sql
--- Sempre: BEGIN/COMMIT implicito da Supabase CLI
--- Sempre: IF NOT EXISTS per idempotenza dove possibile
+-- IF NOT EXISTS per idempotenza dove possibile
 
 ALTER TABLE presentations ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
 
-CREATE INDEX IF NOT EXISTS idx_presentations_thumbnail
-  ON presentations(session_id) WHERE thumbnail_url IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_presentations_session
+  ON presentations(session_id);
 ```
 
 ## Indici PostgreSQL — Linee guida
 
-- **Sempre** indice su `tenant_id` (per RLS performance)
-- **Sempre** indice su FK (event_id, room_id, session_id, etc.)
-- **Composti** per query frequenti: `(event_id, scheduled_start)` per sessioni
-- **Parziali** per stati: `WHERE status = 'active'` per eventi attivi
+- **Obbligatorio** indice su `tenant_id` (performance RLS)
+- **Obbligatorio** indice su ogni FK (event_id, room_id, session_id, etc.)
+- **Composti** per query frequenti: `(tenant_id, event_id)`, `(event_id, scheduled_start)`
+- **Parziali** per stati: `WHERE status = 'active'`, `WHERE consumed_at IS NULL`
 - **GIN** per JSONB: `CREATE INDEX idx_settings ON events USING GIN (settings)`
+
+## Tabelle con Realtime abilitato
+
+| Tabella                 | Trigger evento                  |
+| ----------------------- | ------------------------------- |
+| `room_state`            | Update sala in tempo reale      |
+| `presentation_versions` | Nuova versione file disponibile |
+| `local_agents`          | Heartbeat agent, IP LAN         |
+| `paired_devices`        | PC sala connesso/disconnesso    |
+
+`activity_log` → polling ogni 10s (non Realtime).
