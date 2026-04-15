@@ -221,6 +221,23 @@ export function useEventDetail(
     [supabase, tenantId, load],
   );
 
+  const importSpeakersBulk = useCallback(
+    async (rows: { session_id: string; full_name: string; email: string | null }[]) => {
+      if (!eventId || !tenantId) return { imported: 0, errorMessage: 'missing_context' as const };
+      let imported = 0;
+      for (const row of rows) {
+        const { error } = await createSpeakerForSession(supabase, tenantId, eventId, row);
+        if (error) {
+          return { imported, errorMessage: error.message };
+        }
+        imported += 1;
+      }
+      await load();
+      return { imported, errorMessage: null as string | null };
+    },
+    [supabase, tenantId, eventId, load],
+  );
+
   return {
     state,
     reload: load,
@@ -234,5 +251,6 @@ export function useEventDetail(
     deleteSession,
     deleteSpeaker,
     regenerateSpeakerUpload,
+    importSpeakersBulk,
   };
 }

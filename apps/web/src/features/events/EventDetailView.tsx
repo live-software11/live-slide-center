@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +15,11 @@ import type { SessionType } from '@/features/sessions/repository';
 import { TenantQuotaPanel } from '@/features/tenant/components/TenantQuotaPanel';
 import { useTenantQuotaRow } from '@/features/tenant/hooks/useTenantQuotaRow';
 import { isUnlimitedRoomsPerEvent } from '@/features/tenant/lib/quota-usage';
+import {
+  formatSpeakerCsvIssue,
+  parseAndResolveSpeakerCsv,
+  speakerCsvTemplateContent,
+} from '@/features/speakers/lib/speaker-csv-import';
 import { useEventDetail } from './hooks/useEventDetail';
 
 const ROOM_TYPES: RoomType[] = ['main', 'breakout', 'preview', 'poster'];
@@ -142,6 +147,7 @@ export default function EventDetailView() {
     deleteSession,
     deleteSpeaker,
     regenerateSpeakerUpload,
+    importSpeakersBulk,
   } = useEventDetail(supabase, eventId, tenantId);
   const quotaState = useTenantQuotaRow(supabase, tenantId);
   const [roomCreateError, setRoomCreateError] = useState<string | null>(null);
@@ -162,6 +168,9 @@ export default function EventDetailView() {
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const speakerCsvInputRef = useRef<HTMLInputElement>(null);
+  const [csvImportBusy, setCsvImportBusy] = useState(false);
+  const [csvFeedback, setCsvFeedback] = useState<{ variant: 'success' | 'error'; message: string } | null>(null);
 
   const {
     register,
@@ -236,6 +245,56 @@ export default function EventDetailView() {
     if (isUnlimitedRoomsPerEvent(row.plan, row.max_rooms_per_event)) return false;
     return state.rooms.length >= row.max_rooms_per_event;
   }, [state, quotaState.state]);
+
+  const downloadSpeakerCsvTemplate = useCallback(() => {
+    const blob = new Blob([speakerCsvTemplateContent()], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'speakers_import_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const onSpeakerCsvSelected = useCallback(
+    async (files: FileList | null) => {
+      setCsvFeedback(null);
+      const file = files?.[0];
+      if (!file || state.status !== 'ready') return;
+      const text = await file.text();
+      const parsed = parseAndResolveSpeakerCsv(text, state.sessions);
+      if ('issues' in parsed) {
+        setCsvFeedback({
+          variant: 'error',
+          message: parsed.issues.map((issue) => formatSpeakerCsvIssue(t, issue)).join('\n'),
+        });
+        return;
+      }
+      setCsvImportBusy(true);
+      const out = await importSpeakersBulk(parsed.rows);
+      setCsvImportBusy(false);
+      if (out.errorMessage === 'missing_context') {
+        setCsvFeedback({ variant: 'error', message: t('speaker.errors.missingContext') });
+      } else if (out.errorMessage) {
+        setCsvFeedback({
+          variant: 'error',
+          message: t('speaker.csvImport.partialFailure', {
+            imported: out.imported,
+            total: parsed.rows.length,
+            reason: out.errorMessage,
+          }),
+        });
+      } else {
+        setCsvFeedback({
+          variant: 'success',
+          message: t('speaker.csvImport.success', { count: out.imported }),
+        });
+      }
+    },
+    [state, importSpeakersBulk, t],
+  );
 
   const onRoomSubmit = handleSubmit(async (values) => {
     setRoomCreateError(null);
@@ -1090,6 +1149,53 @@ export default function EventDetailView() {
           {t('speaker.titlePlural')}
         </h2>
         <p className="mt-1 text-sm text-zinc-500">{t('speaker.eventDetailIntro')}</p>
+
+        {sessions.length > 0 ? (
+          <div className="mt-4 max-w-2xl rounded-lg border border-zinc-800 bg-zinc-950/60 p-4">
+            <h3 className="text-sm font-medium text-zinc-200">{t('speaker.csvImport.title')}</h3>
+            <p className="mt-1 text-xs text-zinc-500">{t('speaker.csvImport.hint')}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={downloadSpeakerCsvTemplate}
+                className="rounded-md border border-zinc-600 bg-zinc-900 px-3 py-2 text-xs font-medium text-zinc-200 hover:bg-zinc-800"
+              >
+                {t('speaker.csvImport.downloadTemplate')}
+              </button>
+              <input
+                ref={speakerCsvInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="sr-only"
+                aria-label={t('speaker.csvImport.fileAriaLabel')}
+                onChange={(e) => {
+                  const list = e.target.files;
+                  void onSpeakerCsvSelected(list);
+                  e.target.value = '';
+                }}
+              />
+              <button
+                type="button"
+                disabled={csvImportBusy}
+                onClick={() => speakerCsvInputRef.current?.click()}
+                className="rounded-md bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+              >
+                {csvImportBusy ? t('speaker.csvImport.importing') : t('speaker.csvImport.selectFile')}
+              </button>
+            </div>
+            {csvFeedback ? (
+              <pre
+                className={`mt-3 max-h-40 overflow-y-auto whitespace-pre-wrap font-sans text-xs ${
+                  csvFeedback.variant === 'error' ? 'text-amber-400' : 'text-emerald-400/95'
+                }`}
+                role="status"
+              >
+                {csvFeedback.message}
+              </pre>
+            ) : null}
+          </div>
+        ) : null}
+
         {speakerAuxError ? (
           <p className="mt-3 text-sm text-red-400" role="alert">
             {speakerAuxError}

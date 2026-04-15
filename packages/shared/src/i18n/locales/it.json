@@ -183,6 +183,26 @@
     "generateUploadLink": "Genera link invito",
     "generatingUploadLink": "Generazione…",
     "sendInvite": "Invia invito upload",
+    "csvImport": {
+      "title": "Importazione da CSV",
+      "hint": "File UTF-8 con intestazione obbligatoria: session_title, full_name, email (opzionale). Il titolo sessione deve corrispondere a una sola sessione dell'evento (confronto senza distinzione maiuscole/minuscole, spazi ai bordi ignorati). Massimo 200 righe dati.",
+      "downloadTemplate": "Scarica modello CSV",
+      "selectFile": "Scegli file CSV",
+      "importing": "Importazione in corso…",
+      "fileAriaLabel": "Seleziona file CSV per importare i relatori",
+      "success": "Importazione completata: {{count}} relatori aggiunti.",
+      "partialFailure": "Importazione interrotta dopo {{imported}} relatori su {{total}}. Motivo: {{reason}}",
+      "errors": {
+        "generic": "Errore nel file CSV.",
+        "emptyFile": "Il file è vuoto o non contiene righe dati.",
+        "tooManyRows": "Superato il limite di {{max}} righe dati per singola importazione.",
+        "missingHeaders": "Intestazione incompleta: servono le colonne {{keys}}.",
+        "emptyName": "Riga {{line}}: nome relatore mancante.",
+        "invalidEmail": "Riga {{line}}: email non valida ({{value}}).",
+        "unknownSession": "Riga {{line}}: nessuna sessione con titolo «{{title}}».",
+        "ambiguousSession": "Riga {{line}}: più sessioni con lo stesso titolo «{{title}}»: rinomina una sessione per distinguerle."
+      }
+    },
     "errors": {
       "invalidEmail": "Indirizzo email non valido.",
       "missingContext": "Contesto incompleto. Ricarica la pagina.",

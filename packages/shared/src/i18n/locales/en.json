@@ -183,6 +183,26 @@
     "generateUploadLink": "Generate invite link",
     "generatingUploadLink": "Generating…",
     "sendInvite": "Send upload invite",
+    "csvImport": {
+      "title": "CSV import",
+      "hint": "UTF-8 file with a header row: session_title, full_name, email (optional). The session title must match exactly one session in this event (case-insensitive, trimmed). Maximum 200 data rows per import.",
+      "downloadTemplate": "Download CSV template",
+      "selectFile": "Choose CSV file",
+      "importing": "Importing…",
+      "fileAriaLabel": "Select a CSV file to import speakers",
+      "success": "Import complete: {{count}} speaker(s) added.",
+      "partialFailure": "Import stopped after {{imported}} of {{total}} speaker(s). Reason: {{reason}}",
+      "errors": {
+        "generic": "CSV file error.",
+        "emptyFile": "The file is empty or contains no data rows.",
+        "tooManyRows": "This import exceeds the limit of {{max}} data rows.",
+        "missingHeaders": "Missing required columns: {{keys}}.",
+        "emptyName": "Line {{line}}: speaker name is required.",
+        "invalidEmail": "Line {{line}}: invalid email ({{value}}).",
+        "unknownSession": "Line {{line}}: no session titled \"{{title}}\".",
+        "ambiguousSession": "Line {{line}}: multiple sessions share the title \"{{title}}\" — rename a session to make titles unique."
+      }
+    },
     "errors": {
       "invalidEmail": "Invalid email address.",
       "missingContext": "Incomplete context. Reload the page.",
