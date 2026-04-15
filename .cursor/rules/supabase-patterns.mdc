@@ -11,7 +11,7 @@ alwaysApply: false
 ```typescript
 // lib/supabase.ts
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@slidecenter/shared/types/database';
+import type { Database } from '@slidecenter/shared';
 
 export const supabase = createClient<Database>(
   import.meta.env.VITE_SUPABASE_URL,
@@ -24,7 +24,7 @@ export const supabase = createClient<Database>(
 ```typescript
 // features/events/repository.ts
 import { supabase } from '../../lib/supabase';
-import type { Database } from '@slidecenter/shared/types/database';
+import type { Database } from '@slidecenter/shared';
 
 type Event = Database['public']['Tables']['events']['Row'];
 

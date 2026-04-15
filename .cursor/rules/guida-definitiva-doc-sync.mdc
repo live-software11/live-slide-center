@@ -10,7 +10,7 @@ alwaysApply: true
 ## Regole operative
 
 1. **Prima** di modificare schema PostgreSQL, RLS, Edge Functions, limiti piano, ruoli, pairing o sync: rileggere nella guida la sezione pertinente (indice §1-§19).
-2. **Dopo** una modifica che cambia comportamento o contratti (DB, API, monorepo, piani SaaS, roadmap, permessi): aggiornare **nello stesso intervento** la guida — sezioni schema (§7), checklist (§18), roadmap (§15) o indice se cambiano i file migration nominati.
+2. **Dopo** una modifica che cambia comportamento o contratti (DB, API, monorepo, piani SaaS, roadmap, permessi): aggiornare **nello stesso intervento** la guida — sezioni schema (§7), checklist (§18), roadmap (§15, incluso paragrafo **stima avanzamento / problemi noti** se cambia lo stato MVP o la toolchain), o indice se cambiano i file migration nominati.
 3. Se codice e guida divergono: o si corregge il codice verso la guida, o si aggiorna la guida con **motivo tecnico** in una frase chiara (ADR implicito). Non lasciare divergenze silenziose.
 4. **EN:** per paragrafi nuovi sostanziali nella guida, aggiungere in coda alla sezione un breve riassunto professionale in inglese (eventi live / AV), coerente con le regole i18n della documentazione workspace.
 5. Chiusura task: verificare la checklist §18 e spuntare cio che e veramente completato nel repository.
