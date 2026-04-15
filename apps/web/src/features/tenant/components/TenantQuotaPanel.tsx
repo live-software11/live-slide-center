@@ -51,32 +51,32 @@ export function TenantQuotaPanel({ variant, row, eventsInCurrentMonth = 0, rooms
 
   return (
     <section
-      className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4"
+      className="rounded-xl border border-sc-primary/12 bg-sc-surface/50 p-4"
       aria-label={t('tenantQuota.sectionAria')}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold text-zinc-100">{t('tenantQuota.sectionTitle')}</h2>
-        <span className="text-xs text-zinc-500">
+        <h2 className="text-sm font-semibold text-sc-text">{t('tenantQuota.sectionTitle')}</h2>
+        <span className="text-xs text-sc-text-dim">
           {t('tenantQuota.planLine', { plan: planLabel(t, row.plan) })}
         </span>
       </div>
       {variant === 'eventsPage' ? (
-        <p className="mt-2 text-xs text-zinc-500">{t('tenantQuota.eventsMonthHint', { month: monthTitle })}</p>
+        <p className="mt-2 text-xs text-sc-text-dim">{t('tenantQuota.eventsMonthHint', { month: monthTitle })}</p>
       ) : (
-        <p className="mt-2 text-xs text-zinc-500">{t('tenantQuota.eventDetailIntro')}</p>
+        <p className="mt-2 text-xs text-sc-text-dim">{t('tenantQuota.eventDetailIntro')}</p>
       )}
 
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
         <div>
-          <dt className="text-xs uppercase tracking-wide text-zinc-500">{t('tenantQuota.storageLabel')}</dt>
-          <dd className="mt-1 text-zinc-200">
+          <dt className="text-xs uppercase tracking-wide text-sc-text-dim">{t('tenantQuota.storageLabel')}</dt>
+          <dd className="mt-1 text-sc-text">
             {unlimitedStorage ? (
               t('tenantQuota.storageUnlimited', { used: formatBytes(row.storage_used_bytes) })
             ) : (
               <>
                 {formatBytes(row.storage_used_bytes)} / {formatBytes(row.storage_limit_bytes)}
                 <div
-                  className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-800"
+                  className="mt-2 h-2 overflow-hidden rounded-full bg-sc-elevated"
                   role="meter"
                   aria-valuemin={0}
                   aria-valuemax={100}
@@ -84,7 +84,7 @@ export function TenantQuotaPanel({ variant, row, eventsInCurrentMonth = 0, rooms
                   aria-label={t('tenantQuota.storageMeterAria')}
                 >
                   <div
-                    className={`h-full rounded-full ${storagePct >= 90 ? 'bg-amber-500' : 'bg-blue-600'}`}
+                    className={`h-full rounded-full ${storagePct >= 90 ? 'bg-sc-warning' : 'bg-sc-primary'}`}
                     style={{ width: `${storagePct}%` }}
                   />
                 </div>
@@ -94,8 +94,8 @@ export function TenantQuotaPanel({ variant, row, eventsInCurrentMonth = 0, rooms
         </div>
         {variant === 'eventsPage' ? (
           <div>
-            <dt className="text-xs uppercase tracking-wide text-zinc-500">{t('tenantQuota.eventsThisMonthLabel')}</dt>
-            <dd className="mt-1 text-zinc-200">
+            <dt className="text-xs uppercase tracking-wide text-sc-text-dim">{t('tenantQuota.eventsThisMonthLabel')}</dt>
+            <dd className="mt-1 text-sc-text">
               {unlimitedEvents
                 ? t('tenantQuota.unlimited')
                 : t('tenantQuota.usedOf', {
@@ -103,7 +103,7 @@ export function TenantQuotaPanel({ variant, row, eventsInCurrentMonth = 0, rooms
                     total: row.max_events_per_month,
                   })}
               {eventsAtOrOverCap ? (
-                <p className="mt-1 text-xs text-amber-400" role="status">
+                <p className="mt-1 text-xs text-sc-warning" role="status">
                   {t('tenantQuota.eventsAtCap')}
                 </p>
               ) : null}
@@ -111,8 +111,8 @@ export function TenantQuotaPanel({ variant, row, eventsInCurrentMonth = 0, rooms
           </div>
         ) : typeof roomsInThisEvent === 'number' ? (
           <div>
-            <dt className="text-xs uppercase tracking-wide text-zinc-500">{t('tenantQuota.roomsThisEventLabel')}</dt>
-            <dd className="mt-1 text-zinc-200">
+            <dt className="text-xs uppercase tracking-wide text-sc-text-dim">{t('tenantQuota.roomsThisEventLabel')}</dt>
+            <dd className="mt-1 text-sc-text">
               {unlimitedRooms
                 ? t('tenantQuota.unlimited')
                 : t('tenantQuota.usedOf', {
@@ -120,7 +120,7 @@ export function TenantQuotaPanel({ variant, row, eventsInCurrentMonth = 0, rooms
                     total: row.max_rooms_per_event,
                   })}
               {roomsAtOrOverCap ? (
-                <p className="mt-1 text-xs text-amber-400" role="status">
+                <p className="mt-1 text-xs text-sc-warning" role="status">
                   {t('tenantQuota.roomsAtCap')}
                 </p>
               ) : null}

@@ -44,7 +44,7 @@ function syncStatusColor(status: SyncStatus): string {
     case 'outdated':
       return 'text-orange-400 bg-orange-900/30 border-orange-700/40';
     case 'offline':
-      return 'text-red-400 bg-red-900/30 border-red-700/40';
+      return 'text-sc-danger bg-red-900/30 border-red-700/40';
   }
 }
 
@@ -184,16 +184,16 @@ export default function RoomPlayerView() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950">
-        <p className="text-zinc-400">{t('common.loading')}</p>
+      <div className="flex min-h-screen items-center justify-center bg-sc-bg">
+        <p className="text-sc-text-muted">{t('common.loading')}</p>
       </div>
     );
   }
 
   if (authError || !roomData) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 gap-4 p-6">
-        <p className="text-red-400">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-sc-bg gap-4 p-6">
+        <p className="text-sc-danger">
           {authError === 'invalid_token'
             ? t('roomPlayer.error.invalidToken')
             : authError === 'no_room_assigned'
@@ -205,7 +205,7 @@ export default function RoomPlayerView() {
         <button
           type="button"
           onClick={() => navigate('/pair')}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500"
+          className="rounded-xl bg-sc-primary px-4 py-2 text-sm text-white hover:bg-sc-primary/80"
         >
           {t('roomPlayer.error.reconnect')}
         </button>
@@ -214,14 +214,14 @@ export default function RoomPlayerView() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-100">
-      <header className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+    <div className="flex min-h-screen flex-col bg-sc-bg text-sc-text">
+      <header className="flex items-center justify-between border-b border-sc-primary/12 px-4 py-3">
         <div className="flex items-center gap-3">
-          <Folder className="h-5 w-5 text-zinc-400" />
+          <Folder className="h-5 w-5 text-sc-text-muted" />
           <div>
             <h1 className="text-sm font-semibold">{roomData.name}</h1>
             {roomData.currentSession && (
-              <p className="text-xs text-zinc-400 truncate max-w-56">
+              <p className="text-xs text-sc-text-muted truncate max-w-56">
                 {roomData.currentSession.title}
               </p>
             )}
@@ -234,7 +234,7 @@ export default function RoomPlayerView() {
             type="button"
             aria-label={t('common.menu')}
             onClick={() => setMenuOpen((v) => !v)}
-            className="rounded-md p-1.5 text-zinc-400 hover:text-zinc-200"
+            className="rounded-xl p-1.5 text-sc-text-muted hover:text-sc-text"
           >
             {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -242,7 +242,7 @@ export default function RoomPlayerView() {
       </header>
 
       {menuOpen && (
-        <div className="border-b border-zinc-800 bg-zinc-900 px-4 py-2">
+        <div className="border-b border-sc-primary/12 bg-sc-surface px-4 py-2">
           <ul className="space-y-1">
             {supported && (
               <li>
@@ -256,7 +256,7 @@ export default function RoomPlayerView() {
                     }
                     setMenuOpen(false);
                   }}
-                  className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
+                  className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm text-sc-text-secondary hover:bg-sc-elevated"
                 >
                   <FolderOpen className="h-4 w-4" />
                   {dirHandle
@@ -269,7 +269,7 @@ export default function RoomPlayerView() {
               <button
                 type="button"
                 onClick={() => navigate('/pair')}
-                className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
+                className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm text-sc-text-secondary hover:bg-sc-elevated"
               >
                 <RefreshCw className="h-4 w-4" />
                 {t('roomPlayer.menu.changeRoom')}
@@ -279,7 +279,7 @@ export default function RoomPlayerView() {
               <button
                 type="button"
                 onClick={handleDisconnect}
-                className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm text-red-400 hover:bg-zinc-800"
+                className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm text-sc-danger hover:bg-sc-elevated"
               >
                 <LogOut className="h-4 w-4" />
                 {t('roomPlayer.menu.disconnect')}
@@ -292,13 +292,13 @@ export default function RoomPlayerView() {
       <main className="flex-1 overflow-auto p-4 space-y-4">
         {/* Banner selezione cartella */}
         {supported && !dirHandle && (
-          <div className="rounded-lg border border-blue-800/60 bg-blue-950/40 p-4">
-            <p className="text-sm font-medium text-blue-300">{t('roomPlayer.fileSync.pickFolderTitle')}</p>
-            <p className="mt-1 text-xs text-blue-400/80">{t('roomPlayer.fileSync.pickFolderHint')}</p>
+          <div className="rounded-xl border border-blue-800/60 bg-blue-950/40 p-4">
+            <p className="text-sm font-medium text-sc-primary">{t('roomPlayer.fileSync.pickFolderTitle')}</p>
+            <p className="mt-1 text-xs text-sc-primary/80">{t('roomPlayer.fileSync.pickFolderHint')}</p>
             <button
               type="button"
               onClick={pickFolder}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-sc-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-sc-primary/80"
             >
               <FolderOpen className="h-4 w-4" />
               {t('roomPlayer.fileSync.pickFolderCta')}
@@ -308,7 +308,7 @@ export default function RoomPlayerView() {
 
         {/* Cartella selezionata — info */}
         {supported && dirHandle && (
-          <div className="flex items-center gap-2 rounded-lg border border-green-800/40 bg-green-950/20 px-3 py-2">
+          <div className="flex items-center gap-2 rounded-xl border border-green-800/40 bg-green-950/20 px-3 py-2">
             <FolderOpen className="h-4 w-4 shrink-0 text-green-400" />
             <span className="min-w-0 flex-1 truncate text-xs text-green-300">
               {t('roomPlayer.fileSync.folderActive', { name: dirHandle.name })}
@@ -318,8 +318,8 @@ export default function RoomPlayerView() {
 
         {/* Avviso browser non supportato */}
         {!supported && (
-          <div className="rounded-lg border border-amber-800/40 bg-amber-950/20 px-3 py-2">
-            <p className="text-xs text-amber-400">{t('roomPlayer.fileSync.notSupported')}</p>
+          <div className="rounded-xl border border-amber-800/40 bg-amber-950/20 px-3 py-2">
+            <p className="text-xs text-sc-warning">{t('roomPlayer.fileSync.notSupported')}</p>
           </div>
         )}
 
@@ -327,9 +327,9 @@ export default function RoomPlayerView() {
         {dirHandle && items.length > 0 ? (
           <FileSyncStatus items={items} onRetry={retryItem} />
         ) : dirHandle && items.length === 0 ? (
-          <p className="py-8 text-center text-sm text-zinc-500">{t('roomPlayer.noFiles')}</p>
+          <p className="py-8 text-center text-sm text-sc-text-dim">{t('roomPlayer.noFiles')}</p>
         ) : !dirHandle && items.length === 0 && supported ? null : (
-          <p className="py-8 text-center text-sm text-zinc-500">{t('roomPlayer.noFiles')}</p>
+          <p className="py-8 text-center text-sm text-sc-text-dim">{t('roomPlayer.noFiles')}</p>
         )}
       </main>
     </div>

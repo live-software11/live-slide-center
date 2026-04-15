@@ -157,17 +157,17 @@ export function useEvents() {
 type SyncStatus = 'synced' | 'syncing' | 'outdated' | 'offline';
 
 const STATUS_COLORS: Record<SyncStatus, string> = {
-  synced:   'bg-green-500',
-  syncing:  'bg-yellow-500 animate-pulse',
-  outdated: 'bg-orange-500',
-  offline:  'bg-red-500',
+  synced:   'bg-sc-success',
+  syncing:  'bg-sc-warning animate-pulse',
+  outdated: 'bg-sc-accent',
+  offline:  'bg-sc-danger',
 };
 
 function SyncIndicator({ status, version, totalVersions, lastSync }: Props) {
   return (
     <div className="flex items-center gap-2">
       <span className={cn('w-3 h-3 rounded-full', STATUS_COLORS[status])} />
-      <span className="text-sm font-mono text-zinc-300">
+      <span className="text-sm font-mono text-sc-text-secondary">
         v{version}/{totalVersions} — {formatRelative(lastSync)}
       </span>
     </div>
@@ -225,24 +225,47 @@ function MyComponent() {
 - `<AppErrorBoundary>` globale in `main.tsx`
 - MAI swallowing silenzioso in operazioni critiche (upload, sync, pairing)
 
-## Design system — Dark mode only
+## Design system — Brand Navy Dark (allineato a www.liveworksapp.com)
 
-```typescript
-// Palette obbligatoria (da tailwind.config.ts)
-// bg-[#0A0A0B]  → background regia
-// bg-[#141416]  → card, sidebar
-// text-[#FAFAFA] → titoli
-// text-[#A1A1AA] → label, metadata
-// accent: blue-600 (#0066FF)
-// success: green-500 (#22C55E)
-// warning: amber-500 (#F59E0B)
-// danger: red-500 (#EF4444)
+Tutti i colori sono definiti come token Tailwind 4 in `apps/web/src/index.css` via `@theme inline`.
+
 ```
+Sfondo:        bg-sc-bg           (#07101f)
+Card/surface:  bg-sc-surface      (#0d1c30)
+Elevated:      bg-sc-elevated     (#132844)
+Primary:       bg-sc-primary      (#3FA9F5)  — CTA, link, selezione
+Primary deep:  bg-sc-primary-deep (#0B5ED7)  — hover primary
+Accent:        bg-sc-accent       (#FF7A00)  — admin badge, avvisi
+Navy:          bg-sc-navy         (#0A2540)  — logo box
+
+Text:          text-sc-text            (#f0f2f5)
+Secondary:     text-sc-text-secondary  (#b8c5d4)
+Muted:         text-sc-text-muted      (#7a8da3)
+Dim:           text-sc-text-dim        (#556577)
+
+Success:       text-sc-success    (#4ade80)
+Warning:       text-sc-warning    (#fbbf24)
+Danger:        text-sc-danger     (#f87171)
+
+Bordi:         border-sc-primary/12    (blu-tinted sottile)
+Input border:  border-sc-primary/20    (piu visibile)
+Focus ring:    ring-sc-ring/25 + focus:border-sc-primary/40
+```
+
+**Pattern obbligatori:**
+
+- `rounded-xl` per card, input, bottoni, sezioni
+- `rounded-2xl` per card grandi (auth, modali principali)
+- Font: DM Sans (Google Fonts) — definito in `@theme` e `index.html`
+- Sidebar: `bg-sc-surface/80 backdrop-blur-xl border-sc-primary/10`
+- Bottone primario: `bg-sc-primary text-white shadow-lg shadow-sc-primary/20 hover:bg-sc-primary-deep`
+- Input: `bg-sc-bg border-sc-primary/15 rounded-xl focus:border-sc-primary/40 focus:ring-2 focus:ring-sc-ring/25`
 
 **Principi UX:**
 
 - Stato sempre visibile con colore inequivocabile
 - Zero ambiguita sulla versione (numero + timestamp + hash troncato)
 - Feedback entro 200ms per azioni UI
-- Solo componenti shadcn/ui (no librerie UI aggiuntive)
+- Dark mode only — coerenza con sito marketing
 - Densita informativa alta — utenti target: tecnici AV esperti
+- MAI usare classi `zinc-*` o `blue-600` dirette — sempre token `sc-*`

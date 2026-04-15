@@ -86,7 +86,7 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
 
   if (loading && bundle.versions.length === 0) {
     return (
-      <div className="mt-3 rounded-md border border-zinc-800 bg-zinc-950/40 px-3 py-2 text-xs text-zinc-500">
+      <div className="mt-3 rounded-xl border border-sc-primary/12 bg-sc-bg/40 px-3 py-2 text-xs text-sc-text-dim">
         {t('presentation.versions.loading')}
       </div>
     );
@@ -94,7 +94,7 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
 
   if (error) {
     return (
-      <div className="mt-3 rounded-md border border-red-900/60 bg-red-950/40 px-3 py-2 text-xs text-red-300">
+      <div className="mt-3 rounded-xl border border-red-900/60 bg-red-950/40 px-3 py-2 text-xs text-red-300">
         {t('presentation.versions.loadError')}
       </div>
     );
@@ -102,7 +102,7 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
 
   if (!bundle.presentation) {
     return (
-      <div className="mt-3 rounded-md border border-zinc-800 bg-zinc-950/40 px-3 py-2 text-xs text-zinc-500">
+      <div className="mt-3 rounded-xl border border-sc-primary/12 bg-sc-bg/40 px-3 py-2 text-xs text-sc-text-dim">
         {t('presentation.versions.none')}
       </div>
     );
@@ -112,14 +112,14 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
   const currentId = presentation.current_version_id;
 
   return (
-    <div className="mt-3 space-y-3 rounded-md border border-zinc-800 bg-zinc-950/40 p-3">
+    <div className="mt-3 space-y-3 rounded-xl border border-sc-primary/12 bg-sc-bg/40 p-3">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-xs">
-          <span className="uppercase tracking-wide text-zinc-500">
+          <span className="uppercase tracking-wide text-sc-text-dim">
             {t('presentation.versions.title')}
           </span>
           <StatusBadge status={presentation.status} />
-          <span className="text-zinc-500">
+          <span className="text-sc-text-dim">
             {t('presentation.versions.totalCount', { count: presentation.total_versions })}
           </span>
         </div>
@@ -154,10 +154,10 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
       </header>
 
       {noteOpen ? (
-        <div className="rounded border border-zinc-700 bg-zinc-900/80 p-3">
+        <div className="rounded border border-sc-primary/20 bg-sc-surface/80 p-3">
           <label
             htmlFor={`note-${speakerId}`}
-            className="mb-1 block text-xs text-zinc-400"
+            className="mb-1 block text-xs text-sc-text-muted"
           >
             {t('presentation.versions.reviewerNoteLabel')}
           </label>
@@ -166,14 +166,14 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
             value={noteDraft}
             onChange={(e) => setNoteDraft(e.target.value)}
             rows={2}
-            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+            className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
             placeholder={t('presentation.versions.reviewerNotePlaceholder', { name: speakerName })}
           />
           <div className="mt-2 flex flex-wrap gap-2">
             <button
               type="button"
               disabled={actionBusy !== null}
-              className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+              className="rounded-xl bg-sc-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
               onClick={() => void onStatus(noteOpen, noteDraft.trim() || null)}
             >
               {t('common.save')}
@@ -181,7 +181,7 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
             <button
               type="button"
               disabled={actionBusy !== null}
-              className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+              className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
               onClick={() => {
                 setNoteOpen(null);
                 setNoteDraft('');
@@ -192,13 +192,13 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
           </div>
         </div>
       ) : presentation.reviewer_note ? (
-        <p className="rounded border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-xs text-zinc-400">
-          <span className="font-semibold text-zinc-300">
+        <p className="rounded border border-sc-primary/12 bg-sc-surface/60 px-3 py-2 text-xs text-sc-text-muted">
+          <span className="font-semibold text-sc-text-secondary">
             {t('presentation.versions.reviewerNoteLabel')}:
           </span>{' '}
           {presentation.reviewer_note}
           {presentation.reviewed_at ? (
-            <span className="ml-2 text-zinc-500">
+            <span className="ml-2 text-sc-text-dim">
               ({dateTimeFmt.format(new Date(presentation.reviewed_at))})
             </span>
           ) : null}
@@ -212,9 +212,9 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
       ) : null}
 
       {versions.length === 0 ? (
-        <p className="text-xs text-zinc-500">{t('presentation.versions.emptyList')}</p>
+        <p className="text-xs text-sc-text-dim">{t('presentation.versions.emptyList')}</p>
       ) : (
-        <ul className="divide-y divide-zinc-800 rounded border border-zinc-800">
+        <ul className="divide-y divide-sc-primary/12 rounded border border-sc-primary/12">
           {versions.map((v) => {
             const isCurrent = currentId === v.id;
             const canDownload = v.status === 'ready' || v.status === 'superseded';
@@ -222,13 +222,13 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
               <li key={v.id} className="flex flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="font-mono text-zinc-300">v{v.version_number}</span>
+                    <span className="font-mono text-sc-text-secondary">v{v.version_number}</span>
                     <VersionStatusBadge status={v.status} isCurrent={isCurrent} />
-                    <span className="truncate text-zinc-300" title={v.file_name}>
+                    <span className="truncate text-sc-text-secondary" title={v.file_name}>
                       {v.file_name}
                     </span>
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-zinc-500">
+                  <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-sc-text-dim">
                     <span>{dateTimeFmt.format(new Date(v.created_at))}</span>
                     <span>{formatBytes(v.file_size_bytes, locale)}</span>
                     {v.file_hash_sha256 ? (
@@ -247,7 +247,7 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
                   <button
                     type="button"
                     disabled={!canDownload || actionBusy === `dl:${v.id}`}
-                    className="rounded-md border border-zinc-600 px-2.5 py-1 text-xs text-zinc-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-xl border border-sc-primary/20 px-2.5 py-1 text-xs text-sc-text hover:bg-sc-elevated disabled:cursor-not-allowed disabled:opacity-40"
                     onClick={() => void onDownload(v)}
                   >
                     {actionBusy === `dl:${v.id}`
@@ -258,7 +258,7 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
                     <button
                       type="button"
                       disabled={actionBusy === `rb:${v.id}`}
-                      className="rounded-md border border-amber-700/60 px-2.5 py-1 text-xs font-medium text-amber-200/90 hover:bg-amber-950/40 disabled:opacity-40"
+                      className="rounded-xl border border-amber-700/60 px-2.5 py-1 text-xs font-medium text-amber-200/90 hover:bg-amber-950/40 disabled:opacity-40"
                       onClick={() => void onRollback(v)}
                     >
                       {actionBusy === `rb:${v.id}`
@@ -279,9 +279,9 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
 function StatusBadge({ status }: { status: PresentationStatus }) {
   const { t } = useTranslation();
   const tone: Record<PresentationStatus, string> = {
-    pending: 'border-zinc-700 bg-zinc-900 text-zinc-400',
+    pending: 'border-sc-primary/20 bg-sc-surface text-sc-text-muted',
     uploaded: 'border-blue-900/60 bg-blue-950/40 text-blue-300',
-    reviewed: 'border-zinc-700 bg-zinc-900 text-zinc-200',
+    reviewed: 'border-sc-primary/20 bg-sc-surface text-sc-text',
     approved: 'border-emerald-900/60 bg-emerald-950/40 text-emerald-300',
     rejected: 'border-red-900/60 bg-red-950/40 text-red-300',
   };
@@ -314,7 +314,7 @@ function VersionStatusBadge({
     processing: 'border-blue-900/60 bg-blue-950/40 text-blue-300',
     ready: 'border-emerald-900/60 bg-emerald-950/40 text-emerald-300',
     failed: 'border-red-900/60 bg-red-950/40 text-red-300',
-    superseded: 'border-zinc-700 bg-zinc-900 text-zinc-500',
+    superseded: 'border-sc-primary/20 bg-sc-surface text-sc-text-dim',
   };
   return (
     <span
@@ -341,13 +341,13 @@ function StatusAction({
       ? 'border-emerald-700/60 text-emerald-300 hover:bg-emerald-950/40'
       : tone === 'danger'
         ? 'border-red-700/60 text-red-300 hover:bg-red-950/40'
-        : 'border-zinc-600 text-zinc-200 hover:bg-zinc-800';
+        : 'border-sc-primary/20 text-sc-text hover:bg-sc-elevated';
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`rounded-md border px-2.5 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-40 ${cls}`}
+      className={`rounded-xl border px-2.5 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-40 ${cls}`}
     >
       {label}
     </button>

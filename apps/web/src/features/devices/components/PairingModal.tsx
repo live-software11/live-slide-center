@@ -74,7 +74,7 @@ export function PairingModal({ eventId, roomId, onClose, onPaired }: PairingModa
       return (
         <div className="flex flex-col items-center gap-4 py-8">
           <Loader2 className="h-10 w-10 animate-spin text-blue-400" />
-          <p className="text-sm text-zinc-400">{t('devices.pairing.generating')}</p>
+          <p className="text-sm text-sc-text-muted">{t('devices.pairing.generating')}</p>
         </div>
       );
     }
@@ -83,8 +83,8 @@ export function PairingModal({ eventId, roomId, onClose, onPaired }: PairingModa
       return (
         <div className="flex flex-col items-center gap-6">
           <div className="flex flex-col items-center gap-2">
-            <p className="text-sm text-zinc-400">{t('devices.pairing.openUrl')}</p>
-            <span className="rounded bg-zinc-800 px-3 py-1 font-mono text-sm text-zinc-200">
+            <p className="text-sm text-sc-text-muted">{t('devices.pairing.openUrl')}</p>
+            <span className="rounded bg-sc-elevated px-3 py-1 font-mono text-sm text-sc-text">
               {pairUrl}
             </span>
           </div>
@@ -94,14 +94,14 @@ export function PairingModal({ eventId, roomId, onClose, onPaired }: PairingModa
           </div>
 
           <div className="flex flex-col items-center gap-1">
-            <p className="text-sm text-zinc-400">{t('devices.pairing.enterCode')}</p>
+            <p className="text-sm text-sc-text-muted">{t('devices.pairing.enterCode')}</p>
             <PairingCode code={s.code} />
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-sc-text-dim">
               {t('devices.pairing.expiresIn', { countdown })}
             </p>
           </div>
 
-          <div className="flex items-center gap-2 text-sm text-zinc-400">
+          <div className="flex items-center gap-2 text-sm text-sc-text-muted">
             <Loader2 className="h-4 w-4 animate-spin" />
             {t('devices.pairing.waitingForDevice')}
           </div>
@@ -123,11 +123,11 @@ export function PairingModal({ eventId, roomId, onClose, onPaired }: PairingModa
     if (s.status === 'expired') {
       return (
         <div className="flex flex-col items-center gap-4 py-8">
-          <p className="text-zinc-300">{t('devices.pairing.expired')}</p>
+          <p className="text-sc-text-secondary">{t('devices.pairing.expired')}</p>
           <button
             type="button"
             onClick={() => startPairing()}
-            className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500"
+            className="inline-flex items-center gap-2 rounded-xl bg-sc-primary px-4 py-2 text-sm font-medium text-white hover:bg-sc-primary/80"
           >
             <RefreshCw className="h-4 w-4" />
             {t('devices.pairing.regenerate')}
@@ -139,11 +139,11 @@ export function PairingModal({ eventId, roomId, onClose, onPaired }: PairingModa
     if (s.status === 'error') {
       return (
         <div className="flex flex-col items-center gap-4 py-8">
-          <p className="text-red-400">{t('devices.pairing.errorGeneric', { message: s.message })}</p>
+          <p className="text-sc-danger">{t('devices.pairing.errorGeneric', { message: s.message })}</p>
           <button
             type="button"
             onClick={() => { reset(); startPairing(); }}
-            className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500"
+            className="inline-flex items-center gap-2 rounded-xl bg-sc-primary px-4 py-2 text-sm font-medium text-white hover:bg-sc-primary/80"
           >
             <RefreshCw className="h-4 w-4" />
             {t('devices.pairing.regenerate')}
@@ -162,11 +162,11 @@ export function PairingModal({ eventId, roomId, onClose, onPaired }: PairingModa
       aria-modal="true"
       aria-labelledby="pairing-modal-title"
     >
-      <div className="relative w-full max-w-md rounded-2xl bg-zinc-900 border border-zinc-700 p-6 shadow-2xl">
+      <div className="relative w-full max-w-md rounded-2xl bg-sc-surface border border-sc-primary/20 p-6 shadow-2xl">
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-md p-1 text-zinc-400 hover:text-zinc-200"
+          className="absolute right-4 top-4 rounded-xl p-1 text-sc-text-muted hover:text-sc-text"
           aria-label={t('common.close')}
         >
           <X className="h-5 w-5" />

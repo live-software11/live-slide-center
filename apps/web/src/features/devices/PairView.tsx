@@ -91,20 +91,23 @@ export default function PairView() {
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', null, '0', 'del'];
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 p-6">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-sc-bg p-6">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white">{t('pair.title')}</h1>
-          <p className="mt-2 text-sm text-zinc-400">{t('pair.subtitle')}</p>
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-sc-navy ring-1 ring-white/10">
+            <span className="text-lg font-bold text-sc-primary">SC</span>
+          </div>
+          <h1 className="text-2xl font-bold text-sc-text">{t('pair.title')}</h1>
+          <p className="mt-2 text-sm text-sc-text-muted">{t('pair.subtitle')}</p>
         </div>
 
-        <div className="flex justify-center gap-2" aria-label={t('pair.codeInputLabel')}>
+        <div className="flex justify-center gap-2.5" aria-label={t('pair.codeInputLabel')}>
           {code.map((digit, i) => (
             <div
               key={i}
-              className={`flex h-14 w-10 items-center justify-center rounded-lg border-2 text-2xl font-bold text-white transition-colors ${digit !== ''
-                  ? 'border-blue-500 bg-blue-950/40'
-                  : 'border-zinc-700 bg-zinc-800'
+              className={`flex h-14 w-11 items-center justify-center rounded-xl border-2 text-2xl font-bold text-sc-text transition-colors ${digit !== ''
+                  ? 'border-sc-primary bg-sc-primary/10'
+                  : 'border-sc-primary/20 bg-sc-surface'
                 }`}
             >
               {digit}
@@ -113,7 +116,7 @@ export default function PairView() {
         </div>
 
         {error && (
-          <p className="text-center text-sm text-red-400" role="alert">
+          <p className="text-center text-sm text-sc-danger" role="alert">
             {error}
           </p>
         )}
@@ -128,7 +131,7 @@ export default function PairView() {
                 type="button"
                 onClick={deleteDigit}
                 disabled={loading || blocked}
-                className="flex h-14 items-center justify-center rounded-xl bg-zinc-800 text-zinc-300 active:bg-zinc-700 disabled:opacity-40"
+                className="flex h-14 items-center justify-center rounded-xl bg-sc-surface text-sc-text-secondary transition-colors active:bg-sc-elevated disabled:opacity-40"
                 aria-label={t('pair.delete')}
               >
                 <Delete className="h-5 w-5" />
@@ -139,7 +142,7 @@ export default function PairView() {
                 type="button"
                 onClick={() => void handleKeypadClick(key)}
                 disabled={loading || blocked || isComplete}
-                className="flex h-14 items-center justify-center rounded-xl bg-zinc-800 text-xl font-semibold text-white active:bg-zinc-700 disabled:opacity-40"
+                className="flex h-14 items-center justify-center rounded-xl bg-sc-surface text-xl font-semibold text-sc-text transition-colors active:bg-sc-elevated disabled:opacity-40"
               >
                 {key}
               </button>
@@ -148,7 +151,7 @@ export default function PairView() {
         </div>
 
         {loading && (
-          <p className="text-center text-sm text-zinc-400">{t('pair.connecting')}</p>
+          <p className="text-center text-sm text-sc-text-muted">{t('pair.connecting')}</p>
         )}
       </div>
     </div>

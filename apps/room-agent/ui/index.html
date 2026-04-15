@@ -4,39 +4,141 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Slide Center — Room Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
   <style>
+    :root {
+      --sc-bg: #07101f;
+      --sc-surface: #0d1c30;
+      --sc-elevated: #132844;
+      --sc-primary: #3FA9F5;
+      --sc-primary-deep: #0B5ED7;
+      --sc-accent: #FF7A00;
+      --sc-navy: #0A2540;
+      --sc-text: #f0f2f5;
+      --sc-text-secondary: #b8c5d4;
+      --sc-text-muted: #7a8da3;
+      --sc-text-dim: #556577;
+      --sc-border: rgba(63, 169, 245, 0.12);
+      --sc-border-strong: rgba(63, 169, 245, 0.20);
+      --sc-success: #4ade80;
+      --sc-danger: #f87171;
+      --sc-warning: #fbbf24;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #09090b; color: #f4f4f5; font-family: system-ui, sans-serif; min-height: 100vh; }
-    header { background: #18181b; border-bottom: 1px solid #27272a; padding: 14px 20px; display: flex; align-items: center; gap: 10px; }
+    body { background: var(--sc-bg); color: var(--sc-text); font-family: 'DM Sans', system-ui, sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+    ::selection { background-color: rgba(63, 169, 245, 0.25); }
+
+    header {
+      background: var(--sc-surface);
+      border-bottom: 1px solid var(--sc-border);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px; height: 28px;
+      background: var(--sc-navy);
+      border-radius: 8px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+    }
+    .logo-box span { font-size: 10px; font-weight: 700; color: var(--sc-primary); }
     header h1 { font-size: 14px; font-weight: 600; }
-    .badge { font-size: 11px; border-radius: 999px; padding: 2px 10px; font-weight: 600; }
+
+    .badge {
+      font-size: 11px;
+      border-radius: 999px;
+      padding: 3px 12px;
+      font-weight: 600;
+    }
     .badge-synced { background: #14532d; color: #86efac; }
     .badge-syncing { background: #713f12; color: #fde68a; }
     .badge-offline { background: #450a0a; color: #fca5a5; }
-    .badge-connecting { background: #1e3a5f; color: #93c5fd; }
+    .badge-connecting { background: rgba(63,169,245,0.15); color: var(--sc-primary); }
+
     main { padding: 20px; max-width: 640px; }
-    .card { background: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 14px 18px; margin-bottom: 14px; }
-    .card h2 { font-size: 12px; font-weight: 600; color: #a1a1aa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
-    input[type="text"] { background: #09090b; border: 1px solid #27272a; border-radius: 6px; color: #f4f4f5; padding: 7px 10px; font-size: 13px; width: 100%; outline: none; }
-    input[type="text"]:focus { border-color: #2563eb; }
-    button { border: none; cursor: pointer; border-radius: 6px; font-size: 13px; font-weight: 500; padding: 7px 14px; }
-    .btn-primary { background: #2563eb; color: #fff; }
-    .btn-primary:hover { background: #1d4ed8; }
-    .btn-ghost { background: #27272a; color: #d4d4d8; }
-    .btn-ghost:hover { background: #3f3f46; }
+
+    .card {
+      background: var(--sc-surface);
+      border: 1px solid var(--sc-border);
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 14px;
+    }
+    .card h2 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--sc-text-muted);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    input[type="text"] {
+      background: var(--sc-bg);
+      border: 1px solid var(--sc-border-strong);
+      border-radius: 12px;
+      color: var(--sc-text);
+      padding: 8px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus { border-color: var(--sc-primary); box-shadow: 0 0 0 3px rgba(63,169,245,0.15); }
+
+    button {
+      border: none;
+      cursor: pointer;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      padding: 8px 16px;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: var(--sc-primary);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(63,169,245,0.2);
+    }
+    .btn-primary:hover { background: var(--sc-primary-deep); }
+    .btn-ghost { background: var(--sc-elevated); color: var(--sc-text-secondary); }
+    .btn-ghost:hover { background: rgba(63,169,245,0.15); color: var(--sc-text); }
     .btn-danger { background: #7f1d1d; color: #fca5a5; }
+    .btn-danger:hover { background: #991b1b; }
+
     .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
     .form-group { margin-bottom: 10px; }
-    label { font-size: 12px; color: #71717a; display: block; margin-bottom: 4px; }
+    label { font-size: 12px; color: var(--sc-text-muted); display: block; margin-bottom: 4px; font-weight: 500; }
+
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    thead th { text-align: left; color: #52525b; padding: 5px 6px; border-bottom: 1px solid #27272a; font-weight: 500; }
-    tbody td { padding: 7px 6px; border-bottom: 1px solid #18181b; color: #d4d4d8; }
-    .tick { color: #4ade80; font-weight: 700; }
-    .meta { font-size: 11px; color: #52525b; margin-top: 4px; }
+    thead th {
+      text-align: left;
+      color: var(--sc-text-dim);
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--sc-border);
+      font-weight: 500;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    tbody td { padding: 8px; border-bottom: 1px solid var(--sc-border); color: var(--sc-text-secondary); }
+
+    .tick { color: var(--sc-success); font-weight: 700; }
+    .meta { font-size: 11px; color: var(--sc-text-dim); margin-top: 4px; }
+    .empty-cell { color: var(--sc-text-dim); padding: 12px 8px; }
   </style>
 </head>
 <body>
   <header>
+    <div class="logo-box"><span>SC</span></div>
     <div style="flex:1">
       <h1>Room Agent — <span id="deviceName">…</span></h1>
       <div class="meta">Cartella: <span id="outputDir">…</span></div>
@@ -45,7 +147,6 @@
   </header>
 
   <main>
-    <!-- Connessione al Local Agent -->
     <div class="card">
       <h2>Connessione al Local Agent</h2>
       <div class="form-group">
@@ -66,10 +167,9 @@
       </div>
     </div>
 
-    <!-- Autostart -->
     <div class="card">
       <h2>Avvio automatico</h2>
-      <p style="font-size:12px;color:#71717a;margin-bottom:10px;">
+      <p style="font-size:12px;color:var(--sc-text-dim);margin-bottom:10px;">
         Attiva per avviare il Room Agent automaticamente all'accensione del PC (registro HKCU, nessuna UAC).
       </p>
       <div class="row">
@@ -78,12 +178,11 @@
       </div>
     </div>
 
-    <!-- File scaricati -->
     <div class="card">
       <h2>File nella cartella sala (<span id="fileCount">0</span>)</h2>
       <table>
         <thead><tr><th>File</th><th>Stato</th></tr></thead>
-        <tbody id="fileTable"><tr><td colspan="2" style="color:#52525b;padding:10px 6px;">Nessun file ancora.</td></tr></tbody>
+        <tbody id="fileTable"><tr><td colspan="2" class="empty-cell">Nessun file ancora.</td></tr></tbody>
       </table>
     </div>
   </main>

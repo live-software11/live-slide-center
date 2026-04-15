@@ -4,49 +4,169 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Live SLIDE CENTER — Local Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
   <style>
+    :root {
+      --sc-bg: #07101f;
+      --sc-surface: #0d1c30;
+      --sc-elevated: #132844;
+      --sc-primary: #3FA9F5;
+      --sc-primary-deep: #0B5ED7;
+      --sc-accent: #FF7A00;
+      --sc-navy: #0A2540;
+      --sc-text: #f0f2f5;
+      --sc-text-secondary: #b8c5d4;
+      --sc-text-muted: #7a8da3;
+      --sc-text-dim: #556577;
+      --sc-border: rgba(63, 169, 245, 0.12);
+      --sc-border-strong: rgba(63, 169, 245, 0.20);
+      --sc-success: #4ade80;
+      --sc-danger: #f87171;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #09090b; color: #f4f4f5; font-family: system-ui, sans-serif; min-height: 100vh; }
-    header { background: #18181b; border-bottom: 1px solid #27272a; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+    body { background: var(--sc-bg); color: var(--sc-text); font-family: 'DM Sans', system-ui, sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+    ::selection { background-color: rgba(63, 169, 245, 0.25); }
+
+    header {
+      background: var(--sc-surface);
+      border-bottom: 1px solid var(--sc-border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      background: var(--sc-navy);
+      border-radius: 10px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+    }
+    .logo-box span { font-size: 12px; font-weight: 700; color: var(--sc-primary); }
     header h1 { font-size: 15px; font-weight: 600; }
-    header .badge { font-size: 11px; background: #1d4ed8; color: #bfdbfe; border-radius: 4px; padding: 2px 8px; }
+    header .version { font-size: 12px; color: var(--sc-text-dim); margin-top: 2px; }
+    header .badge {
+      font-size: 11px;
+      background: var(--sc-primary);
+      color: var(--sc-bg);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-weight: 600;
+    }
+
     main { padding: 24px; max-width: 860px; }
-    .card { background: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; }
-    .card h2 { font-size: 13px; font-weight: 600; color: #a1a1aa; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
-    .stat-row { display: flex; gap: 24px; flex-wrap: wrap; }
-    .stat { }
-    .stat .value { font-size: 28px; font-weight: 700; color: #f4f4f5; }
-    .stat .label { font-size: 12px; color: #71717a; margin-top: 2px; }
-    input[type="text"] { background: #09090b; border: 1px solid #27272a; border-radius: 6px; color: #f4f4f5; padding: 8px 12px; font-size: 14px; width: 100%; outline: none; }
-    input[type="text"]:focus { border-color: #2563eb; }
-    button { border: none; cursor: pointer; border-radius: 6px; font-size: 14px; font-weight: 500; padding: 8px 16px; }
-    .btn-primary { background: #2563eb; color: #fff; }
-    .btn-primary:hover { background: #1d4ed8; }
+
+    .card {
+      background: var(--sc-surface);
+      border: 1px solid var(--sc-border);
+      border-radius: 16px;
+      padding: 18px 22px;
+      margin-bottom: 16px;
+    }
+    .card h2 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--sc-text-muted);
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .stat-row { display: flex; gap: 32px; flex-wrap: wrap; }
+    .stat .value { font-size: 28px; font-weight: 700; color: var(--sc-text); }
+    .stat .label { font-size: 12px; color: var(--sc-text-dim); margin-top: 2px; }
+
+    input[type="text"] {
+      background: var(--sc-bg);
+      border: 1px solid var(--sc-border-strong);
+      border-radius: 12px;
+      color: var(--sc-text);
+      padding: 9px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus { border-color: var(--sc-primary); box-shadow: 0 0 0 3px rgba(63,169,245,0.15); }
+
+    button {
+      border: none;
+      cursor: pointer;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      padding: 9px 18px;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: var(--sc-primary);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(63,169,245,0.2);
+    }
+    .btn-primary:hover { background: var(--sc-primary-deep); box-shadow: 0 2px 12px rgba(63,169,245,0.3); }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-ghost { background: #27272a; color: #d4d4d8; }
-    .btn-ghost:hover { background: #3f3f46; }
+    .btn-ghost {
+      background: var(--sc-elevated);
+      color: var(--sc-text-secondary);
+    }
+    .btn-ghost:hover { background: rgba(63,169,245,0.15); color: var(--sc-text); }
+
     .row { display: flex; gap: 8px; align-items: center; }
+
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    thead th { text-align: left; color: #71717a; padding: 6px 8px; border-bottom: 1px solid #27272a; font-weight: 500; }
-    tbody td { padding: 8px; border-bottom: 1px solid #18181b; color: #d4d4d8; }
-    .status-ok { color: #4ade80; }
-    .status-err { color: #f87171; }
-    .log { background: #000; border: 1px solid #27272a; border-radius: 6px; padding: 10px 12px; font-family: monospace; font-size: 12px; color: #a1a1aa; max-height: 160px; overflow-y: auto; white-space: pre-wrap; }
+    thead th {
+      text-align: left;
+      color: var(--sc-text-dim);
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--sc-border);
+      font-weight: 500;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    tbody td {
+      padding: 10px;
+      border-bottom: 1px solid var(--sc-border);
+      color: var(--sc-text-secondary);
+    }
+    .status-ok { color: var(--sc-success); }
+    .status-err { color: var(--sc-danger); }
+
+    .log {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--sc-border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: var(--sc-text-muted);
+      max-height: 160px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
     .form-group { margin-bottom: 12px; }
-    label { font-size: 13px; color: #a1a1aa; display: block; margin-bottom: 4px; }
+    label { font-size: 13px; color: var(--sc-text-muted); display: block; margin-bottom: 5px; font-weight: 500; }
+    .empty-cell { color: var(--sc-text-dim); padding: 14px 10px; }
   </style>
 </head>
 <body>
   <header>
-    <div>
+    <div class="logo-box"><span>SC</span></div>
+    <div style="flex:1">
       <h1>Live SLIDE CENTER</h1>
-      <div style="font-size:12px;color:#71717a;margin-top:2px;">Local Agent v<span id="agentVersion">0.1.0</span></div>
+      <div class="version">Local Agent v<span id="agentVersion">0.1.0</span></div>
     </div>
     <span class="badge" id="statusBadge">Avvio…</span>
   </header>
 
   <main>
-    <!-- Stato -->
     <div class="card">
       <h2>Stato</h2>
       <div class="stat-row">
@@ -65,7 +185,6 @@
       </div>
     </div>
 
-    <!-- Configurazione evento -->
     <div class="card">
       <h2>Evento</h2>
       <div class="form-group">
@@ -78,25 +197,22 @@
       </div>
     </div>
 
-    <!-- File in cache -->
     <div class="card">
       <h2>File in cache</h2>
       <table>
         <thead><tr><th>File</th><th>Versione</th><th>Sala</th><th>Scaricato</th></tr></thead>
-        <tbody id="fileTable"><tr><td colspan="4" style="color:#52525b;padding:12px 8px;">Nessun file in cache.</td></tr></tbody>
+        <tbody id="fileTable"><tr><td colspan="4" class="empty-cell">Nessun file in cache.</td></tr></tbody>
       </table>
     </div>
 
-    <!-- Room Agent connessi -->
     <div class="card">
       <h2>Room Agent</h2>
       <table>
         <thead><tr><th>Dispositivo</th><th>IP</th><th>Porta</th><th>Sala</th><th>Visto</th></tr></thead>
-        <tbody id="agentTable"><tr><td colspan="5" style="color:#52525b;padding:12px 8px;">Nessun Room Agent registrato.</td></tr></tbody>
+        <tbody id="agentTable"><tr><td colspan="5" class="empty-cell">Nessun Room Agent registrato.</td></tr></tbody>
       </table>
     </div>
 
-    <!-- Log -->
     <div class="card">
       <h2>Log</h2>
       <div class="log" id="logBox">Attendere…</div>
@@ -116,15 +232,18 @@
       try {
         const s = await invoke('cmd_get_status');
         document.getElementById('agentVersion').textContent = s.version || '0.1.0';
-        document.getElementById('statusBadge').textContent = 'Online';
-        document.getElementById('statusBadge').style.background = '#16a34a';
-        document.getElementById('statusBadge').style.color = '#dcfce7';
+        const badge = document.getElementById('statusBadge');
+        badge.textContent = 'Online';
+        badge.style.background = '#14532d';
+        badge.style.color = '#86efac';
         document.getElementById('statFiles').textContent = s.cached_files;
         document.getElementById('statAgents').textContent = s.room_agents;
         document.getElementById('statEvent').textContent = s.event_id || '—';
       } catch (e) {
-        document.getElementById('statusBadge').textContent = 'Errore';
-        document.getElementById('statusBadge').style.background = '#b91c1c';
+        const badge = document.getElementById('statusBadge');
+        badge.textContent = 'Errore';
+        badge.style.background = '#7f1d1d';
+        badge.style.color = '#fca5a5';
       }
     }
 
@@ -133,7 +252,7 @@
         const files = JSON.parse(await invoke('cmd_list_files'));
         const tbody = document.getElementById('fileTable');
         if (!files || files.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4" style="color:#52525b;padding:12px 8px;">Nessun file in cache.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">Nessun file in cache.</td></tr>';
           return;
         }
         tbody.innerHTML = files.map(f =>
@@ -147,7 +266,7 @@
         const agents = JSON.parse(await invoke('cmd_list_room_agents'));
         const tbody = document.getElementById('agentTable');
         if (!agents || agents.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" style="color:#52525b;padding:12px 8px;">Nessun Room Agent registrato.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5" class="empty-cell">Nessun Room Agent registrato.</td></tr>';
           return;
         }
         tbody.innerHTML = agents.map(a =>

@@ -507,7 +507,7 @@ export default function EventDetailView() {
 
   if (authLoading) {
     return (
-      <div className="p-8 text-zinc-400">
+      <div className="p-6 lg:p-8 text-sc-text-muted">
         {t('common.loading')}
       </div>
     );
@@ -515,8 +515,8 @@ export default function EventDetailView() {
 
   if (!tenantId) {
     return (
-      <div className="p-8">
-        <p className="text-red-400" role="alert">
+      <div className="p-6 lg:p-8">
+        <p className="text-sc-danger" role="alert">
           {t('event.errors.missingTenant')}
         </p>
       </div>
@@ -525,11 +525,11 @@ export default function EventDetailView() {
 
   if (!eventId) {
     return (
-      <div className="p-8">
-        <p className="text-red-400" role="alert">
+      <div className="p-6 lg:p-8">
+        <p className="text-sc-danger" role="alert">
           {t('event.errors.invalidRoute')}
         </p>
-        <Link to="/events" className="mt-4 inline-block text-blue-500 hover:underline">
+        <Link to="/events" className="mt-4 inline-block text-sc-primary hover:underline">
           {t('event.detailBack')}
         </Link>
       </div>
@@ -538,19 +538,19 @@ export default function EventDetailView() {
 
   if (state.status === 'error') {
     return (
-      <div className="p-8">
-        <p className="text-red-400" role="alert">
+      <div className="p-6 lg:p-8">
+        <p className="text-sc-danger" role="alert">
           {t('event.errors.load')}: {state.message}
         </p>
         <button
           type="button"
           onClick={() => void reload()}
-          className="mt-4 rounded-md bg-zinc-800 px-4 py-2 text-sm hover:bg-zinc-700"
+          className="mt-4 rounded-xl bg-sc-elevated px-4 py-2 text-sm hover:bg-sc-elevated"
         >
           {t('common.refresh')}
         </button>
         <p className="mt-6">
-          <Link to="/events" className="text-blue-500 hover:underline">
+          <Link to="/events" className="text-sc-primary hover:underline">
             {t('event.detailBack')}
           </Link>
         </p>
@@ -560,11 +560,11 @@ export default function EventDetailView() {
 
   if (state.status === 'not_found') {
     return (
-      <div className="p-8">
-        <p className="text-zinc-300" role="alert">
+      <div className="p-6 lg:p-8">
+        <p className="text-sc-text-secondary" role="alert">
           {t('event.notFound')}
         </p>
-        <Link to="/events" className="mt-6 inline-block text-blue-500 hover:underline">
+        <Link to="/events" className="mt-6 inline-block text-sc-primary hover:underline">
           {t('event.detailBack')}
         </Link>
       </div>
@@ -573,7 +573,7 @@ export default function EventDetailView() {
 
   if (state.status !== 'ready') {
     return (
-      <div className="p-8 text-zinc-400">
+      <div className="p-6 lg:p-8 text-sc-text-muted">
         {t('common.loading')}
       </div>
     );
@@ -589,16 +589,16 @@ export default function EventDetailView() {
   });
 
   return (
-    <div className="p-8">
-      <nav className="mb-6 text-sm text-zinc-500" aria-label={t('event.detailBreadcrumb')}>
-        <Link to="/events" className="hover:text-zinc-300">
+    <div className="p-6 lg:p-8">
+      <nav className="mb-6 text-sm text-sc-text-dim" aria-label={t('event.detailBreadcrumb')}>
+        <Link to="/events" className="hover:text-sc-text-secondary">
           {t('event.titlePlural')}
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-zinc-300">{event.name}</span>
+        <span className="text-sc-text-secondary">{event.name}</span>
       </nav>
 
-      <header className="border-b border-zinc-800 pb-6">
+      <header className="border-b border-sc-primary/12 pb-6">
         {eventEditMode ? (
           <form
             className="flex max-w-xl flex-col gap-3"
@@ -627,49 +627,49 @@ export default function EventDetailView() {
             }}
           >
             <div>
-              <label htmlFor="ev-name" className="mb-1 block text-sm text-zinc-400">{t('event.name')}</label>
+              <label htmlFor="ev-name" className="mb-1 block text-sm text-sc-text-muted">{t('event.name')}</label>
               <input id="ev-name" name="ev_name" defaultValue={event.name} required
-                className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2" />
+                className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2" />
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
-                <label htmlFor="ev-start" className="mb-1 block text-sm text-zinc-400">{t('event.startDate')}</label>
+                <label htmlFor="ev-start" className="mb-1 block text-sm text-sc-text-muted">{t('event.startDate')}</label>
                 <input id="ev-start" name="ev_start" type="date" defaultValue={event.start_date} required
-                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2" />
+                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2" />
               </div>
               <div className="flex-1">
-                <label htmlFor="ev-end" className="mb-1 block text-sm text-zinc-400">{t('event.endDate')}</label>
+                <label htmlFor="ev-end" className="mb-1 block text-sm text-sc-text-muted">{t('event.endDate')}</label>
                 <input id="ev-end" name="ev_end" type="date" defaultValue={event.end_date} required
-                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2" />
+                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2" />
               </div>
             </div>
             <div>
-              <label htmlFor="ev-status" className="mb-1 block text-sm text-zinc-400">{t('event.status')}</label>
+              <label htmlFor="ev-status" className="mb-1 block text-sm text-sc-text-muted">{t('event.status')}</label>
               <select id="ev-status" name="ev_status" defaultValue={event.status}
-                className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2">
+                className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2">
                 {EVENT_STATUSES.map((s) => (
                   <option key={s} value={s}>{eventStatusLabel(t, s)}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label htmlFor="ev-network-mode" className="mb-1 block text-sm text-zinc-400">{t('event.networkMode')}</label>
+              <label htmlFor="ev-network-mode" className="mb-1 block text-sm text-sc-text-muted">{t('event.networkMode')}</label>
               <select id="ev-network-mode" name="ev_network_mode" defaultValue={event.network_mode ?? 'cloud'}
-                className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2">
+                className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2">
                 {NETWORK_MODES.map((m) => (
                   <option key={m} value={m}>{t(`event.networkMode_${m}`)}</option>
                 ))}
               </select>
-              <p className="mt-1 text-xs text-zinc-500">{t(`event.networkModeHint_${event.network_mode ?? 'cloud'}`)}</p>
+              <p className="mt-1 text-xs text-sc-text-dim">{t(`event.networkModeHint_${event.network_mode ?? 'cloud'}`)}</p>
             </div>
-            {eventEditError ? <p className="text-xs text-red-400" role="alert">{eventEditError}</p> : null}
+            {eventEditError ? <p className="text-xs text-sc-danger" role="alert">{eventEditError}</p> : null}
             <div className="flex gap-2">
               <button type="submit" disabled={eventEditBusy}
-                className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50">
+                className="rounded-xl bg-sc-primary px-4 py-1.5 text-sm font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50">
                 {t('common.save')}
               </button>
               <button type="button" disabled={eventEditBusy}
-                className="rounded-md bg-zinc-800 px-4 py-1.5 text-sm font-medium text-zinc-300 hover:bg-zinc-700"
+                className="rounded-xl bg-sc-elevated px-4 py-1.5 text-sm font-medium text-sc-text-secondary hover:bg-sc-elevated"
                 onClick={() => { setEventEditMode(false); setEventEditError(null); }}>
                 {t('common.cancel')}
               </button>
@@ -678,11 +678,11 @@ export default function EventDetailView() {
         ) : (
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-zinc-50">{event.name}</h1>
-              <p className="mt-2 text-sm text-zinc-400">
+              <h1 className="text-2xl font-bold text-sc-text">{event.name}</h1>
+              <p className="mt-2 text-sm text-sc-text-muted">
                 {event.start_date} → {event.end_date} · {eventStatusLabel(t, event.status)}
                 {' · '}
-                <span className="inline-flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-900 px-2 py-0.5 text-xs font-medium text-zinc-300">
+                <span className="inline-flex items-center gap-1 rounded-full border border-sc-primary/20 bg-sc-surface px-2 py-0.5 text-xs font-medium text-sc-text-secondary">
                   {t(`event.networkMode_${event.network_mode ?? 'cloud'}`)}
                 </span>
               </p>
@@ -690,22 +690,22 @@ export default function EventDetailView() {
             <div className="flex shrink-0 gap-2">
               <Link
                 to={`/events/${event.id}/live`}
-                className="inline-flex items-center gap-1.5 rounded-md border border-blue-900/60 bg-blue-950/40 px-3 py-1.5 text-sm font-medium text-blue-300 hover:bg-blue-900/40"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-sc-primary/30 bg-sc-primary/10 px-3 py-1.5 text-sm font-medium text-sc-primary hover:bg-sc-primary/15"
               >
-                <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" aria-hidden />
+                <span className="h-2 w-2 rounded-full bg-sc-primary animate-pulse" aria-hidden />
                 {t('liveView.badge')}
               </Link>
               <button type="button"
-                className="rounded-md bg-zinc-800 px-3 py-1.5 text-sm font-medium text-zinc-300 hover:bg-zinc-700"
+                className="rounded-xl bg-sc-elevated px-3 py-1.5 text-sm font-medium text-sc-text-secondary hover:bg-sc-elevated"
                 onClick={() => setEventEditMode(true)}>
                 {t('event.edit')}
               </button>
               {pendingEventDelete ? (
                 <div className="flex flex-col items-end gap-1">
-                  <p className="max-w-xs text-right text-xs text-amber-400/95">{t('event.deleteCascadeHint')}</p>
+                  <p className="max-w-xs text-right text-xs text-sc-warning">{t('event.deleteCascadeHint')}</p>
                   <div className="flex gap-2">
                     <button type="button" disabled={eventDeleteBusy}
-                      className="rounded-md bg-red-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
+                      className="rounded-xl bg-red-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
                       onClick={async () => {
                         setEventDeleteBusy(true);
                         setDeleteError(null);
@@ -721,7 +721,7 @@ export default function EventDetailView() {
                       {t('common.confirmDelete')}
                     </button>
                     <button type="button" disabled={eventDeleteBusy}
-                      className="rounded-md bg-zinc-800 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-700"
+                      className="rounded-xl bg-sc-elevated px-3 py-1.5 text-sm text-sc-text-secondary hover:bg-sc-elevated"
                       onClick={() => setPendingEventDelete(false)}>
                       {t('common.cancel')}
                     </button>
@@ -729,7 +729,7 @@ export default function EventDetailView() {
                 </div>
               ) : (
                 <button type="button"
-                  className="rounded-md bg-red-900/60 px-3 py-1.5 text-sm font-medium text-red-300 hover:bg-red-800/60"
+                  className="rounded-xl bg-red-900/50 px-3 py-1.5 text-sm font-medium text-sc-danger hover:bg-red-800/60"
                   aria-label={t('event.deleteAriaLabel', { name: event.name })}
                   onClick={() => setPendingEventDelete(true)}>
                   {t('event.delete')}
@@ -742,7 +742,7 @@ export default function EventDetailView() {
 
       {deleteError ? (
         <div
-          className="mt-4 rounded-md border border-red-900/80 bg-red-950/50 px-4 py-3 text-sm text-red-200"
+          className="mt-4 rounded-xl border border-red-900/40 bg-red-950/40 px-4 py-3 text-sm text-sc-danger"
           role="alert"
         >
           <p>
@@ -750,7 +750,7 @@ export default function EventDetailView() {
           </p>
           <button
             type="button"
-            className="mt-2 text-xs text-red-300 underline hover:text-red-100"
+            className="mt-2 text-xs text-sc-danger underline hover:text-sc-danger"
             onClick={() => setDeleteError(null)}
           >
             {t('common.close')}
@@ -759,7 +759,7 @@ export default function EventDetailView() {
       ) : null}
 
       {quotaState.state.status === 'error' ? (
-        <p className="mt-4 max-w-xl text-sm text-amber-400" role="alert">
+        <p className="mt-4 max-w-xl text-sm text-sc-warning" role="alert">
           {quotaState.state.message === 'no_tenant_row'
             ? t('tenantQuota.loadErrorNoRow')
             : `${t('tenantQuota.loadError')} (${quotaState.state.message})`}
@@ -770,41 +770,41 @@ export default function EventDetailView() {
           <TenantQuotaPanel variant="eventDetail" row={quotaState.state.row} roomsInThisEvent={rooms.length} />
         </div>
       ) : quotaState.state.status === 'loading' && state.status === 'ready' ? (
-        <p className="mt-4 text-xs text-zinc-500">{t('common.loading')}</p>
+        <p className="mt-4 text-xs text-sc-text-dim">{t('common.loading')}</p>
       ) : null}
 
       <section className="mt-8" aria-labelledby="rooms-section-title">
-        <h2 id="rooms-section-title" className="text-lg font-semibold text-zinc-100">
+        <h2 id="rooms-section-title" className="text-lg font-semibold text-sc-text">
           {t('room.titlePlural')}
         </h2>
-        <p className="mt-1 text-sm text-zinc-500">{t('room.eventDetailIntro')}</p>
+        <p className="mt-1 text-sm text-sc-text-dim">{t('room.eventDetailIntro')}</p>
 
-        <div className="mt-6 rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
-          <h3 className="text-sm font-medium text-zinc-200">{t('room.create')}</h3>
+        <div className="mt-6 rounded-xl border border-sc-primary/12 bg-sc-surface/60 p-6">
+          <h3 className="text-sm font-medium text-sc-text">{t('room.create')}</h3>
           <form className="mt-4 flex max-w-lg flex-col gap-4" onSubmit={onRoomSubmit} noValidate>
             <div>
-              <label htmlFor="room-name" className="mb-1 block text-sm text-zinc-400">
+              <label htmlFor="room-name" className="mb-1 block text-sm text-sc-text-muted">
                 {t('room.name')}
               </label>
               <input
                 id="room-name"
-                className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                 aria-invalid={errors.name ? true : undefined}
                 {...register('name')}
               />
               {errors.name ? (
-                <p className="mt-1 text-xs text-red-400" role="alert">
+                <p className="mt-1 text-xs text-sc-danger" role="alert">
                   {errors.name.message}
                 </p>
               ) : null}
             </div>
             <div>
-              <label htmlFor="room-type" className="mb-1 block text-sm text-zinc-400">
+              <label htmlFor="room-type" className="mb-1 block text-sm text-sc-text-muted">
                 {t('room.type')}
               </label>
               <select
                 id="room-type"
-                className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                 {...register('room_type')}
               >
                 {ROOM_TYPES.map((rt) => (
@@ -815,14 +815,14 @@ export default function EventDetailView() {
               </select>
             </div>
             {roomCreateError ? (
-              <p className="text-sm text-red-400" role="alert">
+              <p className="text-sm text-sc-danger" role="alert">
                 {roomCreateError}
               </p>
             ) : null}
             <button
               type="submit"
               disabled={isSubmitting || roomsQuotaBlocked}
-              className="w-fit rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+              className="w-fit rounded-xl bg-sc-primary px-4 py-2 text-sm font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
             >
               {t('common.create')}
             </button>
@@ -830,9 +830,9 @@ export default function EventDetailView() {
         </div>
 
         {rooms.length === 0 ? (
-          <p className="mt-6 text-sm text-zinc-500">{t('room.emptyEventList')}</p>
+          <p className="mt-6 text-sm text-sc-text-dim">{t('room.emptyEventList')}</p>
         ) : (
-          <ul className="mt-6 divide-y divide-zinc-800 rounded-lg border border-zinc-800">
+          <ul className="mt-6 divide-y divide-sc-primary/12 rounded-xl border border-sc-primary/12">
             {rooms.map((r) => (
               <li key={r.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0 flex-1">
@@ -845,7 +845,7 @@ export default function EventDetailView() {
                       }}
                     >
                       <div>
-                        <label htmlFor={`room-edit-name-${r.id}`} className="mb-1 block text-sm text-zinc-400">
+                        <label htmlFor={`room-edit-name-${r.id}`} className="mb-1 block text-sm text-sc-text-muted">
                           {t('room.name')}
                         </label>
                         <input
@@ -854,12 +854,12 @@ export default function EventDetailView() {
                           onChange={(e) =>
                             setRoomEditDraft((d) => (d?.id === r.id ? { ...d, name: e.target.value } : d))
                           }
-                          className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                          className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                           autoComplete="off"
                         />
                       </div>
                       <div>
-                        <label htmlFor={`room-edit-type-${r.id}`} className="mb-1 block text-sm text-zinc-400">
+                        <label htmlFor={`room-edit-type-${r.id}`} className="mb-1 block text-sm text-sc-text-muted">
                           {t('room.type')}
                         </label>
                         <select
@@ -870,7 +870,7 @@ export default function EventDetailView() {
                               d?.id === r.id ? { ...d, room_type: e.target.value as RoomType } : d,
                             )
                           }
-                          className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                          className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                         >
                           {ROOM_TYPES.map((rt) => (
                             <option key={rt} value={rt}>
@@ -880,7 +880,7 @@ export default function EventDetailView() {
                         </select>
                       </div>
                       {roomEditError ? (
-                        <p className="text-xs text-red-400" role="alert">
+                        <p className="text-xs text-sc-danger" role="alert">
                           {roomEditError}
                         </p>
                       ) : null}
@@ -888,14 +888,14 @@ export default function EventDetailView() {
                         <button
                           type="submit"
                           disabled={roomEditBusy}
-                          className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                          className="rounded-xl bg-sc-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
                         >
                           {t('common.save')}
                         </button>
                         <button
                           type="button"
                           disabled={roomEditBusy}
-                          className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                          className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
                           onClick={() => {
                             setRoomEditDraft(null);
                             setRoomEditError(null);
@@ -907,20 +907,20 @@ export default function EventDetailView() {
                     </form>
                   ) : (
                     <>
-                      <p className="font-medium text-zinc-100">{r.name}</p>
-                      <p className="text-xs text-zinc-500">{roomTypeLabel(t, r.room_type)}</p>
+                      <p className="font-medium text-sc-text">{r.name}</p>
+                      <p className="text-xs text-sc-text-dim">{roomTypeLabel(t, r.room_type)}</p>
                     </>
                   )}
                 </div>
                 <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
                   {pendingDelete?.kind === 'room' && pendingDelete.id === r.id ? (
                     <>
-                      <p className="max-w-xs text-xs text-amber-400/95">{t('room.deleteCascadeHint')}</p>
+                      <p className="max-w-xs text-xs text-sc-warning">{t('room.deleteCascadeHint')}</p>
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
                           disabled={deleteBusy}
-                          className="rounded-md bg-red-900/80 px-3 py-1.5 text-xs font-medium text-red-100 hover:bg-red-800 disabled:opacity-50"
+                          className="rounded-xl bg-red-900/50 px-3 py-1.5 text-xs font-medium text-sc-danger hover:bg-red-800 disabled:opacity-50"
                           onClick={async () => {
                             setDeleteBusy(true);
                             setDeleteError(null);
@@ -939,7 +939,7 @@ export default function EventDetailView() {
                         <button
                           type="button"
                           disabled={deleteBusy}
-                          className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                          className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
                           onClick={() => {
                             setPendingDelete(null);
                             setDeleteError(null);
@@ -953,7 +953,7 @@ export default function EventDetailView() {
                     <div className="flex flex-wrap items-center justify-end gap-2">
                       <button
                         type="button"
-                        className="text-sm text-zinc-400 hover:text-zinc-200"
+                        className="text-sm text-sc-text-muted hover:text-sc-text"
                         aria-label={t('room.editAriaLabel', { name: r.name })}
                         onClick={() => {
                           setSessionEditDraft(null);
@@ -970,7 +970,7 @@ export default function EventDetailView() {
                       </button>
                       <button
                         type="button"
-                        className="text-sm text-red-400 hover:text-red-300"
+                        className="text-sm text-sc-danger hover:text-sc-danger"
                         aria-label={t('room.deleteAriaLabel', { name: r.name })}
                         onClick={() => {
                           setSessionEditDraft(null);
@@ -995,28 +995,28 @@ export default function EventDetailView() {
       </section>
 
       <section className="mt-12" aria-labelledby="sessions-section-title">
-        <h2 id="sessions-section-title" className="text-lg font-semibold text-zinc-100">
+        <h2 id="sessions-section-title" className="text-lg font-semibold text-sc-text">
           {t('session.titlePlural')}
         </h2>
-        <p className="mt-1 text-sm text-zinc-500">{t('session.eventDetailIntro')}</p>
+        <p className="mt-1 text-sm text-sc-text-dim">{t('session.eventDetailIntro')}</p>
         {sessions.length > 1 ? (
-          <p className="mt-2 text-xs text-zinc-500">{t('session.dragListHint')}</p>
+          <p className="mt-2 text-xs text-sc-text-dim">{t('session.dragListHint')}</p>
         ) : null}
         {sessionReorderError ? (
-          <p className="mt-2 text-sm text-amber-400" role="alert">
+          <p className="mt-2 text-sm text-sc-warning" role="alert">
             {t('session.reorderFailed')}: {sessionReorderError}
           </p>
         ) : null}
 
         {sessions.length > 0 && rooms.length > 0 ? (
           <div className="mt-4 flex flex-wrap items-center gap-2" role="tablist" aria-label={t('session.viewModeAria')}>
-            <span className="text-xs text-zinc-500">{t('session.viewModeLabel')}</span>
-            <div className="inline-flex rounded-md border border-zinc-700 bg-zinc-950 p-0.5">
+            <span className="text-xs text-sc-text-dim">{t('session.viewModeLabel')}</span>
+            <div className="inline-flex rounded-xl border border-sc-primary/20 bg-sc-bg p-0.5">
               <button
                 type="button"
                 role="tab"
                 aria-selected={sessionScheduleView === 'list'}
-                className={`rounded px-3 py-1.5 text-xs font-medium ${sessionScheduleView === 'list' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'
+                className={`rounded px-3 py-1.5 text-xs font-medium ${sessionScheduleView === 'list' ? 'bg-sc-elevated text-sc-text' : 'text-sc-text-muted hover:text-sc-text'
                   }`}
                 onClick={() => setSessionScheduleView('list')}
               >
@@ -1026,7 +1026,7 @@ export default function EventDetailView() {
                 type="button"
                 role="tab"
                 aria-selected={sessionScheduleView === 'byRoom'}
-                className={`rounded px-3 py-1.5 text-xs font-medium ${sessionScheduleView === 'byRoom' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'
+                className={`rounded px-3 py-1.5 text-xs font-medium ${sessionScheduleView === 'byRoom' ? 'bg-sc-elevated text-sc-text' : 'text-sc-text-muted hover:text-sc-text'
                   }`}
                 onClick={() => setSessionScheduleView('byRoom')}
               >
@@ -1037,36 +1037,36 @@ export default function EventDetailView() {
         ) : null}
 
         {rooms.length === 0 ? (
-          <p className="mt-6 text-sm text-amber-400/90" role="status">
+          <p className="mt-6 text-sm text-sc-warning" role="status">
             {t('session.needRoomFirst')}
           </p>
         ) : (
-          <div className="mt-6 rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
-            <h3 className="text-sm font-medium text-zinc-200">{t('session.create')}</h3>
+          <div className="mt-6 rounded-xl border border-sc-primary/12 bg-sc-surface/60 p-6">
+            <h3 className="text-sm font-medium text-sc-text">{t('session.create')}</h3>
             <form className="mt-4 flex max-w-lg flex-col gap-4" onSubmit={onSessionSubmit} noValidate>
               <div>
-                <label htmlFor="session-title" className="mb-1 block text-sm text-zinc-400">
+                <label htmlFor="session-title" className="mb-1 block text-sm text-sc-text-muted">
                   {t('session.sessionTitle')}
                 </label>
                 <input
                   id="session-title"
-                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                   aria-invalid={sessionErrors.title ? true : undefined}
                   {...registerSession('title')}
                 />
                 {sessionErrors.title ? (
-                  <p className="mt-1 text-xs text-red-400" role="alert">
+                  <p className="mt-1 text-xs text-sc-danger" role="alert">
                     {sessionErrors.title.message}
                   </p>
                 ) : null}
               </div>
               <div>
-                <label htmlFor="session-room" className="mb-1 block text-sm text-zinc-400">
+                <label htmlFor="session-room" className="mb-1 block text-sm text-sc-text-muted">
                   {t('session.room')}
                 </label>
                 <select
                   id="session-room"
-                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                   {...registerSession('room_id')}
                 >
                   {rooms.map((r) => (
@@ -1076,18 +1076,18 @@ export default function EventDetailView() {
                   ))}
                 </select>
                 {sessionErrors.room_id ? (
-                  <p className="mt-1 text-xs text-red-400" role="alert">
+                  <p className="mt-1 text-xs text-sc-danger" role="alert">
                     {sessionErrors.room_id.message}
                   </p>
                 ) : null}
               </div>
               <div>
-                <label htmlFor="session-type" className="mb-1 block text-sm text-zinc-400">
+                <label htmlFor="session-type" className="mb-1 block text-sm text-sc-text-muted">
                   {t('session.type')}
                 </label>
                 <select
                   id="session-type"
-                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                   {...registerSession('session_type')}
                 >
                   {SESSION_TYPES.map((st) => (
@@ -1098,50 +1098,50 @@ export default function EventDetailView() {
                 </select>
               </div>
               <div>
-                <label htmlFor="session-start" className="mb-1 block text-sm text-zinc-400">
+                <label htmlFor="session-start" className="mb-1 block text-sm text-sc-text-muted">
                   {t('session.scheduledStart')}
                 </label>
                 <input
                   id="session-start"
                   type="datetime-local"
                   step={60}
-                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                   aria-invalid={sessionErrors.scheduled_start ? true : undefined}
                   {...registerSession('scheduled_start')}
                 />
                 {sessionErrors.scheduled_start ? (
-                  <p className="mt-1 text-xs text-red-400" role="alert">
+                  <p className="mt-1 text-xs text-sc-danger" role="alert">
                     {sessionErrors.scheduled_start.message}
                   </p>
                 ) : null}
               </div>
               <div>
-                <label htmlFor="session-end" className="mb-1 block text-sm text-zinc-400">
+                <label htmlFor="session-end" className="mb-1 block text-sm text-sc-text-muted">
                   {t('session.scheduledEnd')}
                 </label>
                 <input
                   id="session-end"
                   type="datetime-local"
                   step={60}
-                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                   aria-invalid={sessionErrors.scheduled_end ? true : undefined}
                   {...registerSession('scheduled_end')}
                 />
                 {sessionErrors.scheduled_end ? (
-                  <p className="mt-1 text-xs text-red-400" role="alert">
+                  <p className="mt-1 text-xs text-sc-danger" role="alert">
                     {sessionErrors.scheduled_end.message}
                   </p>
                 ) : null}
               </div>
               {sessionCreateError ? (
-                <p className="text-sm text-red-400" role="alert">
+                <p className="text-sm text-sc-danger" role="alert">
                   {sessionCreateError}
                 </p>
               ) : null}
               <button
                 type="submit"
                 disabled={sessionSubmitting}
-                className="w-fit rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                className="w-fit rounded-xl bg-sc-primary px-4 py-2 text-sm font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
               >
                 {t('common.create')}
               </button>
@@ -1150,9 +1150,9 @@ export default function EventDetailView() {
         )}
 
         {sessions.length === 0 ? (
-          <p className="mt-6 text-sm text-zinc-500">{t('session.emptyEventList')}</p>
+          <p className="mt-6 text-sm text-sc-text-dim">{t('session.emptyEventList')}</p>
         ) : sessionScheduleView === 'list' ? (
-          <ul className="mt-6 divide-y divide-zinc-800 rounded-lg border border-zinc-800">
+          <ul className="mt-6 divide-y divide-sc-primary/12 rounded-xl border border-sc-primary/12">
             {sessionsOrdered.map((s) => {
               const roomName = rooms.find((r) => r.id === s.room_id)?.name ?? t('session.roomUnknown');
               const canDragReorder = !sessionEditDraft && !sessionReorderBusy;
@@ -1187,7 +1187,7 @@ export default function EventDetailView() {
                     {sessionEditDraft?.id !== s.id ? (
                       <div
                         draggable
-                        className="mt-0.5 flex h-8 w-7 shrink-0 cursor-grab select-none items-center justify-center rounded border border-zinc-700 bg-zinc-900 text-sm text-zinc-500 hover:bg-zinc-800 active:cursor-grabbing"
+                        className="mt-0.5 flex h-8 w-7 shrink-0 cursor-grab select-none items-center justify-center rounded border border-sc-primary/20 bg-sc-surface text-sm text-sc-text-dim hover:bg-sc-elevated active:cursor-grabbing"
                         aria-label={t('session.dragHandleAriaLabel', { title: s.title })}
                         title={t('session.dragHint')}
                         onDragStart={(e) => {
@@ -1214,7 +1214,7 @@ export default function EventDetailView() {
                           }}
                         >
                           <div>
-                            <label htmlFor={`session-edit-title-${s.id}`} className="mb-1 block text-sm text-zinc-400">
+                            <label htmlFor={`session-edit-title-${s.id}`} className="mb-1 block text-sm text-sc-text-muted">
                               {t('session.sessionTitle')}
                             </label>
                             <input
@@ -1223,11 +1223,11 @@ export default function EventDetailView() {
                               onChange={(e) =>
                                 setSessionEditDraft((d) => (d?.id === s.id ? { ...d, title: e.target.value } : d))
                               }
-                              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                              className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                             />
                           </div>
                           <div>
-                            <label htmlFor={`session-edit-room-${s.id}`} className="mb-1 block text-sm text-zinc-400">
+                            <label htmlFor={`session-edit-room-${s.id}`} className="mb-1 block text-sm text-sc-text-muted">
                               {t('session.room')}
                             </label>
                             <select
@@ -1236,7 +1236,7 @@ export default function EventDetailView() {
                               onChange={(e) =>
                                 setSessionEditDraft((d) => (d?.id === s.id ? { ...d, room_id: e.target.value } : d))
                               }
-                              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                              className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                             >
                               {rooms.map((r) => (
                                 <option key={r.id} value={r.id}>
@@ -1246,7 +1246,7 @@ export default function EventDetailView() {
                             </select>
                           </div>
                           <div>
-                            <label htmlFor={`session-edit-type-${s.id}`} className="mb-1 block text-sm text-zinc-400">
+                            <label htmlFor={`session-edit-type-${s.id}`} className="mb-1 block text-sm text-sc-text-muted">
                               {t('session.type')}
                             </label>
                             <select
@@ -1257,7 +1257,7 @@ export default function EventDetailView() {
                                   d?.id === s.id ? { ...d, session_type: e.target.value as SessionType } : d,
                                 )
                               }
-                              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                              className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                             >
                               {SESSION_TYPES.map((st) => (
                                 <option key={st} value={st}>
@@ -1267,7 +1267,7 @@ export default function EventDetailView() {
                             </select>
                           </div>
                           <div>
-                            <label htmlFor={`session-edit-start-${s.id}`} className="mb-1 block text-sm text-zinc-400">
+                            <label htmlFor={`session-edit-start-${s.id}`} className="mb-1 block text-sm text-sc-text-muted">
                               {t('session.scheduledStart')}
                             </label>
                             <input
@@ -1280,11 +1280,11 @@ export default function EventDetailView() {
                                   d?.id === s.id ? { ...d, scheduled_start: e.target.value } : d,
                                 )
                               }
-                              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                              className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                             />
                           </div>
                           <div>
-                            <label htmlFor={`session-edit-end-${s.id}`} className="mb-1 block text-sm text-zinc-400">
+                            <label htmlFor={`session-edit-end-${s.id}`} className="mb-1 block text-sm text-sc-text-muted">
                               {t('session.scheduledEnd')}
                             </label>
                             <input
@@ -1295,11 +1295,11 @@ export default function EventDetailView() {
                               onChange={(e) =>
                                 setSessionEditDraft((d) => (d?.id === s.id ? { ...d, scheduled_end: e.target.value } : d))
                               }
-                              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                              className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                             />
                           </div>
                           {sessionEditError ? (
-                            <p className="text-xs text-red-400" role="alert">
+                            <p className="text-xs text-sc-danger" role="alert">
                               {sessionEditError}
                             </p>
                           ) : null}
@@ -1307,14 +1307,14 @@ export default function EventDetailView() {
                             <button
                               type="submit"
                               disabled={sessionEditBusy}
-                              className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                              className="rounded-xl bg-sc-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
                             >
                               {t('common.save')}
                             </button>
                             <button
                               type="button"
                               disabled={sessionEditBusy}
-                              className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                              className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
                               onClick={() => {
                                 setSessionEditDraft(null);
                                 setSessionEditError(null);
@@ -1326,11 +1326,11 @@ export default function EventDetailView() {
                         </form>
                       ) : (
                         <>
-                          <p className="font-medium text-zinc-100">{s.title}</p>
-                          <p className="text-xs text-zinc-500">
+                          <p className="font-medium text-sc-text">{s.title}</p>
+                          <p className="text-xs text-sc-text-dim">
                             {roomName} · {sessionTypeLabel(t, s.session_type)}
                           </p>
-                          <p className="text-xs text-zinc-400">
+                          <p className="text-xs text-sc-text-muted">
                             {dateTimeFmt.format(new Date(s.scheduled_start))} →{' '}
                             {dateTimeFmt.format(new Date(s.scheduled_end))}
                           </p>
@@ -1341,12 +1341,12 @@ export default function EventDetailView() {
                   <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
                     {pendingDelete?.kind === 'session' && pendingDelete.id === s.id ? (
                       <>
-                        <p className="max-w-xs text-xs text-amber-400/95">{t('session.deleteCascadeHint')}</p>
+                        <p className="max-w-xs text-xs text-sc-warning">{t('session.deleteCascadeHint')}</p>
                         <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
                             disabled={deleteBusy}
-                            className="rounded-md bg-red-900/80 px-3 py-1.5 text-xs font-medium text-red-100 hover:bg-red-800 disabled:opacity-50"
+                            className="rounded-xl bg-red-900/50 px-3 py-1.5 text-xs font-medium text-sc-danger hover:bg-red-800 disabled:opacity-50"
                             onClick={async () => {
                               setDeleteBusy(true);
                               setDeleteError(null);
@@ -1365,7 +1365,7 @@ export default function EventDetailView() {
                           <button
                             type="button"
                             disabled={deleteBusy}
-                            className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                            className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
                             onClick={() => {
                               setPendingDelete(null);
                               setDeleteError(null);
@@ -1379,7 +1379,7 @@ export default function EventDetailView() {
                       <div className="flex flex-wrap items-center justify-end gap-2">
                         <button
                           type="button"
-                          className="text-sm text-zinc-400 hover:text-zinc-200"
+                          className="text-sm text-sc-text-muted hover:text-sc-text"
                           aria-label={t('session.editAriaLabel', { title: s.title })}
                           onClick={() => {
                             setRoomEditDraft(null);
@@ -1403,7 +1403,7 @@ export default function EventDetailView() {
                         </button>
                         <button
                           type="button"
-                          className="text-sm text-red-400 hover:text-red-300"
+                          className="text-sm text-sc-danger hover:text-sc-danger"
                           aria-label={t('session.deleteAriaLabel', { title: s.title })}
                           onClick={() => {
                             setSessionEditDraft((d) => (d?.id === s.id ? null : d));
@@ -1423,27 +1423,27 @@ export default function EventDetailView() {
           </ul>
         ) : (
           <div className="mt-6 space-y-6" aria-label={t('session.byRoomSectionAria')}>
-            <p className="text-xs text-zinc-500">{t('session.byRoomIntro')}</p>
+            <p className="text-xs text-sc-text-dim">{t('session.byRoomIntro')}</p>
             {rooms.map((room) => {
               const roomSessions = sessionsByRoom.get(room.id) ?? [];
               return (
-                <div key={room.id} className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
-                  <h3 className="text-sm font-semibold text-zinc-100">{room.name}</h3>
-                  <p className="text-xs text-zinc-500">{roomTypeLabel(t, room.room_type)}</p>
+                <div key={room.id} className="rounded-xl border border-sc-primary/12 bg-sc-bg/50 p-4">
+                  <h3 className="text-sm font-semibold text-sc-text">{room.name}</h3>
+                  <p className="text-xs text-sc-text-dim">{roomTypeLabel(t, room.room_type)}</p>
                   {roomSessions.length === 0 ? (
-                    <p className="mt-3 text-xs text-zinc-600">{t('session.byRoomEmpty')}</p>
+                    <p className="mt-3 text-xs text-sc-text-dim">{t('session.byRoomEmpty')}</p>
                   ) : (
                     <ul className="mt-3 space-y-2">
                       {roomSessions.map((s) => (
                         <li
                           key={s.id}
-                          className="flex gap-3 rounded-md border border-zinc-800/90 bg-zinc-900/60 px-3 py-2.5"
+                          className="flex gap-3 rounded-xl border border-sc-primary/12 bg-sc-surface/60 px-3 py-2.5"
                         >
-                          <div className="w-1 shrink-0 rounded-full bg-blue-600" aria-hidden />
+                          <div className="w-1 shrink-0 rounded-full bg-sc-primary" aria-hidden />
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-zinc-100">{s.title}</p>
-                            <p className="text-xs text-zinc-500">{sessionTypeLabel(t, s.session_type)}</p>
-                            <p className="text-xs text-zinc-400">
+                            <p className="text-sm font-medium text-sc-text">{s.title}</p>
+                            <p className="text-xs text-sc-text-dim">{sessionTypeLabel(t, s.session_type)}</p>
+                            <p className="text-xs text-sc-text-muted">
                               {dateTimeFmt.format(new Date(s.scheduled_start))}
                               {' → '}
                               {dateTimeFmt.format(new Date(s.scheduled_end))}
@@ -1461,20 +1461,20 @@ export default function EventDetailView() {
       </section>
 
       <section className="mt-12" aria-labelledby="speakers-section-title">
-        <h2 id="speakers-section-title" className="text-lg font-semibold text-zinc-100">
+        <h2 id="speakers-section-title" className="text-lg font-semibold text-sc-text">
           {t('speaker.titlePlural')}
         </h2>
-        <p className="mt-1 text-sm text-zinc-500">{t('speaker.eventDetailIntro')}</p>
+        <p className="mt-1 text-sm text-sc-text-dim">{t('speaker.eventDetailIntro')}</p>
 
         {sessions.length > 0 ? (
-          <div className="mt-4 max-w-2xl rounded-lg border border-zinc-800 bg-zinc-950/60 p-4">
-            <h3 className="text-sm font-medium text-zinc-200">{t('speaker.csvImport.title')}</h3>
-            <p className="mt-1 text-xs text-zinc-500">{t('speaker.csvImport.hint')}</p>
+          <div className="mt-4 max-w-2xl rounded-xl border border-sc-primary/12 bg-sc-bg/60 p-4">
+            <h3 className="text-sm font-medium text-sc-text">{t('speaker.csvImport.title')}</h3>
+            <p className="mt-1 text-xs text-sc-text-dim">{t('speaker.csvImport.hint')}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={downloadSpeakerCsvTemplate}
-                className="rounded-md border border-zinc-600 bg-zinc-900 px-3 py-2 text-xs font-medium text-zinc-200 hover:bg-zinc-800"
+                className="rounded-xl border border-sc-primary/20 bg-sc-surface px-3 py-2 text-xs font-medium text-sc-text hover:bg-sc-elevated"
               >
                 {t('speaker.csvImport.downloadTemplate')}
               </button>
@@ -1494,14 +1494,14 @@ export default function EventDetailView() {
                 type="button"
                 disabled={csvImportBusy}
                 onClick={() => speakerCsvInputRef.current?.click()}
-                className="rounded-md bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                className="rounded-xl bg-sc-primary px-3 py-2 text-xs font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
               >
                 {csvImportBusy ? t('speaker.csvImport.importing') : t('speaker.csvImport.selectFile')}
               </button>
             </div>
             {csvFeedback ? (
               <pre
-                className={`mt-3 max-h-40 overflow-y-auto whitespace-pre-wrap font-sans text-xs ${csvFeedback.variant === 'error' ? 'text-amber-400' : 'text-emerald-400/95'
+                className={`mt-3 max-h-40 overflow-y-auto whitespace-pre-wrap font-sans text-xs ${csvFeedback.variant === 'error' ? 'text-sc-warning' : 'text-sc-success'
                   }`}
                 role="status"
               >
@@ -1512,26 +1512,26 @@ export default function EventDetailView() {
         ) : null}
 
         {speakerAuxError ? (
-          <p className="mt-3 text-sm text-red-400" role="alert">
+          <p className="mt-3 text-sm text-sc-danger" role="alert">
             {speakerAuxError}
           </p>
         ) : null}
 
         {sessions.length === 0 ? (
-          <p className="mt-6 text-sm text-amber-400/90" role="status">
+          <p className="mt-6 text-sm text-sc-warning" role="status">
             {t('speaker.needSessionFirst')}
           </p>
         ) : (
-          <div className="mt-6 rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
-            <h3 className="text-sm font-medium text-zinc-200">{t('speaker.create')}</h3>
+          <div className="mt-6 rounded-xl border border-sc-primary/12 bg-sc-surface/60 p-6">
+            <h3 className="text-sm font-medium text-sc-text">{t('speaker.create')}</h3>
             <form className="mt-4 flex max-w-lg flex-col gap-4" onSubmit={onSpeakerSubmit} noValidate>
               <div>
-                <label htmlFor="speaker-session" className="mb-1 block text-sm text-zinc-400">
+                <label htmlFor="speaker-session" className="mb-1 block text-sm text-sc-text-muted">
                   {t('speaker.linkedSession')}
                 </label>
                 <select
                   id="speaker-session"
-                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                   {...registerSpeaker('session_id')}
                 >
                   {sessions.map((s) => (
@@ -1541,55 +1541,55 @@ export default function EventDetailView() {
                   ))}
                 </select>
                 {speakerErrors.session_id ? (
-                  <p className="mt-1 text-xs text-red-400" role="alert">
+                  <p className="mt-1 text-xs text-sc-danger" role="alert">
                     {speakerErrors.session_id.message}
                   </p>
                 ) : null}
               </div>
               <div>
-                <label htmlFor="speaker-name" className="mb-1 block text-sm text-zinc-400">
+                <label htmlFor="speaker-name" className="mb-1 block text-sm text-sc-text-muted">
                   {t('speaker.fullName')}
                 </label>
                 <input
                   id="speaker-name"
-                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                   autoComplete="name"
                   aria-invalid={speakerErrors.full_name ? true : undefined}
                   {...registerSpeaker('full_name')}
                 />
                 {speakerErrors.full_name ? (
-                  <p className="mt-1 text-xs text-red-400" role="alert">
+                  <p className="mt-1 text-xs text-sc-danger" role="alert">
                     {speakerErrors.full_name.message}
                   </p>
                 ) : null}
               </div>
               <div>
-                <label htmlFor="speaker-email" className="mb-1 block text-sm text-zinc-400">
+                <label htmlFor="speaker-email" className="mb-1 block text-sm text-sc-text-muted">
                   {t('speaker.emailOptional')}
                 </label>
                 <input
                   id="speaker-email"
                   type="email"
                   autoComplete="email"
-                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                   aria-invalid={speakerErrors.email ? true : undefined}
                   {...registerSpeaker('email')}
                 />
                 {speakerErrors.email ? (
-                  <p className="mt-1 text-xs text-red-400" role="alert">
+                  <p className="mt-1 text-xs text-sc-danger" role="alert">
                     {speakerErrors.email.message}
                   </p>
                 ) : null}
               </div>
               {speakerCreateError ? (
-                <p className="text-sm text-red-400" role="alert">
+                <p className="text-sm text-sc-danger" role="alert">
                   {speakerCreateError}
                 </p>
               ) : null}
               <button
                 type="submit"
                 disabled={speakerSubmitting}
-                className="w-fit rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                className="w-fit rounded-xl bg-sc-primary px-4 py-2 text-sm font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
               >
                 {t('common.create')}
               </button>
@@ -1598,9 +1598,9 @@ export default function EventDetailView() {
         )}
 
         {speakersSorted.length === 0 ? (
-          <p className="mt-6 text-sm text-zinc-500">{t('speaker.emptyEventList')}</p>
+          <p className="mt-6 text-sm text-sc-text-dim">{t('speaker.emptyEventList')}</p>
         ) : (
-          <ul className="mt-6 divide-y divide-zinc-800 rounded-lg border border-zinc-800">
+          <ul className="mt-6 divide-y divide-sc-primary/12 rounded-xl border border-sc-primary/12">
             {speakersSorted.map((sp) => {
               const sessionTitle =
                 sessions.find((s) => s.id === sp.session_id)?.title ?? t('speaker.sessionUnknown');
@@ -1626,7 +1626,7 @@ export default function EventDetailView() {
                           }}
                         >
                           <div>
-                            <label htmlFor={`speaker-edit-session-${sp.id}`} className="mb-1 block text-sm text-zinc-400">
+                            <label htmlFor={`speaker-edit-session-${sp.id}`} className="mb-1 block text-sm text-sc-text-muted">
                               {t('speaker.linkedSession')}
                             </label>
                             <select
@@ -1637,7 +1637,7 @@ export default function EventDetailView() {
                                   d?.id === sp.id ? { ...d, session_id: e.target.value } : d,
                                 )
                               }
-                              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                              className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                             >
                               {sessions.map((sess) => (
                                 <option key={sess.id} value={sess.id}>
@@ -1647,7 +1647,7 @@ export default function EventDetailView() {
                             </select>
                           </div>
                           <div>
-                            <label htmlFor={`speaker-edit-name-${sp.id}`} className="mb-1 block text-sm text-zinc-400">
+                            <label htmlFor={`speaker-edit-name-${sp.id}`} className="mb-1 block text-sm text-sc-text-muted">
                               {t('speaker.fullName')}
                             </label>
                             <input
@@ -1658,12 +1658,12 @@ export default function EventDetailView() {
                                   d?.id === sp.id ? { ...d, full_name: e.target.value } : d,
                                 )
                               }
-                              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                              className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                               autoComplete="name"
                             />
                           </div>
                           <div>
-                            <label htmlFor={`speaker-edit-email-${sp.id}`} className="mb-1 block text-sm text-zinc-400">
+                            <label htmlFor={`speaker-edit-email-${sp.id}`} className="mb-1 block text-sm text-sc-text-muted">
                               {t('speaker.emailOptional')}
                             </label>
                             <input
@@ -1673,12 +1673,12 @@ export default function EventDetailView() {
                               onChange={(e) =>
                                 setSpeakerEditDraft((d) => (d?.id === sp.id ? { ...d, email: e.target.value } : d))
                               }
-                              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                              className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                               autoComplete="email"
                             />
                           </div>
                           {speakerEditError ? (
-                            <p className="text-xs text-red-400" role="alert">
+                            <p className="text-xs text-sc-danger" role="alert">
                               {speakerEditError}
                             </p>
                           ) : null}
@@ -1686,14 +1686,14 @@ export default function EventDetailView() {
                             <button
                               type="submit"
                               disabled={speakerEditBusy}
-                              className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                              className="rounded-xl bg-sc-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
                             >
                               {t('common.save')}
                             </button>
                             <button
                               type="button"
                               disabled={speakerEditBusy}
-                              className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                              className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
                               onClick={() => {
                                 setSpeakerEditDraft(null);
                                 setSpeakerEditError(null);
@@ -1705,25 +1705,25 @@ export default function EventDetailView() {
                         </form>
                       ) : (
                         <>
-                          <p className="font-medium text-zinc-100">{sp.full_name}</p>
-                          <p className="text-xs text-zinc-500">{sessionTitle}</p>
-                          {sp.email ? <p className="text-xs text-zinc-400">{sp.email}</p> : null}
+                          <p className="font-medium text-sc-text">{sp.full_name}</p>
+                          <p className="text-xs text-sc-text-dim">{sessionTitle}</p>
+                          {sp.email ? <p className="text-xs text-sc-text-muted">{sp.email}</p> : null}
                         </>
                       )}
                       {portalUrl ? (
-                        <div className="mt-3 flex flex-col gap-2 border-t border-zinc-800/80 pt-3 sm:flex-row sm:items-start sm:gap-4">
+                        <div className="mt-3 flex flex-col gap-2 border-t border-sc-primary/10 pt-3 sm:flex-row sm:items-start sm:gap-4">
                           <div className="min-w-0 flex-1">
-                            <p className="text-xs font-medium text-zinc-400">{t('speaker.uploadLinkLabel')}</p>
-                            <p className="mt-1 break-all font-mono text-xs text-zinc-300">{portalUrl}</p>
+                            <p className="text-xs font-medium text-sc-text-muted">{t('speaker.uploadLinkLabel')}</p>
+                            <p className="mt-1 break-all font-mono text-xs text-sc-text-secondary">{portalUrl}</p>
                             {expiresLabel ? (
-                              <p className="mt-1 text-xs text-zinc-500">
+                              <p className="mt-1 text-xs text-sc-text-dim">
                                 {t('speaker.uploadExpires', { date: expiresLabel })}
                               </p>
                             ) : null}
                             <div className="mt-2 flex flex-wrap items-center gap-2">
                               <button
                                 type="button"
-                                className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-800"
+                                className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs font-medium text-sc-text hover:bg-sc-elevated"
                                 onClick={async () => {
                                   setSpeakerAuxError(null);
                                   try {
@@ -1740,7 +1740,7 @@ export default function EventDetailView() {
                             </div>
                           </div>
                           <div
-                            className="shrink-0 rounded-md bg-white p-2"
+                            className="shrink-0 rounded-xl bg-white p-2"
                             role="img"
                             aria-label={t('speaker.uploadQrAria', { name: sp.full_name })}
                           >
@@ -1748,12 +1748,12 @@ export default function EventDetailView() {
                           </div>
                         </div>
                       ) : (
-                        <div className="mt-3 border-t border-zinc-800/80 pt-3">
-                          <p className="text-xs text-zinc-500">{t('speaker.uploadLinkMissing')}</p>
+                        <div className="mt-3 border-t border-sc-primary/10 pt-3">
+                          <p className="text-xs text-sc-text-dim">{t('speaker.uploadLinkMissing')}</p>
                           <button
                             type="button"
                             disabled={regenerateBusyId === sp.id}
-                            className="mt-2 rounded-md border border-amber-700/60 px-3 py-1.5 text-xs font-medium text-amber-200/90 hover:bg-amber-950/40 disabled:opacity-50"
+                            className="mt-2 rounded-xl border border-sc-warning/30 px-3 py-1.5 text-xs font-medium text-sc-warning hover:bg-sc-warning/10 disabled:opacity-50"
                             onClick={async () => {
                               setSpeakerAuxError(null);
                               setRegenerateBusyId(sp.id);
@@ -1779,7 +1779,7 @@ export default function EventDetailView() {
                           <button
                             type="button"
                             disabled={deleteBusy}
-                            className="rounded-md bg-red-900/80 px-3 py-1.5 text-xs font-medium text-red-100 hover:bg-red-800 disabled:opacity-50"
+                            className="rounded-xl bg-red-900/50 px-3 py-1.5 text-xs font-medium text-sc-danger hover:bg-red-800 disabled:opacity-50"
                             onClick={async () => {
                               setDeleteBusy(true);
                               setDeleteError(null);
@@ -1798,7 +1798,7 @@ export default function EventDetailView() {
                           <button
                             type="button"
                             disabled={deleteBusy}
-                            className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                            className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
                             onClick={() => {
                               setPendingDelete(null);
                               setDeleteError(null);
@@ -1811,7 +1811,7 @@ export default function EventDetailView() {
                         <div className="flex flex-wrap items-center justify-end gap-2">
                           <button
                             type="button"
-                            className="text-sm text-zinc-400 hover:text-zinc-200"
+                            className="text-sm text-sc-text-muted hover:text-sc-text"
                             aria-label={t('speaker.editAriaLabel', { name: sp.full_name })}
                             onClick={() => {
                               setRoomEditDraft(null);
@@ -1834,7 +1834,7 @@ export default function EventDetailView() {
                           </button>
                           <button
                             type="button"
-                            className="text-sm text-red-400 hover:text-red-300"
+                            className="text-sm text-sc-danger hover:text-sc-danger"
                             aria-label={t('speaker.deleteAriaLabel', { name: sp.full_name })}
                             onClick={() => {
                               setSpeakerEditDraft((d) => (d?.id === sp.id ? null : d));
@@ -1850,11 +1850,11 @@ export default function EventDetailView() {
                       )}
                     </div>
                   </div>
-                  <div className="border-t border-zinc-800/80 pt-2">
+                  <div className="border-t border-sc-primary/10 pt-2">
                     <button
                       type="button"
                       aria-expanded={versionsOpen}
-                      className="inline-flex items-center gap-2 text-xs font-medium text-blue-400 hover:text-blue-300"
+                      className="inline-flex items-center gap-2 text-xs font-medium text-sc-primary hover:text-sc-primary"
                       onClick={() =>
                         setVersionsExpandedSpeakerId((cur) => (cur === sp.id ? null : sp.id))
                       }
@@ -1878,10 +1878,10 @@ export default function EventDetailView() {
       </section>
 
       <section className="mt-12" aria-labelledby="devices-section-title">
-        <h2 id="devices-section-title" className="text-lg font-semibold text-zinc-100">
+        <h2 id="devices-section-title" className="text-lg font-semibold text-sc-text">
           {t('devices.panel.sectionTitle')}
         </h2>
-        <p className="mt-1 text-sm text-zinc-500">{t('devices.panel.sectionIntro')}</p>
+        <p className="mt-1 text-sm text-sc-text-dim">{t('devices.panel.sectionIntro')}</p>
         <div className="mt-6 max-w-2xl">
           <DevicesPanel eventId={event.id} rooms={rooms} />
         </div>

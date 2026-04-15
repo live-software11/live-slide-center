@@ -6,7 +6,7 @@ import { RequireAuth } from './require-auth';
 import { RequireSuperAdmin } from './require-super-admin';
 
 function HydrateFallback() {
-  return <p className="p-8 text-zinc-400">Loading…</p>;
+  return <p className="p-8 text-sc-text-muted">Loading…</p>;
 }
 
 export const router = createBrowserRouter([

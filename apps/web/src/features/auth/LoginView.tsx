@@ -33,7 +33,7 @@ export default function LoginView() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-400">
+      <div className="flex min-h-screen items-center justify-center bg-sc-bg text-sc-text-muted">
         {t('auth.loadingSession')}
       </div>
     );
@@ -79,69 +79,80 @@ export default function LoginView() {
   });
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4 text-zinc-100">
-      <div className="w-full max-w-sm rounded-lg border border-zinc-800 bg-zinc-900 p-6 shadow-xl">
-        <h1 className="text-xl font-semibold tracking-tight" id="login-title">
-          {t('auth.loginPageTitle')}
-        </h1>
-        <p className="sr-only">{t('auth.a11yLoginTitle')}</p>
-        <form className="mt-6 flex flex-col gap-4" onSubmit={onSubmit} noValidate>
-          <div>
-            <label htmlFor="login-email" className="mb-1 block text-sm text-zinc-400">
-              {t('auth.email')}
-            </label>
-            <input
-              id="login-email"
-              type="email"
-              autoComplete="email"
-              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
-              aria-invalid={errors.email ? true : undefined}
-              aria-describedby={errors.email ? 'login-email-err' : undefined}
-              {...register('email')}
-            />
-            {errors.email ? (
-              <p id="login-email-err" className="mt-1 text-xs text-red-400" role="alert">
-                {errors.email.message}
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-sc-bg px-4 text-sc-text">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 left-1/2 h-80 w-[600px] -translate-x-1/2 rounded-full bg-sc-primary/8 blur-3xl" />
+        <div className="absolute -top-20 left-1/3 h-60 w-[400px] -translate-x-1/2 rounded-full bg-sc-accent/5 blur-3xl" />
+      </div>
+      <div className="relative w-full max-w-sm">
+        <div className="mb-8 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-sc-navy ring-1 ring-white/10">
+            <span className="text-lg font-bold text-sc-primary">SC</span>
+          </div>
+          <h1 className="mt-4 text-xl font-semibold tracking-tight" id="login-title">
+            {t('auth.loginPageTitle')}
+          </h1>
+        </div>
+        <div className="rounded-2xl border border-sc-primary/12 bg-sc-surface p-6 shadow-xl shadow-sc-primary/5">
+          <p className="sr-only">{t('auth.a11yLoginTitle')}</p>
+          <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
+            <div>
+              <label htmlFor="login-email" className="mb-1.5 block text-sm font-medium text-sc-text-muted">
+                {t('auth.email')}
+              </label>
+              <input
+                id="login-email"
+                type="email"
+                autoComplete="email"
+                className="w-full rounded-xl border border-sc-primary/15 bg-sc-bg px-3.5 py-2.5 text-sm text-sc-text outline-none transition-colors placeholder:text-sc-text-dim focus:border-sc-primary/40 focus:ring-2 focus:ring-sc-ring/25"
+                aria-invalid={errors.email ? true : undefined}
+                aria-describedby={errors.email ? 'login-email-err' : undefined}
+                {...register('email')}
+              />
+              {errors.email ? (
+                <p id="login-email-err" className="mt-1.5 text-xs text-sc-danger" role="alert">
+                  {errors.email.message}
+                </p>
+              ) : null}
+            </div>
+            <div>
+              <label htmlFor="login-password" className="mb-1.5 block text-sm font-medium text-sc-text-muted">
+                {t('auth.password')}
+              </label>
+              <input
+                id="login-password"
+                type="password"
+                autoComplete="current-password"
+                className="w-full rounded-xl border border-sc-primary/15 bg-sc-bg px-3.5 py-2.5 text-sm text-sc-text outline-none transition-colors placeholder:text-sc-text-dim focus:border-sc-primary/40 focus:ring-2 focus:ring-sc-ring/25"
+                aria-invalid={errors.password ? true : undefined}
+                aria-describedby={errors.password ? 'login-password-err' : undefined}
+                {...register('password')}
+              />
+              {errors.password ? (
+                <p id="login-password-err" className="mt-1.5 text-xs text-sc-danger" role="alert">
+                  {errors.password.message}
+                </p>
+              ) : null}
+            </div>
+            {submitError ? (
+              <p className="text-sm text-sc-danger" role="alert">
+                {submitError}
               </p>
             ) : null}
-          </div>
-          <div>
-            <label htmlFor="login-password" className="mb-1 block text-sm text-zinc-400">
-              {t('auth.password')}
-            </label>
-            <input
-              id="login-password"
-              type="password"
-              autoComplete="current-password"
-              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
-              aria-invalid={errors.password ? true : undefined}
-              aria-describedby={errors.password ? 'login-password-err' : undefined}
-              {...register('password')}
-            />
-            {errors.password ? (
-              <p id="login-password-err" className="mt-1 text-xs text-red-400" role="alert">
-                {errors.password.message}
-              </p>
-            ) : null}
-          </div>
-          {submitError ? (
-            <p className="text-sm text-red-400" role="alert">
-              {submitError}
-            </p>
-          ) : null}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
-          >
-            {t('auth.submitLogin')}
-          </button>
-        </form>
-        <p className="mt-4 text-center text-sm text-zinc-500">
-          <Link to="/signup" className="text-blue-500 hover:underline">
-            {t('auth.goToSignup')}
-          </Link>
-        </p>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="rounded-xl bg-sc-primary px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-sc-primary/20 transition-all hover:bg-sc-primary-deep hover:shadow-sc-primary/30 disabled:opacity-50"
+            >
+              {t('auth.submitLogin')}
+            </button>
+          </form>
+          <p className="mt-5 text-center text-sm text-sc-text-dim">
+            <Link to="/signup" className="font-medium text-sc-primary hover:text-sc-primary-deep hover:underline">
+              {t('auth.goToSignup')}
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

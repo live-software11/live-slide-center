@@ -23,13 +23,13 @@ export function DevicesPanel({ eventId, rooms }: DevicesPanelProps) {
 
   return (
     <section
-      className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4"
+      className="rounded-xl border border-sc-primary/12 bg-sc-surface/60 p-4"
       aria-labelledby="devices-panel-title"
     >
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Monitor className="h-5 w-5 text-zinc-400" />
-          <h3 id="devices-panel-title" className="text-sm font-semibold text-zinc-200">
+          <Monitor className="h-5 w-5 text-sc-text-muted" />
+          <h3 id="devices-panel-title" className="text-sm font-semibold text-sc-text">
             {t('devices.panel.title')}
           </h3>
           {devices.length > 0 && (
@@ -42,7 +42,7 @@ export function DevicesPanel({ eventId, rooms }: DevicesPanelProps) {
         <button
           type="button"
           onClick={() => setShowModal(true)}
-          className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-sc-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-sc-primary/80"
         >
           <Plus className="h-4 w-4" />
           {t('devices.panel.addDevice')}
@@ -50,10 +50,10 @@ export function DevicesPanel({ eventId, rooms }: DevicesPanelProps) {
       </div>
 
       {loading && (
-        <p className="py-2 text-center text-sm text-zinc-500">{t('common.loading')}</p>
+        <p className="py-2 text-center text-sm text-sc-text-dim">{t('common.loading')}</p>
       )}
       {error && (
-        <p className="py-2 text-center text-sm text-red-400">{error}</p>
+        <p className="py-2 text-center text-sm text-sc-danger">{error}</p>
       )}
       {!loading && !error && (
         <DeviceList devices={devices} rooms={rooms} onRefresh={refresh} />

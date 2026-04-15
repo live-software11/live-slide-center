@@ -27,24 +27,24 @@ export function EventSummaryBar({ snapshot, eventName }: Props) {
   }, [snapshot]);
 
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-zinc-800 bg-[#141416] px-5 py-3">
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-sc-primary/12 bg-sc-surface px-5 py-3">
       <h2 className="text-sm font-semibold text-zinc-50 sm:text-base">{eventName}</h2>
       <Stat label={t('liveView.statRooms')} value={stats.rooms} />
       <Stat label={t('liveView.statSpeakers')} value={stats.totalSpeakers} />
-      <Stat label={t('liveView.statUploaded')} value={stats.uploaded} color="text-blue-400" />
-      <Stat label={t('liveView.statApproved')} value={stats.approved} color="text-emerald-400" />
+      <Stat label={t('liveView.statUploaded')} value={stats.uploaded} color="text-sc-primary" />
+      <Stat label={t('liveView.statApproved')} value={stats.approved} color="text-sc-success" />
       {stats.rejected > 0 ? (
-        <Stat label={t('liveView.statRejected')} value={stats.rejected} color="text-red-400" />
+        <Stat label={t('liveView.statRejected')} value={stats.rejected} color="text-sc-danger" />
       ) : null}
     </div>
   );
 }
 
-function Stat({ label, value, color = 'text-zinc-100' }: { label: string; value: number; color?: string }) {
+function Stat({ label, value, color = 'text-sc-text' }: { label: string; value: number; color?: string }) {
   return (
     <div className="flex items-baseline gap-1.5">
       <span className={`text-lg font-bold tabular-nums ${color}`}>{value}</span>
-      <span className="text-xs text-zinc-500">{label}</span>
+      <span className="text-xs text-sc-text-dim">{label}</span>
     </div>
   );
 }

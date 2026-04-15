@@ -1,8 +1,33 @@
 @import 'tailwindcss';
 
+@theme inline {
+  --color-sc-bg: #07101f;
+  --color-sc-surface: #0d1c30;
+  --color-sc-elevated: #132844;
+  --color-sc-primary: #3FA9F5;
+  --color-sc-primary-deep: #0B5ED7;
+  --color-sc-accent: #FF7A00;
+  --color-sc-accent-light: #FF9A40;
+  --color-sc-navy: #0A2540;
+  --color-sc-text: #f0f2f5;
+  --color-sc-text-secondary: #b8c5d4;
+  --color-sc-text-muted: #7a8da3;
+  --color-sc-text-dim: #556577;
+  --color-sc-ring: #3FA9F5;
+  --color-sc-success: #4ade80;
+  --color-sc-warning: #fbbf24;
+  --color-sc-danger: #f87171;
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --radius: 0.75rem;
+}
+
 :root {
-  --background: #09090b;
-  --foreground: #fafafa;
+  --background: #07101f;
+  --foreground: #f0f2f5;
+}
+
+::selection {
+  background-color: rgba(63, 169, 245, 0.25);
 }
 
 body {
@@ -10,18 +35,16 @@ body {
   min-height: 100vh;
   background-color: var(--background);
   color: var(--foreground);
-  font-family:
-    'Inter',
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+  font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
   min-height: 100vh;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='datetime-local']::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
 }

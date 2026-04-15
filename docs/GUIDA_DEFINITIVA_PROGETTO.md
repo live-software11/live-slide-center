@@ -726,18 +726,61 @@ export const PLAN_LIMITS: Record<TenantPlan, PlanLimits> = {
 
 ## 13. Design System
 
-### Palette (dark mode only)
+### Identita visiva
 
-| Ruolo           | Colore    | Uso                   |
-| --------------- | --------- | --------------------- |
-| Background      | `#0A0A0B` | Ambiente regia buio   |
-| Card            | `#141416` | Pannelli, sidebar     |
-| Accent          | `#0066FF` | CTA, link, selezione  |
-| Success         | `#22C55E` | Synced, online, ready |
-| Warning         | `#F59E0B` | Syncing, LAN only     |
-| Danger          | `#EF4444` | Offline, failed       |
-| Text            | `#FAFAFA` | Titoli                |
-| Text secondario | `#A1A1AA` | Label, metadata       |
+Allineata al sito marketing **www.liveworksapp.com**: navy profondo, blu brand, arancio accento, font DM Sans, superfici con bordi blu-tinti, card `rounded-2xl`. Dark mode only.
+
+### Palette (Tailwind 4 `@theme` tokens in `index.css`)
+
+| Token Tailwind       | Valore hex             | Uso                                  |
+| -------------------- | ---------------------- | ------------------------------------ |
+| `sc-bg`              | `#07101f`              | Sfondo principale (navy profondo)    |
+| `sc-surface`         | `#0d1c30`              | Card, sidebar, pannelli              |
+| `sc-elevated`        | `#132844`              | Superfici hover, elementi rialzati   |
+| `sc-primary`         | `#3FA9F5`              | CTA, link, selezione, brand blue     |
+| `sc-primary-deep`    | `#0B5ED7`              | Hover su primary, gradienti          |
+| `sc-accent`          | `#FF7A00`              | Badge admin, avvisi importanti       |
+| `sc-accent-light`    | `#FF9A40`              | Accento secondario                   |
+| `sc-navy`            | `#0A2540`              | Logo box, elementi brand             |
+| `sc-text`            | `#f0f2f5`              | Testo primario (titoli, contenuto)   |
+| `sc-text-secondary`  | `#b8c5d4`              | Testo secondario                     |
+| `sc-text-muted`      | `#7a8da3`              | Label, metadata, placeholder         |
+| `sc-text-dim`        | `#556577`              | Testo terziario, hint                |
+| `sc-ring`            | `#3FA9F5`              | Focus ring                           |
+| `sc-success`         | `#4ade80`              | Synced, online, ready                |
+| `sc-warning`         | `#fbbf24`              | Syncing, LAN only, cap raggiunto     |
+| `sc-danger`          | `#f87171`              | Offline, failed, errori              |
+
+### Bordi e opacita
+
+- Bordi card/sezioni: `border-sc-primary/12` (blu al 12% — sottile, elegante)
+- Bordi input/strong: `border-sc-primary/20`
+- Bordi admin: `border-sc-accent/15`
+- Divider: `divide-sc-primary/12`
+
+### Tipografia
+
+- **Font**: DM Sans (Google Fonts) — caricato in `index.html`
+- **Stack CSS**: `'DM Sans', ui-sans-serif, system-ui, sans-serif`
+- **Pesi**: 400 (body), 500 (label), 600 (titoli sezione), 700 (h1/h2)
+
+### Componenti UI
+
+- **Border radius**: `rounded-xl` per card, input, bottoni, sezioni. `rounded-2xl` per card principali (login, signup)
+- **Sidebar**: `bg-sc-surface/80 backdrop-blur-xl` con bordo `border-sc-primary/10`
+- **Bottoni primari**: `bg-sc-primary text-white shadow-lg shadow-sc-primary/20 hover:bg-sc-primary-deep`
+- **Bottoni ghost**: `bg-sc-elevated text-sc-text-secondary hover:bg-sc-primary/8`
+- **Input**: `bg-sc-bg border-sc-primary/15 rounded-xl focus:border-sc-primary/40 focus:ring-sc-ring/25`
+- **Card**: `bg-sc-surface border-sc-primary/12 rounded-xl`
+- **Glow decorativo** (login/signup): `bg-sc-primary/8 blur-3xl` + `bg-sc-accent/5 blur-3xl`
+
+### App Tauri (agent + room-agent)
+
+- Stesse variabili CSS (`--sc-bg`, `--sc-surface`, ecc.) in `<style>` inline
+- Font DM Sans via Google Fonts `<link>`
+- Card `.card { border-radius: 16px; }`
+- Bottoni `.btn-primary { border-radius: 12px; box-shadow: ... }`
+- Badge stato con classi `.badge-synced`, `.badge-offline`, ecc.
 
 ### Principi UX
 
@@ -745,7 +788,7 @@ export const PLAN_LIMITS: Record<TenantPlan, PlanLimits> = {
 2. Zero ambiguita sulla versione (numero + timestamp + hash troncato)
 3. Feedback entro 200ms
 4. Dark mode only
-5. Solo componenti shadcn/ui
+5. Coerenza visiva con sito marketing www.liveworksapp.com
 6. Densita informativa alta (target: tecnici esperti)
 
 ---

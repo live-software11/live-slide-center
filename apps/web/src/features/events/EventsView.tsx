@@ -115,7 +115,7 @@ export default function EventsView() {
 
   if (authLoading) {
     return (
-      <div className="p-8 text-zinc-400">
+      <div className="p-6 lg:p-8 text-sc-text-muted">
         {t('common.loading')}
       </div>
     );
@@ -123,8 +123,8 @@ export default function EventsView() {
 
   if (!tenantId) {
     return (
-      <div className="p-8">
-        <p className="text-red-400" role="alert">
+      <div className="p-6 lg:p-8">
+        <p className="text-sc-danger" role="alert">
           {t('event.errors.missingTenant')}
         </p>
       </div>
@@ -133,14 +133,14 @@ export default function EventsView() {
 
   if (state.status === 'error') {
     return (
-      <div className="p-8">
-        <p className="text-red-400" role="alert">
+      <div className="p-6 lg:p-8">
+        <p className="text-sc-danger" role="alert">
           {t('event.errors.load')}: {state.message}
         </p>
         <button
           type="button"
           onClick={() => void reload()}
-          className="mt-4 rounded-md bg-zinc-800 px-4 py-2 text-sm hover:bg-zinc-700"
+          className="mt-4 rounded-xl bg-sc-elevated px-4 py-2 text-sm hover:bg-sc-elevated"
         >
           {t('common.refresh')}
         </button>
@@ -150,19 +150,19 @@ export default function EventsView() {
 
   if (state.status !== 'ready') {
     return (
-      <div className="p-8 text-zinc-400">
+      <div className="p-6 lg:p-8 text-sc-text-muted">
         {t('common.loading')}
       </div>
     );
   }
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-zinc-50">{t('event.titlePlural')}</h1>
-      <p className="mt-2 max-w-xl text-sm text-zinc-400">{t('event.listIntro')}</p>
+    <div className="p-6 lg:p-8">
+      <h1 className="text-2xl font-bold text-sc-text">{t('event.titlePlural')}</h1>
+      <p className="mt-2 max-w-xl text-sm text-sc-text-muted">{t('event.listIntro')}</p>
 
       {quotaState.state.status === 'error' ? (
-        <p className="mt-4 max-w-xl text-sm text-amber-400" role="alert">
+        <p className="mt-4 max-w-xl text-sm text-sc-warning" role="alert">
           {quotaState.state.message === 'no_tenant_row'
             ? t('tenantQuota.loadErrorNoRow')
             : `${t('tenantQuota.loadError')} (${quotaState.state.message})`}
@@ -177,70 +177,70 @@ export default function EventsView() {
           />
         </div>
       ) : quotaState.state.status === 'loading' ? (
-        <p className="mt-4 text-xs text-zinc-500">{t('common.loading')}</p>
+        <p className="mt-4 text-xs text-sc-text-dim">{t('common.loading')}</p>
       ) : null}
 
-      <section className="mt-8 rounded-lg border border-zinc-800 bg-zinc-900/50 p-6" aria-labelledby="new-event-title">
-        <h2 id="new-event-title" className="text-lg font-semibold text-zinc-100">
+      <section className="mt-8 rounded-xl border border-sc-primary/12 bg-sc-surface/60 p-6" aria-labelledby="new-event-title">
+        <h2 id="new-event-title" className="text-lg font-semibold text-sc-text">
           {t('event.create')}
         </h2>
         <form className="mt-4 flex max-w-lg flex-col gap-4" onSubmit={onSubmit} noValidate>
           <div>
-            <label htmlFor="ev-name" className="mb-1 block text-sm text-zinc-400">
+            <label htmlFor="ev-name" className="mb-1 block text-sm text-sc-text-muted">
               {t('event.name')}
             </label>
             <input
               id="ev-name"
-              className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+              className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2 focus:border-sc-primary/40"
               aria-invalid={errors.name ? true : undefined}
               {...register('name')}
             />
             {errors.name ? (
-              <p className="mt-1 text-xs text-red-400" role="alert">
+              <p className="mt-1 text-xs text-sc-danger" role="alert">
                 {errors.name.message}
               </p>
             ) : null}
           </div>
           <div className="flex flex-wrap gap-4">
             <div>
-              <label htmlFor="ev-start" className="mb-1 block text-sm text-zinc-400">
+              <label htmlFor="ev-start" className="mb-1 block text-sm text-sc-text-muted">
                 {t('event.startDate')}
               </label>
               <input
                 id="ev-start"
                 type="date"
-                className="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                className="rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2 focus:border-sc-primary/40"
                 aria-invalid={errors.start_date ? true : undefined}
                 {...register('start_date')}
               />
             </div>
             <div>
-              <label htmlFor="ev-end" className="mb-1 block text-sm text-zinc-400">
+              <label htmlFor="ev-end" className="mb-1 block text-sm text-sc-text-muted">
                 {t('event.endDate')}
               </label>
               <input
                 id="ev-end"
                 type="date"
-                className="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none ring-blue-600 focus:ring-2"
+                className="rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2 focus:border-sc-primary/40"
                 aria-invalid={errors.end_date ? true : undefined}
                 {...register('end_date')}
               />
             </div>
           </div>
           {errors.end_date ? (
-            <p className="text-xs text-red-400" role="alert">
+            <p className="text-xs text-sc-danger" role="alert">
               {t('event.dateOrderError')}
             </p>
           ) : null}
           {createError ? (
-            <p className="text-sm text-red-400" role="alert">
+            <p className="text-sm text-sc-danger" role="alert">
               {createError}
             </p>
           ) : null}
           <button
             type="submit"
             disabled={isSubmitting || createDisabledByQuotaCap}
-            className="w-fit rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+            className="w-fit rounded-xl bg-sc-primary px-4 py-2 text-sm font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
           >
             {t('common.create')}
           </button>
@@ -248,27 +248,27 @@ export default function EventsView() {
       </section>
 
       <section className="mt-10" aria-labelledby="event-list-title">
-        <h2 id="event-list-title" className="text-lg font-semibold text-zinc-100">
+        <h2 id="event-list-title" className="text-lg font-semibold text-sc-text">
           {t('event.listTitle')}
         </h2>
         {state.events.length === 0 ? (
-          <p className="mt-4 text-sm text-zinc-500">{t('event.emptyList')}</p>
+          <p className="mt-4 text-sm text-sc-text-dim">{t('event.emptyList')}</p>
         ) : (
-          <ul className="mt-4 divide-y divide-zinc-800 rounded-lg border border-zinc-800">
+          <ul className="mt-4 divide-y divide-sc-primary/12 rounded-xl border border-sc-primary/12">
             {state.events.map((ev) => (
               <li key={ev.id} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <Link
                     to={`/events/${ev.id}`}
-                    className="font-medium text-zinc-100 hover:text-blue-400 hover:underline"
+                    className="font-medium text-sc-text hover:text-sc-primary hover:underline"
                   >
                     {ev.name}
                   </Link>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-sc-text-dim">
                     {ev.start_date} → {ev.end_date} · {eventStatusLabel(t, ev.status)}
                   </p>
                 </div>
-                <span className="text-xs uppercase text-zinc-500">{ev.status}</span>
+                <span className="text-xs uppercase text-sc-text-dim">{ev.status}</span>
               </li>
             ))}
           </ul>

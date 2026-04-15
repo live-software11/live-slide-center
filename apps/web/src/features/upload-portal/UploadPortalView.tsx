@@ -243,7 +243,7 @@ export default function UploadPortalView() {
   if (validationLoading) {
     return (
       <Shell>
-        <p className="text-sm text-zinc-400">{t('uploadPortal.validating')}</p>
+        <p className="text-sm text-sc-text-muted">{t('uploadPortal.validating')}</p>
       </Shell>
     );
   }
@@ -260,14 +260,14 @@ export default function UploadPortalView() {
             : 'uploadPortal.invalidGeneric';
     return (
       <Shell>
-        <h1 className="text-xl font-semibold tracking-tight text-red-400">
+        <h1 className="text-xl font-semibold tracking-tight text-sc-danger">
           {t('uploadPortal.invalidTitle')}
         </h1>
-        <p className="mt-3 text-sm text-zinc-400">{t(reasonKey)}</p>
+        <p className="mt-3 text-sm text-sc-text-muted">{t(reasonKey)}</p>
         <p className="mt-6">
           <Link
             to="/login"
-            className="text-sm font-medium text-blue-500 hover:text-blue-400 hover:underline"
+            className="text-sm font-medium text-sc-primary hover:text-sc-primary hover:underline"
           >
             {t('uploadPortal.goToLogin')} →
           </Link>
@@ -281,19 +281,19 @@ export default function UploadPortalView() {
   if (state.kind === 'done') {
     return (
       <Shell>
-        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-400">
+        <p className="text-xs font-semibold uppercase tracking-wide text-sc-success">
           {t('uploadPortal.badge')}
         </p>
         <h1 className="mt-2 text-xl font-semibold tracking-tight">
           {t('uploadPortal.successTitle')}
         </h1>
-        <p className="mt-4 text-sm leading-relaxed text-zinc-400">
+        <p className="mt-4 text-sm leading-relaxed text-sc-text-muted">
           {t('uploadPortal.successBody', { version: state.versionNumber ?? '?' })}
         </p>
         <button
           type="button"
           onClick={resetForAnother}
-          className="mt-6 inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500"
+          className="mt-6 inline-flex items-center rounded-xl bg-sc-primary px-4 py-2 text-sm font-medium text-white hover:bg-sc-primary/80"
         >
           {t('uploadPortal.uploadAnother')}
         </button>
@@ -306,13 +306,13 @@ export default function UploadPortalView() {
 
   return (
     <Shell>
-      <p className="text-xs font-semibold uppercase tracking-wide text-blue-400/90">
+      <p className="text-xs font-semibold uppercase tracking-wide text-sc-primary/90">
         {t('uploadPortal.badge')}
       </p>
       <h1 className="mt-2 text-xl font-semibold tracking-tight">{t('uploadPortal.pageTitle')}</h1>
-      <p className="mt-3 text-sm leading-relaxed text-zinc-400">{t('uploadPortal.intro')}</p>
+      <p className="mt-3 text-sm leading-relaxed text-sc-text-muted">{t('uploadPortal.intro')}</p>
 
-      <dl className="mt-6 grid grid-cols-1 gap-3 rounded-md border border-zinc-800 bg-zinc-950/50 p-4 text-sm">
+      <dl className="mt-6 grid grid-cols-1 gap-3 rounded-xl border border-sc-primary/12 bg-sc-surface/60 p-4 text-sm">
         <Row label={t('uploadPortal.speakerLabel')} value={v.speaker_name} />
         <Row label={t('uploadPortal.eventLabel')} value={v.event_name} />
         <Row label={t('uploadPortal.sessionLabel')} value={v.session_title} />
@@ -327,7 +327,7 @@ export default function UploadPortalView() {
         ) : null}
       </dl>
 
-      <p className="mt-4 text-xs text-zinc-500">
+      <p className="mt-4 text-xs text-sc-text-dim">
         {t('uploadPortal.maxFileSize', {
           size: formatBytes(v.max_file_size_bytes ?? undefined, locale),
         })}
@@ -355,7 +355,7 @@ export default function UploadPortalView() {
       </div>
 
       {state.kind === 'error' ? (
-        <p className="mt-4 rounded-md border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm text-red-300">
+        <p className="mt-4 rounded-xl border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm text-red-300">
           {t(state.messageKey, state.params)}
         </p>
       ) : null}
@@ -370,20 +370,20 @@ export default function UploadPortalView() {
         />
       ) : null}
       {state.kind === 'hashing' ? (
-        <p className="mt-4 text-sm text-zinc-400">{t('uploadPortal.hashing')}</p>
+        <p className="mt-4 text-sm text-sc-text-muted">{t('uploadPortal.hashing')}</p>
       ) : null}
       {state.kind === 'finalizing' ? (
-        <p className="mt-4 text-sm text-zinc-400">{t('uploadPortal.finalizing')}</p>
+        <p className="mt-4 text-sm text-sc-text-muted">{t('uploadPortal.finalizing')}</p>
       ) : null}
 
-      <p className="mt-4 text-xs text-zinc-500">{t('uploadPortal.noticeResumable')}</p>
+      <p className="mt-4 text-xs text-sc-text-dim">{t('uploadPortal.noticeResumable')}</p>
 
       <div className="mt-6 flex gap-3">
         <button
           type="button"
           disabled={!file || busy}
           onClick={startUpload}
-          className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500"
+          className="inline-flex items-center rounded-xl bg-sc-primary px-4 py-2 text-sm font-medium text-white hover:bg-sc-primary/80 disabled:cursor-not-allowed disabled:bg-sc-elevated disabled:text-sc-text-dim"
         >
           {t('uploadPortal.startUpload')}
         </button>
@@ -394,7 +394,7 @@ export default function UploadPortalView() {
               cancelEverything();
               setState({ kind: 'idle' });
             }}
-            className="inline-flex items-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-200 hover:bg-zinc-900"
+            className="inline-flex items-center rounded-xl border border-sc-primary/20 px-4 py-2 text-sm font-medium text-sc-text hover:bg-sc-elevated"
           >
             {t('uploadPortal.cancelUpload')}
           </button>
@@ -406,8 +406,8 @@ export default function UploadPortalView() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4 py-12 text-zinc-100">
-      <div className="w-full max-w-xl rounded-lg border border-zinc-800 bg-zinc-900 p-8 shadow-xl">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-sc-bg px-4 py-12 text-sc-text">
+      <div className="w-full max-w-xl rounded-xl border border-sc-primary/12 bg-sc-surface p-6 lg:p-8 shadow-xl">
         {children}
       </div>
     </div>
@@ -417,8 +417,8 @@ function Shell({ children }: { children: React.ReactNode }) {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className="text-xs uppercase tracking-wide text-zinc-500">{label}</dt>
-      <dd className="truncate text-right text-zinc-200">{value}</dd>
+      <dt className="text-xs uppercase tracking-wide text-sc-text-dim">{label}</dt>
+      <dd className="truncate text-right text-sc-text">{value}</dd>
     </div>
   );
 }
@@ -457,21 +457,21 @@ function DropZone({
         const dropped = e.dataTransfer.files?.[0] ?? null;
         onPick(dropped);
       }}
-      className={`rounded-md border-2 border-dashed p-6 text-center transition ${
-        dragOver ? 'border-blue-500 bg-blue-950/30' : 'border-zinc-700 bg-zinc-950/40'
+      className={`rounded-xl border-2 border-dashed p-6 text-center transition ${
+        dragOver ? 'border-sc-primary bg-sc-primary/20' : 'border-sc-primary/20 bg-sc-bg/40'
       } ${disabled ? 'opacity-60' : ''}`}
     >
       {file ? (
         <div className="space-y-1 text-sm">
-          <p className="truncate font-medium text-zinc-100">{file.name}</p>
-          <p className="text-xs text-zinc-500">
+          <p className="truncate font-medium text-sc-text">{file.name}</p>
+          <p className="text-xs text-sc-text-dim">
             {formatBytes(file.size, locale)} · {file.type || 'application/octet-stream'}
           </p>
         </div>
       ) : (
         <div className="space-y-1">
-          <p className="text-sm font-medium text-zinc-200">{labelTitle}</p>
-          <p className="text-xs text-zinc-500">{labelHint}</p>
+          <p className="text-sm font-medium text-sc-text">{labelTitle}</p>
+          <p className="text-xs text-sc-text-dim">{labelHint}</p>
         </div>
       )}
       <input
@@ -485,7 +485,7 @@ function DropZone({
         type="button"
         disabled={disabled}
         onClick={() => inputRef.current?.click()}
-        className="mt-4 inline-flex items-center rounded-md border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-4 inline-flex items-center rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs font-medium text-sc-text hover:bg-sc-elevated disabled:cursor-not-allowed disabled:opacity-50"
       >
         {labelSelect}
       </button>
@@ -509,7 +509,7 @@ function Progress({
   const pct = total > 0 ? Math.floor((uploaded / total) * 100) : 0;
   return (
     <div className="mt-4 space-y-2">
-      <div className="flex items-baseline justify-between text-xs text-zinc-400">
+      <div className="flex items-baseline justify-between text-xs text-sc-text-muted">
         <span>{label}</span>
         <span>
           {t('uploadPortal.progressLabel', {
@@ -519,9 +519,9 @@ function Progress({
           })}
         </span>
       </div>
-      <div className="h-2 w-full overflow-hidden rounded bg-zinc-800">
+      <div className="h-2 w-full overflow-hidden rounded bg-sc-elevated">
         <div
-          className="h-full bg-blue-500 transition-[width]"
+          className="h-full bg-sc-primary transition-[width]"
           style={{ width: `${pct}%` }}
           role="progressbar"
           aria-valuenow={pct}
