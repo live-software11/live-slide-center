@@ -653,12 +653,23 @@
     }
   },
   "settings": {
-    "pageIntro": "Interface preferences stored in this browser (language and future options).",
+    "pageIntro": "Interface preferences stored in this browser (language, Live Software ecosystem shortcuts, and future options).",
     "languageTitle": "Interface language",
     "languageHint": "Your choice is saved in this browser (localStorage) and overrides automatic browser detection.",
     "languageAutoNote": "If you do not change the language, the browser language is used when it is Italian or English; otherwise Italian is the default.",
     "languageIt": "Italian",
     "languageEn": "English",
-    "languageCurrent": "Active language: {{label}}"
+    "languageCurrent": "Active language: {{label}}",
+    "integrationsTitle": "Live Software ecosystem",
+    "integrationsIntro": "Quick links to other suite apps (desktop or web). Live data integrations (control-room session state, countdowns, crew assignments) are planned for upcoming releases.",
+    "integrationsTimerTitle": "Live Speaker Timer",
+    "integrationsTimerBody": "Speaker timers and in-room session countdowns—ideal alongside Slide Center during congresses and live shows.",
+    "integrationsTimerEnvHint": "To show the launch link, set VITE_LIVE_SPEAKER_TIMER_URL in the monorepo root `.env` (URL to the installable Timer build or download page).",
+    "integrationsCrewTitle": "Live CREW",
+    "integrationsCrewBody": "Technician assignments and on-site crew coordination. Deeper Slide Center integration is on the roadmap.",
+    "integrationsApiTitle": "Public API",
+    "integrationsApiBody": "Documented REST endpoints for external automation (CMS, registration, customer dashboards). Not yet exposed in production.",
+    "integrationsOpenApp": "Open / Download",
+    "integrationsBadgeSoon": "Coming soon"
   }
 }

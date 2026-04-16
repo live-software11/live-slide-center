@@ -653,12 +653,23 @@
     }
   },
   "settings": {
-    "pageIntro": "Preferenze dell'interfaccia salvate in questo browser (lingua e altre opzioni future).",
+    "pageIntro": "Preferenze dell'interfaccia salvate in questo browser (lingua, collegamenti all'ecosistema Live Software e altre opzioni future).",
     "languageTitle": "Lingua dell'interfaccia",
     "languageHint": "La scelta viene memorizzata in questo browser (localStorage) e ha priorità sul rilevamento automatico del browser.",
     "languageAutoNote": "Se non modifichi la lingua, viene usata quella del browser quando è italiano o inglese; altrimenti si applica l'italiano come predefinito.",
     "languageIt": "Italiano",
     "languageEn": "English",
-    "languageCurrent": "Lingua attiva: {{label}}"
+    "languageCurrent": "Lingua attiva: {{label}}",
+    "integrationsTitle": "Ecosistema Live Software",
+    "integrationsIntro": "Collegamenti rapidi alle altre app della suite (desktop o web). Le integrazioni dati in tempo reale (sessione in regia, countdown, assegnazioni tecnici) arriveranno nelle release successive.",
+    "integrationsTimerTitle": "Live Speaker Timer",
+    "integrationsTimerBody": "Timer relatori e countdown sessione in sala. Utile affiancato al Centro Slide durante congressi e show live.",
+    "integrationsTimerEnvHint": "Per mostrare il link di avvio, configura VITE_LIVE_SPEAKER_TIMER_URL nel file .env alla root del monorepo (URL della build Timer installabile o pagina di download).",
+    "integrationsCrewTitle": "Live CREW",
+    "integrationsCrewBody": "Assegnazione tecnici e coordinamento team su evento. Integrazione con il Centro Slide in roadmap.",
+    "integrationsApiTitle": "API pubblica",
+    "integrationsApiBody": "Endpoint REST documentati per automazioni esterne (CMS, registrazione, dashboard cliente). Non ancora esposti in produzione.",
+    "integrationsOpenApp": "Apri / Scarica",
+    "integrationsBadgeSoon": "In arrivo"
   }
 }

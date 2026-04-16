@@ -49,7 +49,7 @@ Live SLIDE CENTER/
 │   │       │   ├── live-view/    # Vista Regia realtime
 │   │       │   ├── admin/        # Super-Admin: dashboard, tenants, tenant detail, audit
 │   │       │   ├── billing/      # Fase 11 (100%): BillingView, RequireTenantAdmin, quote+piani, link Lemon/Live WORKS da env
-│   │       │   └── settings/     # Fase 12 (100%): SettingsView — lingua UI IT/EN (`settings.*`, i18n.changeLanguage)
+│   │       │   └── settings/     # Fase 12 (100%): SettingsView — lingua IT/EN (`settings.*`); Fase 13 (100%): `integrations-env.ts` + sezione ecosistema (`settings.integrations*`)
 │   │       ├── components/       # AppBrandLogo (marchio), shared layout UI
 │   │       ├── routes/           # React Router 7 config
 │   │       └── lib/              # supabase.ts, utils
@@ -83,22 +83,22 @@ Live SLIDE CENTER/
 
 ## Rotte applicazione
 
-| Rotta                   | Componente                                 | Accesso                                                     |
-| ----------------------- | ------------------------------------------ | ----------------------------------------------------------- |
-| `/`                     | `DashboardView`                            | tenant (autenticato)                                        |
-| `/events/*`             | Vari views eventi                          | tenant                                                      |
-| `/admin`                | `AdminDashboardView` (stats)               | `super_admin` only                                          |
-| `/admin/tenants`        | `AdminTenantsView`                         | `super_admin` only                                          |
-| `/admin/tenants/:id`    | `AdminTenantDetailView`                    | `super_admin` only                                          |
-| `/admin/audit`          | `AdminAuditView`                           | `super_admin` only                                          |
-| `/admin/*`              | Altre viste admin (roadmap)                | `super_admin` only                                          |
-| `/pair`                 | `PairView`                                 | pubblico (tecnico)                                          |
-| `/events/:eventId/live` | `LiveRegiaView` — Vista Regia realtime     | tenant (autenticato)                                        |
-| `/sala/:token`          | `RoomPlayerView` (PWA)                     | pubblico (`device_token` in URL; bootstrap Edge Function)   |
-| `/u/:token`             | `UploadPortalView` (TUS upload)            | `upload_token` speaker                                      |
-| `/billing`              | `BillingView` (piani, quote, Lemon da env) | tenant JWT `app_metadata.role=admin` (`RequireTenantAdmin`) |
-| `/settings`            | `SettingsView` (lingua UI IT/EN) — Fase 12 | tenant (autenticato)                                        |
-| `/login`, `/signup`     | Auth views                                 | pubblico                                                    |
+| Rotta                   | Componente                                         | Accesso                                                     |
+| ----------------------- | -------------------------------------------------- | ----------------------------------------------------------- |
+| `/`                     | `DashboardView`                                    | tenant (autenticato)                                        |
+| `/events/*`             | Vari views eventi                                  | tenant                                                      |
+| `/admin`                | `AdminDashboardView` (stats)                       | `super_admin` only                                          |
+| `/admin/tenants`        | `AdminTenantsView`                                 | `super_admin` only                                          |
+| `/admin/tenants/:id`    | `AdminTenantDetailView`                            | `super_admin` only                                          |
+| `/admin/audit`          | `AdminAuditView`                                   | `super_admin` only                                          |
+| `/admin/*`              | Altre viste admin (roadmap)                        | `super_admin` only                                          |
+| `/pair`                 | `PairView`                                         | pubblico (tecnico)                                          |
+| `/events/:eventId/live` | `LiveRegiaView` — Vista Regia realtime             | tenant (autenticato)                                        |
+| `/sala/:token`          | `RoomPlayerView` (PWA)                             | pubblico (`device_token` in URL; bootstrap Edge Function)   |
+| `/u/:token`             | `UploadPortalView` (TUS upload)                    | `upload_token` speaker                                      |
+| `/billing`              | `BillingView` (piani, quote, Lemon da env)         | tenant JWT `app_metadata.role=admin` (`RequireTenantAdmin`) |
+| `/settings`             | `SettingsView` (lingua IT/EN + ecosistema Fase 13 al 100%) | tenant (autenticato)                                  |
+| `/login`, `/signup`     | Auth views                                         | pubblico                                                    |
 
 ## Decisioni Architetturali Chiave (ADR)
 
@@ -130,6 +130,9 @@ Rotta `/billing` sotto `RequireTenantAdmin` (solo `role=admin` nel JWT; `super_a
 
 **ADR-010 — Lingua UI (i18n Fase 12)**
 `/settings`: `SettingsView` chiama `i18n.changeLanguage('it'|'en')`; persistenza tramite `i18next-browser-languagedetector` (`localStorage` + `navigator`) in `packages/shared/src/i18n/index.ts`. Chiavi `settings.*` e `common.menu` in `it.json`/`en.json`; `HydrateFallback` del router usa `i18n.t('common.loading')`. **Fase 12 (100%).**
+
+**ADR-011 — Integrazioni ecosistema (Fase 13, 100% — client-only)**
+Stessa pagina `/settings`: blocco **Ecosistema Live Software** con link esterni opzionali verso **Live Speaker Timer** (`VITE_LIVE_SPEAKER_TIMER_URL`) e **Live CREW** (`VITE_LIVE_CREW_URL`) letti da `getIntegrationsEnvUrls()` in `features/settings/lib/integrations-env.ts` (stesso pattern di `getBillingEnvUrls` Fase 11). Se URL assente: copy + badge *in arrivo* (CREW) o istruzione env (Timer); **API pubblica** solo messaggio di roadmap (nessun endpoint in-repo). Nessuna Edge Function, nessun segreto: solo deep link marketing/download. Sync dati real-time (sessione regia, countdown, crew) e pubblicazione REST documentata = iterazioni successive / Fase 14.
 
 ## Pattern Moduli (apps/web)
 

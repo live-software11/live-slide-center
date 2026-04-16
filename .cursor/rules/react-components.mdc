@@ -48,7 +48,7 @@ const router = createBrowserRouter([
       { path: 'team',                       element: <TeamView /> },
       { path: 'storage',                    element: <StorageView /> },
       { path: 'billing',                    element: <BillingView /> },   // Fase 11 (100%) — admin tenant + env checkout
-      { path: 'settings',                   element: <SettingsView /> }, // Fase 12 (100%) — lingua UI IT/EN
+      { path: 'settings',                   element: <SettingsView /> }, // Fase 12 (100%) lingua + Fase 13 (100%) ecosistema (env deep link)
     ],
   },
   // --- Super-Admin (solo super_admin) ---
