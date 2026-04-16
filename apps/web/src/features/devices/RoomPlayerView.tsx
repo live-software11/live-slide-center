@@ -4,35 +4,31 @@ import { useTranslation } from 'react-i18next';
 import {
   CheckCircle2,
   Clock,
+  Cloud,
   Folder,
   FolderOpen,
   LogOut,
   Menu,
+  Network,
   RefreshCw,
   WifiOff,
   X,
 } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase';
-import type { Database } from '@slidecenter/shared';
-import { getDeviceByToken } from './repository';
+import { invokeRoomPlayerBootstrap, type RoomPlayerBootstrapSession, type RoomPlayerNetworkMode } from './repository';
 import { useFileSync } from './hooks/useFileSync';
 import { FileSyncStatus } from './components/FileSyncStatus';
+import type { Database } from '@slidecenter/shared';
 
 type SyncStatus = Database['public']['Enums']['sync_status'];
-
-interface SessionRow {
-  id: string;
-  title: string;
-  scheduled_start: string;
-  scheduled_end: string;
-}
 
 interface RoomData {
   id: string;
   name: string;
   syncStatus: SyncStatus;
-  currentSession: SessionRow | null;
+  currentSession: RoomPlayerBootstrapSession | null;
   eventId: string;
+  networkMode: RoomPlayerNetworkMode;
+  agentLan: { lan_ip: string; lan_port: number } | null;
 }
 
 function syncStatusColor(status: SyncStatus): string {
@@ -66,6 +62,45 @@ function SyncBadge({ status }: { status: SyncStatus }) {
   );
 }
 
+function RouteModeChip({
+  networkMode,
+  navigatorOnline,
+  agentLan,
+}: {
+  networkMode: RoomPlayerNetworkMode;
+  navigatorOnline: boolean;
+  agentLan: { lan_ip: string; lan_port: number } | null;
+}) {
+  const { t } = useTranslation();
+
+  const modeLabel = t(`roomPlayer.route.mode.${networkMode}`);
+
+  let hint: string;
+  if (!navigatorOnline && agentLan) {
+    hint = t('roomPlayer.route.hintLanNoInternet');
+  } else if (!navigatorOnline && !agentLan) {
+    hint = t('roomPlayer.route.hintFullOffline');
+  } else if (networkMode === 'cloud') {
+    hint = t('roomPlayer.route.hintCloudDirect');
+  } else if (networkMode === 'intranet') {
+    hint = agentLan ? t('roomPlayer.route.hintLanPrimary') : t('roomPlayer.route.hintNoAgent');
+  } else {
+    hint = agentLan ? t('roomPlayer.route.hintHybrid') : t('roomPlayer.route.hintHybridCloudOnly');
+  }
+
+  const Icon = networkMode === 'cloud' ? Cloud : Network;
+
+  return (
+    <span
+      className="inline-flex max-w-[10rem] items-center gap-1 truncate rounded-full border border-sc-primary/20 bg-sc-surface px-2 py-0.5 text-[10px] font-medium text-sc-text-muted"
+      title={hint}
+    >
+      <Icon className="h-3 w-3 shrink-0 text-sc-primary" />
+      <span className="truncate">{modeLabel}</span>
+    </span>
+  );
+}
+
 export default function RoomPlayerView() {
   const { t } = useTranslation();
   const { token } = useParams<{ token: string }>();
@@ -75,12 +110,30 @@ export default function RoomPlayerView() {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [navigatorOnline, setNavigatorOnline] = useState(
+    typeof navigator !== 'undefined' ? navigator.onLine : true,
+  );
+
+  useEffect(() => {
+    const on = () => setNavigatorOnline(true);
+    const off = () => setNavigatorOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
 
   const { supported, dirHandle, items, pickFolder, clearFolder, retryItem } = useFileSync({
     roomId: roomData?.id ?? '',
     roomName: roomData?.name ?? 'sala',
     eventId: roomData?.eventId ?? '',
-    enabled: !!roomData,
+    deviceToken: token ?? '',
+    networkMode: roomData?.networkMode ?? 'cloud',
+    agentLan: roomData?.agentLan ?? null,
+    navigatorOnline,
+    enabled: Boolean(roomData && token),
   });
 
   useEffect(() => {
@@ -90,54 +143,26 @@ export default function RoomPlayerView() {
       return;
     }
 
+    const deviceToken = token;
+
     async function loadRoom() {
       try {
-        const device = await getDeviceByToken(token!);
-        if (!device) {
-          setAuthError('invalid_token');
-          setLoading(false);
-          return;
-        }
-
-        const supabase = getSupabaseBrowserClient();
-
-        const { data: room } = await supabase
-          .from('rooms')
-          .select('id, name')
-          .eq('id', device.room_id ?? '')
-          .maybeSingle();
-
-        if (!room) {
-          setAuthError('no_room_assigned');
-          setLoading(false);
-          return;
-        }
-
-        const { data: roomState } = await supabase
-          .from('room_state')
-          .select('sync_status, current_session_id')
-          .eq('room_id', room.id)
-          .maybeSingle();
-
-        let currentSession: SessionRow | null = null;
-        if (roomState?.current_session_id) {
-          const { data: session } = await supabase
-            .from('sessions')
-            .select('id, title, scheduled_start, scheduled_end')
-            .eq('id', roomState.current_session_id)
-            .maybeSingle();
-          currentSession = session ?? null;
-        }
-
+        const data = await invokeRoomPlayerBootstrap(deviceToken);
         setRoomData({
-          id: room.id,
-          name: room.name,
-          syncStatus: roomState?.sync_status ?? 'offline',
-          currentSession,
-          eventId: device.event_id,
+          id: data.room.id,
+          name: data.room.name,
+          syncStatus: data.room_state.sync_status,
+          currentSession: data.room_state.current_session,
+          eventId: data.event_id,
+          networkMode: data.network_mode,
+          agentLan: data.agent,
         });
       } catch (err) {
-        setAuthError(err instanceof Error ? err.message : 'load_error');
+        const msg = err instanceof Error ? err.message : '';
+        if (msg === 'invalid_token') setAuthError('invalid_token');
+        else if (msg === 'no_room_assigned') setAuthError('no_room_assigned');
+        else if (msg === 'tenant_suspended') setAuthError('tenant_suspended');
+        else setAuthError('generic');
       } finally {
         setLoading(false);
       }
@@ -149,32 +174,27 @@ export default function RoomPlayerView() {
   const roomId = roomData?.id;
 
   useEffect(() => {
-    if (!roomId) return;
-
-    const supabase = getSupabaseBrowserClient();
-    const channel = supabase
-      .channel(`room-player:${roomId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'room_state',
-          filter: `room_id=eq.${roomId}`,
-        },
-        (payload) => {
-          const rs = payload.new as { sync_status: SyncStatus; current_session_id: string | null };
+    if (!token || !roomId) return;
+    const pollToken = token;
+    const id = window.setInterval(() => {
+      void invokeRoomPlayerBootstrap(pollToken, false)
+        .then((d) => {
           setRoomData((prev) =>
-            prev ? { ...prev, syncStatus: rs.sync_status } : prev,
+            prev
+              ? {
+                ...prev,
+                syncStatus: d.room_state.sync_status,
+                currentSession: d.room_state.current_session,
+                networkMode: d.network_mode,
+                agentLan: d.agent,
+              }
+              : prev,
           );
-        },
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [roomId]);
+        })
+        .catch(() => {});
+    }, 12_000);
+    return () => window.clearInterval(id);
+  }, [token, roomId]);
 
   const handleDisconnect = () => {
     localStorage.removeItem('device_token');
@@ -193,14 +213,16 @@ export default function RoomPlayerView() {
   if (authError || !roomData) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-sc-bg gap-4 p-6">
-        <p className="text-sc-danger">
+        <p className="text-sc-danger text-center max-w-sm">
           {authError === 'invalid_token'
             ? t('roomPlayer.error.invalidToken')
             : authError === 'no_room_assigned'
               ? t('roomPlayer.error.noRoom')
               : authError === 'missing_token'
                 ? t('roomPlayer.error.missingToken')
-                : t('roomPlayer.error.generic')}
+                : authError === 'tenant_suspended'
+                  ? t('auth.errorTenantSuspendedLogin')
+                  : t('roomPlayer.error.generic')}
         </p>
         <button
           type="button"
@@ -216,10 +238,10 @@ export default function RoomPlayerView() {
   return (
     <div className="flex min-h-screen flex-col bg-sc-bg text-sc-text">
       <header className="flex items-center justify-between border-b border-sc-primary/12 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <Folder className="h-5 w-5 text-sc-text-muted" />
-          <div>
-            <h1 className="text-sm font-semibold">{roomData.name}</h1>
+        <div className="flex items-center gap-3 min-w-0">
+          <Folder className="h-5 w-5 shrink-0 text-sc-text-muted" />
+          <div className="min-w-0">
+            <h1 className="text-sm font-semibold truncate">{roomData.name}</h1>
             {roomData.currentSession && (
               <p className="text-xs text-sc-text-muted truncate max-w-56">
                 {roomData.currentSession.title}
@@ -228,18 +250,29 @@ export default function RoomPlayerView() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
+          <RouteModeChip
+            networkMode={roomData.networkMode}
+            navigatorOnline={navigatorOnline}
+            agentLan={roomData.agentLan}
+          />
           <SyncBadge status={roomData.syncStatus} />
           <button
             type="button"
             aria-label={t('common.menu')}
             onClick={() => setMenuOpen((v) => !v)}
-            className="rounded-xl p-1.5 text-sc-text-muted hover:text-sc-text"
+            className="rounded-xl p-1.5 text-sc-text-muted hover:text-sc-text shrink-0"
           >
             {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </header>
+
+      {!navigatorOnline && (
+        <div className="border-b border-sc-danger/25 bg-sc-danger/10 px-4 py-2">
+          <p className="text-center text-xs text-sc-danger">{t('roomPlayer.connectivity.offlineBanner')}</p>
+        </div>
+      )}
 
       {menuOpen && (
         <div className="border-b border-sc-primary/12 bg-sc-surface px-4 py-2">
@@ -290,7 +323,6 @@ export default function RoomPlayerView() {
       )}
 
       <main className="flex-1 overflow-auto p-4 space-y-4">
-        {/* Banner selezione cartella */}
         {supported && !dirHandle && (
           <div className="rounded-xl border border-sc-primary/20 bg-sc-primary/10 p-4">
             <p className="text-sm font-medium text-sc-primary">{t('roomPlayer.fileSync.pickFolderTitle')}</p>
@@ -306,7 +338,6 @@ export default function RoomPlayerView() {
           </div>
         )}
 
-        {/* Cartella selezionata — info */}
         {supported && dirHandle && (
           <div className="flex items-center gap-2 rounded-xl border border-sc-success/20 bg-sc-success/10 px-3 py-2">
             <FolderOpen className="h-4 w-4 shrink-0 text-sc-success" />
@@ -316,14 +347,12 @@ export default function RoomPlayerView() {
           </div>
         )}
 
-        {/* Avviso browser non supportato */}
         {!supported && (
           <div className="rounded-xl border border-sc-warning/20 bg-sc-warning/10 px-3 py-2">
             <p className="text-xs text-sc-warning">{t('roomPlayer.fileSync.notSupported')}</p>
           </div>
         )}
 
-        {/* Lista file con stato sync */}
         {dirHandle && items.length > 0 ? (
           <FileSyncStatus items={items} onRetry={retryItem} />
         ) : dirHandle && items.length === 0 ? (

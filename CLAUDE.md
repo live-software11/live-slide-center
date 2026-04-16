@@ -56,7 +56,7 @@ Live SLIDE CENTER/
 │   └── ui/                  # cn() utility, componenti shadcn condivisi
 ├── supabase/
 │   ├── migrations/          # Schema SQL + RLS (9 file; vedi elenco sotto)
-│   ├── functions/           # Edge Functions Deno (health, pair-init/claim/poll, cleanup)
+│   ├── functions/           # Edge Functions Deno (health, pair-init/claim/poll, cleanup, room-player-bootstrap)
 │   └── config.toml
 ├── icons/                   # Logo sorgente ufficiale: Logo Live Slide Center.jpg (input asset brand)
 ├── docs/
@@ -162,25 +162,25 @@ CREATE POLICY super_admin_all ON nome_tabella FOR ALL USING (public.is_super_adm
 
 ## Stato Progetto (Aprile 2026)
 
-| Fase | Stato          | Contenuto                                                                                                                                                   |
-| ---- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | **Completata** | Bootstrap monorepo                                                                                                                                          |
-| 1    | **Completata** | Auth multi-tenant, signup, super_admin, RequireAuth, super_admin_all RLS su tutte le tabelle                                                                |
-| 2    | **Completata** | CRUD completo eventi/sale/sessioni/speaker, DnD reorder, quota enforcement DB, Zod i18n, CSV import relatori                                                |
-| 3    | **Completata** | Upload Portal TUS (`/u/:token`: TUS resumable, SHA-256 streaming, RPC init/finalize/abort, bucket privato)                                                  |
-| 4    | **Completata** | Versioning + storico (pannello versioni per speaker, download firmato, rollback, workflow review, Realtime)                                                 |
-| 5    | **Completata** | Vista Regia realtime (`/events/:eventId/live`: LiveRegiaView, RoomGrid, ActivityFeed, Realtime 5 tabelle)                                                   |
-| 6    | **Completata** | Pairing Device + Room Player PWA ATTIVO (4 Edge Fn, modulo devices, `/pair` keypad, `/sala/:token` File System Access API download locale, vite-plugin-pwa) |
-| 7    | **Completata** | Dual-Mode File Sync: Local Agent Tauri v2 (Axum+SQLite), Room Agent (polling+autostart+tray), `network_mode ENUM`, i18n IT/EN, ADR-007                      |
+| Fase | Stato          | Contenuto                                                                                                                                                                                          |
+| ---- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | **Completata** | Bootstrap monorepo                                                                                                                                                                                 |
+| 1    | **Completata** | Auth multi-tenant, signup, super_admin, RequireAuth, super_admin_all RLS su tutte le tabelle                                                                                                       |
+| 2    | **Completata** | CRUD completo eventi/sale/sessioni/speaker, DnD reorder, quota enforcement DB, Zod i18n, CSV import relatori                                                                                       |
+| 3    | **Completata** | Upload Portal TUS (`/u/:token`: TUS resumable, SHA-256 streaming, RPC init/finalize/abort, bucket privato)                                                                                         |
+| 4    | **Completata** | Versioning + storico (pannello versioni per speaker, download firmato, rollback, workflow review, Realtime)                                                                                        |
+| 5    | **Completata** | Vista Regia realtime (`/events/:eventId/live`: LiveRegiaView, RoomGrid, ActivityFeed, Realtime 5 tabelle)                                                                                          |
+| 6    | **Completata** | Pairing Device + Room Player PWA ATTIVO (4 Edge Fn, modulo devices, `/pair` keypad, `/sala/:token` File System Access API download locale, vite-plugin-pwa)                                        |
+| 7    | **Completata** | Dual-Mode File Sync: Local Agent Tauri v2 (Axum+SQLite), Room Agent (polling+autostart+tray), `network_mode ENUM`, i18n IT/EN, ADR-007                                                             |
 | 8    | **Completata** | Super-Admin: `/admin` stats, `/admin/tenants`, `/admin/tenants/:id` (quote + `suspended` + team + log), `/admin/audit`; guard login/`RequireAuth`; migration `20250416120100_tenant_suspended.sql` |
-| 9    | Da fare        | Offline architecture + routing runtime (`network_mode` letto dal Room Player per scelta percorso cloud/LAN/hybrid)                                          |
-| 10   | Da fare        | Export fine evento (ZIP + CSV + PDF)                                                                                                                        |
-| 11   | Da fare        | Billing Lemon Squeezy                                                                                                                                       |
-| 12   | In corso       | i18n completamento (~200 chiavi)                                                                                                                            |
-| 13   | Futuro         | Integrazioni ecosistema (Timer, CREW, API pubblica)                                                                                                         |
-| 14   | Pre-vendita    | Hardening + Sentry + E2E (rate limiting, audit RLS, Playwright)                                                                                             |
+| 9    | **Completata** | Edge `room-player-bootstrap` (token → sala + `network_mode` + agent LAN + manifest file); Room Player: download cloud/LAN/hybrid, polling 12s, manifest `localStorage`, Workbox signed URL; i18n `roomPlayer.route.*` IT+EN                                                                                 |
+| 10   | Da fare        | Export fine evento (ZIP + CSV + PDF)                                                                                                                                                               |
+| 11   | Da fare        | Billing Lemon Squeezy                                                                                                                                                                              |
+| 12   | In corso       | i18n completamento (~200 chiavi)                                                                                                                                                                   |
+| 13   | Futuro         | Integrazioni ecosistema (Timer, CREW, API pubblica)                                                                                                                                                |
+| 14   | Pre-vendita    | Hardening + Sentry + E2E (rate limiting, audit RLS, Playwright)                                                                                                                                    |
 
-**MVP cloud = Fasi 0-6 (100%).** Con Fasi **7** e **8** completate, stima totale visione prodotto (roadmap 0-14): **circa 53-60%** (9/15 fasi). Dettaglio in `docs/GUIDA_DEFINITIVA_PROGETTO.md` §15.
+**MVP cloud = Fasi 0-6 (100%).** Con Fasi **7**, **8** e **9** completate, stima totale visione prodotto (roadmap 0-14): **circa 60-67%** (10/15 fasi). Dettaglio in `docs/GUIDA_DEFINITIVA_PROGETTO.md` §15.
 
 ### Gap dichiarati (rimandati)
 
@@ -188,7 +188,7 @@ CREATE POLICY super_admin_all ON nome_tabella FOR ALL USING (public.is_super_adm
 - Password reset UI — pre-vendita
 - Timeline/calendario interattivo — nice-to-have
 - Import CSV sale/sessioni — non richiesto MVP
-- Routing runtime `network_mode` (Room Player sceglie automaticamente cloud vs LAN) — Fase 9
+- ~~Routing runtime `network_mode`~~ — **completato in Fase 9** (`room-player-bootstrap` + `useFileSync`)
 
 ---
 
@@ -280,6 +280,7 @@ aggiornare `docs/GUIDA_DEFINITIVA_PROGETTO.md` **nello stesso intervento**.
 | `pair-claim`            | nessuna (tecnico) | Valida codice → INSERT `paired_devices` + token SHA-256 → marca consumed |
 | `pair-poll`             | JWT tenant        | Polling stato pairing: pending / consumed / expired                      |
 | `cleanup-expired-codes` | nessuna (cron)    | DELETE `pairing_codes` scaduti non consumed (>24h)                       |
+| `room-player-bootstrap` | nessuna (token)   | POST `device_token` → sala, `network_mode`, agent LAN, lista versioni ready (service role); `verify_jwt = false` in `config.toml` |
 
 ---
 

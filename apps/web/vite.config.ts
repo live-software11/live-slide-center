@@ -63,9 +63,22 @@ export default defineConfig({
             options: {
               cacheName: 'supabase-api-cache',
               expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 5,
+                maxEntries: 80,
+                maxAgeSeconds: 60 * 10,
               },
+              networkTimeoutSeconds: 8,
+            },
+          },
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/sign\//i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'supabase-signed-downloads',
+              expiration: {
+                maxEntries: 40,
+                maxAgeSeconds: 60 * 4,
+              },
+              networkTimeoutSeconds: 25,
             },
           },
         ],

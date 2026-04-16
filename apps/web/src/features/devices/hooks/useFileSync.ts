@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { createVersionDownloadUrl } from '@/features/presentations/repository';
+import { invokeRoomPlayerBootstrap, type RoomPlayerBootstrapFileRow, type RoomPlayerNetworkMode } from '../repository';
 import {
   clearSavedDirHandle,
   downloadFileToDir,
@@ -14,6 +14,7 @@ export type FileSyncItemStatus = 'pending' | 'downloading' | 'synced' | 'error';
 
 export interface FileSyncItem {
   versionId: string;
+  storageKey: string;
   filename: string;
   speakerName: string;
   status: FileSyncItemStatus;
@@ -25,6 +26,10 @@ interface UseFileSyncParams {
   roomId: string;
   roomName: string;
   eventId: string;
+  deviceToken: string;
+  networkMode: RoomPlayerNetworkMode;
+  agentLan: { lan_ip: string; lan_port: number } | null;
+  navigatorOnline: boolean;
   enabled: boolean;
 }
 
@@ -37,74 +42,42 @@ interface UseFileSyncResult {
   retryItem: (versionId: string) => Promise<void>;
 }
 
-/** Carica le versioni correnti (status='ready') per tutte le sessioni della sala — single-pass */
-async function loadVersionsForRoom(
-  roomId: string,
-  eventId: string,
-): Promise<Array<{ versionId: string; storageKey: string; filename: string; speakerName: string }>> {
-  const supabase = getSupabaseBrowserClient();
-
-  const { data: sessions } = await supabase
-    .from('sessions')
-    .select('id')
-    .eq('room_id', roomId)
-    .eq('event_id', eventId);
-
-  if (!sessions || sessions.length === 0) return [];
-
-  const sessionIds = sessions.map((s) => s.id);
-
-  const { data: presentations } = await supabase
-    .from('presentations')
-    .select('id, current_version_id, speakers!inner(full_name)')
-    .in('session_id', sessionIds)
-    .not('current_version_id', 'is', null);
-
-  if (!presentations || presentations.length === 0) return [];
-
-  const versionIds = presentations
-    .map((p) => p.current_version_id)
-    .filter((id): id is string => !!id);
-
-  if (versionIds.length === 0) return [];
-
-  const { data: versions } = await supabase
-    .from('presentation_versions')
-    .select('id, storage_key, file_name')
-    .in('id', versionIds)
-    .eq('status', 'ready');
-
-  if (!versions || versions.length === 0) return [];
-
-  const versionMap = new Map(versions.map((v) => [v.id, v]));
-
-  const results: Array<{ versionId: string; storageKey: string; filename: string; speakerName: string }> = [];
-  for (const pres of presentations) {
-    const version = versionMap.get(pres.current_version_id!);
-    if (!version?.storage_key) continue;
-
-    const speakerName = Array.isArray(pres.speakers)
-      ? (pres.speakers[0] as { full_name: string })?.full_name ?? '—'
-      : (pres.speakers as unknown as { full_name: string })?.full_name ?? '—';
-
-    results.push({
-      versionId: version.id,
-      storageKey: version.storage_key,
-      filename: version.file_name ?? `file_${version.id}`,
-      speakerName,
-    });
-  }
-
-  return results;
+function manifestStorageKey(eventId: string, roomId: string): string {
+  return `sc:rp:files:${eventId}:${roomId}`;
 }
 
-export function useFileSync({ roomId, roomName, eventId, enabled }: UseFileSyncParams): UseFileSyncResult {
+function persistManifest(eventId: string, roomId: string, files: RoomPlayerBootstrapFileRow[]): void {
+  try {
+    localStorage.setItem(manifestStorageKey(eventId, roomId), JSON.stringify(files));
+  } catch {
+    /* ignore quota */
+  }
+}
+
+function buildLanFileUrl(
+  agent: { lan_ip: string; lan_port: number },
+  eventId: string,
+  filename: string,
+): string {
+  const base = `http://${agent.lan_ip}:${agent.lan_port}`;
+  return `${base}/api/v1/files/${eventId}/${encodeURIComponent(filename)}`;
+}
+
+export function useFileSync({
+  roomId,
+  roomName,
+  eventId,
+  deviceToken,
+  networkMode,
+  agentLan,
+  navigatorOnline,
+  enabled,
+}: UseFileSyncParams): UseFileSyncResult {
   const supported = isFsAccessSupported();
   const [dirHandle, setDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
   const [items, setItems] = useState<FileSyncItem[]>([]);
   const syncedVersionIds = useRef<Set<string>>(new Set());
 
-  // Ripristina handle da IndexedDB al mount
   useEffect(() => {
     if (!supported || !enabled) return;
     void getSavedDirHandle().then((h) => {
@@ -133,6 +106,18 @@ export function useFileSync({ roomId, roomName, eventId, enabled }: UseFileSyncP
         );
       });
 
+      const tryCloud = async () => {
+        if (!navigatorOnline) {
+          throw new Error('offline_cloud');
+        }
+        const signedUrl = await createVersionDownloadUrl(storageKey);
+        await downloadFileToDir(handle, roomName, filename, signedUrl, (pct) => {
+          setItems((prev) =>
+            prev.map((i) => (i.versionId === versionId ? { ...i, progress: pct } : i)),
+          );
+        });
+      };
+
       try {
         const hasPermission = await ensureWritePermission(handle);
         if (!hasPermission) {
@@ -147,12 +132,31 @@ export function useFileSync({ roomId, roomName, eventId, enabled }: UseFileSyncP
           return;
         }
 
-        const signedUrl = await createVersionDownloadUrl(storageKey);
-        await downloadFileToDir(handle, roomName, filename, signedUrl, (pct) => {
-          setItems((prev) =>
-            prev.map((i) => (i.versionId === versionId ? { ...i, progress: pct } : i)),
-          );
-        });
+        const lanUrl = agentLan ? buildLanFileUrl(agentLan, eventId, filename) : null;
+
+        if (networkMode === 'intranet' && !lanUrl) {
+          throw new Error('no_lan_agent');
+        }
+
+        if (networkMode === 'cloud' || !lanUrl) {
+          await tryCloud();
+        } else if (networkMode === 'intranet') {
+          await downloadFileToDir(handle, roomName, filename, lanUrl, (pct) => {
+            setItems((prev) =>
+              prev.map((i) => (i.versionId === versionId ? { ...i, progress: pct } : i)),
+            );
+          });
+        } else {
+          try {
+            await downloadFileToDir(handle, roomName, filename, lanUrl, (pct) => {
+              setItems((prev) =>
+                prev.map((i) => (i.versionId === versionId ? { ...i, progress: pct } : i)),
+              );
+            });
+          } catch {
+            await tryCloud();
+          }
+        }
 
         syncedVersionIds.current.add(versionId);
         inflightRef.current.delete(versionId);
@@ -178,19 +182,34 @@ export function useFileSync({ roomId, roomName, eventId, enabled }: UseFileSyncP
         );
       }
     },
-    [roomName],
+    [roomName, eventId, networkMode, agentLan, navigatorOnline],
   );
 
-  // Carica le versioni e avvia i download quando dirHandle è disponibile
+  const fetchVersions = useCallback(async (): Promise<RoomPlayerBootstrapFileRow[]> => {
+    const data = await invokeRoomPlayerBootstrap(deviceToken, true);
+    persistManifest(eventId, roomId, data.files);
+    return data.files;
+  }, [deviceToken, eventId, roomId]);
+
   useEffect(() => {
-    if (!dirHandle || !roomId || !eventId || !enabled) return;
+    if (!dirHandle || !roomId || !eventId || !deviceToken || !enabled) return;
     let cancelled = false;
 
     async function syncAll() {
-      const versions = await loadVersionsForRoom(roomId, eventId);
+      let versions: RoomPlayerBootstrapFileRow[] = [];
+      try {
+        versions = await fetchVersions();
+      } catch {
+        if (cancelled) return;
+        try {
+          const raw = localStorage.getItem(manifestStorageKey(eventId, roomId));
+          if (raw) versions = JSON.parse(raw) as RoomPlayerBootstrapFileRow[];
+        } catch {
+          versions = [];
+        }
+      }
       if (cancelled) return;
 
-      // Aggiorna lista items (aggiunge nuovi, non rimuove esistenti)
       setItems((prev) => {
         const newItems: FileSyncItem[] = [];
         for (const v of versions) {
@@ -198,6 +217,7 @@ export function useFileSync({ roomId, roomName, eventId, enabled }: UseFileSyncP
           if (!existing) {
             newItems.push({
               versionId: v.versionId,
+              storageKey: v.storageKey,
               filename: v.filename,
               speakerName: v.speakerName,
               status: syncedVersionIds.current.has(v.versionId) ? 'synced' : 'pending',
@@ -209,7 +229,6 @@ export function useFileSync({ roomId, roomName, eventId, enabled }: UseFileSyncP
         return [...prev, ...newItems];
       });
 
-      // Scarica i file pending
       for (const v of versions) {
         if (cancelled) break;
         if (!syncedVersionIds.current.has(v.versionId)) {
@@ -220,63 +239,43 @@ export function useFileSync({ roomId, roomName, eventId, enabled }: UseFileSyncP
 
     void syncAll();
     return () => { cancelled = true; };
-  }, [dirHandle, roomId, eventId, enabled, downloadVersion]);
+  }, [dirHandle, roomId, eventId, deviceToken, enabled, downloadVersion, fetchVersions]);
 
-  // Realtime: ascolta cambi su presentations (scoped per sala/evento via session_id)
-  // Quando current_version_id cambia, ri-sincronizza le versioni ready della sala.
   useEffect(() => {
-    if (!dirHandle || !roomId || !eventId || !enabled) return;
-    let cancelled = false;
-
-    const supabase = getSupabaseBrowserClient();
-
-    async function resyncRoom() {
-      const versions = await loadVersionsForRoom(roomId, eventId);
-      if (cancelled) return;
-      for (const v of versions) {
-        if (cancelled) break;
-        if (!syncedVersionIds.current.has(v.versionId)) {
+    if (!dirHandle || !roomId || !eventId || !deviceToken || !enabled) return;
+    const id = window.setInterval(() => {
+      void (async () => {
+        try {
+          const versions = await fetchVersions();
           setItems((prev) => {
-            const exists = prev.some((i) => i.versionId === v.versionId);
-            if (exists) return prev;
-            return [...prev, {
-              versionId: v.versionId,
-              filename: v.filename,
-              speakerName: v.speakerName,
-              status: 'pending' as const,
-              progress: 0,
-              errorMessage: null,
-            }];
+            const added: FileSyncItem[] = [];
+            for (const v of versions) {
+              if (!prev.some((i) => i.versionId === v.versionId)) {
+                added.push({
+                  versionId: v.versionId,
+                  storageKey: v.storageKey,
+                  filename: v.filename,
+                  speakerName: v.speakerName,
+                  status: syncedVersionIds.current.has(v.versionId) ? 'synced' : 'pending',
+                  progress: syncedVersionIds.current.has(v.versionId) ? 100 : 0,
+                  errorMessage: null,
+                });
+              }
+            }
+            return added.length ? [...prev, ...added] : prev;
           });
-          await downloadVersion(v.versionId, v.storageKey, v.filename, dirHandle!);
+          for (const v of versions) {
+            if (!syncedVersionIds.current.has(v.versionId)) {
+              await downloadVersion(v.versionId, v.storageKey, v.filename, dirHandle!);
+            }
+          }
+        } catch {
+          /* offline: silent until next tick */
         }
-      }
-    }
-
-    const channel = supabase
-      .channel(`file-sync:${roomId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'presentations',
-        },
-        () => { void resyncRoom(); },
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'presentations',
-        },
-        () => { void resyncRoom(); },
-      )
-      .subscribe();
-
-    return () => { cancelled = true; void supabase.removeChannel(channel); };
-  }, [dirHandle, roomId, eventId, enabled, downloadVersion]);
+      })();
+    }, 12_000);
+    return () => window.clearInterval(id);
+  }, [dirHandle, roomId, eventId, deviceToken, enabled, downloadVersion, fetchVersions]);
 
   const pickFolder = useCallback(async () => {
     const handle = await pickAndSaveDirHandle();
@@ -297,18 +296,10 @@ export function useFileSync({ roomId, roomName, eventId, enabled }: UseFileSyncP
       if (!item) return;
       syncedVersionIds.current.delete(versionId);
 
-      const supabase = getSupabaseBrowserClient();
-      const { data: version } = await supabase
-        .from('presentation_versions')
-        .select('storage_key, file_name')
-        .eq('id', versionId)
-        .maybeSingle();
-      if (!version?.storage_key) return;
-
       setItems((prev) =>
         prev.map((i) => (i.versionId === versionId ? { ...i, status: 'pending' as const } : i)),
       );
-      await downloadVersion(versionId, version.storage_key, version.file_name ?? `file_${versionId}`, dirHandle);
+      await downloadVersion(versionId, item.storageKey, item.filename, dirHandle);
     },
     [dirHandle, items, downloadVersion],
   );

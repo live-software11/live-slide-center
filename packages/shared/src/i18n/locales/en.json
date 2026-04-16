@@ -553,7 +553,30 @@
       "notSupported": "Automatic local download requires Chrome 86+ or Edge 86+. Please use a compatible browser.",
       "statusPending": "Pending",
       "statusSynced": "On disk",
-      "retry": "Retry"
+      "retry": "Retry",
+      "errors": {
+        "offline_cloud": "No internet: cloud download unavailable. Restore connectivity or use LAN with the Local Agent.",
+        "no_lan_agent": "Intranet mode: no online Local Agent registered for this event. Start the agent on the control PC or switch the event to cloud/hybrid.",
+        "permission_denied": "Write permission to the folder was denied.",
+        "download_failed": "Download failed. Please retry."
+      }
+    },
+    "connectivity": {
+      "offlineBanner": "No internet connection detected. If LAN and the Local Agent are up, room downloads may still work (intranet/hybrid)."
+    },
+    "route": {
+      "mode": {
+        "cloud": "Cloud",
+        "intranet": "LAN",
+        "hybrid": "Hybrid"
+      },
+      "hintCloudDirect": "Download from Supabase Storage (cloud).",
+      "hintLanPrimary": "Primary download from Local Agent over LAN.",
+      "hintLanNoInternet": "No internet: attempting LAN download if the agent is reachable.",
+      "hintFullOffline": "No connectivity and no known LAN agent: limited functionality.",
+      "hintHybrid": "LAN when available; otherwise automatic fallback to cloud.",
+      "hintHybridCloudOnly": "No LAN agent registered: cloud download only.",
+      "hintNoAgent": "Intranet without an online agent: connect the Local Agent or change the event network mode."
     },
     "error": {
       "invalidToken": "Invalid token. Please pair this PC again.",

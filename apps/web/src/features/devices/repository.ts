@@ -21,6 +21,34 @@ export interface PairClaimResponse {
   room_id: string | null;
 }
 
+export type RoomPlayerNetworkMode = Database['public']['Enums']['network_mode'];
+
+export interface RoomPlayerBootstrapSession {
+  id: string;
+  title: string;
+  scheduled_start: string;
+  scheduled_end: string;
+}
+
+export interface RoomPlayerBootstrapFileRow {
+  versionId: string;
+  storageKey: string;
+  filename: string;
+  speakerName: string;
+}
+
+export interface RoomPlayerBootstrapResponse {
+  room: { id: string; name: string };
+  event_id: string;
+  network_mode: RoomPlayerNetworkMode;
+  agent: { lan_ip: string; lan_port: number } | null;
+  room_state: {
+    sync_status: Database['public']['Tables']['room_state']['Row']['sync_status'];
+    current_session: RoomPlayerBootstrapSession | null;
+  };
+  files: RoomPlayerBootstrapFileRow[];
+}
+
 async function invokeEdgeFunction<T>(
   name: string,
   body: Record<string, unknown>,
@@ -35,9 +63,14 @@ async function invokeEdgeFunction<T>(
   }
 
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${name}`;
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${anonKey}`,
+      apikey: anonKey,
+    },
     body: JSON.stringify(body),
   });
   if (!res.ok) {
@@ -73,6 +106,29 @@ export async function invokePairClaim(
     },
     false,
   );
+}
+
+/** Contesto sala + `network_mode` + lista file (Fase 9) — validazione `device_token` lato Edge Function. */
+export async function invokeRoomPlayerBootstrap(
+  deviceToken: string,
+  includeVersions = true,
+): Promise<RoomPlayerBootstrapResponse> {
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/room-player-bootstrap`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${anonKey}`,
+      apikey: anonKey,
+    },
+    body: JSON.stringify({ device_token: deviceToken, include_versions: includeVersions }),
+  });
+  const json = (await res.json().catch(() => ({}))) as { error?: string } & Partial<RoomPlayerBootstrapResponse>;
+  if (!res.ok) {
+    throw new Error(json.error ?? `room_player_bootstrap_${res.status}`);
+  }
+  return json as RoomPlayerBootstrapResponse;
 }
 
 export async function listPairedDevices(eventId: string): Promise<PairedDevice[]> {

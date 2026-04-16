@@ -553,7 +553,30 @@
       "notSupported": "Il download automatico su disco richiede Chrome 86+ o Edge 86+. Usa un browser compatibile.",
       "statusPending": "In attesa",
       "statusSynced": "Sul disco",
-      "retry": "Riprova"
+      "retry": "Riprova",
+      "errors": {
+        "offline_cloud": "Internet assente: download da cloud non disponibile. Ripristina la connessione o usa la LAN con Local Agent.",
+        "no_lan_agent": "Modalità intranet: nessun Local Agent online registrato per questo evento. Avvia l’agent sulla regia o passa a cloud/hybrid.",
+        "permission_denied": "Permesso di scrittura sulla cartella negato.",
+        "download_failed": "Download non riuscito. Riprova."
+      }
+    },
+    "connectivity": {
+      "offlineBanner": "Connessione internet assente. Se la LAN e il Local Agent sono attivi, il download via sala può comunque funzionare (modalità intranet/hybrid)."
+    },
+    "route": {
+      "mode": {
+        "cloud": "Cloud",
+        "intranet": "LAN",
+        "hybrid": "Ibrido"
+      },
+      "hintCloudDirect": "Download da Supabase Storage (cloud).",
+      "hintLanPrimary": "Download prioritario da Local Agent sulla LAN.",
+      "hintLanNoInternet": "Internet assente: tentativo download via LAN se l’agent è raggiungibile.",
+      "hintFullOffline": "Nessuna connessione rilevata e nessun agent LAN noto: funzionalità limitata.",
+      "hintHybrid": "LAN se disponibile, altrimenti fallback automatico su cloud.",
+      "hintHybridCloudOnly": "Nessun agent LAN registrato: download solo da cloud.",
+      "hintNoAgent": "Intranet senza agent online: collega il Local Agent o cambia modalità rete dell’evento."
     },
     "error": {
       "invalidToken": "Token non valido. Abbina nuovamente questo PC.",

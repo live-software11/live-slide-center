@@ -45,7 +45,9 @@ export function FileSyncStatus({ items, onRetry }: FileSyncStatusProps) {
               </div>
             )}
             {item.status === 'error' && item.errorMessage && (
-              <p className="mt-0.5 text-xs text-sc-danger">{item.errorMessage}</p>
+              <p className="mt-0.5 text-xs text-sc-danger">
+                {t(`roomPlayer.fileSync.errors.${item.errorMessage}`, { defaultValue: item.errorMessage })}
+              </p>
             )}
           </div>
           <span className="shrink-0 text-xs text-sc-text-dim">
