@@ -8,14 +8,16 @@ export function AdminRootLayout() {
   const location = useLocation();
 
   function isActive(path: string) {
+    if (path === '/admin/tenants') {
+      return location.pathname === '/admin/tenants' || location.pathname.startsWith('/admin/tenants/');
+    }
     return location.pathname === path;
   }
 
   const linkClass = (path: string) =>
-    `flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-      isActive(path)
-        ? 'bg-sc-accent/12 text-sc-accent'
-        : 'text-sc-text-muted hover:bg-sc-accent/8 hover:text-sc-text'
+    `flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${isActive(path)
+      ? 'bg-sc-accent/12 text-sc-accent'
+      : 'text-sc-text-muted hover:bg-sc-accent/8 hover:text-sc-text'
     }`;
 
   return (
@@ -38,6 +40,10 @@ export function AdminRootLayout() {
           <Link to="/admin/tenants" className={linkClass('/admin/tenants')}>
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
             {t('admin.navTenants')}
+          </Link>
+          <Link to="/admin/audit" className={linkClass('/admin/audit')}>
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            {t('admin.navAudit')}
           </Link>
         </nav>
         <div className="border-t border-sc-accent/15 p-3">

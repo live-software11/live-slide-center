@@ -9,24 +9,24 @@ alwaysApply: true
 
 ## Stack Tecnologico
 
-| Layer             | Tecnologia                                                         | Note                     |
-| ----------------- | ------------------------------------------------------------------ | ------------------------ |
-| Framework UI      | React 19 + TypeScript strict                                       | SPA, no SSR              |
-| Build             | Vite 8                                                             |                          |
-| Styling           | Tailwind CSS 4 + shadcn/ui + Radix                                 | Dark mode only           |
-| Routing           | React Router 7                                                     | createBrowserRouter      |
-| State             | Zustand                                                            |                          |
-| Tabelle           | TanStack Table                                                     |                          |
-| Form              | Zod + React Hook Form                                              |                          |
-| i18n              | i18next + react-i18next                                            | IT + EN obbligatori      |
-| Upload            | tus-js-client + use-tus                                            | Resumable TUS            |
-| PWA (Room Player) | vite-plugin-pwa + Workbox                                          | Fase 6                   |
-| Brand (logo)      | `icons/Logo Live Slide Center.jpg` + `apps/web/scripts/generate-brand-icons.mjs` (`sharp`, `prebuild`/`predev`) + `AppBrandLogo` | Favicon, manifest, UI |
-| Backend/DB        | Supabase (PostgreSQL + Auth + Realtime + Edge Functions + Storage) | EU Francoforte           |
-| Deploy web        | Vercel                                                             | Auto-deploy su push main |
-| Desktop Agent     | Tauri v2 + Axum (Rust) + SQLite (rusqlite)                         | Local Agent Fase 7       |
-| Room Agent        | Tauri v2 lite (Rust) + polling LAN                                 | Room Agent Fase 7        |
-| Monorepo          | Turborepo + pnpm                                                   |                          |
+| Layer             | Tecnologia                                                                                                                       | Note                     |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| Framework UI      | React 19 + TypeScript strict                                                                                                     | SPA, no SSR              |
+| Build             | Vite 8                                                                                                                           |                          |
+| Styling           | Tailwind CSS 4 + shadcn/ui + Radix                                                                                               | Dark mode only           |
+| Routing           | React Router 7                                                                                                                   | createBrowserRouter      |
+| State             | Zustand                                                                                                                          |                          |
+| Tabelle           | TanStack Table                                                                                                                   |                          |
+| Form              | Zod + React Hook Form                                                                                                            |                          |
+| i18n              | i18next + react-i18next                                                                                                          | IT + EN obbligatori      |
+| Upload            | tus-js-client + use-tus                                                                                                          | Resumable TUS            |
+| PWA (Room Player) | vite-plugin-pwa + Workbox                                                                                                        | Fase 6                   |
+| Brand (logo)      | `icons/Logo Live Slide Center.jpg` + `apps/web/scripts/generate-brand-icons.mjs` (`sharp`, `prebuild`/`predev`) + `AppBrandLogo` | Favicon, manifest, UI    |
+| Backend/DB        | Supabase (PostgreSQL + Auth + Realtime + Edge Functions + Storage)                                                               | EU Francoforte           |
+| Deploy web        | Vercel                                                                                                                           | Auto-deploy su push main |
+| Desktop Agent     | Tauri v2 + Axum (Rust) + SQLite (rusqlite)                                                                                       | Local Agent Fase 7       |
+| Room Agent        | Tauri v2 lite (Rust) + polling LAN                                                                                               | Room Agent Fase 7        |
+| Monorepo          | Turborepo + pnpm                                                                                                                 |                          |
 
 ## Struttura Monorepo
 
@@ -47,7 +47,7 @@ Live SLIDE CENTER/
 │   │       │   ├── upload-portal/# /u/:token — speaker upload
 │   │       │   ├── devices/      # Pairing PC sala (/pair, /sala/:token)
 │   │       │   ├── live-view/    # Vista Regia realtime
-│   │       │   ├── admin/        # Super-Admin /admin/*
+│   │       │   ├── admin/        # Super-Admin: dashboard, tenants, tenant detail, audit
 │   │       │   └── billing/      # Piani, quote, Lemon Squeezy (Fase 11)
 │   │       ├── components/       # AppBrandLogo (marchio), shared layout UI
 │   │       ├── routes/           # React Router 7 config
@@ -85,7 +85,11 @@ Live SLIDE CENTER/
 | ----------------------- | -------------------------------------- | ---------------------- |
 | `/`                     | `DashboardView`                        | tenant (autenticato)   |
 | `/events/*`             | Vari views eventi                      | tenant                 |
-| `/admin/*`              | Admin views                            | `super_admin` only     |
+| `/admin`                | `AdminDashboardView` (stats)           | `super_admin` only     |
+| `/admin/tenants`        | `AdminTenantsView`                     | `super_admin` only     |
+| `/admin/tenants/:id`    | `AdminTenantDetailView`                | `super_admin` only     |
+| `/admin/audit`          | `AdminAuditView`                       | `super_admin` only     |
+| `/admin/*`              | Altre viste admin (roadmap)            | `super_admin` only     |
 | `/pair`                 | `PairView`                             | pubblico (tecnico)     |
 | `/events/:eventId/live` | `LiveRegiaView` — Vista Regia realtime | tenant (autenticato)   |
 | `/sala/:token`          | `RoomPlayerView` (PWA)                 | JWT sala (pairing)     |

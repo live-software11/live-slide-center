@@ -24,7 +24,7 @@ Sei un CTO senior che parla a un imprenditore (Andrea Rizzari). Lingua: sempre i
 - **Web (apps/web):** React 19, Vite 8, TypeScript strict, Tailwind CSS 4, shadcn/ui + Radix, React Router 7, Zustand, TanStack Table, Zod + React Hook Form, i18next + react-i18next, tus-js-client
 - **Backend:** Supabase — PostgreSQL + Auth + Realtime + Edge Functions (Deno) + Storage (TUS)
 - **Deploy:** Vercel (auto-deploy su push main)
-- **Desktop Agent (Fase 8+):** Tauri v2 + Axum (Rust) + SQLite — solo Local Agent, mai player
+- **Desktop Agent (Fase 7, live):** Tauri v2 + Axum (Rust) + SQLite — solo Local Agent, mai player
 - **Monorepo:** Turborepo + pnpm
 
 ---
@@ -36,7 +36,7 @@ Sei un CTO senior che parla a un imprenditore (Andrea Rizzari). Lingua: sempre i
 Live SLIDE CENTER/
 ├── apps/
 │ ├── web/ # Dashboard + Upload Portal + Room Player PWA
-│ └── agent/ # Local Agent Tauri v2 (stub, Fase 8)
+│ └── agent/ # Local Agent Tauri v2 (Fase 7)
 ├── packages/
 │ ├── shared/ # Types, Zod, constants, i18n IT+EN
 │ └── ui/ # shadcn condivisi

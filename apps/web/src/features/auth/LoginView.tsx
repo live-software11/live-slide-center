@@ -8,6 +8,7 @@ import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { getTenantIdFromUser } from '@/lib/session-tenant';
 import { AppBrandLogo } from '@/components/AppBrandLogo';
+import { fetchTenantSuspended } from '@/features/admin/repository';
 
 function loginSchema(t: (key: string, opts?: Record<string, unknown>) => string) {
   return z.object({
@@ -75,6 +76,15 @@ export default function LoginView() {
       setSubmitError(t('auth.errorTenantMissingLogin'));
       await supabase.auth.signOut();
       return;
+    }
+    const tenantId = getTenantIdFromUser(userData.user);
+    if (!isSuperAdmin && tenantId) {
+      const { suspended, error } = await fetchTenantSuspended(supabase, tenantId);
+      if (!error && suspended === true) {
+        setSubmitError(t('auth.errorTenantSuspendedLogin'));
+        await supabase.auth.signOut();
+        return;
+      }
     }
     navigate('/', { replace: true });
   });

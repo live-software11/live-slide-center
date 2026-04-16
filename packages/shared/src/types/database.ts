@@ -543,6 +543,7 @@ export type Database = {
           storage_limit_bytes: number;
           max_events_per_month: number;
           max_rooms_per_event: number;
+          suspended: boolean;
           settings: Json;
           created_at: string;
           updated_at: string;
@@ -558,6 +559,7 @@ export type Database = {
           storage_limit_bytes?: number;
           max_events_per_month?: number;
           max_rooms_per_event?: number;
+          suspended?: boolean;
           settings?: Json;
           created_at?: string;
           updated_at?: string;
@@ -573,6 +575,7 @@ export type Database = {
           storage_limit_bytes?: number;
           max_events_per_month?: number;
           max_rooms_per_event?: number;
+          suspended?: boolean;
           settings?: Json;
           created_at?: string;
           updated_at?: string;

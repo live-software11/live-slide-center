@@ -55,7 +55,7 @@ Live SLIDE CENTER/
 │   ├── shared/              # Types (database.ts), Zod, constants, i18n locales IT/EN
 │   └── ui/                  # cn() utility, componenti shadcn condivisi
 ├── supabase/
-│   ├── migrations/          # Schema SQL + RLS (8 file ad aprile 2026)
+│   ├── migrations/          # Schema SQL + RLS (9 file; vedi elenco sotto)
 │   ├── functions/           # Edge Functions Deno (health, pair-init/claim/poll, cleanup)
 │   └── config.toml
 ├── icons/                   # Logo sorgente ufficiale: Logo Live Slide Center.jpg (input asset brand)
@@ -172,7 +172,7 @@ CREATE POLICY super_admin_all ON nome_tabella FOR ALL USING (public.is_super_adm
 | 5    | **Completata** | Vista Regia realtime (`/events/:eventId/live`: LiveRegiaView, RoomGrid, ActivityFeed, Realtime 5 tabelle)                                                   |
 | 6    | **Completata** | Pairing Device + Room Player PWA ATTIVO (4 Edge Fn, modulo devices, `/pair` keypad, `/sala/:token` File System Access API download locale, vite-plugin-pwa) |
 | 7    | **Completata** | Dual-Mode File Sync: Local Agent Tauri v2 (Axum+SQLite), Room Agent (polling+autostart+tray), `network_mode ENUM`, i18n IT/EN, ADR-007                      |
-| 8    | In corso       | Dashboard Super-Admin completa (`/admin/tenants/:id`, quote dettaglio, audit log)                                                                           |
+| 8    | **Completata** | Super-Admin: `/admin` stats, `/admin/tenants`, `/admin/tenants/:id` (quote + `suspended` + team + log), `/admin/audit`; guard login/`RequireAuth`; migration `20250416120100_tenant_suspended.sql` |
 | 9    | Da fare        | Offline architecture + routing runtime (`network_mode` letto dal Room Player per scelta percorso cloud/LAN/hybrid)                                          |
 | 10   | Da fare        | Export fine evento (ZIP + CSV + PDF)                                                                                                                        |
 | 11   | Da fare        | Billing Lemon Squeezy                                                                                                                                       |
@@ -180,7 +180,7 @@ CREATE POLICY super_admin_all ON nome_tabella FOR ALL USING (public.is_super_adm
 | 13   | Futuro         | Integrazioni ecosistema (Timer, CREW, API pubblica)                                                                                                         |
 | 14   | Pre-vendita    | Hardening + Sentry + E2E (rate limiting, audit RLS, Playwright)                                                                                             |
 
-**MVP cloud = Fasi 0-6 (100%).** Con Fase 7 completata, stima totale visione prodotto: **47-53%** (8/15 fasi).
+**MVP cloud = Fasi 0-6 (100%).** Con Fasi **7** e **8** completate, stima totale visione prodotto (roadmap 0-14): **circa 53-60%** (9/15 fasi). Dettaglio in `docs/GUIDA_DEFINITIVA_PROGETTO.md` §15.
 
 ### Gap dichiarati (rimandati)
 
@@ -269,6 +269,7 @@ aggiornare `docs/GUIDA_DEFINITIVA_PROGETTO.md` **nello stesso intervento**.
 6. `20250416090000_phase3_upload_portal.sql` — bucket `presentations` privato, Storage RLS anon-insert su version `uploading`, RPC validate/init/finalize/abort, rework `update_storage_used` su `ready`, Realtime `presentations`
 7. `20250417090000_phase4_versioning.sql` — review workflow, RPC `rpc_set_current_version`/`rpc_update_presentation_status`, guard append-only, indice storico
 8. `20250416120000_network_mode.sql` — ENUM `network_mode(cloud|intranet|hybrid)` + colonna `events.network_mode NOT NULL DEFAULT 'cloud'`
+9. `20250416120100_tenant_suspended.sql` — colonna `tenants.suspended` (blocco accesso tenant lato app; super_admin escluso)
 
 ### Edge Functions Supabase (supabase/functions/)
 

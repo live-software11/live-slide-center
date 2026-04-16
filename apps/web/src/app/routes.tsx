@@ -49,6 +49,14 @@ export const router = createBrowserRouter([
                 path: 'tenants',
                 lazy: () => import('@/features/admin/AdminTenantsView'),
               },
+              {
+                path: 'tenants/:tenantId',
+                lazy: () => import('@/features/admin/AdminTenantDetailView'),
+              },
+              {
+                path: 'audit',
+                lazy: () => import('@/features/admin/AdminAuditView'),
+              },
             ],
           },
         ],
