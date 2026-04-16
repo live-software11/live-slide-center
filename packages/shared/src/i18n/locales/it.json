@@ -429,7 +429,8 @@
     "error": "Errore",
     "success": "Operazione completata",
     "required": "Campo obbligatorio",
-    "optional": "Facoltativo"
+    "optional": "Facoltativo",
+    "menu": "Menu"
   },
   "validation": {
     "required": "Campo obbligatorio.",
@@ -650,5 +651,14 @@
       "generic": "Errore di caricamento.",
       "reconnect": "Abbina nuovamente"
     }
+  },
+  "settings": {
+    "pageIntro": "Preferenze dell'interfaccia salvate in questo browser (lingua e altre opzioni future).",
+    "languageTitle": "Lingua dell'interfaccia",
+    "languageHint": "La scelta viene memorizzata in questo browser (localStorage) e ha priorità sul rilevamento automatico del browser.",
+    "languageAutoNote": "Se non modifichi la lingua, viene usata quella del browser quando è italiano o inglese; altrimenti si applica l'italiano come predefinito.",
+    "languageIt": "Italiano",
+    "languageEn": "English",
+    "languageCurrent": "Lingua attiva: {{label}}"
   }
 }

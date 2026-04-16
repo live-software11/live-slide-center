@@ -1,3 +1,4 @@
+import { i18n } from '@slidecenter/shared/i18n';
 import { Outlet } from 'react-router';
 import { createBrowserRouter } from 'react-router';
 import { AdminRootLayout } from './admin-root-layout';
@@ -7,7 +8,7 @@ import { RequireSuperAdmin } from './require-super-admin';
 import { RequireTenantAdmin } from './require-tenant-admin';
 
 function HydrateFallback() {
-  return <p className="p-8 text-sc-text-muted">Loading…</p>;
+  return <p className="p-8 text-sc-text-muted">{i18n.t('common.loading')}</p>;
 }
 
 export const router = createBrowserRouter([

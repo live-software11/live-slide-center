@@ -429,7 +429,8 @@
     "error": "Error",
     "success": "Operation completed",
     "required": "Required field",
-    "optional": "Optional"
+    "optional": "Optional",
+    "menu": "Menu"
   },
   "validation": {
     "required": "This field is required.",
@@ -650,5 +651,14 @@
       "generic": "Load error.",
       "reconnect": "Pair again"
     }
+  },
+  "settings": {
+    "pageIntro": "Interface preferences stored in this browser (language and future options).",
+    "languageTitle": "Interface language",
+    "languageHint": "Your choice is saved in this browser (localStorage) and overrides automatic browser detection.",
+    "languageAutoNote": "If you do not change the language, the browser language is used when it is Italian or English; otherwise Italian is the default.",
+    "languageIt": "Italian",
+    "languageEn": "English",
+    "languageCurrent": "Active language: {{label}}"
   }
 }

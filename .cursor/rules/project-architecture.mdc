@@ -48,7 +48,8 @@ Live SLIDE CENTER/
 │   │       │   ├── devices/      # Pairing PC sala (/pair, /sala/:token)
 │   │       │   ├── live-view/    # Vista Regia realtime
 │   │       │   ├── admin/        # Super-Admin: dashboard, tenants, tenant detail, audit
-│   │       │   └── billing/      # Fase 11 (100%): BillingView, RequireTenantAdmin, quote+piani, link Lemon/Live WORKS da env
+│   │       │   ├── billing/      # Fase 11 (100%): BillingView, RequireTenantAdmin, quote+piani, link Lemon/Live WORKS da env
+│   │       │   └── settings/     # Fase 12 (100%): SettingsView — lingua UI IT/EN (`settings.*`, i18n.changeLanguage)
 │   │       ├── components/       # AppBrandLogo (marchio), shared layout UI
 │   │       ├── routes/           # React Router 7 config
 │   │       └── lib/              # supabase.ts, utils
@@ -96,6 +97,7 @@ Live SLIDE CENTER/
 | `/sala/:token`          | `RoomPlayerView` (PWA)                     | pubblico (`device_token` in URL; bootstrap Edge Function)   |
 | `/u/:token`             | `UploadPortalView` (TUS upload)            | `upload_token` speaker                                      |
 | `/billing`              | `BillingView` (piani, quote, Lemon da env) | tenant JWT `app_metadata.role=admin` (`RequireTenantAdmin`) |
+| `/settings`            | `SettingsView` (lingua UI IT/EN) — Fase 12 | tenant (autenticato)                                        |
 | `/login`, `/signup`     | Auth views                                 | pubblico                                                    |
 
 ## Decisioni Architetturali Chiave (ADR)
@@ -125,6 +127,9 @@ In `/events/:eventId` la sezione **Export fine evento** (`EventExportPanel`, laz
 
 **ADR-009 — Billing tenant (Lemon Squeezy / Live WORKS APP, solo client + env)**
 Rotta `/billing` sotto `RequireTenantAdmin` (solo `role=admin` nel JWT; `super_admin` reindirizzato verso `/admin`). UI: `TenantQuotaPanel`, matrice piani da `PLAN_LIMITS` in `@slidecenter/shared`, link `<a target="_blank" rel="noopener">` verso checkout/portale Lemon e sito Live WORKS APP quando le URL sono definite in `.env` (`VITE_LEMONSQUEEZY_*`, `VITE_LIVE_WORKS_APP_URL`). Nessuna Edge Function di webhook o sync piano in questa iterazione: allineato alla guida (store gestito esternamente fino a integrazione post-vendita). **Fase 11 (100%).**
+
+**ADR-010 — Lingua UI (i18n Fase 12)**
+`/settings`: `SettingsView` chiama `i18n.changeLanguage('it'|'en')`; persistenza tramite `i18next-browser-languagedetector` (`localStorage` + `navigator`) in `packages/shared/src/i18n/index.ts`. Chiavi `settings.*` e `common.menu` in `it.json`/`en.json`; `HydrateFallback` del router usa `i18n.t('common.loading')`. **Fase 12 (100%).**
 
 ## Pattern Moduli (apps/web)
 
