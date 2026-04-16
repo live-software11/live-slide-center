@@ -24,7 +24,7 @@
 | State         | Zustand                                                                                           |
 | Tabelle       | TanStack Table                                                                                    |
 | Form          | Zod + React Hook Form                                                                             |
-| i18n          | i18next + react-i18next (IT + EN obbligatori)                                                     |
+| i18n          | i18next + react-i18next (IT + EN obbligatori); **Fase 12 (100%):** `/settings` (`SettingsView`, `settings.*`), `common.menu`, `HydrateFallback` → `i18n.t('common.loading')`, `LanguageDetector` (`localStorage` + `navigator`) in `packages/shared/src/i18n/index.ts` |
 | Upload        | tus-js-client + use-tus (resumable TUS)                                                           |
 | Export (web)  | jszip + jspdf — ZIP slide correnti + PDF report tenant (`apps/web`, Fase 10, 100%)                |
 | Backend/DB    | Supabase (PostgreSQL + Auth + Realtime + Edge Functions + Storage) — EU Francoforte               |
