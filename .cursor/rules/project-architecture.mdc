@@ -65,7 +65,7 @@ Live SLIDE CENTER/
 │   │   ├── pair-claim/       # Tecnico riscatta codice → JWT sala
 │   │   ├── pair-poll/        # Dashboard fa polling stato pairing
 │   │   ├── cleanup-expired-codes/ # Cron: elimina codici scaduti
-│   │   ├── room-player-bootstrap/ # Fase 9: contesto sala + network_mode + manifest file (device_token)
+│   │   ├── room-player-bootstrap/ # Fase 9 (100%): contesto sala + network_mode + manifest file (device_token)
 │   │   └── _shared/          # auth.ts, cors.ts
 │   ├── seed.sql
 │   └── config.toml
@@ -103,7 +103,7 @@ Live SLIDE CENTER/
 Il tecnico apre la cartella una sola volta (File System Access API). La PWA scarica i file automaticamente via Supabase signed URL + streaming su disco. Il tecnico apre il file manualmente dal proprio software.
 
 **ADR-007 — Dual-mode per evento (cloud/intranet/hybrid)**
-Colonna `network_mode ENUM(cloud|intranet|hybrid)` su `events`. Cloud: PWA + File System Access API + Supabase Storage signed URL. Intranet: Local Agent (Axum LAN :8080) + Room Agent (polling + auto-download). Hybrid: LAN con fallback cloud. **Stato attuale (Fase 9):** Room Player PWA legge `network_mode` e `local_agents` via Edge Function `room-player-bootstrap` (service role + `device_token`); download cloud vs URL LAN (`/api/v1/files/...`); hybrid con fallback cloud; Workbox NetworkFirst su API e signed URL; manifest ultima versione in `localStorage` se offline.
+Colonna `network_mode ENUM(cloud|intranet|hybrid)` su `events`. Cloud: PWA + File System Access API + Supabase Storage signed URL. Intranet: Local Agent (Axum LAN :8080) + Room Agent (polling + auto-download). Hybrid: LAN con fallback cloud. **Fase 9 (completata al 100%):** Room Player PWA legge `network_mode` e `local_agents` via Edge Function `room-player-bootstrap` (service role + `device_token`); download cloud vs URL LAN (`/api/v1/files/...`); hybrid con fallback cloud; Workbox NetworkFirst su API e signed URL; manifest ultima versione in `localStorage` se offline.
 
 **ADR-002 — Pairing = OAuth Device Flow (RFC 8628)**
 Codice 6 cifre generato dalla dashboard → tecnico lo digita su `/pair` → riceve JWT permanente sala. Funziona in qualsiasi rete.

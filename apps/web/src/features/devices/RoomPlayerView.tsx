@@ -92,7 +92,7 @@ function RouteModeChip({
 
   return (
     <span
-      className="inline-flex max-w-[10rem] items-center gap-1 truncate rounded-full border border-sc-primary/20 bg-sc-surface px-2 py-0.5 text-[10px] font-medium text-sc-text-muted"
+      className="inline-flex max-w-40 items-center gap-1 truncate rounded-full border border-sc-primary/20 bg-sc-surface px-2 py-0.5 text-[10px] font-medium text-sc-text-muted"
       title={hint}
     >
       <Icon className="h-3 w-3 shrink-0 text-sc-primary" />
@@ -191,7 +191,7 @@ export default function RoomPlayerView() {
               : prev,
           );
         })
-        .catch(() => {});
+        .catch(() => { });
     }, 12_000);
     return () => window.clearInterval(id);
   }, [token, roomId]);
