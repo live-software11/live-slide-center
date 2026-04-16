@@ -15,23 +15,24 @@
 
 ## Stack Tecnologico
 
-| Layer         | Tecnologia                                                                          |
-| ------------- | ----------------------------------------------------------------------------------- |
-| Framework UI  | React 19 + TypeScript strict (SPA, no SSR)                                          |
-| Build         | Vite 8                                                                              |
-| Styling       | Tailwind CSS 4 + shadcn/ui + Radix — **Dark mode only**                             |
-| Routing       | React Router 7 (`createBrowserRouter`)                                              |
-| State         | Zustand                                                                             |
-| Tabelle       | TanStack Table                                                                      |
-| Form          | Zod + React Hook Form                                                               |
-| i18n          | i18next + react-i18next (IT + EN obbligatori)                                       |
-| Upload        | tus-js-client + use-tus (resumable TUS)                                             |
-| Export (web)  | jszip + jspdf — ZIP slide correnti + PDF report tenant (`apps/web`, Fase 10, 100%)   |
-| Backend/DB    | Supabase (PostgreSQL + Auth + Realtime + Edge Functions + Storage) — EU Francoforte |
-| Deploy web    | Vercel (auto-deploy su push main)                                                   |
-| Desktop Agent | Tauri v2 + Axum (Rust) + SQLite — `apps/agent/` — Fase 7                            |
-| Room Agent    | Tauri v2 lite (Rust) + polling LAN — `apps/room-agent/` — Fase 7                    |
-| Monorepo      | Turborepo + pnpm                                                                    |
+| Layer         | Tecnologia                                                                                        |
+| ------------- | ------------------------------------------------------------------------------------------------- |
+| Framework UI  | React 19 + TypeScript strict (SPA, no SSR)                                                        |
+| Build         | Vite 8                                                                                            |
+| Styling       | Tailwind CSS 4 + shadcn/ui + Radix — **Dark mode only**                                           |
+| Routing       | React Router 7 (`createBrowserRouter`)                                                            |
+| State         | Zustand                                                                                           |
+| Tabelle       | TanStack Table                                                                                    |
+| Form          | Zod + React Hook Form                                                                             |
+| i18n          | i18next + react-i18next (IT + EN obbligatori)                                                     |
+| Upload        | tus-js-client + use-tus (resumable TUS)                                                           |
+| Export (web)  | jszip + jspdf — ZIP slide correnti + PDF report tenant (`apps/web`, Fase 10, 100%)                |
+| Backend/DB    | Supabase (PostgreSQL + Auth + Realtime + Edge Functions + Storage) — EU Francoforte               |
+| Deploy web    | Vercel (auto-deploy su push main)                                                                 |
+| Billing (web) | Pagina `/billing` admin tenant (Fase 11 **100%**): `BillingView`, link Lemon Squeezy + Live WORKS APP da env Vite |
+| Desktop Agent | Tauri v2 + Axum (Rust) + SQLite — `apps/agent/` — Fase 7                                          |
+| Room Agent    | Tauri v2 lite (Rust) + polling LAN — `apps/room-agent/` — Fase 7                                  |
+| Monorepo      | Turborepo + pnpm                                                                                  |
 
 ---
 
@@ -46,7 +47,7 @@ Live SLIDE CENTER/
 │   │   └── src/features/    # auth, events (EventDetailView + export Fase 10: EventExportPanel, lib/event-export.ts),
 │   │                        # rooms, sessions, speakers, presentations, upload-portal,
 │   │                        # devices (lib/fs-access.ts, hooks/useFileSync.ts),
-│   │                        # live-view, admin, billing; src/components/AppBrandLogo.tsx (marchio)
+│   │                        # live-view, admin, billing (Fase 11 `/billing`); src/components/AppBrandLogo.tsx (marchio)
 │   ├── agent/               # Local Agent (Tauri v2) — Fase 7 — mini-PC regia
 │   │   ├── src-tauri/       # Rust: Axum HTTP :8080, SQLite WAL, sync engine (streaming)
 │   │   └── ui/              # HTML standalone dashboard
@@ -177,12 +178,12 @@ CREATE POLICY super_admin_all ON nome_tabella FOR ALL USING (public.is_super_adm
 | 8    | **Completata**        | Super-Admin: `/admin` stats, `/admin/tenants`, `/admin/tenants/:id` (quote + `suspended` + team + log), `/admin/audit`; guard login/`RequireAuth`; migration `20250416120100_tenant_suspended.sql`                          |
 | 9    | **Completata (100%)** | Edge `room-player-bootstrap` (token → sala + `network_mode` + agent LAN + manifest file); Room Player: download cloud/LAN/hybrid, polling 12s, manifest `localStorage`, Workbox signed URL; i18n `roomPlayer.route.*` IT+EN |
 | 10   | **Completata (100%)** | Export `/events/:eventId`: ZIP slide correnti (`jszip` + signed URL), CSV `activity_log`, PDF report (`jspdf`); `EventExportPanel` lazy; `event.export.*` IT+EN                                                             |
-| 11   | Da fare               | Billing Lemon Squeezy                                                                                                                                                                                                       |
+| 11   | **Completata (100%)** | `/billing` (`RequireTenantAdmin`, `BillingView`), quote + confronto piani `PLAN_LIMITS`, URL Lemon/Live WORKS da env (`.env.example`); i18n `billing.*` IT+EN; webhook/sync store rimandati                                 |
 | 12   | In corso              | i18n completamento (~200 chiavi)                                                                                                                                                                                            |
 | 13   | Futuro                | Integrazioni ecosistema (Timer, CREW, API pubblica)                                                                                                                                                                         |
 | 14   | Pre-vendita           | Hardening + Sentry + E2E (rate limiting, audit RLS, Playwright)                                                                                                                                                             |
 
-**MVP cloud = Fasi 0-6 (100%).** Con Fasi **7**, **8**, **9** e **10** completate, stima totale visione prodotto (roadmap 0-14): **circa 70-75%** (11/15 fasi). Dettaglio in `docs/GUIDA_DEFINITIVA_PROGETTO.md` §15.
+**MVP cloud = Fasi 0-6 (100%).** Con Fasi **7**, **8**, **9**, **10** e **11** completate, stima totale visione prodotto (roadmap 0-14): **circa 75-80%** (12/15 fasi). Dettaglio in `docs/GUIDA_DEFINITIVA_PROGETTO.md` §15.
 
 ### Gap dichiarati (rimandati)
 
@@ -192,6 +193,7 @@ CREATE POLICY super_admin_all ON nome_tabella FOR ALL USING (public.is_super_adm
 - Import CSV sale/sessioni — non richiesto MVP
 - ~~Routing runtime `network_mode`~~ — **completato in Fase 9** (`room-player-bootstrap` + `useFileSync`)
 - ~~Export fine evento (ZIP/CSV/PDF)~~ — **completato in Fase 10** (`EventExportPanel`, `event.export.*` IT+EN)
+- ~~Billing tenant (checkout Lemon da env)~~ — **completato in Fase 11** (`/billing`, `billing.*` IT+EN); webhook Lemon / sync piano lato server — post-vendita / integrazione Live WORKS APP
 
 ---
 
@@ -291,7 +293,7 @@ aggiornare `docs/GUIDA_DEFINITIVA_PROGETTO.md` **nello stesso intervento**.
 
 ```
 Live SLIDE CENTER
-  ├── Licenze ──> Live WORKS APP (Lemon Squeezy, Fase 11)
+  ├── Licenze ──> Live WORKS APP (Lemon Squeezy; UI `/billing` Fase 11 **100%**, webhook/sync store rimandati)
   ├── Timer ──> Live Speaker Timer (info sessione → countdown, Fase 13)
   ├── Tecnici ──> Live CREW (futuro)
   └── Eventi ──> Live PLAN (futuro)

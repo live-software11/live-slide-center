@@ -162,6 +162,33 @@
       "roomsPerEventExceeded": "Impossibile aggiungere un'altra sala: limite sale per evento del piano raggiunto."
     }
   },
+  "billing": {
+    "title": "Abbonamento e piano",
+    "intro": "Pagamenti e checkout sono gestiti tramite Lemon Squeezy nell'ecosistema Live WORKS APP, in linea con la guida progetto. Qui vedi il piano attivo, i limiti e i link configurati dall'organizzatore (variabili d'ambiente Vite). Solo gli amministratori tenant possono accedere a questa pagina.",
+    "liveWorksLink": "Apri il sito Live WORKS APP",
+    "currentPlanBadge": "Piano attuale",
+    "plansSectionTitle": "Confronto piani",
+    "plansSectionIntro": "Valori allineati a `plans.ts` e alla guida definitiva (§12). Il checkout reale si apre in una nuova scheda quando gli URL Lemon Squeezy sono configurati.",
+    "unlimited": "Illimitato",
+    "price_trial": "0 €/mese",
+    "price_starter": "149 €/mese (indicativo)",
+    "price_pro": "399 €/mese (indicativo)",
+    "price_enterprise": "Da 990 €/mese — contatto commerciale",
+    "featureStorage": "Storage",
+    "featureEventsMonth": "Eventi / mese",
+    "featureRoomsEvent": "Sale / evento",
+    "featureUsers": "Utenti organizzazione",
+    "featureAgents": "Agent locali / evento",
+    "featureMaxFile": "Dimensione massima file",
+    "actionsSectionTitle": "Checkout e portale cliente",
+    "actionsSectionIntro": "I pulsanti compaiono solo se le variabili `VITE_LEMONSQUEEZY_*` sono valorizzate nel file `.env` alla root del monorepo.",
+    "openCustomerPortal": "Portale cliente (gestisci abbonamento)",
+    "checkoutStarter": "Passa a Starter (checkout)",
+    "checkoutPro": "Passa a Pro (checkout)",
+    "checkoutEnvMissing": "Nessun URL di checkout o portale configurato: inserisci le variabili Lemon Squeezy nel `.env` quando il negozio Live WORKS sarà collegato.",
+    "enterpriseActiveHint": "Piano Enterprise attivo: modifiche e fatturazione passano da contratto dedicato e supporto.",
+    "enterpriseContactHint": "Per Enterprise personalizzato contatta il commerciale tramite Live WORKS APP o il supporto Live Slide Center."
+  },
   "room": {
     "title": "Sala",
     "titlePlural": "Sale",

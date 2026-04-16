@@ -162,6 +162,33 @@
       "roomsPerEventExceeded": "Cannot add another room: the per-event room limit for your plan has been reached."
     }
   },
+  "billing": {
+    "title": "Subscription & plan",
+    "intro": "Payments and checkout are handled through Lemon Squeezy in the Live WORKS APP ecosystem, as defined in the master project guide. Here you can review the active plan, quotas, and any checkout URLs configured via Vite environment variables. Only tenant administrators can open this page.",
+    "liveWorksLink": "Open Live WORKS APP website",
+    "currentPlanBadge": "Current plan",
+    "plansSectionTitle": "Plan comparison",
+    "plansSectionIntro": "Figures match `plans.ts` and the definitive guide (§12). Checkout opens in a new tab when Lemon Squeezy URLs are configured.",
+    "unlimited": "Unlimited",
+    "price_trial": "€0 / month",
+    "price_starter": "€149 / month (indicative)",
+    "price_pro": "€399 / month (indicative)",
+    "price_enterprise": "From €990 / month — sales contact",
+    "featureStorage": "Storage",
+    "featureEventsMonth": "Events / month",
+    "featureRoomsEvent": "Rooms / event",
+    "featureUsers": "Organization users",
+    "featureAgents": "Local agents / event",
+    "featureMaxFile": "Maximum file size",
+    "actionsSectionTitle": "Checkout & customer portal",
+    "actionsSectionIntro": "Buttons appear only when `VITE_LEMONSQUEEZY_*` variables are set in the monorepo root `.env` file.",
+    "openCustomerPortal": "Customer portal (manage subscription)",
+    "checkoutStarter": "Upgrade to Starter (checkout)",
+    "checkoutPro": "Upgrade to Pro (checkout)",
+    "checkoutEnvMissing": "No checkout or portal URL is configured yet: add the Lemon Squeezy variables to `.env` when the Live WORKS store is wired up.",
+    "enterpriseActiveHint": "Enterprise plan active: billing and changes go through your dedicated agreement and support.",
+    "enterpriseContactHint": "For a tailored Enterprise plan, contact sales via Live WORKS APP or Live Slide Center support."
+  },
   "room": {
     "title": "Room",
     "titlePlural": "Rooms",

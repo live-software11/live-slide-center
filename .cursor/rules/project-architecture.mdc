@@ -48,7 +48,7 @@ Live SLIDE CENTER/
 │   │       │   ├── devices/      # Pairing PC sala (/pair, /sala/:token)
 │   │       │   ├── live-view/    # Vista Regia realtime
 │   │       │   ├── admin/        # Super-Admin: dashboard, tenants, tenant detail, audit
-│   │       │   └── billing/      # Piani, quote, Lemon Squeezy (Fase 11)
+│   │       │   └── billing/      # Fase 11 (100%): BillingView, RequireTenantAdmin, quote+piani, link Lemon/Live WORKS da env
 │   │       ├── components/       # AppBrandLogo (marchio), shared layout UI
 │   │       ├── routes/           # React Router 7 config
 │   │       └── lib/              # supabase.ts, utils
@@ -82,20 +82,21 @@ Live SLIDE CENTER/
 
 ## Rotte applicazione
 
-| Rotta                   | Componente                             | Accesso                                                   |
-| ----------------------- | -------------------------------------- | --------------------------------------------------------- |
-| `/`                     | `DashboardView`                        | tenant (autenticato)                                      |
-| `/events/*`             | Vari views eventi                      | tenant                                                    |
-| `/admin`                | `AdminDashboardView` (stats)           | `super_admin` only                                        |
-| `/admin/tenants`        | `AdminTenantsView`                     | `super_admin` only                                        |
-| `/admin/tenants/:id`    | `AdminTenantDetailView`                | `super_admin` only                                        |
-| `/admin/audit`          | `AdminAuditView`                       | `super_admin` only                                        |
-| `/admin/*`              | Altre viste admin (roadmap)            | `super_admin` only                                        |
-| `/pair`                 | `PairView`                             | pubblico (tecnico)                                        |
-| `/events/:eventId/live` | `LiveRegiaView` — Vista Regia realtime | tenant (autenticato)                                      |
-| `/sala/:token`          | `RoomPlayerView` (PWA)                 | pubblico (`device_token` in URL; bootstrap Edge Function) |
-| `/u/:token`             | `UploadPortalView` (TUS upload)        | `upload_token` speaker                                    |
-| `/login`, `/signup`     | Auth views                             | pubblico                                                  |
+| Rotta                   | Componente                                 | Accesso                                                     |
+| ----------------------- | ------------------------------------------ | ----------------------------------------------------------- |
+| `/`                     | `DashboardView`                            | tenant (autenticato)                                        |
+| `/events/*`             | Vari views eventi                          | tenant                                                      |
+| `/admin`                | `AdminDashboardView` (stats)               | `super_admin` only                                          |
+| `/admin/tenants`        | `AdminTenantsView`                         | `super_admin` only                                          |
+| `/admin/tenants/:id`    | `AdminTenantDetailView`                    | `super_admin` only                                          |
+| `/admin/audit`          | `AdminAuditView`                           | `super_admin` only                                          |
+| `/admin/*`              | Altre viste admin (roadmap)                | `super_admin` only                                          |
+| `/pair`                 | `PairView`                                 | pubblico (tecnico)                                          |
+| `/events/:eventId/live` | `LiveRegiaView` — Vista Regia realtime     | tenant (autenticato)                                        |
+| `/sala/:token`          | `RoomPlayerView` (PWA)                     | pubblico (`device_token` in URL; bootstrap Edge Function)   |
+| `/u/:token`             | `UploadPortalView` (TUS upload)            | `upload_token` speaker                                      |
+| `/billing`              | `BillingView` (piani, quote, Lemon da env) | tenant JWT `app_metadata.role=admin` (`RequireTenantAdmin`) |
+| `/login`, `/signup`     | Auth views                                 | pubblico                                                    |
 
 ## Decisioni Architetturali Chiave (ADR)
 
@@ -121,6 +122,9 @@ Modello relazionale, TUS nativo, RLS potente, pricing prevedibile. Storage = Sup
 
 **ADR-008 — Export fine evento (tenant, browser-only)**
 In `/events/:eventId` la sezione **Export fine evento** (`EventExportPanel`, lazy-loaded) genera **ZIP** (versioni `ready` correnti, `jszip` + signed URL Storage), **CSV** (`activity_log` per `event_id`, UTF-8 BOM, cap 5000 righe) e **PDF** riepilogo metadati (`jspdf`). Nessuna Edge Function dedicata: letture RLS esistenti + `createVersionDownloadUrlWithClient` in `presentations/repository.ts`. **Fase 10 (100%).**
+
+**ADR-009 — Billing tenant (Lemon Squeezy / Live WORKS APP, solo client + env)**
+Rotta `/billing` sotto `RequireTenantAdmin` (solo `role=admin` nel JWT; `super_admin` reindirizzato verso `/admin`). UI: `TenantQuotaPanel`, matrice piani da `PLAN_LIMITS` in `@slidecenter/shared`, link `<a target="_blank" rel="noopener">` verso checkout/portale Lemon e sito Live WORKS APP quando le URL sono definite in `.env` (`VITE_LEMONSQUEEZY_*`, `VITE_LIVE_WORKS_APP_URL`). Nessuna Edge Function di webhook o sync piano in questa iterazione: allineato alla guida (store gestito esternamente fino a integrazione post-vendita). **Fase 11 (100%).**
 
 ## Pattern Moduli (apps/web)
 

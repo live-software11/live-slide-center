@@ -4,6 +4,7 @@ import { AdminRootLayout } from './admin-root-layout';
 import { RootLayout } from './root-layout';
 import { RequireAuth } from './require-auth';
 import { RequireSuperAdmin } from './require-super-admin';
+import { RequireTenantAdmin } from './require-tenant-admin';
 
 function HydrateFallback() {
   return <p className="p-8 text-sc-text-muted">Loading…</p>;
@@ -87,6 +88,16 @@ export const router = createBrowserRouter([
               {
                 path: 'settings',
                 lazy: () => import('@/features/settings/SettingsView'),
+              },
+              {
+                path: 'billing',
+                element: <RequireTenantAdmin />,
+                children: [
+                  {
+                    index: true,
+                    lazy: () => import('@/features/billing/BillingView'),
+                  },
+                ],
               },
             ],
           },

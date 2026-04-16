@@ -47,7 +47,7 @@ const router = createBrowserRouter([
       { path: 'events/:eventId/devices',    element: <DevicesView /> },
       { path: 'team',                       element: <TeamView /> },
       { path: 'storage',                    element: <StorageView /> },
-      { path: 'billing',                    element: <BillingView /> },
+      { path: 'billing',                    element: <BillingView /> },   // Fase 11 (100%) — admin tenant + env checkout
       { path: 'settings',                   element: <SettingsView /> },
     ],
   },

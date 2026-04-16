@@ -5,6 +5,14 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_ANON_KEY: string;
   readonly VITE_APP_NAME: string;
   readonly VITE_APP_VERSION: string;
+  /** Checkout Lemon Squeezy (Starter) — opzionale, Fase 11 */
+  readonly VITE_LEMONSQUEEZY_CHECKOUT_STARTER_URL?: string;
+  /** Checkout Lemon Squeezy (Pro) — opzionale */
+  readonly VITE_LEMONSQUEEZY_CHECKOUT_PRO_URL?: string;
+  /** Portale cliente Lemon (gestione abbonamento) — opzionale */
+  readonly VITE_LEMONSQUEEZY_CUSTOMER_PORTAL_URL?: string;
+  /** URL pubblico Live WORKS APP (marketing / suite licenze) — opzionale */
+  readonly VITE_LIVE_WORKS_APP_URL?: string;
 }
 
 interface ImportMeta {
