@@ -13,7 +13,7 @@ export function useAdminTenants(supabase: SupabaseClient<Database>) {
   const [state, setState] = useState<State>({ status: 'loading' });
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase.from('tenants').select('*').order('name');
+    const { data, error } = await supabase.from('tenants').select('*').order('name').limit(500);
     if (error) {
       setState({ status: 'error', message: error.message });
       return;

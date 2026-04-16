@@ -172,7 +172,7 @@ export async function downloadFileToDir(
     }
     await writable.close();
   } catch (err) {
-    await writable.abort();
+    try { await writable.abort(); } catch { /* best-effort cleanup */ }
     throw err;
   }
 }

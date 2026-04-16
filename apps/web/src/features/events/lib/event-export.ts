@@ -84,17 +84,27 @@ export async function listCurrentReadySlidesForExport(
   const speakerById = new Map(speakers.map((s) => [s.id, s]));
   const sessionById = new Map(sessions.map((s) => [s.id, s]));
 
+  const versionIds = (presentations ?? [])
+    .map((p) => p.current_version_id)
+    .filter((id): id is string => !!id);
+
+  if (versionIds.length === 0) return { rows: [], error: null };
+
+  const { data: versions, error: vErr } = await supabase
+    .from('presentation_versions')
+    .select('id, file_name, storage_key, status, version_number, file_size_bytes, file_hash_sha256, created_at')
+    .in('id', versionIds)
+    .eq('status', 'ready');
+
+  if (vErr) return { rows: [], error: vErr.message };
+
+  const versionById = new Map((versions ?? []).map((v) => [v.id, v]));
   const rows: CurrentSlideExportRow[] = [];
+
   for (const p of presentations ?? []) {
     if (!p.current_version_id) continue;
-    const { data: ver, error: vErr } = await supabase
-      .from('presentation_versions')
-      .select(
-        'id, file_name, storage_key, status, version_number, file_size_bytes, file_hash_sha256, created_at',
-      )
-      .eq('id', p.current_version_id)
-      .maybeSingle();
-    if (vErr || !ver || ver.status !== 'ready') continue;
+    const ver = versionById.get(p.current_version_id);
+    if (!ver) continue;
     const sp = speakerById.get(p.speaker_id);
     if (!sp) continue;
     const sess = sessionById.get(sp.session_id);
