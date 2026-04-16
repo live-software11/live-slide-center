@@ -594,6 +594,7 @@
     "errorInvalid": "Invalid code. Please try again.",
     "errorExpired": "Code expired. Request a new code from the organizer.",
     "errorUsed": "Code already used. Request a new code.",
+    "errorRateLimited": "Too many attempts from this network. Wait a minute and try again.",
     "errorGeneric": "Connection error. Please try again."
   },
   "roomPlayer": {

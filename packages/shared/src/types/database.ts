@@ -249,6 +249,23 @@ export type Database = {
         };
         Relationships: [];
       };
+      pair_claim_rate_events: {
+        Row: {
+          id: number;
+          ip_hash: string;
+          created_at: string;
+        };
+        Insert: {
+          ip_hash: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          ip_hash?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       presentation_versions: {
         Row: {
           id: string;

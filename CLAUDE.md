@@ -30,7 +30,9 @@
 | Backend/DB       | Supabase (PostgreSQL + Auth + Realtime + Edge Functions + Storage) — EU Francoforte                                                                                                                                                                                    |
 | Deploy web       | Vercel (auto-deploy su push main)                                                                                                                                                                                                                                      |
 | Billing (web)    | Pagina `/billing` admin tenant (Fase 11 **100%**): `BillingView`, link Lemon Squeezy + Live WORKS APP da env Vite                                                                                                                                                      |
-| Ecosistema (web) | `/settings` (Fase 13 **100%**): link opzionali Timer/CREW (`VITE_LIVE_SPEAKER_TIMER_URL`, `VITE_LIVE_CREW_URL`), copy API in roadmap; `settings.integrations*` IT/EN                                                                                                    |
+| Ecosistema (web) | `/settings` (Fase 13 **100%**): link opzionali Timer/CREW (`VITE_LIVE_SPEAKER_TIMER_URL`, `VITE_LIVE_CREW_URL`), copy API in roadmap; `settings.integrations*` IT/EN                                                                                                   |
+| Observability    | Sentry React SDK (`@sentry/react`) — lazy init condizionale (`VITE_SENTRY_DSN`); `sendDefaultPii: false` (GDPR); `tracesSampleRate: 0.1` — Fase 14                                                                                                                     |
+| E2E              | Playwright (`@playwright/test`) in devDependencies — Fase 14 (test suite non ancora scritta)                                                                                                                                                                           |
 | Desktop Agent    | Tauri v2 + Axum (Rust) + SQLite — `apps/agent/` — Fase 7                                                                                                                                                                                                               |
 | Room Agent       | Tauri v2 lite (Rust) + polling LAN — `apps/room-agent/` — Fase 7                                                                                                                                                                                                       |
 | Monorepo         | Turborepo + pnpm                                                                                                                                                                                                                                                       |
@@ -124,12 +126,13 @@ CREATE POLICY tenant_isolation ON nome_tabella FOR ALL USING (tenant_id = public
 CREATE POLICY super_admin_all ON nome_tabella FOR ALL USING (public.is_super_admin());
 ```
 
-### Enforcement DB (trigger)
+### Enforcement DB (trigger + RLS)
 
 - `check_storage_quota()` — blocca INSERT su `presentation_versions` se quota storage superata
 - `update_storage_used()` — aggiorna `tenants.storage_used_bytes` automaticamente
 - `check_events_quota()` — blocca INSERT su `events` se max eventi/mese superato
 - `check_rooms_quota()` — blocca INSERT su `rooms` se max sale/evento superato
+- `current_tenant_suspended()` — (Fase 14) SECURITY DEFINER: legge `tenants.suspended` per il tenant corrente; usata in tutte le policy `tenant_isolation` per bloccare dati operativi a tenant sospesi (SELECT su `users`/`tenants` preservato)
 
 ### Query client
 
@@ -166,25 +169,25 @@ CREATE POLICY super_admin_all ON nome_tabella FOR ALL USING (public.is_super_adm
 
 ## Stato Progetto (Aprile 2026)
 
-| Fase | Stato                 | Contenuto                                                                                                                                                                                                                   |
-| ---- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | **Completata**        | Bootstrap monorepo                                                                                                                                                                                                          |
-| 1    | **Completata**        | Auth multi-tenant, signup, super_admin, RequireAuth, super_admin_all RLS su tutte le tabelle                                                                                                                                |
-| 2    | **Completata**        | CRUD completo eventi/sale/sessioni/speaker, DnD reorder, quota enforcement DB, Zod i18n, CSV import relatori                                                                                                                |
-| 3    | **Completata**        | Upload Portal TUS (`/u/:token`: TUS resumable, SHA-256 streaming, RPC init/finalize/abort, bucket privato)                                                                                                                  |
-| 4    | **Completata**        | Versioning + storico (pannello versioni per speaker, download firmato, rollback, workflow review, Realtime)                                                                                                                 |
-| 5    | **Completata**        | Vista Regia realtime (`/events/:eventId/live`: LiveRegiaView, RoomGrid, ActivityFeed, Realtime 5 tabelle)                                                                                                                   |
-| 6    | **Completata**        | Pairing Device + Room Player PWA ATTIVO (4 Edge Fn, modulo devices, `/pair` keypad, `/sala/:token` File System Access API download locale, vite-plugin-pwa)                                                                 |
-| 7    | **Completata**        | Dual-Mode File Sync: Local Agent Tauri v2 (Axum+SQLite), Room Agent (polling+autostart+tray), `network_mode ENUM`, i18n IT/EN, ADR-007                                                                                      |
-| 8    | **Completata**        | Super-Admin: `/admin` stats, `/admin/tenants`, `/admin/tenants/:id` (quote + `suspended` + team + log), `/admin/audit`; guard login/`RequireAuth`; migration `20250416120100_tenant_suspended.sql`                          |
-| 9    | **Completata (100%)** | Edge `room-player-bootstrap` (token → sala + `network_mode` + agent LAN + manifest file); Room Player: download cloud/LAN/hybrid, polling 12s, manifest `localStorage`, Workbox signed URL; i18n `roomPlayer.route.*` IT+EN |
-| 10   | **Completata (100%)** | Export `/events/:eventId`: ZIP slide correnti (`jszip` + signed URL), CSV `activity_log`, PDF report (`jspdf`); `EventExportPanel` lazy; `event.export.*` IT+EN                                                             |
-| 11   | **Completata (100%)** | `/billing` (`RequireTenantAdmin`, `BillingView`), quote + confronto piani `PLAN_LIMITS`, URL Lemon/Live WORKS da env (`.env.example`); i18n `billing.*` IT+EN; webhook/sync store rimandati                                 |
-| 12   | **Completata (100%)** | `/settings` selettore lingua IT+EN (`settings.*`), `common.menu`, `HydrateFallback` i18n; parity `it.json`/`en.json`; `LanguageDetector` localStorage+navigator                                                             |
-| 13   | **Completata (100%)** | `/settings` ecosistema: Timer/CREW da env (`VITE_LIVE_SPEAKER_TIMER_URL`, `VITE_LIVE_CREW_URL`), API pubblica in roadmap; `settings.integrations*` IT+EN; ADR-011; sync dati cross-app = post-MVP                           |
-| 14   | Pre-vendita           | Hardening + Sentry + E2E (rate limiting, audit RLS, Playwright)                                                                                                                                                             |
+| Fase | Stato                 | Contenuto                                                                                                                                                                                                                                                                                       |
+| ---- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | **Completata**        | Bootstrap monorepo                                                                                                                                                                                                                                                                              |
+| 1    | **Completata**        | Auth multi-tenant, signup, super_admin, RequireAuth, super_admin_all RLS su tutte le tabelle                                                                                                                                                                                                    |
+| 2    | **Completata**        | CRUD completo eventi/sale/sessioni/speaker, DnD reorder, quota enforcement DB, Zod i18n, CSV import relatori                                                                                                                                                                                    |
+| 3    | **Completata**        | Upload Portal TUS (`/u/:token`: TUS resumable, SHA-256 streaming, RPC init/finalize/abort, bucket privato)                                                                                                                                                                                      |
+| 4    | **Completata**        | Versioning + storico (pannello versioni per speaker, download firmato, rollback, workflow review, Realtime)                                                                                                                                                                                     |
+| 5    | **Completata**        | Vista Regia realtime (`/events/:eventId/live`: LiveRegiaView, RoomGrid, ActivityFeed, Realtime 5 tabelle)                                                                                                                                                                                       |
+| 6    | **Completata**        | Pairing Device + Room Player PWA ATTIVO (4 Edge Fn, modulo devices, `/pair` keypad, `/sala/:token` File System Access API download locale, vite-plugin-pwa)                                                                                                                                     |
+| 7    | **Completata**        | Dual-Mode File Sync: Local Agent Tauri v2 (Axum+SQLite), Room Agent (polling+autostart+tray), `network_mode ENUM`, i18n IT/EN, ADR-007                                                                                                                                                          |
+| 8    | **Completata**        | Super-Admin: `/admin` stats, `/admin/tenants`, `/admin/tenants/:id` (quote + `suspended` + team + log), `/admin/audit`; guard login/`RequireAuth`; migration `20250416120100_tenant_suspended.sql`                                                                                              |
+| 9    | **Completata (100%)** | Edge `room-player-bootstrap` (token → sala + `network_mode` + agent LAN + manifest file); Room Player: download cloud/LAN/hybrid, polling 12s, manifest `localStorage`, Workbox signed URL; i18n `roomPlayer.route.*` IT+EN                                                                     |
+| 10   | **Completata (100%)** | Export `/events/:eventId`: ZIP slide correnti (`jszip` + signed URL), CSV `activity_log`, PDF report (`jspdf`); `EventExportPanel` lazy; `event.export.*` IT+EN                                                                                                                                 |
+| 11   | **Completata (100%)** | `/billing` (`RequireTenantAdmin`, `BillingView`), quote + confronto piani `PLAN_LIMITS`, URL Lemon/Live WORKS da env (`.env.example`); i18n `billing.*` IT+EN; webhook/sync store rimandati                                                                                                     |
+| 12   | **Completata (100%)** | `/settings` selettore lingua IT+EN (`settings.*`), `common.menu`, `HydrateFallback` i18n; parity `it.json`/`en.json`; `LanguageDetector` localStorage+navigator                                                                                                                                 |
+| 13   | **Completata (100%)** | `/settings` ecosistema: Timer/CREW da env (`VITE_LIVE_SPEAKER_TIMER_URL`, `VITE_LIVE_CREW_URL`), API pubblica in roadmap; `settings.integrations*` IT+EN; ADR-011; sync dati cross-app = post-MVP                                                                                               |
+| 14   | **In corso (~60%)**   | Rate limit pair-claim 5/15min (`pair_claim_rate_events`); RLS `current_tenant_suspended()` su tabelle operative; Sentry React lazy init (`VITE_SENTRY_DSN`); PairView stale-closure fix; `@playwright/test` dep. **Rimangono:** Playwright E2E suite, Sentry error boundary, audit RLS completo |
 
-**MVP cloud = Fasi 0-6 (100%).** Con Fasi **7**-**13** (integrazioni ecosistema Fase 13 al **100%** incluse), stima totale visione prodotto (roadmap 0-14): **circa 90-93%** (14/15 fasi con contenuto; Fase 14 hardening). Dettaglio in `docs/GUIDA_DEFINITIVA_PROGETTO.md` §15.
+**MVP cloud = Fasi 0-6 (100%).** Con Fasi **7**-**14** (Fase 14 hardening in corso ~60%), stima totale visione prodotto (roadmap 0-14): **circa 95%**. Dettaglio in `docs/GUIDA_DEFINITIVA_PROGETTO.md` §15.
 
 ### Gap dichiarati (rimandati)
 
@@ -197,6 +200,9 @@ CREATE POLICY super_admin_all ON nome_tabella FOR ALL USING (public.is_super_adm
 - ~~Billing tenant (checkout Lemon da env)~~ — **completato in Fase 11** (`/billing`, `billing.*` IT+EN); webhook Lemon / sync piano lato server — post-vendita / integrazione Live WORKS APP
 - ~~i18n completamento (lingua UI + chiavi mancanti)~~ — **completato in Fase 12** (`/settings`, `settings.*`, `common.menu`, `HydrateFallback`)
 - ~~Integrazioni ecosistema (UI + env, scope guida Fase 13)~~ — **completato al 100% in Fase 13** (`settings.integrations*`, `integrations-env.ts`, `.env.example`); REST pubblica e sync Timer/CREW rimandati
+- Playwright E2E test suite — Fase 14 (dep aggiunta, test da scrivere)
+- Sentry `captureException` in React error boundary — Fase 14 (SDK init OK, cattura errori non ancora wired)
+- Audit RLS completo / CSP / HSTS — Fase 14 (RLS suspended completato, resto in coda)
 
 ---
 
@@ -278,6 +284,8 @@ aggiornare `docs/GUIDA_DEFINITIVA_PROGETTO.md` **nello stesso intervento**.
 7. `20250417090000_phase4_versioning.sql` — review workflow, RPC `rpc_set_current_version`/`rpc_update_presentation_status`, guard append-only, indice storico
 8. `20250416120000_network_mode.sql` — ENUM `network_mode(cloud|intranet|hybrid)` + colonna `events.network_mode NOT NULL DEFAULT 'cloud'`
 9. `20250416120100_tenant_suspended.sql` — colonna `tenants.suspended` (blocco accesso tenant lato app; super_admin escluso)
+10. `20250416140300_phase14_pair_claim_rate_limit.sql` — tabella `pair_claim_rate_events` (rate limit pair-claim: IP hash, 5 tentativi/15 min, grant solo service_role)
+11. `20250416140301_phase14_rls_tenant_suspended.sql` — funzione `current_tenant_suspended()` SECURITY DEFINER, policy RLS granulari su tutte le tabelle operative (suspended = blocco dati, SELECT `users`/`tenants` preservato)
 
 ### Edge Functions Supabase (supabase/functions/)
 

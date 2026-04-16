@@ -75,7 +75,9 @@ async function invokeEdgeFunction<T>(
   });
   if (!res.ok) {
     const err = (await res.json().catch(() => ({ error: 'Unknown error' }))) as { error?: string };
-    throw new Error(err?.error ?? `Edge function ${name} failed`);
+    const msg = err?.error ?? `Edge function ${name} failed`;
+    if (res.status === 429) throw new Error(msg);
+    throw new Error(msg);
   }
   return res.json() as Promise<T>;
 }

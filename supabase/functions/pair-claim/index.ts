@@ -9,6 +9,9 @@ async function sha256Hex(value: string): Promise<string> {
     .join('');
 }
 
+const PAIR_CLAIM_WINDOW_MS = 15 * 60_000; // 15 min — allineato a §8 guida
+const PAIR_CLAIM_MAX_PER_WINDOW = 5;
+
 Deno.serve(async (req: Request) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -40,6 +43,47 @@ Deno.serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
+    const rawClientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
+    const ipHash = await sha256Hex(rawClientIp ?? 'unknown');
+    const nowMs = Date.now();
+    const windowStartIso = new Date(nowMs - PAIR_CLAIM_WINDOW_MS).toISOString();
+
+    await supabaseAdmin
+      .from('pair_claim_rate_events')
+      .delete()
+      .lt('created_at', new Date(nowMs - 2 * PAIR_CLAIM_WINDOW_MS).toISOString());
+
+    const { count, error: countError } = await supabaseAdmin
+      .from('pair_claim_rate_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('ip_hash', ipHash)
+      .gte('created_at', windowStartIso);
+
+    if (countError) {
+      return new Response(JSON.stringify({ error: 'rate_limit_check_failed' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if ((count ?? 0) >= PAIR_CLAIM_MAX_PER_WINDOW) {
+      return new Response(JSON.stringify({ error: 'rate_limited' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { error: rateInsertError } = await supabaseAdmin
+      .from('pair_claim_rate_events')
+      .insert({ ip_hash: ipHash });
+
+    if (rateInsertError) {
+      return new Response(JSON.stringify({ error: rateInsertError.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const now = new Date().toISOString();
 
     const { data: pairingCode } = await supabaseAdmin
@@ -60,7 +104,6 @@ Deno.serve(async (req: Request) => {
     const deviceToken = crypto.randomUUID();
     const tokenHash = await sha256Hex(deviceToken);
 
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
     const resolvedDeviceName = device_name?.trim() || `PC-${code}`;
 
     const { data: device, error: deviceError } = await supabaseAdmin
@@ -74,7 +117,7 @@ Deno.serve(async (req: Request) => {
         browser: browser ?? null,
         user_agent: user_agent ?? null,
         pair_token_hash: tokenHash,
-        last_ip: clientIp,
+        last_ip: rawClientIp,
         last_seen_at: now,
         status: 'online',
         paired_by_user_id: pairingCode.generated_by_user_id ?? null,

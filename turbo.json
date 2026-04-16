@@ -1,7 +1,13 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["**/.env.*local", ".env"],
-  "globalEnv": ["VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY", "VITE_APP_NAME", "VITE_APP_VERSION"],
+  "globalEnv": [
+    "VITE_SUPABASE_URL",
+    "VITE_SUPABASE_ANON_KEY",
+    "VITE_APP_NAME",
+    "VITE_APP_VERSION",
+    "VITE_SENTRY_DSN"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

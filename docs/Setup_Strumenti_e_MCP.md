@@ -30,7 +30,7 @@
 
 - **URL:** `https://github.com/live-software11/live-slide-center`
 - **Clone:** `git clone https://github.com/live-software11/live-slide-center.git`
-- **Primo push** se il repo non esisteva ancora: vedi `.cursor/rules/deploy-git-workflow.mdc` (sezione *Primo collegamento GitHub*).
+- **Primo push** se il repo non esisteva ancora: vedi `.cursor/rules/deploy-git-workflow.mdc` (sezione _Primo collegamento GitHub_).
 
 **EN:** Official monorepo is under org **live-software11**; use `gh auth status` before push.
 
@@ -264,23 +264,42 @@ packages:
   - 'packages/*'
 ```
 
-### `turbo.json` (root)
+### `turbo.json` (root — attuale)
 
 ```json
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["**/.env.*local"],
+  "globalDependencies": ["**/.env.*local", ".env"],
+  "globalEnv": [
+    "VITE_SUPABASE_URL",
+    "VITE_SUPABASE_ANON_KEY",
+    "VITE_APP_NAME",
+    "VITE_APP_VERSION",
+    "VITE_SENTRY_DSN"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**"]
+      "outputs": ["dist/**"]
     },
     "dev": {
+      "dependsOn": ["^build"],
       "cache": false,
       "persistent": true
     },
-    "lint": {},
-    "typecheck": {}
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "lint:fix": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["^build"]
+    }
   }
 }
 ```
@@ -294,14 +313,14 @@ pnpm run lint         # Lint tutti i pacchetti
 pnpm run typecheck    # Typecheck tutti i pacchetti
 
 # Filtro per app specifica
-pnpm --filter web dev
-pnpm --filter agent dev
-pnpm --filter player dev
+pnpm --filter @slidecenter/web dev
+pnpm --filter @slidecenter/web typecheck
+pnpm --filter @slidecenter/web build
 ```
 
 ---
 
-## 6. Setup Tauri v2 (Agent + Player)
+## 6. Setup Tauri v2 (Local Agent + Room Agent)
 
 ### Prerequisiti Windows
 
@@ -316,52 +335,40 @@ rustup default stable
 # WebView2 (gia incluso in Windows 10/11 recenti)
 ```
 
-### Dipendenze Rust per Agent
+### Dipendenze Rust (Local Agent e Room Agent)
 
-```toml
-# apps/agent/src-tauri/Cargo.toml
-[dependencies]
-tauri = { version = "2", features = ["tray-icon"] }
-tauri-plugin-updater = "2"
-axum = "0.7"
-tokio = { version = "1", features = ["full"] }
-rusqlite = { version = "0.31", features = ["bundled"] }
-reqwest = { version = "0.12", features = ["json"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-mdns-sd = "0.11"
-sha2 = "0.10"
-```
+Vedere i rispettivi `Cargo.toml` in `apps/agent/src-tauri/` e `apps/room-agent/src-tauri/` per le dipendenze aggiornate. Stack principale: Tauri v2, Axum (Local Agent HTTP :8080), rusqlite WAL (cache file + room agents), reqwest + tokio (sync engine).
 
 ---
 
 ## 7. Variabili Ambiente
 
-### `.env.example` (root)
+### `.env.example` (root — aggiornato Fase 14)
 
 ```bash
-# === SUPABASE ===
-VITE_SUPABASE_URL=https://xxxxx.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
-SUPABASE_PROJECT_REF=xxxxx
+# --- Supabase ---
+VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key
 
-# === CLOUDFLARE R2 (fase scaling) ===
-R2_ACCOUNT_ID=
-R2_ACCESS_KEY_ID=
-R2_SECRET_ACCESS_KEY=
-R2_BUCKET_NAME=live-slide-center
-R2_PUBLIC_URL=
+# --- App ---
+VITE_APP_NAME="Live SLIDE CENTER"
+VITE_APP_VERSION=0.0.1
 
-# === LEMON SQUEEZY ===
-LS_API_KEY=
-LS_STORE_ID=
-LS_WEBHOOK_SECRET=
+# --- Billing (Lemon Squeezy / Live WORKS APP — Fase 11) ---
+# VITE_LEMONSQUEEZY_CHECKOUT_STARTER_URL=
+# VITE_LEMONSQUEEZY_CHECKOUT_PRO_URL=
+# VITE_LEMONSQUEEZY_CUSTOMER_PORTAL_URL=
+# VITE_LIVE_WORKS_APP_URL=https://www.liveworksapp.com
 
-# === APP ===
-VITE_APP_URL=https://app.liveslidecenter.com
-VITE_UPLOAD_MAX_SIZE_BYTES=2147483648
+# --- Integrazioni ecosistema (Fase 13) ---
+# VITE_LIVE_SPEAKER_TIMER_URL=
+# VITE_LIVE_CREW_URL=
+
+# --- Osservabilita / hardening (Fase 14) ---
+# VITE_SENTRY_DSN=
 ```
+
+**Nota:** `.env` alla root del monorepo. Vite legge da `envDir` configurato in `vite.config.ts`. NON committare `.env`.
 
 ---
 

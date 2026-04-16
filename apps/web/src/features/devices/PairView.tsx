@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Delete } from 'lucide-react';
@@ -35,13 +35,15 @@ export default function PairView() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'error';
       const key =
-        msg.includes('invalid') || msg.includes('format')
-          ? 'pair.errorInvalid'
-          : msg.includes('expired')
-            ? 'pair.errorExpired'
-            : msg.includes('already')
-              ? 'pair.errorUsed'
-              : 'pair.errorGeneric';
+        msg.includes('rate_limited')
+          ? 'pair.errorRateLimited'
+          : msg.includes('invalid') || msg.includes('format')
+            ? 'pair.errorInvalid'
+            : msg.includes('expired')
+              ? 'pair.errorExpired'
+              : msg.includes('already')
+                ? 'pair.errorUsed'
+                : 'pair.errorGeneric';
 
       setError(t(key));
       setCode(Array(DIGITS).fill(''));
@@ -54,18 +56,28 @@ export default function PairView() {
     }
   }, [blocked, codeStr, isComplete, loading, navigate, t]);
 
+  const pendingSubmitRef = useRef(false);
+
   const appendDigit = useCallback(
-    async (digit: string) => {
+    (digit: string) => {
       setCode((prev) => {
         const idx = prev.findIndex((c) => c === '');
         if (idx === -1) return prev;
         const next = [...prev];
         next[idx] = digit;
+        if (next.every((c) => c !== '')) pendingSubmitRef.current = true;
         return next;
       });
     },
     [],
   );
+
+  useEffect(() => {
+    if (pendingSubmitRef.current && isComplete && !loading && !blocked) {
+      pendingSubmitRef.current = false;
+      void handleSubmit();
+    }
+  }, [isComplete, loading, blocked, handleSubmit]);
 
   const deleteDigit = useCallback(() => {
     setCode((prev) => {
@@ -77,15 +89,9 @@ export default function PairView() {
     });
   }, []);
 
-  const handleKeypadClick = async (digit: string) => {
+  const handleKeypadClick = (digit: string) => {
     if (blocked || loading) return;
-    await appendDigit(digit);
-    const newCode = [...code];
-    const idx = newCode.findIndex((c) => c === '');
-    if (idx !== -1) newCode[idx] = digit;
-    if (newCode.filter(Boolean).length === DIGITS) {
-      setTimeout(() => void handleSubmit(), 50);
-    }
+    appendDigit(digit);
   };
 
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', null, '0', 'del'];
@@ -106,8 +112,8 @@ export default function PairView() {
             <div
               key={i}
               className={`flex h-14 w-11 items-center justify-center rounded-xl border-2 text-2xl font-bold text-sc-text transition-colors ${digit !== ''
-                  ? 'border-sc-primary bg-sc-primary/10'
-                  : 'border-sc-primary/20 bg-sc-surface'
+                ? 'border-sc-primary bg-sc-primary/10'
+                : 'border-sc-primary/20 bg-sc-surface'
                 }`}
             >
               {digit}

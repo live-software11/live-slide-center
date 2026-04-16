@@ -17,6 +17,8 @@ interface ImportMetaEnv {
   readonly VITE_LIVE_SPEAKER_TIMER_URL?: string;
   /** Deep link Live CREW — opzionale, Fase 13 (100%) */
   readonly VITE_LIVE_CREW_URL?: string;
+  /** Sentry browser SDK — opzionale, Fase 14 */
+  readonly VITE_SENTRY_DSN?: string;
 }
 
 interface ImportMeta {

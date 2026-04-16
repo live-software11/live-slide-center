@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@sentry/react": "^10.48.0",
     "@slidecenter/shared": "workspace:*",
     "@slidecenter/ui": "workspace:*",
     "@supabase/supabase-js": "^2.103.0",
@@ -36,6 +37,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
