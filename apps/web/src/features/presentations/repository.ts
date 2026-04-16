@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@slidecenter/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 
@@ -31,8 +32,10 @@ export async function fetchPresentationForSpeaker(speakerId: string): Promise<Pr
 
 // Firma URL Storage per download versione (durata 5 min). RLS storage.objects
 // limita SELECT al tenant proprietario: RPC-safe.
-export async function createVersionDownloadUrl(storageKey: string): Promise<string> {
-  const supabase = getSupabaseBrowserClient();
+export async function createVersionDownloadUrlWithClient(
+  supabase: SupabaseClient<Database>,
+  storageKey: string,
+): Promise<string> {
   const { data, error } = await supabase.storage
     .from('presentations')
     .createSignedUrl(storageKey, 300, { download: true });
@@ -40,6 +43,10 @@ export async function createVersionDownloadUrl(storageKey: string): Promise<stri
     throw error ?? new Error('signed_url_failed');
   }
   return data.signedUrl;
+}
+
+export async function createVersionDownloadUrl(storageKey: string): Promise<string> {
+  return createVersionDownloadUrlWithClient(getSupabaseBrowserClient(), storageKey);
 }
 
 export async function setCurrentVersion(presentationId: string, versionId: string): Promise<void> {

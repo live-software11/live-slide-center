@@ -39,7 +39,7 @@ Live SLIDE CENTER/
 │   │   └── src/
 │   │       ├── features/
 │   │       │   ├── auth/         # Login, signup, onboarding
-│   │       │   ├── events/       # Eventi + EventDetailView (sale/sessioni/relatori: insert/delete conferma, RLS)
+│   │       │   ├── events/       # Eventi + EventDetailView (sale/sessioni/relatori; export Fase 10 (100%): EventExportPanel + lib/event-export.ts ZIP/CSV/PDF; insert/delete conferma, RLS)
 │   │       │   ├── rooms/        # CRUD sale
 │   │       │   ├── sessions/     # Sessioni (CRUD + reorder DnD; timeline interattiva rinviata)
 │   │       │   ├── speakers/     # Relatori + QR upload
@@ -82,20 +82,20 @@ Live SLIDE CENTER/
 
 ## Rotte applicazione
 
-| Rotta                   | Componente                             | Accesso                |
-| ----------------------- | -------------------------------------- | ---------------------- |
-| `/`                     | `DashboardView`                        | tenant (autenticato)   |
-| `/events/*`             | Vari views eventi                      | tenant                 |
-| `/admin`                | `AdminDashboardView` (stats)           | `super_admin` only     |
-| `/admin/tenants`        | `AdminTenantsView`                     | `super_admin` only     |
-| `/admin/tenants/:id`    | `AdminTenantDetailView`                | `super_admin` only     |
-| `/admin/audit`          | `AdminAuditView`                       | `super_admin` only     |
-| `/admin/*`              | Altre viste admin (roadmap)            | `super_admin` only     |
-| `/pair`                 | `PairView`                             | pubblico (tecnico)     |
-| `/events/:eventId/live` | `LiveRegiaView` — Vista Regia realtime | tenant (autenticato)   |
+| Rotta                   | Componente                             | Accesso                                                   |
+| ----------------------- | -------------------------------------- | --------------------------------------------------------- |
+| `/`                     | `DashboardView`                        | tenant (autenticato)                                      |
+| `/events/*`             | Vari views eventi                      | tenant                                                    |
+| `/admin`                | `AdminDashboardView` (stats)           | `super_admin` only                                        |
+| `/admin/tenants`        | `AdminTenantsView`                     | `super_admin` only                                        |
+| `/admin/tenants/:id`    | `AdminTenantDetailView`                | `super_admin` only                                        |
+| `/admin/audit`          | `AdminAuditView`                       | `super_admin` only                                        |
+| `/admin/*`              | Altre viste admin (roadmap)            | `super_admin` only                                        |
+| `/pair`                 | `PairView`                             | pubblico (tecnico)                                        |
+| `/events/:eventId/live` | `LiveRegiaView` — Vista Regia realtime | tenant (autenticato)                                      |
 | `/sala/:token`          | `RoomPlayerView` (PWA)                 | pubblico (`device_token` in URL; bootstrap Edge Function) |
-| `/u/:token`             | `UploadPortalView` (TUS upload)        | `upload_token` speaker |
-| `/login`, `/signup`     | Auth views                             | pubblico               |
+| `/u/:token`             | `UploadPortalView` (TUS upload)        | `upload_token` speaker                                    |
+| `/login`, `/signup`     | Auth views                             | pubblico                                                  |
 
 ## Decisioni Architetturali Chiave (ADR)
 
@@ -118,6 +118,9 @@ Modello relazionale, TUS nativo, RLS potente, pricing prevedibile. Storage = Sup
 
 **ADR-005 — Due dashboard, un solo codebase**
 `/admin/*` per super_admin (Andrea), `/dashboard` (sotto `/`) per tenant. Guard basato su `role` in JWT.
+
+**ADR-008 — Export fine evento (tenant, browser-only)**
+In `/events/:eventId` la sezione **Export fine evento** (`EventExportPanel`, lazy-loaded) genera **ZIP** (versioni `ready` correnti, `jszip` + signed URL Storage), **CSV** (`activity_log` per `event_id`, UTF-8 BOM, cap 5000 righe) e **PDF** riepilogo metadati (`jspdf`). Nessuna Edge Function dedicata: letture RLS esistenti + `createVersionDownloadUrlWithClient` in `presentations/repository.ts`. **Fase 10 (100%).**
 
 ## Pattern Moduli (apps/web)
 

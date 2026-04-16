@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +28,10 @@ import {
 import { useEventDetail } from './hooks/useEventDetail';
 import { PresentationVersionsPanel } from '@/features/presentations/components/PresentationVersionsPanel';
 import { DevicesPanel } from '@/features/devices/DevicesPanel';
+const EventExportPanel = lazy(async () => {
+  const m = await import('@/features/events/components/EventExportPanel');
+  return { default: m.EventExportPanel };
+});
 
 const ROOM_TYPES: RoomType[] = ['main', 'breakout', 'preview', 'poster'];
 const SESSION_TYPES: SessionType[] = ['talk', 'panel', 'workshop', 'break', 'ceremony'];
@@ -1884,6 +1888,24 @@ export default function EventDetailView() {
         <p className="mt-1 text-sm text-sc-text-dim">{t('devices.panel.sectionIntro')}</p>
         <div className="mt-6 max-w-2xl">
           <DevicesPanel eventId={event.id} rooms={rooms} />
+        </div>
+      </section>
+
+      <section className="mt-12" aria-labelledby="export-section-title">
+        <h2 id="export-section-title" className="text-lg font-semibold text-sc-text">
+          {t('event.export.sectionTitle')}
+        </h2>
+        <p className="mt-1 text-sm text-sc-text-dim">{t('event.export.sectionIntro')}</p>
+        <div className="mt-6 max-w-3xl">
+          <Suspense fallback={<p className="text-sm text-sc-text-dim">{t('common.loading')}</p>}>
+            <EventExportPanel
+              supabase={supabase}
+              event={event}
+              rooms={rooms}
+              sessions={sessions}
+              speakers={speakers}
+            />
+          </Suspense>
         </div>
       </section>
     </div>
