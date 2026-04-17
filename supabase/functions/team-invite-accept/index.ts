@@ -27,11 +27,16 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json() as {
-      action: 'validate' | 'accept';
-      token: string;
+      action?: 'validate' | 'accept';
+      token?: string;
       password?: string;
       full_name?: string;
+      healthcheck?: boolean;
     };
+
+    if (body.healthcheck === true) {
+      return json({ ok: true, healthcheck: true }, 200);
+    }
 
     const { action, token, password, full_name } = body;
 

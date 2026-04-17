@@ -107,6 +107,18 @@ Deno.serve(async (req: Request) => {
     return jsonResponse(405, { error: 'method_not_allowed' });
   }
 
+  // Healthcheck early-exit: chiamata da AdminHealthView per verificare che la
+  // function sia online. Non richiede HMAC; legge solo il body senza side effects.
+  // Distinto dal flusso reale tramite query string (?healthcheck=1) o body marker.
+  const url = new URL(req.url);
+  if (url.searchParams.get('healthcheck') === '1') {
+    return jsonResponse(200, { ok: true, healthcheck: true });
+  }
+  const peekRaw = await req.clone().text().catch(() => '');
+  if (peekRaw.length < 256 && /"healthcheck"\s*:\s*true/.test(peekRaw)) {
+    return jsonResponse(200, { ok: true, healthcheck: true });
+  }
+
   const secret = Deno.env.get('SLIDECENTER_LICENSING_HMAC_SECRET');
   if (!secret || secret.length < 32) {
     return jsonResponse(500, { error: 'server_misconfigured' });

@@ -70,19 +70,23 @@ export default function AdminHealthView() {
       PINGED_FUNCTIONS.map(async (fn) => {
         const t0 = performance.now();
         try {
-          const { error } = await supabase.functions.invoke(fn, { body: { healthcheck: true } });
+          // Healthcheck protocol: body { healthcheck: true } -> ogni Edge Function
+          // gestita dal sistema risponde 200 { ok: true, healthcheck: true } senza
+          // side effects e senza richiedere credenziali specifiche (HMAC, token, ecc).
+          const { data, error } = await supabase.functions.invoke<{ ok?: boolean; healthcheck?: boolean }>(
+            fn,
+            { body: { healthcheck: true } },
+          );
           const latency = Math.round(performance.now() - t0);
-          // Per "team-invite-accept" e "licensing-sync" un body senza credenziali ritorna 4xx:
-          // questa risposta significa che la function e' raggiungibile/online (auth gate attivo).
           if (error) {
-            const msg = error.message ?? 'unknown';
-            const isOnline = /401|403|400|invalid/i.test(msg);
-            results[fn] = isOnline
-              ? { status: 'ok', latencyMs: latency, detail: 'reachable_auth_gated' }
-              : { status: 'fail', message: msg };
+            results[fn] = { status: 'fail', message: error.message ?? 'unknown_error' };
             return;
           }
-          results[fn] = { status: 'ok', latencyMs: latency };
+          if (data?.ok && data.healthcheck) {
+            results[fn] = { status: 'ok', latencyMs: latency };
+          } else {
+            results[fn] = { status: 'ok', latencyMs: latency, detail: 'reachable' };
+          }
         } catch (err) {
           results[fn] = { status: 'fail', message: err instanceof Error ? err.message : 'unknown_error' };
         }
