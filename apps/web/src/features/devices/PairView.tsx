@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Delete } from 'lucide-react';
-import { invokePairClaim } from './repository';
+import { Delete, Loader2 } from 'lucide-react';
+import { invokePairClaim, invokeRoomPlayerBootstrap } from './repository';
 
 const DIGITS = 6;
+const STORED_TOKEN_KEY = 'device_token';
+const STORED_DEVICE_ID_KEY = 'device_id';
+
+function defaultDeviceName(): string {
+  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `PC Sala ${suffix}`;
+}
 
 export default function PairView() {
   const { t } = useTranslation();
@@ -13,7 +20,56 @@ export default function PairView() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [blocked, setBlocked] = useState(false);
+  // Tentativo silenzioso di riconnessione al boot: se localStorage ha un token
+  // valido lato Edge, redirige alla sala. Garantisce auto-rejoin a riavvio PC.
+  const [reconnecting, setReconnecting] = useState<boolean>(() => {
+    try {
+      return Boolean(localStorage.getItem(STORED_TOKEN_KEY));
+    } catch {
+      return false;
+    }
+  });
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function tryAutoRejoin() {
+      let token: string | null = null;
+      try {
+        token = localStorage.getItem(STORED_TOKEN_KEY);
+      } catch {
+        token = null;
+      }
+      if (!token) {
+        if (!cancelled) setReconnecting(false);
+        return;
+      }
+      try {
+        const data = await invokeRoomPlayerBootstrap(token, false);
+        if (cancelled) return;
+        if (data.device) {
+          navigate(`/sala/${token}`, { replace: true });
+          return;
+        }
+        setReconnecting(false);
+      } catch {
+        if (cancelled) return;
+        // Token invalidato (revocato dall'admin o scaduto): pulisci localStorage
+        // cosi' al prossimo render la UI mostra il keypad e l'utente puo' ripairare.
+        try {
+          localStorage.removeItem(STORED_TOKEN_KEY);
+          localStorage.removeItem(STORED_DEVICE_ID_KEY);
+        } catch {
+          /* noop */
+        }
+        setReconnecting(false);
+      }
+    }
+    void tryAutoRejoin();
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
 
   const codeStr = code.join('');
   const isComplete = codeStr.length === DIGITS;
@@ -24,26 +80,28 @@ export default function PairView() {
     setLoading(true);
 
     try {
-      const hostname = window.location.hostname;
-      const deviceName = `PC-${hostname}`;
+      const deviceName = defaultDeviceName();
       const result = await invokePairClaim(codeStr, deviceName);
 
-      localStorage.setItem('device_token', result.device_token);
-      localStorage.setItem('device_id', result.device_id);
+      try {
+        localStorage.setItem(STORED_TOKEN_KEY, result.device_token);
+        localStorage.setItem(STORED_DEVICE_ID_KEY, result.device_id);
+      } catch {
+        /* noop: storage potrebbe essere bloccato in modalita' privata */
+      }
 
-      navigate(`/sala/${result.device_token}`);
+      navigate(`/sala/${result.device_token}`, { replace: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'error';
-      const key =
-        msg.includes('rate_limited')
-          ? 'pair.errorRateLimited'
-          : msg.includes('invalid') || msg.includes('format')
-            ? 'pair.errorInvalid'
-            : msg.includes('expired')
-              ? 'pair.errorExpired'
-              : msg.includes('already')
-                ? 'pair.errorUsed'
-                : 'pair.errorGeneric';
+      const key = msg.includes('rate_limited')
+        ? 'pair.errorRateLimited'
+        : msg.includes('invalid') || msg.includes('format')
+          ? 'pair.errorInvalid'
+          : msg.includes('expired')
+            ? 'pair.errorExpired'
+            : msg.includes('already')
+              ? 'pair.errorUsed'
+              : 'pair.errorGeneric';
 
       setError(t(key));
       setCode(Array(DIGITS).fill(''));
@@ -96,6 +154,17 @@ export default function PairView() {
 
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', null, '0', 'del'];
 
+  if (reconnecting) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-sc-bg p-6">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <Loader2 className="h-10 w-10 animate-spin text-sc-primary" aria-hidden="true" />
+          <p className="text-sm text-sc-text-muted">{t('pair.reconnecting')}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-sc-bg p-6">
       <div className="w-full max-w-sm space-y-8">
@@ -111,10 +180,11 @@ export default function PairView() {
           {code.map((digit, i) => (
             <div
               key={i}
-              className={`flex h-14 w-11 items-center justify-center rounded-xl border-2 text-2xl font-bold text-sc-text transition-colors ${digit !== ''
-                ? 'border-sc-primary bg-sc-primary/10'
-                : 'border-sc-primary/20 bg-sc-surface'
-                }`}
+              className={`flex h-14 w-11 items-center justify-center rounded-xl border-2 text-2xl font-bold text-sc-text transition-colors ${
+                digit !== ''
+                  ? 'border-sc-primary bg-sc-primary/10'
+                  : 'border-sc-primary/20 bg-sc-surface'
+              }`}
             >
               {digit}
             </div>

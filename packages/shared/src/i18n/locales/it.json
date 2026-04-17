@@ -402,6 +402,26 @@
     "errorFinalizeFailed": "Impossibile finalizzare il caricamento.",
     "noticeResumable": "Il caricamento è resumabile: in caso di interruzione di rete puoi riprendere da dove eri rimasto."
   },
+  "sessionFiles": {
+    "sectionTitle": "File della sessione",
+    "sectionIntro": "Carica i file di questa sessione: appariranno automaticamente sui PC della sala assegnata.",
+    "toggleShow": "Mostra file della sessione",
+    "toggleHide": "Nascondi file della sessione",
+    "dropTitle": "Trascina qui i file per «{{name}}»",
+    "dropHint": "Sono accettati .pptx, .pdf, video e altri formati. Limite 5 GB per file.",
+    "pickFile": "Scegli file",
+    "uploadDone": "File caricato con successo.",
+    "listTitle": "File caricati ({{count}})",
+    "empty": "Nessun file caricato per questa sessione.",
+    "download": "Scarica",
+    "deleteAria": "Elimina file {{name}}",
+    "bySpeaker": "Caricato da {{name}}"
+  },
+  "speakersAdvanced": {
+    "toggleShow": "Mostra gestione relatori esterni (link upload)",
+    "toggleHide": "Nascondi gestione relatori esterni",
+    "intro": "Modalita avanzata: invia un link/QR di upload a un relatore esterno. Il file caricato finira nella sessione associata."
+  },
   "presentation": {
     "title": "Presentazione",
     "titlePlural": "Presentazioni",
@@ -735,6 +755,7 @@
     "codeInputLabel": "Codice a 6 cifre",
     "delete": "Cancella",
     "connecting": "Connessione in corso…",
+    "reconnecting": "Riconnessione all'evento in corso…",
     "errorInvalid": "Codice non valido. Riprova.",
     "errorExpired": "Codice scaduto. Richiedi un nuovo codice all'organizzatore.",
     "errorUsed": "Codice già utilizzato. Richiedi un nuovo codice.",
@@ -774,7 +795,42 @@
   },
   "roomPlayer": {
     "noFiles": "Nessun file caricato per questa sala.",
+    "noFilesYet": "Nessun file disponibile in questa sala. I file caricati dal regista appariranno qui automaticamente.",
     "untitled": "(senza titolo)",
+    "sessionUntitled": "Sessione senza titolo",
+    "noSessionGroup": "File generici della sala",
+    "deviceName": {
+      "label": "Nome PC",
+      "edit": "Rinomina questo PC",
+      "save": "Salva nome",
+      "cancel": "Annulla",
+      "placeholder": "Es. Sala A — Postazione 1",
+      "tooShort": "Il nome deve avere almeno 2 caratteri.",
+      "saveError": "Impossibile salvare il nuovo nome. Riprova.",
+      "saving": "Salvataggio…"
+    },
+    "confirmDisconnect": {
+      "title": "Sei sicuro di voler uscire?",
+      "body": "Questo PC verrà scollegato dall'evento. Per tornare in questa sala dovrai inserire di nuovo un codice di abbinamento.",
+      "cancel": "No, resta",
+      "confirm": "Sì, esci dall'evento"
+    },
+    "noRoomAssigned": {
+      "title": "PC abbinato, in attesa della sala",
+      "body": "Il regista deve assegnare questo PC a una sala dal pannello di gestione dispositivi. La pagina si aggiornerà da sola appena fatto.",
+      "deviceNameHint": "Nome di questo PC: {{name}}",
+      "wait": "In attesa…"
+    },
+    "actions": {
+      "refresh": "Aggiorna ora",
+      "refreshing": "Aggiorno…"
+    },
+    "files": {
+      "lastModified": "Aggiornato il {{date}}",
+      "size": "{{size}}",
+      "openLocal": "Apri in cartella",
+      "speaker": "Relatore: {{name}}"
+    },
     "sync": {
       "synced": "Sincronizzato",
       "syncing": "Sincronizzazione…",
@@ -785,7 +841,8 @@
       "openFolder": "Scegli cartella locale",
       "changeFolder": "Cambia cartella",
       "changeRoom": "Cambia sala",
-      "disconnect": "Disconnetti"
+      "rename": "Rinomina questo PC",
+      "disconnect": "Esci dall'evento"
     },
     "fileSync": {
       "pickFolderTitle": "Scegli dove salvare i file",

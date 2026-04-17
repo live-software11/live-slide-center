@@ -117,6 +117,47 @@ export async function abortAdminUpload(versionId: string): Promise<void> {
   if (error) throw error;
 }
 
+// Init upload diretto su una sessione (senza speaker). Crea sempre una nuova
+// presentation con `speaker_id NULL`: cosi' una sessione puo' avere n file
+// caricati direttamente dal regista. Restituisce gli stessi campi del flusso
+// admin classico (per riusare lo stack TUS senza modifiche).
+export async function initSessionUpload(input: {
+  sessionId: string;
+  filename: string;
+  size: number;
+  mime: string;
+}): Promise<AdminInitUploadResult> {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.rpc('init_upload_version_for_session', {
+    p_session_id: input.sessionId,
+    p_filename: input.filename,
+    p_size: input.size,
+    p_mime: input.mime,
+  });
+  if (error || !data) throw error ?? new Error('init_session_upload_failed');
+  return data as unknown as AdminInitUploadResult;
+}
+
+// Cancella una presentation (e le sue versioni in cascade). Restituisce le
+// storage_key da pulire dal bucket: lo facciamo lato client con un best-effort
+// `storage.remove`. La cancellazione DB e' atomica.
+export async function deletePresentationAdmin(presentationId: string): Promise<void> {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.rpc('delete_presentation_admin', {
+    p_presentation_id: presentationId,
+  });
+  if (error || !data) throw error ?? new Error('delete_presentation_failed');
+  const result = data as { ok?: boolean; storage_keys?: string[] };
+  const keys = Array.isArray(result.storage_keys) ? result.storage_keys.filter((k): k is string => typeof k === 'string') : [];
+  if (keys.length > 0) {
+    try {
+      await supabase.storage.from('presentations').remove(keys);
+    } catch {
+      /* best-effort: la riga DB e' gia' rimossa, lo storage si pulisce con cron */
+    }
+  }
+}
+
 // ────────────────────────────────────────────────────────────────────
 // Spostamento presentation tra speaker (stesso evento/tenant)
 // ────────────────────────────────────────────────────────────────────

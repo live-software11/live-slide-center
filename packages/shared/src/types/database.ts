@@ -401,7 +401,7 @@ export type Database = {
       presentations: {
         Row: {
           id: string;
-          speaker_id: string;
+          speaker_id: string | null;
           session_id: string;
           event_id: string;
           tenant_id: string;
@@ -416,7 +416,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          speaker_id: string;
+          speaker_id?: string | null;
           session_id: string;
           event_id: string;
           tenant_id: string;
@@ -431,7 +431,7 @@ export type Database = {
         };
         Update: {
           id?: string;
-          speaker_id?: string;
+          speaker_id?: string | null;
           session_id?: string;
           event_id?: string;
           tenant_id?: string;
@@ -823,6 +823,18 @@ export type Database = {
       };
       rpc_move_presentation: {
         Args: { p_presentation_id: string; p_target_speaker_id: string };
+        Returns: Json;
+      };
+      init_upload_version_for_session: {
+        Args: { p_session_id: string; p_filename: string; p_size: number; p_mime: string };
+        Returns: Json;
+      };
+      delete_presentation_admin: {
+        Args: { p_presentation_id: string };
+        Returns: Json;
+      };
+      rename_paired_device_by_token: {
+        Args: { p_token: string; p_name: string };
         Returns: Json;
       };
       mark_tenant_onboarded: { Args: Record<string, never>; Returns: string };

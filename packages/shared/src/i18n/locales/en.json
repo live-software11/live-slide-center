@@ -402,6 +402,26 @@
     "errorFinalizeFailed": "Could not finalize the upload.",
     "noticeResumable": "This upload is resumable: if the network drops you can continue from where you left off."
   },
+  "sessionFiles": {
+    "sectionTitle": "Session files",
+    "sectionIntro": "Upload the files for this session: they will appear automatically on the PCs of the assigned room.",
+    "toggleShow": "Show session files",
+    "toggleHide": "Hide session files",
+    "dropTitle": "Drop files here for \"{{name}}\"",
+    "dropHint": ".pptx, .pdf, video and other formats accepted. Max 5 GB per file.",
+    "pickFile": "Choose file",
+    "uploadDone": "File uploaded successfully.",
+    "listTitle": "Uploaded files ({{count}})",
+    "empty": "No files uploaded for this session yet.",
+    "download": "Download",
+    "deleteAria": "Delete file {{name}}",
+    "bySpeaker": "Uploaded by {{name}}"
+  },
+  "speakersAdvanced": {
+    "toggleShow": "Show external speaker management (upload links)",
+    "toggleHide": "Hide external speaker management",
+    "intro": "Advanced mode: send an upload link/QR to an external speaker. The uploaded file will land in the linked session."
+  },
   "presentation": {
     "title": "Presentation",
     "titlePlural": "Presentations",
@@ -735,6 +755,7 @@
     "codeInputLabel": "6-digit code",
     "delete": "Delete",
     "connecting": "Connecting…",
+    "reconnecting": "Reconnecting to the event…",
     "errorInvalid": "Invalid code. Please try again.",
     "errorExpired": "Code expired. Request a new code from the organizer.",
     "errorUsed": "Code already used. Request a new code.",
@@ -774,7 +795,42 @@
   },
   "roomPlayer": {
     "noFiles": "No files uploaded for this room.",
+    "noFilesYet": "No files available in this room yet. Files uploaded by the producer will appear here automatically.",
     "untitled": "(untitled)",
+    "sessionUntitled": "Untitled session",
+    "noSessionGroup": "Generic room files",
+    "deviceName": {
+      "label": "PC name",
+      "edit": "Rename this PC",
+      "save": "Save name",
+      "cancel": "Cancel",
+      "placeholder": "e.g. Room A — Station 1",
+      "tooShort": "Name must be at least 2 characters.",
+      "saveError": "Could not save the new name. Please retry.",
+      "saving": "Saving…"
+    },
+    "confirmDisconnect": {
+      "title": "Are you sure you want to leave?",
+      "body": "This PC will be unpaired from the event. To return to this room you will have to enter a new pairing code.",
+      "cancel": "No, stay here",
+      "confirm": "Yes, leave the event"
+    },
+    "noRoomAssigned": {
+      "title": "PC paired, waiting for room",
+      "body": "The producer must assign this PC to a room from the device management panel. This page will refresh automatically once that is done.",
+      "deviceNameHint": "Name of this PC: {{name}}",
+      "wait": "Waiting…"
+    },
+    "actions": {
+      "refresh": "Refresh now",
+      "refreshing": "Refreshing…"
+    },
+    "files": {
+      "lastModified": "Updated on {{date}}",
+      "size": "{{size}}",
+      "openLocal": "Open in folder",
+      "speaker": "Speaker: {{name}}"
+    },
     "sync": {
       "synced": "Synced",
       "syncing": "Syncing…",
@@ -785,7 +841,8 @@
       "openFolder": "Choose local folder",
       "changeFolder": "Change folder",
       "changeRoom": "Change room",
-      "disconnect": "Disconnect"
+      "rename": "Rename this PC",
+      "disconnect": "Leave the event"
     },
     "fileSync": {
       "pickFolderTitle": "Select a folder to save files",

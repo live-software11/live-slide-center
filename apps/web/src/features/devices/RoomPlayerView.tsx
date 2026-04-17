@@ -1,21 +1,30 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
+  Building2,
+  Check,
   CheckCircle2,
   Clock,
   Cloud,
   CloudOff,
   Folder,
   FolderOpen,
+  Loader2,
   LogOut,
   Menu,
   Network,
+  Pencil,
   RefreshCw,
   WifiOff,
   X,
 } from 'lucide-react';
-import { invokeRoomPlayerBootstrap, type RoomPlayerBootstrapSession, type RoomPlayerNetworkMode } from './repository';
+import {
+  invokeRoomPlayerBootstrap,
+  invokeRoomPlayerRename,
+  type RoomPlayerBootstrapSession,
+  type RoomPlayerNetworkMode,
+} from './repository';
 import { useFileSync } from './hooks/useFileSync';
 import { useConnectivityMode, type ConnectivityMode } from './hooks/useConnectivityMode';
 import { FileSyncStatus } from './components/FileSyncStatus';
@@ -23,14 +32,23 @@ import type { Database } from '@slidecenter/shared';
 
 type SyncStatus = Database['public']['Enums']['sync_status'];
 
+const STORED_TOKEN_KEY = 'device_token';
+const STORED_DEVICE_ID_KEY = 'device_id';
+
 interface RoomData {
   id: string;
   name: string;
   syncStatus: SyncStatus;
   currentSession: RoomPlayerBootstrapSession | null;
   eventId: string;
+  eventName: string | null;
   networkMode: RoomPlayerNetworkMode;
   agentLan: { lan_ip: string; lan_port: number } | null;
+}
+
+interface DeviceData {
+  id: string;
+  name: string;
 }
 
 function syncStatusColor(status: SyncStatus): string {
@@ -64,16 +82,6 @@ function SyncBadge({ status }: { status: SyncStatus }) {
   );
 }
 
-/**
- * Sprint 2 — Chip di connettivita' a 4 stati (intranet offline aware).
- * Sostituisce il vecchio RouteModeChip basato solo su `networkMode`.
- *
- * Stati visibili:
- *  - cloud-direct  (verde)     — Internet + nessun agent o probe negativa
- *  - lan-via-agent (verde-blu) — Internet + Local Agent in LAN (preferito)
- *  - intranet-only (giallo)    — Internet KO ma Local Agent serve i file
- *  - offline       (rosso)     — Tutto irraggiungibile, cache locale
- */
 const CONNECTIVITY_STYLES: Record<ConnectivityMode, string> = {
   'cloud-direct': 'border-sc-success/30 bg-sc-success/10 text-sc-success',
   'lan-via-agent': 'border-sc-primary/30 bg-sc-primary/10 text-sc-primary',
@@ -165,15 +173,180 @@ function NetworkModeChip({
   );
 }
 
-export default function RoomPlayerView() {
+/** Modale di conferma "esci dall'evento" — overlay full-screen con backdrop. */
+function ConfirmDisconnectModal({
+  open,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
   const { t } = useTranslation();
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="w-full max-w-sm rounded-2xl bg-sc-surface p-6 shadow-2xl ring-1 ring-sc-primary/20">
+        <h2 className="text-lg font-semibold text-sc-text">
+          {t('roomPlayer.confirmDisconnect.title')}
+        </h2>
+        <p className="mt-2 text-sm text-sc-text-muted">
+          {t('roomPlayer.confirmDisconnect.body')}
+        </p>
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-xl border border-sc-primary/20 bg-sc-elevated px-4 py-2 text-sm font-medium text-sc-text hover:bg-sc-elevated/80"
+          >
+            {t('roomPlayer.confirmDisconnect.cancel')}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded-xl bg-sc-danger px-4 py-2 text-sm font-medium text-white hover:bg-sc-danger/80"
+          >
+            {t('roomPlayer.confirmDisconnect.confirm')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Editor inline del nome PC, salva via Edge Function autenticato col device_token. */
+function DeviceNameEditor({
+  deviceToken,
+  device,
+  onUpdated,
+}: {
+  deviceToken: string;
+  device: DeviceData;
+  onUpdated: (next: DeviceData) => void;
+}) {
+  const { t } = useTranslation();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(device.name);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    setDraft(device.name);
+  }, [device.name]);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setError(null);
+          setEditing(true);
+        }}
+        className="group flex max-w-full items-center gap-1.5 rounded-md px-1 -mx-1 text-left hover:bg-sc-elevated"
+        title={t('roomPlayer.deviceName.edit')}
+      >
+        <span className="truncate text-sm font-medium text-sc-text">{device.name}</span>
+        <Pencil className="h-3.5 w-3.5 shrink-0 text-sc-text-dim transition-opacity group-hover:opacity-100 sm:opacity-0" />
+      </button>
+    );
+  }
+
+  const submit = async () => {
+    const trimmed = draft.trim();
+    if (trimmed.length < 2) {
+      setError(t('roomPlayer.deviceName.tooShort'));
+      return;
+    }
+    if (trimmed === device.name) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await invokeRoomPlayerRename(deviceToken, trimmed);
+      onUpdated({ id: res.device_id, name: res.device_name });
+      setEditing(false);
+    } catch {
+      setError(t('roomPlayer.deviceName.saveError'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <input
+        ref={inputRef}
+        type="text"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') void submit();
+          if (e.key === 'Escape') {
+            setDraft(device.name);
+            setEditing(false);
+          }
+        }}
+        disabled={saving}
+        maxLength={120}
+        placeholder={t('roomPlayer.deviceName.placeholder')}
+        aria-label={t('roomPlayer.deviceName.label')}
+        className="min-w-0 flex-1 rounded-md border border-sc-primary/30 bg-sc-bg px-2 py-1 text-sm text-sc-text outline-none focus:border-sc-primary"
+      />
+      <button
+        type="button"
+        onClick={() => void submit()}
+        disabled={saving}
+        aria-label={t('roomPlayer.deviceName.save')}
+        className="rounded-md p-1 text-sc-success hover:bg-sc-elevated disabled:opacity-50"
+      >
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          setDraft(device.name);
+          setEditing(false);
+          setError(null);
+        }}
+        disabled={saving}
+        aria-label={t('roomPlayer.deviceName.cancel')}
+        className="rounded-md p-1 text-sc-text-muted hover:bg-sc-elevated disabled:opacity-50"
+      >
+        <X className="h-4 w-4" />
+      </button>
+      {error && (
+        <span className="absolute mt-12 max-w-xs rounded bg-sc-danger/90 px-2 py-1 text-[11px] text-white shadow">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+}
+
+export default function RoomPlayerView() {
+  const { t, i18n } = useTranslation();
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
 
   const [roomData, setRoomData] = useState<RoomData | null>(null);
+  const [device, setDevice] = useState<DeviceData | null>(null);
+  const [waitingRoom, setWaitingRoom] = useState(false);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const [navigatorOnline, setNavigatorOnline] = useState(
     typeof navigator !== 'undefined' ? navigator.onLine : true,
   );
@@ -189,16 +362,17 @@ export default function RoomPlayerView() {
     };
   }, []);
 
-  const { supported, dirHandle, items, pickFolder, clearFolder, retryItem } = useFileSync({
-    roomId: roomData?.id ?? '',
-    roomName: roomData?.name ?? 'sala',
-    eventId: roomData?.eventId ?? '',
-    deviceToken: token ?? '',
-    networkMode: roomData?.networkMode ?? 'cloud',
-    agentLan: roomData?.agentLan ?? null,
-    navigatorOnline,
-    enabled: Boolean(roomData && token),
-  });
+  const { supported, dirHandle, items, pickFolder, clearFolder, retryItem, refreshNow } =
+    useFileSync({
+      roomId: roomData?.id ?? '',
+      roomName: roomData?.name ?? 'sala',
+      eventId: roomData?.eventId ?? '',
+      deviceToken: token ?? '',
+      networkMode: roomData?.networkMode ?? 'cloud',
+      agentLan: roomData?.agentLan ?? null,
+      navigatorOnline,
+      enabled: Boolean(roomData && token),
+    });
 
   const { mode: connectivityMode, lanHealthy } = useConnectivityMode({
     agentLan: roomData?.agentLan ?? null,
@@ -218,19 +392,26 @@ export default function RoomPlayerView() {
     async function loadRoom() {
       try {
         const data = await invokeRoomPlayerBootstrap(deviceToken);
-        setRoomData({
-          id: data.room.id,
-          name: data.room.name,
-          syncStatus: data.room_state.sync_status,
-          currentSession: data.room_state.current_session,
-          eventId: data.event_id,
-          networkMode: data.network_mode,
-          agentLan: data.agent,
-        });
+        setDevice({ id: data.device.id, name: data.device.name });
+        if (!data.room) {
+          setRoomData(null);
+          setWaitingRoom(true);
+        } else {
+          setRoomData({
+            id: data.room.id,
+            name: data.room.name,
+            syncStatus: data.room_state.sync_status,
+            currentSession: data.room_state.current_session,
+            eventId: data.event_id,
+            eventName: data.event_name ?? null,
+            networkMode: data.network_mode ?? 'cloud',
+            agentLan: data.agent,
+          });
+          setWaitingRoom(false);
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : '';
         if (msg === 'invalid_token') setAuthError('invalid_token');
-        else if (msg === 'no_room_assigned') setAuthError('no_room_assigned');
         else if (msg === 'tenant_suspended') setAuthError('tenant_suspended');
         else setAuthError('generic');
       } finally {
@@ -243,22 +424,43 @@ export default function RoomPlayerView() {
 
   const roomId = roomData?.id;
 
+  // Polling continuo ogni 12s anche quando in attesa di sala: appena admin
+  // assegna la sala, l'UI del PC sala si aggiorna automaticamente.
   useEffect(() => {
-    if (!token || !roomId) return;
+    if (!token) return;
     const pollToken = token;
     const id = window.setInterval(() => {
       void invokeRoomPlayerBootstrap(pollToken, false)
         .then((d) => {
+          setDevice((prev) => (prev?.name === d.device.name && prev?.id === d.device.id ? prev : { id: d.device.id, name: d.device.name }));
+          if (!d.room) {
+            setWaitingRoom(true);
+            setRoomData(null);
+            return;
+          }
+          setWaitingRoom(false);
           setRoomData((prev) =>
             prev
               ? {
                 ...prev,
+                id: d.room!.id,
+                name: d.room!.name,
                 syncStatus: d.room_state.sync_status,
                 currentSession: d.room_state.current_session,
-                networkMode: d.network_mode,
+                networkMode: d.network_mode ?? 'cloud',
                 agentLan: d.agent,
+                eventName: d.event_name ?? prev.eventName,
               }
-              : prev,
+              : {
+                id: d.room!.id,
+                name: d.room!.name,
+                syncStatus: d.room_state.sync_status,
+                currentSession: d.room_state.current_session,
+                eventId: d.event_id,
+                eventName: d.event_name ?? null,
+                networkMode: d.network_mode ?? 'cloud',
+                agentLan: d.agent,
+              },
           );
         })
         .catch(() => { });
@@ -267,10 +469,23 @@ export default function RoomPlayerView() {
   }, [token, roomId]);
 
   const handleDisconnect = () => {
-    localStorage.removeItem('device_token');
-    localStorage.removeItem('device_id');
-    navigate('/pair');
+    try {
+      localStorage.removeItem(STORED_TOKEN_KEY);
+      localStorage.removeItem(STORED_DEVICE_ID_KEY);
+    } catch {
+      /* ignore */
+    }
+    navigate('/pair', { replace: true });
   };
+
+  const sortedItems = useMemo(() => {
+    return [...items].sort((a, b) => {
+      const aTime = a.sessionScheduledStart ? Date.parse(a.sessionScheduledStart) : Number.POSITIVE_INFINITY;
+      const bTime = b.sessionScheduledStart ? Date.parse(b.sessionScheduledStart) : Number.POSITIVE_INFINITY;
+      if (aTime !== bTime) return aTime - bTime;
+      return a.filename.localeCompare(b.filename);
+    });
+  }, [items]);
 
   if (loading) {
     return (
@@ -280,23 +495,21 @@ export default function RoomPlayerView() {
     );
   }
 
-  if (authError || !roomData) {
+  if (authError) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-sc-bg gap-4 p-6">
         <p className="text-sc-danger text-center max-w-sm">
           {authError === 'invalid_token'
             ? t('roomPlayer.error.invalidToken')
-            : authError === 'no_room_assigned'
-              ? t('roomPlayer.error.noRoom')
-              : authError === 'missing_token'
-                ? t('roomPlayer.error.missingToken')
-                : authError === 'tenant_suspended'
-                  ? t('auth.errorTenantSuspendedLogin')
-                  : t('roomPlayer.error.generic')}
+            : authError === 'missing_token'
+              ? t('roomPlayer.error.missingToken')
+              : authError === 'tenant_suspended'
+                ? t('auth.errorTenantSuspendedLogin')
+                : t('roomPlayer.error.generic')}
         </p>
         <button
           type="button"
-          onClick={() => navigate('/pair')}
+          onClick={handleDisconnect}
           className="rounded-xl bg-sc-primary px-4 py-2 text-sm text-white hover:bg-sc-primary/80"
         >
           {t('roomPlayer.error.reconnect')}
@@ -305,22 +518,90 @@ export default function RoomPlayerView() {
     );
   }
 
+  if (waitingRoom && device) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-sc-bg gap-5 p-6 text-center">
+        <Building2 className="h-12 w-12 text-sc-text-muted" aria-hidden="true" />
+        <div className="max-w-md space-y-2">
+          <h1 className="text-xl font-semibold text-sc-text">
+            {t('roomPlayer.noRoomAssigned.title')}
+          </h1>
+          <p className="text-sm text-sc-text-muted">
+            {t('roomPlayer.noRoomAssigned.body')}
+          </p>
+          <p className="pt-2 text-xs text-sc-text-dim">
+            {t('roomPlayer.noRoomAssigned.deviceNameHint', { name: device.name })}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-sc-text-muted">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>{t('roomPlayer.noRoomAssigned.wait')}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setConfirmDisconnect(true)}
+          className="mt-2 inline-flex items-center gap-2 rounded-xl border border-sc-primary/20 bg-sc-surface px-4 py-2 text-sm text-sc-text-secondary hover:bg-sc-elevated"
+        >
+          <LogOut className="h-4 w-4" />
+          {t('roomPlayer.menu.disconnect')}
+        </button>
+        <ConfirmDisconnectModal
+          open={confirmDisconnect}
+          onCancel={() => setConfirmDisconnect(false)}
+          onConfirm={handleDisconnect}
+        />
+      </div>
+    );
+  }
+
+  if (!roomData || !device) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-sc-bg">
+        <p className="text-sc-text-muted">{t('common.loading')}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-sc-bg text-sc-text">
-      <header className="flex items-center justify-between border-b border-sc-primary/12 px-4 py-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <Folder className="h-5 w-5 shrink-0 text-sc-text-muted" />
-          <div className="min-w-0">
-            <h1 className="text-sm font-semibold truncate">{roomData.name}</h1>
-            {roomData.currentSession && (
-              <p className="text-xs text-sc-text-muted truncate max-w-56">
-                {roomData.currentSession.title}
-              </p>
-            )}
+      <header className="border-b border-sc-primary/12 px-4 py-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-3">
+            <Folder className="h-5 w-5 shrink-0 text-sc-text-muted" />
+            <div className="min-w-0 flex-1">
+              <h1 className="text-base font-semibold text-sc-text truncate">
+                {roomData.name}
+              </h1>
+              {roomData.eventName && (
+                <p className="truncate text-xs text-sc-text-muted">{roomData.eventName}</p>
+              )}
+              {roomData.currentSession && (
+                <p className="mt-0.5 truncate text-xs text-sc-primary">
+                  ▶ {roomData.currentSession.title}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              aria-label={t('common.menu')}
+              onClick={() => setMenuOpen((v) => !v)}
+              className="rounded-xl p-1.5 text-sc-text-muted hover:text-sc-text"
+            >
+              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <DeviceNameEditor
+            deviceToken={token!}
+            device={device}
+            onUpdated={(next) => setDevice(next)}
+          />
+          <span className="hidden text-sc-text-dim sm:inline">·</span>
           <ConnectivityChip
             mode={connectivityMode}
             networkMode={roomData.networkMode}
@@ -329,14 +610,6 @@ export default function RoomPlayerView() {
           />
           <NetworkModeChip networkMode={roomData.networkMode} />
           <SyncBadge status={roomData.syncStatus} />
-          <button
-            type="button"
-            aria-label={t('common.menu')}
-            onClick={() => setMenuOpen((v) => !v)}
-            className="rounded-xl p-1.5 text-sc-text-muted hover:text-sc-text shrink-0"
-          >
-            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
         </div>
       </header>
 
@@ -378,17 +651,23 @@ export default function RoomPlayerView() {
             <li>
               <button
                 type="button"
-                onClick={() => navigate('/pair')}
+                onClick={() => {
+                  void refreshNow();
+                  setMenuOpen(false);
+                }}
                 className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm text-sc-text-secondary hover:bg-sc-elevated"
               >
                 <RefreshCw className="h-4 w-4" />
-                {t('roomPlayer.menu.changeRoom')}
+                {t('roomPlayer.actions.refresh')}
               </button>
             </li>
             <li>
               <button
                 type="button"
-                onClick={handleDisconnect}
+                onClick={() => {
+                  setMenuOpen(false);
+                  setConfirmDisconnect(true);
+                }}
                 className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm text-sc-danger hover:bg-sc-elevated"
               >
                 <LogOut className="h-4 w-4" />
@@ -430,14 +709,20 @@ export default function RoomPlayerView() {
           </div>
         )}
 
-        {dirHandle && items.length > 0 ? (
-          <FileSyncStatus items={items} onRetry={retryItem} />
-        ) : dirHandle && items.length === 0 ? (
-          <p className="py-8 text-center text-sm text-sc-text-dim">{t('roomPlayer.noFiles')}</p>
-        ) : !dirHandle && items.length === 0 && supported ? null : (
-          <p className="py-8 text-center text-sm text-sc-text-dim">{t('roomPlayer.noFiles')}</p>
+        {sortedItems.length > 0 ? (
+          <FileSyncStatus items={sortedItems} onRetry={retryItem} locale={i18n.language} />
+        ) : (
+          <div className="rounded-xl border border-dashed border-sc-primary/15 bg-sc-surface/40 px-4 py-8 text-center">
+            <p className="text-sm text-sc-text-dim">{t('roomPlayer.noFilesYet')}</p>
+          </div>
         )}
       </main>
+
+      <ConfirmDisconnectModal
+        open={confirmDisconnect}
+        onCancel={() => setConfirmDisconnect(false)}
+        onConfirm={handleDisconnect}
+      />
     </div>
   );
 }

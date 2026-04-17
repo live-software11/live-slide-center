@@ -15,7 +15,11 @@ async function fetchSpeakerIdsWithPresentation(eventId: string): Promise<Set<str
     .select('speaker_id')
     .eq('event_id', eventId);
   if (error || !data) return null;
-  return new Set(data.map((r) => r.speaker_id));
+  const ids = new Set<string>();
+  for (const r of data) {
+    if (r.speaker_id) ids.add(r.speaker_id);
+  }
+  return ids;
 }
 
 export function useEventPresentationSpeakerIds(eventId: string | null) {

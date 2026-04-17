@@ -32,21 +32,31 @@ export interface RoomPlayerBootstrapSession {
 
 export interface RoomPlayerBootstrapFileRow {
   versionId: string;
+  presentationId: string;
   storageKey: string;
   filename: string;
-  speakerName: string;
+  speakerName: string | null;
+  sessionId: string;
+  sessionTitle: string;
+  sessionScheduledStart: string | null;
+  fileSizeBytes: number;
+  mimeType: string;
+  createdAt: string;
 }
 
 export interface RoomPlayerBootstrapResponse {
-  room: { id: string; name: string };
+  device: { id: string; name: string };
+  room: { id: string; name: string } | null;
   event_id: string;
-  network_mode: RoomPlayerNetworkMode;
+  event_name?: string;
+  network_mode: RoomPlayerNetworkMode | null;
   agent: { lan_ip: string; lan_port: number } | null;
   room_state: {
     sync_status: Database['public']['Tables']['room_state']['Row']['sync_status'];
     current_session: RoomPlayerBootstrapSession | null;
   };
   files: RoomPlayerBootstrapFileRow[];
+  warning?: string;
 }
 
 // Errori funzionali: il client UI distingue 'auth_session_expired' (utente)
@@ -224,6 +234,34 @@ export async function getDeviceByToken(token: string): Promise<PairedDevice | nu
 
   if (error) throw new Error(error.message);
   return data;
+}
+
+/** Rinomina chiamata dal PC sala (autenticazione via device_token, no JWT). */
+export async function invokeRoomPlayerRename(
+  deviceToken: string,
+  deviceName: string,
+): Promise<{ ok: boolean; device_id: string; device_name: string }> {
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/room-player-rename`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${anonKey}`,
+      apikey: anonKey,
+    },
+    body: JSON.stringify({ device_token: deviceToken, device_name: deviceName }),
+  });
+  const json = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    device_id?: string;
+    device_name?: string;
+    error?: string;
+  };
+  if (!res.ok || !json.ok) {
+    throw new Error(json.error ?? `room_player_rename_${res.status}`);
+  }
+  return { ok: true, device_id: json.device_id!, device_name: json.device_name! };
 }
 
 async function sha256Hex(value: string): Promise<string> {

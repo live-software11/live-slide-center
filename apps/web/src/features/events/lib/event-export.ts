@@ -105,6 +105,7 @@ export async function listCurrentReadySlidesForExport(
     if (!p.current_version_id) continue;
     const ver = versionById.get(p.current_version_id);
     if (!ver) continue;
+    if (!p.speaker_id) continue;
     const sp = speakerById.get(p.speaker_id);
     if (!sp) continue;
     const sess = sessionById.get(sp.session_id);

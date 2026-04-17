@@ -44,7 +44,9 @@ export async function fetchLiveEventSnapshot(eventId: string): Promise<LiveEvent
       const sessionIds = new Set(roomSessions.map((s) => s.id));
       const roomSpeakers = speakers.filter((sp) => sessionIds.has(sp.session_id));
       const speakerIds = new Set(roomSpeakers.map((sp) => sp.id));
-      const roomPresentations = presentations.filter((p) => speakerIds.has(p.speaker_id));
+      const roomPresentations = presentations.filter(
+        (p) => p.speaker_id !== null && speakerIds.has(p.speaker_id),
+      );
       return { room, sessions: roomSessions, speakers: roomSpeakers, presentations: roomPresentations };
     }),
   };

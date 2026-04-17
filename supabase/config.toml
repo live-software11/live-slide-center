@@ -365,6 +365,10 @@ allow_dynamic_registration = false
 [functions.room-player-bootstrap]
 verify_jwt = false
 
+# Room Player Rename: PC sala chiama con device_token (nessun JWT utente).
+[functions.room-player-rename]
+verify_jwt = false
+
 # Team invite accept: token nel body, nessun JWT — azione pubblica per utenti non ancora registrati.
 [functions.team-invite-accept]
 verify_jwt = false

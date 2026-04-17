@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createVersionDownloadUrl } from '@/features/presentations/repository';
-import { invokeRoomPlayerBootstrap, type RoomPlayerBootstrapFileRow, type RoomPlayerNetworkMode } from '../repository';
+import {
+  invokeRoomPlayerBootstrap,
+  type RoomPlayerBootstrapFileRow,
+  type RoomPlayerNetworkMode,
+} from '../repository';
 import {
   clearSavedDirHandle,
-  downloadFileToDir,
+  downloadFileToPath,
   ensureWritePermission,
   getSavedDirHandle,
   isFsAccessSupported,
@@ -16,7 +20,13 @@ export interface FileSyncItem {
   versionId: string;
   storageKey: string;
   filename: string;
-  speakerName: string;
+  speakerName: string | null;
+  sessionId: string;
+  sessionTitle: string;
+  sessionScheduledStart: string | null;
+  fileSizeBytes: number;
+  mimeType: string;
+  createdAt: string;
   status: FileSyncItemStatus;
   progress: number;
   errorMessage: string | null;
@@ -40,13 +50,18 @@ interface UseFileSyncResult {
   pickFolder: () => Promise<void>;
   clearFolder: () => Promise<void>;
   retryItem: (versionId: string) => Promise<void>;
+  refreshNow: () => Promise<void>;
 }
 
 function manifestStorageKey(eventId: string, roomId: string): string {
   return `sc:rp:files:${eventId}:${roomId}`;
 }
 
-function persistManifest(eventId: string, roomId: string, files: RoomPlayerBootstrapFileRow[]): void {
+function persistManifest(
+  eventId: string,
+  roomId: string,
+  files: RoomPlayerBootstrapFileRow[],
+): void {
   try {
     localStorage.setItem(manifestStorageKey(eventId, roomId), JSON.stringify(files));
   } catch {
@@ -61,6 +76,28 @@ function buildLanFileUrl(
 ): string {
   const base = `http://${agent.lan_ip}:${agent.lan_port}`;
   return `${base}/api/v1/files/${eventId}/${encodeURIComponent(filename)}`;
+}
+
+function rowToItem(
+  row: RoomPlayerBootstrapFileRow,
+  syncedIds: Set<string>,
+): FileSyncItem {
+  const wasSynced = syncedIds.has(row.versionId);
+  return {
+    versionId: row.versionId,
+    storageKey: row.storageKey,
+    filename: row.filename,
+    speakerName: row.speakerName,
+    sessionId: row.sessionId,
+    sessionTitle: row.sessionTitle,
+    sessionScheduledStart: row.sessionScheduledStart,
+    fileSizeBytes: row.fileSizeBytes,
+    mimeType: row.mimeType,
+    createdAt: row.createdAt,
+    status: wasSynced ? 'synced' : 'pending',
+    progress: wasSynced ? 100 : 0,
+    errorMessage: null,
+  };
 }
 
 export function useFileSync({
@@ -88,30 +125,26 @@ export function useFileSync({
   const inflightRef = useRef<Set<string>>(new Set());
 
   const downloadVersion = useCallback(
-    async (
-      versionId: string,
-      storageKey: string,
-      filename: string,
-      handle: FileSystemDirectoryHandle,
-    ) => {
+    async (item: FileSyncItem, handle: FileSystemDirectoryHandle) => {
+      const { versionId, storageKey, filename, sessionTitle } = item;
       if (syncedVersionIds.current.has(versionId)) return;
       if (inflightRef.current.has(versionId)) return;
       inflightRef.current.add(versionId);
 
-      setItems((prev) => {
-        const existing = prev.find((i) => i.versionId === versionId);
-        if (!existing) return prev;
-        return prev.map((i) =>
+      setItems((prev) =>
+        prev.map((i) =>
           i.versionId === versionId ? { ...i, status: 'downloading' as const, progress: 0 } : i,
-        );
-      });
+        ),
+      );
+
+      const segments = [roomName || 'sala', sessionTitle || 'sessione'];
 
       const tryCloud = async () => {
         if (!navigatorOnline) {
           throw new Error('offline_cloud');
         }
         const signedUrl = await createVersionDownloadUrl(storageKey);
-        await downloadFileToDir(handle, roomName, filename, signedUrl, (pct) => {
+        await downloadFileToPath(handle, segments, filename, signedUrl, (pct) => {
           setItems((prev) =>
             prev.map((i) => (i.versionId === versionId ? { ...i, progress: pct } : i)),
           );
@@ -141,14 +174,14 @@ export function useFileSync({
         if (networkMode === 'cloud' || !lanUrl) {
           await tryCloud();
         } else if (networkMode === 'intranet') {
-          await downloadFileToDir(handle, roomName, filename, lanUrl, (pct) => {
+          await downloadFileToPath(handle, segments, filename, lanUrl, (pct) => {
             setItems((prev) =>
               prev.map((i) => (i.versionId === versionId ? { ...i, progress: pct } : i)),
             );
           });
         } else {
           try {
-            await downloadFileToDir(handle, roomName, filename, lanUrl, (pct) => {
+            await downloadFileToPath(handle, segments, filename, lanUrl, (pct) => {
               setItems((prev) =>
                 prev.map((i) => (i.versionId === versionId ? { ...i, progress: pct } : i)),
               );
@@ -173,10 +206,10 @@ export function useFileSync({
           prev.map((i) =>
             i.versionId === versionId
               ? {
-                ...i,
-                status: 'error' as const,
-                errorMessage: err instanceof Error ? err.message : 'download_failed',
-              }
+                  ...i,
+                  status: 'error' as const,
+                  errorMessage: err instanceof Error ? err.message : 'download_failed',
+                }
               : i,
           ),
         );
@@ -190,6 +223,38 @@ export function useFileSync({
     persistManifest(eventId, roomId, data.files);
     return data.files;
   }, [deviceToken, eventId, roomId]);
+
+  const reconcileItems = useCallback((versions: RoomPlayerBootstrapFileRow[]) => {
+    setItems((prev) => {
+      const byId = new Map(prev.map((i) => [i.versionId, i]));
+      const result: FileSyncItem[] = [];
+      const incomingIds = new Set<string>();
+      for (const v of versions) {
+        incomingIds.add(v.versionId);
+        const existing = byId.get(v.versionId);
+        if (existing) {
+          // Aggiorna metadati eventualmente cambiati lato server (es. filename
+          // rinominato dall'admin) preservando lo stato di sync locale.
+          result.push({
+            ...existing,
+            filename: v.filename,
+            speakerName: v.speakerName,
+            sessionTitle: v.sessionTitle,
+            sessionScheduledStart: v.sessionScheduledStart,
+            fileSizeBytes: v.fileSizeBytes,
+            mimeType: v.mimeType,
+            createdAt: v.createdAt,
+            storageKey: v.storageKey,
+          });
+        } else {
+          result.push(rowToItem(v, syncedVersionIds.current));
+        }
+      }
+      // File rimossi dal server: li droppiamo dalla lista (non cancelliamo i file
+      // locali per scelta esplicita: l'utente sa che restano sul disco).
+      return result.filter((i) => incomingIds.has(i.versionId));
+    });
+  }, []);
 
   useEffect(() => {
     if (!dirHandle || !roomId || !eventId || !deviceToken || !enabled) return;
@@ -210,36 +275,23 @@ export function useFileSync({
       }
       if (cancelled) return;
 
-      setItems((prev) => {
-        const newItems: FileSyncItem[] = [];
-        for (const v of versions) {
-          const existing = prev.find((i) => i.versionId === v.versionId);
-          if (!existing) {
-            newItems.push({
-              versionId: v.versionId,
-              storageKey: v.storageKey,
-              filename: v.filename,
-              speakerName: v.speakerName,
-              status: syncedVersionIds.current.has(v.versionId) ? 'synced' : 'pending',
-              progress: syncedVersionIds.current.has(v.versionId) ? 100 : 0,
-              errorMessage: null,
-            });
-          }
-        }
-        return [...prev, ...newItems];
-      });
+      reconcileItems(versions);
 
+      // downloadVersion legge sempre l'item piu' fresco dal closure; ricostruiamo
+      // un item locale dalla riga server per evitare deps non aggiornate.
       for (const v of versions) {
         if (cancelled) break;
         if (!syncedVersionIds.current.has(v.versionId)) {
-          await downloadVersion(v.versionId, v.storageKey, v.filename, dirHandle!);
+          await downloadVersion(rowToItem(v, syncedVersionIds.current), dirHandle!);
         }
       }
     }
 
     void syncAll();
-    return () => { cancelled = true; };
-  }, [dirHandle, roomId, eventId, deviceToken, enabled, downloadVersion, fetchVersions]);
+    return () => {
+      cancelled = true;
+    };
+  }, [dirHandle, roomId, eventId, deviceToken, enabled, downloadVersion, fetchVersions, reconcileItems]);
 
   useEffect(() => {
     if (!dirHandle || !roomId || !eventId || !deviceToken || !enabled) return;
@@ -247,26 +299,10 @@ export function useFileSync({
       void (async () => {
         try {
           const versions = await fetchVersions();
-          setItems((prev) => {
-            const added: FileSyncItem[] = [];
-            for (const v of versions) {
-              if (!prev.some((i) => i.versionId === v.versionId)) {
-                added.push({
-                  versionId: v.versionId,
-                  storageKey: v.storageKey,
-                  filename: v.filename,
-                  speakerName: v.speakerName,
-                  status: syncedVersionIds.current.has(v.versionId) ? 'synced' : 'pending',
-                  progress: syncedVersionIds.current.has(v.versionId) ? 100 : 0,
-                  errorMessage: null,
-                });
-              }
-            }
-            return added.length ? [...prev, ...added] : prev;
-          });
+          reconcileItems(versions);
           for (const v of versions) {
             if (!syncedVersionIds.current.has(v.versionId)) {
-              await downloadVersion(v.versionId, v.storageKey, v.filename, dirHandle!);
+              await downloadVersion(rowToItem(v, syncedVersionIds.current), dirHandle!);
             }
           }
         } catch {
@@ -275,7 +311,7 @@ export function useFileSync({
       })();
     }, 12_000);
     return () => window.clearInterval(id);
-  }, [dirHandle, roomId, eventId, deviceToken, enabled, downloadVersion, fetchVersions]);
+  }, [dirHandle, roomId, eventId, deviceToken, enabled, downloadVersion, fetchVersions, reconcileItems]);
 
   const pickFolder = useCallback(async () => {
     const handle = await pickAndSaveDirHandle();
@@ -299,10 +335,25 @@ export function useFileSync({
       setItems((prev) =>
         prev.map((i) => (i.versionId === versionId ? { ...i, status: 'pending' as const } : i)),
       );
-      await downloadVersion(versionId, item.storageKey, item.filename, dirHandle);
+      await downloadVersion(item, dirHandle);
     },
     [dirHandle, items, downloadVersion],
   );
 
-  return { supported, dirHandle, items, pickFolder, clearFolder, retryItem };
+  const refreshNow = useCallback(async () => {
+    if (!dirHandle || !enabled) return;
+    try {
+      const versions = await fetchVersions();
+      reconcileItems(versions);
+      for (const v of versions) {
+        if (!syncedVersionIds.current.has(v.versionId)) {
+          await downloadVersion(rowToItem(v, syncedVersionIds.current), dirHandle);
+        }
+      }
+    } catch {
+      /* swallow */
+    }
+  }, [dirHandle, enabled, fetchVersions, reconcileItems, downloadVersion]);
+
+  return { supported, dirHandle, items, pickFolder, clearFolder, retryItem, refreshNow };
 }

@@ -129,25 +129,45 @@ export async function clearSavedDirHandle(): Promise<void> {
   await idbDelete(HANDLE_KEY);
 }
 
+/** Sanifica un segmento di path locale rimuovendo caratteri non sicuri per FS. */
+export function sanitizeFsSegment(name: string, fallback = 'cartella'): string {
+  const cleaned = name
+    // eslint-disable-next-line no-control-regex
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned.length === 0 ? fallback : cleaned.slice(0, 120);
+}
+
 /**
- * Scarica un file da un URL (signed URL Supabase) e lo scrive nella cartella scelta,
- * rispettando una struttura sub-directory: `{roomName}/{filename}`.
+ * Scarica un file da un URL (signed URL Supabase) e lo scrive seguendo una
+ * struttura di sub-directory arbitraria. Il path effettivo locale sara':
+ *   `{dirHandle}/{segments[0]}/{segments[1]}/.../{filename}`
  *
- * @param dirHandle      Handle radice scelto dal tecnico
- * @param subFolder      Nome sub-cartella (nome sala) — viene creata se non esiste
+ * Esempio con `segments = ['Sala 1', 'Mattina']`, `filename = 'slide.pptx'`:
+ *   `<cartella scelta>/Sala 1/Mattina/slide.pptx`
+ *
+ * @param dirHandle      Handle radice scelto dall'utente
+ * @param segments       Lista sub-cartelle (vengono create se non esistono)
  * @param filename       Nome file da creare/sovrascrivere
  * @param url            Signed URL per il download
- * @param onProgress     Callback con percentuale 0-100
+ * @param onProgress     Callback con percentuale 0-100 (richiede content-length)
  */
-export async function downloadFileToDir(
+export async function downloadFileToPath(
   dirHandle: FileSystemDirectoryHandle,
-  subFolder: string,
+  segments: string[],
   filename: string,
   url: string,
   onProgress?: (pct: number) => void,
 ): Promise<void> {
-  const subDir = await dirHandle.getDirectoryHandle(subFolder, { create: true });
-  const fileHandle = await subDir.getFileHandle(filename, { create: true });
+  let dir = dirHandle;
+  for (const raw of segments) {
+    const seg = sanitizeFsSegment(raw);
+    dir = await dir.getDirectoryHandle(seg, { create: true });
+  }
+  const fileHandle = await dir.getFileHandle(sanitizeFsSegment(filename, 'file'), {
+    create: true,
+  });
   const writable = await fileHandle.createWritable();
 
   const response = await fetch(url);
@@ -175,4 +195,18 @@ export async function downloadFileToDir(
     try { await writable.abort(); } catch { /* best-effort cleanup */ }
     throw err;
   }
+}
+
+/**
+ * Wrapper compatibile retro con la firma legacy `(handle, subFolder, filename, url, onProgress)`.
+ * Internamente delega a `downloadFileToPath([subFolder], filename, ...)`.
+ */
+export async function downloadFileToDir(
+  dirHandle: FileSystemDirectoryHandle,
+  subFolder: string,
+  filename: string,
+  url: string,
+  onProgress?: (pct: number) => void,
+): Promise<void> {
+  return downloadFileToPath(dirHandle, [subFolder], filename, url, onProgress);
 }

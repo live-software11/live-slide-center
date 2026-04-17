@@ -11,9 +11,16 @@ async function sha256Hex(value: string): Promise<string> {
 
 interface FileRow {
   versionId: string;
+  presentationId: string;
   storageKey: string;
   filename: string;
-  speakerName: string;
+  speakerName: string | null;
+  sessionId: string;
+  sessionTitle: string;
+  sessionScheduledStart: string | null;
+  fileSizeBytes: number;
+  mimeType: string;
+  createdAt: string;
 }
 
 Deno.serve(async (req: Request) => {
@@ -25,7 +32,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const body = await req.json() as {
+    const body = (await req.json()) as {
       device_token?: string;
       include_versions?: boolean;
     };
@@ -34,10 +41,7 @@ Deno.serve(async (req: Request) => {
     const includeVersions = body.include_versions !== false;
 
     if (!deviceToken) {
-      return new Response(JSON.stringify({ error: 'missing_device_token' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return jsonRes({ error: 'missing_device_token' }, 400);
     }
 
     const supabaseAdmin = createClient(
@@ -49,23 +53,18 @@ Deno.serve(async (req: Request) => {
 
     const { data: device, error: deviceError } = await supabaseAdmin
       .from('paired_devices')
-      .select('id, tenant_id, event_id, room_id, status')
+      .select('id, tenant_id, event_id, room_id, status, device_name')
       .eq('pair_token_hash', tokenHash)
       .maybeSingle();
 
-    if (deviceError) {
-      return new Response(JSON.stringify({ error: deviceError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    if (deviceError) return jsonRes({ error: deviceError.message }, 500);
+    if (!device) return jsonRes({ error: 'invalid_token' }, 404);
 
-    if (!device) {
-      return new Response(JSON.stringify({ error: 'invalid_token' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // Aggiorniamo last_seen_at in best-effort (ignoriamo errori).
+    await supabaseAdmin
+      .from('paired_devices')
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq('id', device.id);
 
     const { data: tenant, error: tenantError } = await supabaseAdmin
       .from('tenants')
@@ -73,25 +72,25 @@ Deno.serve(async (req: Request) => {
       .eq('id', device.tenant_id)
       .maybeSingle();
 
-    if (tenantError) {
-      return new Response(JSON.stringify({ error: tenantError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (tenant?.suspended) {
-      return new Response(JSON.stringify({ error: 'tenant_suspended' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    if (tenantError) return jsonRes({ error: tenantError.message }, 500);
+    if (tenant?.suspended) return jsonRes({ error: 'tenant_suspended' }, 403);
 
     if (!device.room_id) {
-      return new Response(JSON.stringify({ error: 'no_room_assigned' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      // Device pairato ma senza sala assegnata: rispondiamo 200 con `room: null`
+      // cosi' il client puo' mostrare un placeholder utile e non si rompe il flusso.
+      return jsonRes(
+        {
+          device: { id: device.id, name: device.device_name },
+          room: null,
+          event_id: device.event_id,
+          network_mode: null,
+          agent: null,
+          room_state: { sync_status: 'offline', current_session: null },
+          files: [],
+          warning: 'no_room_assigned',
+        },
+        200,
+      );
     }
 
     const { data: room, error: roomError } = await supabaseAdmin
@@ -101,23 +100,17 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
 
     if (roomError || !room) {
-      return new Response(JSON.stringify({ error: roomError?.message ?? 'room_not_found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return jsonRes({ error: roomError?.message ?? 'room_not_found' }, 404);
     }
 
     const { data: event, error: eventError } = await supabaseAdmin
       .from('events')
-      .select('network_mode')
+      .select('network_mode, name')
       .eq('id', device.event_id)
       .maybeSingle();
 
     if (eventError || !event) {
-      return new Response(JSON.stringify({ error: eventError?.message ?? 'event_not_found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return jsonRes({ error: eventError?.message ?? 'event_not_found' }, 404);
     }
 
     const { data: roomState } = await supabaseAdmin
@@ -161,15 +154,19 @@ Deno.serve(async (req: Request) => {
     if (includeVersions) {
       const { data: sessions } = await supabaseAdmin
         .from('sessions')
-        .select('id')
+        .select('id, title, scheduled_start')
         .eq('room_id', room.id)
         .eq('event_id', device.event_id);
 
-      const sessionIds = (sessions ?? []).map((s) => s.id);
+      const sessionList = sessions ?? [];
+      const sessionMap = new Map(sessionList.map((s) => [s.id, s]));
+      const sessionIds = sessionList.map((s) => s.id);
+
       if (sessionIds.length > 0) {
+        // LEFT JOIN: speaker_id puo' essere NULL (upload diretto su sessione).
         const { data: presentations } = await supabaseAdmin
           .from('presentations')
-          .select('id, current_version_id, speakers!inner(full_name)')
+          .select('id, current_version_id, session_id, speakers(full_name)')
           .in('session_id', sessionIds)
           .not('current_version_id', 'is', null);
 
@@ -180,7 +177,7 @@ Deno.serve(async (req: Request) => {
         if (versionIds.length > 0) {
           const { data: versions } = await supabaseAdmin
             .from('presentation_versions')
-            .select('id, storage_key, file_name')
+            .select('id, storage_key, file_name, file_size_bytes, mime_type, created_at')
             .in('id', versionIds)
             .eq('status', 'ready');
 
@@ -193,24 +190,43 @@ Deno.serve(async (req: Request) => {
 
             const sp = pres.speakers as unknown;
             const speakerName = Array.isArray(sp)
-              ? (sp[0] as { full_name: string })?.full_name ?? '—'
-              : (sp as { full_name: string })?.full_name ?? '—';
+              ? ((sp[0] as { full_name?: string } | undefined)?.full_name ?? null)
+              : ((sp as { full_name?: string } | null)?.full_name ?? null);
+
+            const session = sessionMap.get(pres.session_id as string);
 
             files.push({
               versionId: version.id,
+              presentationId: pres.id as string,
               storageKey: version.storage_key,
               filename: version.file_name ?? `file_${version.id}`,
               speakerName,
+              sessionId: pres.session_id as string,
+              sessionTitle: session?.title ?? '—',
+              sessionScheduledStart: (session?.scheduled_start ?? null) as string | null,
+              fileSizeBytes: Number(version.file_size_bytes ?? 0),
+              mimeType: version.mime_type ?? 'application/octet-stream',
+              createdAt: version.created_at as string,
             });
           }
         }
       }
+
+      // Ordinamento: per orario sessione, poi per nome file. UI affidabile.
+      files.sort((a, b) => {
+        const ta = a.sessionScheduledStart ?? '';
+        const tb = b.sessionScheduledStart ?? '';
+        if (ta !== tb) return ta < tb ? -1 : 1;
+        return a.filename.localeCompare(b.filename);
+      });
     }
 
-    return new Response(
-      JSON.stringify({
+    return jsonRes(
+      {
+        device: { id: device.id, name: device.device_name },
         room: { id: room.id, name: room.name },
         event_id: device.event_id,
+        event_name: event.name,
         network_mode: event.network_mode,
         agent,
         room_state: {
@@ -218,14 +234,18 @@ Deno.serve(async (req: Request) => {
           current_session: currentSession,
         },
         files,
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      },
+      200,
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal error';
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return jsonRes({ error: message }, 500);
   }
 });
+
+function jsonRes(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}

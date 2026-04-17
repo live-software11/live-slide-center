@@ -32,6 +32,7 @@ import {
   type PanelEventSpeaker,
 } from '@/features/presentations/components/PresentationVersionsPanel';
 import { useEventPresentationSpeakerIds } from '@/features/presentations/hooks/useEventPresentationSpeakerIds';
+import { SessionFilesPanel } from '@/features/presentations/components/SessionFilesPanel';
 import { DevicesPanel } from '@/features/devices/DevicesPanel';
 const EventExportPanel = lazy(async () => {
   const m = await import('@/features/events/components/EventExportPanel');
@@ -211,6 +212,8 @@ export default function EventDetailView() {
   const [eventEditError, setEventEditError] = useState<string | null>(null);
   const [pendingEventDelete, setPendingEventDelete] = useState(false);
   const [eventDeleteBusy, setEventDeleteBusy] = useState(false);
+  const [expandedSessionFiles, setExpandedSessionFiles] = useState<Set<string>>(() => new Set());
+  const [showAdvancedSpeakers, setShowAdvancedSpeakers] = useState(false);
 
   const roomSchemaResolved = useMemo(() => roomSchema(t), [t]);
   const {
@@ -1363,6 +1366,35 @@ export default function EventDetailView() {
                             {dateTimeFmt.format(new Date(s.scheduled_start))} →{' '}
                             {dateTimeFmt.format(new Date(s.scheduled_end))}
                           </p>
+                          <div className="mt-2">
+                            <button
+                              type="button"
+                              aria-expanded={expandedSessionFiles.has(s.id)}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-sc-primary hover:text-sc-primary"
+                              onClick={() =>
+                                setExpandedSessionFiles((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(s.id)) next.delete(s.id);
+                                  else next.add(s.id);
+                                  return next;
+                                })
+                              }
+                            >
+                              <span aria-hidden="true">
+                                {expandedSessionFiles.has(s.id) ? '▾' : '▸'}
+                              </span>
+                              {expandedSessionFiles.has(s.id)
+                                ? t('sessionFiles.toggleHide')
+                                : t('sessionFiles.toggleShow')}
+                            </button>
+                            {expandedSessionFiles.has(s.id) ? (
+                              <SessionFilesPanel
+                                sessionId={s.id}
+                                sessionTitle={s.title}
+                                enabled
+                              />
+                            ) : null}
+                          </div>
                         </>
                       )}
                     </div>
@@ -1490,7 +1522,24 @@ export default function EventDetailView() {
       </section>
 
       <section className="mt-12" aria-labelledby="speakers-section-title">
-        <h2 id="speakers-section-title" className="text-lg font-semibold text-sc-text">
+        <button
+          type="button"
+          onClick={() => setShowAdvancedSpeakers((v) => !v)}
+          aria-expanded={showAdvancedSpeakers}
+          className="inline-flex items-center gap-2 text-sm font-medium text-sc-text-muted hover:text-sc-text"
+        >
+          <span aria-hidden="true">{showAdvancedSpeakers ? '▾' : '▸'}</span>
+          {showAdvancedSpeakers
+            ? t('speakersAdvanced.toggleHide')
+            : t('speakersAdvanced.toggleShow')}
+        </button>
+        {!showAdvancedSpeakers ? (
+          <p className="mt-1 max-w-2xl text-xs text-sc-text-dim">{t('speakersAdvanced.intro')}</p>
+        ) : null}
+      </section>
+      {showAdvancedSpeakers ? (
+      <section className="mt-6" aria-labelledby="speakers-section-title-inner">
+        <h2 id="speakers-section-title-inner" className="text-lg font-semibold text-sc-text">
           {t('speaker.titlePlural')}
         </h2>
         <p className="mt-1 text-sm text-sc-text-dim">{t('speaker.eventDetailIntro')}</p>
@@ -1907,6 +1956,7 @@ export default function EventDetailView() {
           </ul>
         )}
       </section>
+      ) : null}
 
       <section className="mt-12" aria-labelledby="devices-section-title">
         <h2 id="devices-section-title" className="text-lg font-semibold text-sc-text">
