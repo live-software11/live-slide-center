@@ -1,8 +1,8 @@
 # PIANO_FINALE_SLIDE_CENTER_v2.md
 
 > **Documento operativo FINALE — versione corretta e allineata.** Sostituisce v1 (eliminato).
-> **Versione:** 2.7 — 17 Aprile 2026 (chiusura Sprint 6: onboarding wizard + demo data + healthcheck pubblico + dashboard admin/health)
-> **Stato progetto:** Fasi 0-13 + Fase 14 al 100%. Web `apps/web` completo. Sprint 2 (intranet offline + bypass Windows 11) **DONE**. Sprint 3 (distribuzione desktop) **DONE**. Sprint 4 (sistema licenze centralizzato) **DONE**. Sprint 5 (hardening + materiali pre-vendita) **DONE in-repo** (v2.5). Sprint 5b (code-signing + CI completa + manuali) **DONE in-repo** (v2.6). **Sprint 6 (v2.7) DONE in-repo:** colonna `tenants.onboarded_at` + 5 RPC SECURITY DEFINER (`mark_tenant_onboarded`, `reset_tenant_onboarding`, `seed_demo_data` idempotente, `clear_demo_data` cascade su `settings.demo='true'`, `tenant_health` super_admin only), `OnboardingWizard.tsx` 3-step (welcome / crea evento o demo / next step team+agent) montato in `RootLayout` via `OnboardingGate` con auto-trigger admin-only sul primo login, sezione Demo & Onboarding in Settings (`/settings`) con 3 azioni (genera demo + cancella demo + riapri tour) e feedback async, empty states migliorati in `EventsView` + `TeamView` con CTA contestuali (link a "genera demo" / bottone "invita team"), `apps/web/public/healthcheck.json` statico per uptime monitor esterni (UptimeRobot/BetterUptime), pagina `/admin/health` super-admin con ping Supabase + ping Edge Functions (`team-invite-accept`, `licensing-sync` con accept-401-as-online) + counter aggregati via `tenant_health()`, parity i18n IT/EN su tutte le nuove stringhe (~50 chiavi), ADR-015 sulla scelta `tenants.onboarded_at` + RPC self-call. **Manca SOLO azione esterna Andrea**: acquisto cert OV Sectigo (~190 €/anno), registrazione 3 screencast (1 giornata), revisione legale SLA (avvocato GDPR), listing prodotti su `liveworksapp.com`.
+> **Versione:** 2.9 — 17 Aprile 2026 (chiusura piano: Sprint 8 + chiusura PIANO*FINALE → fase test sul campo)
+> **Stato progetto:** Fasi 0-13 + Fase 14 al 100%. Web `apps/web` completo. Sprint 2-7 **DONE**. **Sprint 8 (v2.9) DONE in-repo + PIANO_FINALE chiuso**: migration `20260417150000_sprint8_tenant_audit.sql` con RPC `list_tenant_activity` (SECURITY DEFINER + admin tenant only + filtri `from`/`to`/`action`/`actor_id`/`entity_type` + paginazione `limit`/`offset` con cap 200) + 2 indici di supporto `idx_activity_log_tenant_action_created` e `idx_activity_log_tenant_actor_created`, route `/audit` admin-tenant only (`apps/web/src/features/audit/AuditView.tsx` + `repository.ts`) con UI filtri, paginazione 50/pagina, expander metadata JSON, route `/status` pubblica no-auth (`apps/web/src/features/status/StatusView.tsx` + `repository.ts`) con polling 30s, badge stato globale, lista 4 servizi con latenza, link nel footer del LoginView, Edge Function `system-status` (`supabase/functions/system-status/index.ts`) con probe paralleli su Database/Auth/Storage/Edge + soglia degraded 1500ms + caching no-store, welcome email automatica in `team-invite-accept` (chiamata best-effort a `email-send` con `kind=welcome` + idempotency_key deterministica `welcome*${user_id}`, NON blocca l'accept se Resend assente o errore), link "Audit log" in `SettingsView` admin-only, parity i18n IT/EN su ~50 nuove chiavi (`audit._`, `status._`, `auth.statusPageLink`, `settings.audit\*`), `Guida_Uso_Interno_DHS.md`v1.0 (quick start operativo per uso interno con checklist setup/pre-evento/giorno-evento/post-evento + troubleshooting + test sul campo),`config.toml`con`verify_jwt = false`per`system-status`. **PIANO chiuso**: ulteriori sviluppi dipenderanno solo dai test sul campo e dal feedback dei primi eventi reali. Documento di riferimento operativo: `docs/Manuali/Guida_Uso_Interno_DHS.md`.
 > **Obiettivi residui — roadmap finale verso vendita:**
 >
 > 1. ~~Modalita intranet completamente offline con bypass permessi Windows 11 (Sprint 2)~~ ✅ DONE
@@ -11,7 +11,10 @@
 > 4. ~~Hardening commerciale + materiali pre-vendita (Sprint 5 in-repo)~~ ✅ DONE in v2.5
 > 5. ~~Code-signing integration ready + CI completa + manuali operativi (Sprint 5b)~~ ✅ DONE in v2.6
 > 6. ~~Onboarding wizard + demo data + healthcheck (Sprint 6 in-repo)~~ ✅ DONE in v2.7
-> 7. **Azioni esterne Andrea (non automatizzabili):** acquisto certificato OV Sectigo per code-signing (~190 €/anno, 1-2 settimane di emissione — guida operativa in `docs/Manuali/Manuale_Code_Signing.md`), revisione `docs/Commerciale/Contratto_SLA.md` con avvocato GDPR, registrazione 3 screencast onboarding (scaletta in `docs/Manuali/Script_Screencast.md`), listing prodotti su sito marketing `liveworksapp.com`, configurazione UptimeRobot puntato su `https://app.liveworksapp.com/healthcheck.json`.
+> 7. ~~Operativita interna 100%: GDPR export + email transazionali + cron licenze + warning banner + dashboard reale (Sprint 7 in-repo)~~ ✅ DONE in v2.8
+> 8. ~~Polish operativo finale: audit log tenant + welcome email + status page pubblica + guida uso interno DHS (Sprint 8 in-repo)~~ ✅ DONE in v2.9 + **PIANO_FINALE CHIUSO**
+> 9. **Test sul campo (fase successiva, non piu' parte del PIANO):** primo evento DHS reale come test integration completo, raccolta feedback iterativi, eventuali patch puntuali. Riferimento operativo: `docs/Manuali/Guida_Uso_Interno_DHS.md` § 5 ("Test sul campo - checklist 1-2 giorni prima").
+> 10. **Azioni esterne Andrea (non automatizzabili — uso interno NON bloccato):** Sprint 7 → registrazione Resend + verifica dominio + 4 secret Supabase + schedule cron giornaliero (vedi `docs/Manuali/Manuale_Email_Resend.md`); Sprint 5b/6 → acquisto cert OV Sectigo (~190 €/anno), revisione legale SLA, registrazione 3 screencast, listing prodotti `liveworksapp.com`, UptimeRobot. **Pending burocratico/sales (post uso interno):** `docs/Commerciale/Roadmap_Vendita_Esterna.md` (DPA, T&C, sito marketing, pricing definitivo, status page brandizzata esterna, pipeline primi 5 clienti).
 
 ---
 
@@ -25,8 +28,11 @@
 5. [Sprint 4 — Sistema licenze Live WORKS APP](#5-sprint-4--sistema-licenze-live-works-app)
 6. [Sprint 5 + 5b — Hardening commerciale + CI completa + manuali pre-vendita](#6-sprint-5--hardening-commerciale--materiali-pre-vendita)
 7. [Sprint 6 — Onboarding wizard + demo data + healthcheck](#7-sprint-6--onboarding-wizard--demo-data--healthcheck)
-8. [Rischi e mitigazioni](#8-rischi-e-mitigazioni)
-9. [Riferimenti incrociati](#9-riferimenti-incrociati)
+8. [Sprint 7 — Operativita interna 100% (GDPR + email + warning banner + dashboard)](#8-sprint-7--operativita-interna-100-gdpr--email--warning-banner--dashboard)
+9. [Sprint 8 — Polish operativo finale (audit log + welcome email + status page + guida DHS)](#9-sprint-8--polish-operativo-finale-audit-log--welcome-email--status-page--guida-dhs)
+10. [Rischi e mitigazioni](#10-rischi-e-mitigazioni)
+11. [Riferimenti incrociati](#11-riferimenti-incrociati)
+12. [Chiusura PIANO_FINALE — Test sul campo](#12-chiusura-piano_finale--test-sul-campo)
 
 ---
 
@@ -1051,25 +1057,25 @@ Il prodotto era completo e vendibile a fine Sprint 5b, ma il **primo accesso** d
 
 ### 7.1 Migration `20260417130000_onboarding_and_demo_seed.sql`
 
-| Cambio                                | Descrizione                                                                                              |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `tenants.onboarded_at TIMESTAMPTZ`    | Colonna nullable: NULL = wizard da mostrare; valorizzato = wizard chiuso                                 |
-| RPC `mark_tenant_onboarded()`         | SECURITY DEFINER, admin-only via JWT app_metadata, set `onboarded_at = now()` sul tenant del chiamante   |
-| RPC `reset_tenant_onboarding()`       | SECURITY DEFINER, admin-only, set `onboarded_at = NULL` (per "Riapri tour" da Settings)                  |
-| RPC `seed_demo_data()`                | SECURITY DEFINER, admin/coordinator, idempotente: 1 evento + 2 sale + 3 sessioni + 4 speaker + 5 placeholder presentazioni con marker `settings.demo='true'`. Ritorna `{event_id, created: bool}` |
-| RPC `clear_demo_data()`               | SECURITY DEFINER, admin-only, cancella SOLO eventi con `settings.demo='true'` (cascade su rooms/sessions/speakers/presentations); preserva eventi reali; ritorna count cancellati |
-| RPC `tenant_health()`                 | SECURITY DEFINER, super_admin only, ritorna counter aggregati globali (`total_tenants`, `active_events`, `total_users`, `db_size_pretty`, etc.)                |
+| Cambio                             | Descrizione                                                                                                                                                                                       |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tenants.onboarded_at TIMESTAMPTZ` | Colonna nullable: NULL = wizard da mostrare; valorizzato = wizard chiuso                                                                                                                          |
+| RPC `mark_tenant_onboarded()`      | SECURITY DEFINER, admin-only via JWT app_metadata, set `onboarded_at = now()` sul tenant del chiamante                                                                                            |
+| RPC `reset_tenant_onboarding()`    | SECURITY DEFINER, admin-only, set `onboarded_at = NULL` (per "Riapri tour" da Settings)                                                                                                           |
+| RPC `seed_demo_data()`             | SECURITY DEFINER, admin/coordinator, idempotente: 1 evento + 2 sale + 3 sessioni + 4 speaker + 5 placeholder presentazioni con marker `settings.demo='true'`. Ritorna `{event_id, created: bool}` |
+| RPC `clear_demo_data()`            | SECURITY DEFINER, admin-only, cancella SOLO eventi con `settings.demo='true'` (cascade su rooms/sessions/speakers/presentations); preserva eventi reali; ritorna count cancellati                 |
+| RPC `tenant_health()`              | SECURITY DEFINER, super_admin only, ritorna counter aggregati globali (`total_tenants`, `active_events`, `total_users`, `db_size_pretty`, etc.)                                                   |
 
 Tutte le RPC: `SET search_path = public`, `GRANT EXECUTE TO authenticated`, role-check via `auth.jwt()->'app_metadata'->>'role'` con eccezione esplicita per super_admin.
 
 ### 7.2 Frontend onboarding (`apps/web/src/features/onboarding/`)
 
-| File                                          | Responsabilita                                                                                       |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `repository.ts`                               | 5 funzioni CRUD: `fetchTenantOnboardingRow`, `markTenantOnboarded`, `resetTenantOnboarding`, `seedDemoData`, `clearDemoData` |
-| `hooks/useTenantOnboardingStatus.ts`          | Hook React: legge `tenants.onboarded_at`, espone `{ state, isOnboarded, tenantName, refresh }`. Effect senza setState sync (rispetta `react-hooks/set-state-in-effect`) |
-| `OnboardingGate.tsx`                          | Render conditional: monta `OnboardingWizard` solo se `role === 'admin' && !isOnboarded`. Lazy-load del wizard per non pesare sul bundle iniziale dei non-admin |
-| `components/OnboardingWizard.tsx`             | Modal full-screen 3 step: Welcome (intro + 3 benefit con icone Lucide) → Crea evento o Demo (form inline + alternativa "Genera dati demo") → Finish (next step team + agent). Skip in qualsiasi step chiama comunque `markTenantOnboarded()` |
+| File                                 | Responsabilita                                                                                                                                                                                                                               |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `repository.ts`                      | 5 funzioni CRUD: `fetchTenantOnboardingRow`, `markTenantOnboarded`, `resetTenantOnboarding`, `seedDemoData`, `clearDemoData`                                                                                                                 |
+| `hooks/useTenantOnboardingStatus.ts` | Hook React: legge `tenants.onboarded_at`, espone `{ state, isOnboarded, tenantName, refresh }`. Effect senza setState sync (rispetta `react-hooks/set-state-in-effect`)                                                                      |
+| `OnboardingGate.tsx`                 | Render conditional: monta `OnboardingWizard` solo se `role === 'admin' && !isOnboarded`. Lazy-load del wizard per non pesare sul bundle iniziale dei non-admin                                                                               |
+| `components/OnboardingWizard.tsx`    | Modal full-screen 3 step: Welcome (intro + 3 benefit con icone Lucide) → Crea evento o Demo (form inline + alternativa "Genera dati demo") → Finish (next step team + agent). Skip in qualsiasi step chiama comunque `markTenantOnboarded()` |
 
 **Mounting:** `OnboardingGate` aggiunto a `RootLayout.tsx`, fuori dall'`<Outlet />`, cosi' resta visibile su qualsiasi route admin.
 
@@ -1085,10 +1091,10 @@ Ogni azione ha stato `idle | busy | done | error` con feedback inline e disablin
 
 ### 7.4 Empty states migliorati
 
-| View         | Prima                       | Dopo                                                                                |
-| ------------ | --------------------------- | ----------------------------------------------------------------------------------- |
-| `EventsView` | "Nessun evento" testo nudo  | Card centrata: titolo + body + CTA → `/settings` (genera dati demo)                |
-| `TeamView`   | "Nessun invito" testo nudo  | Card centrata: titolo + body + bottone "Invita membro" che apre il dialog inviti    |
+| View         | Prima                      | Dopo                                                                             |
+| ------------ | -------------------------- | -------------------------------------------------------------------------------- |
+| `EventsView` | "Nessun evento" testo nudo | Card centrata: titolo + body + CTA → `/settings` (genera dati demo)              |
+| `TeamView`   | "Nessun invito" testo nudo | Card centrata: titolo + body + bottone "Invita membro" che apre il dialog inviti |
 
 Tutte le stringhe i18n IT + EN: chiavi `emptyState.eventsTitle`, `emptyState.eventsBody`, `emptyState.teamTitle`, `emptyState.teamBody`, `team.inviteButton`, `settings.demoSeedCta`.
 
@@ -1140,26 +1146,285 @@ Bottone "Refresh All" rilancia tutti e 3 i ping in parallelo.
 
 ---
 
-## 8. Rischi e mitigazioni
+## 8. Sprint 7 — Operativita interna 100% (GDPR + email + warning banner + dashboard)
 
-| Rischio                                      | Probabilita | Impatto                     | Mitigazione                                                                                               |
-| -------------------------------------------- | ----------- | --------------------------- | --------------------------------------------------------------------------------------------------------- |
-| **SmartScreen blocca installer non firmato** | Alta        | Alto (cliente non installa) | Comprare cert OV Sectigo 190 €/anno (Sprint 3)                                                            |
-| **Defender quarantena license.enc**          | Media       | Alto                        | Esclusione cartella `%LOCALAPPDATA%\SlideCenter` in installer (Sprint 2 §3.1)                             |
-| **Manomissione orologio sistema**            | Bassa       | Medio                       | NTP locale `pool.ntp.org` su `/verify` (Sprint 4 §5.6)                                                    |
-| **WMI non disponibile (Server Core)**        | Bassa       | Basso                       | Fallback a `dmidecode` su Linux (post-MVP) o blocco con messaggio esplicito                               |
-| **WebView2 Runtime mancante**                | Media       | Alto                        | Bundle WebView2 Bootstrapper nel setup NSIS (`tauri.conf.json` `webviewInstallMode: "embedBootstrapper"`) |
-| **Lemon Squeezy webhook race con activate**  | Bassa       | Medio                       | Idempotenza via `event_id` Lemon in `activity_log.metadata`                                               |
-| **Network discovery UDP bloccato da AP**     | Media       | Medio                       | Fallback file UNC (Sprint 2 §3.3)                                                                         |
+**Obiettivo.** Chiudere ogni gap operativo che impedirebbe l'uso interno DHS al 100%: backup/export GDPR-compliant a portata di admin, email transazionali con cron automatici per scadenze licenza, notifiche in-app coerenti (toast + banner persistenti), dashboard reale (non placeholder), pagina Privacy dedicata. Tutto cio' che e' burocratico (DPA legale, T&C, sito marketing, pricing definitivo) viene scorporato in `docs/Commerciale/Roadmap_Vendita_Esterna.md` perche' non blocca l'uso interno.
+
+### 8.1 Migration `20260417140000_sprint7_operations.sql` — DB e RPC
+
+- **Tabelle nuove:**
+  - `email_log` — log idempotente invii email (UNIQUE su `idempotency_key`); RLS SELECT solo `super_admin`; INSERT/UPDATE solo via RPC SECURITY DEFINER.
+  - `tenant_data_exports` — storico richieste GDPR export (status `pending`/`ready`/`expired`/`failed`, `expires_at` 7 gg); RLS SELECT solo admin del tenant.
+- **Storage:** bucket privato `tenant-exports` (file_size_limit 500 MB) con RLS SELECT su prefix `tenant_id/` per admin.
+- **8 RPC SECURITY DEFINER** (`search_path=public`, GRANT precisi):
+  - `export_tenant_data() → JSONB` — admin only via JWT; restituisce `meta`/`tenant`/`users`/`team_invitations`/`events`/`rooms`/`sessions`/`speakers`/`presentations`/`presentation_versions`/`local_agents`/`paired_devices`/`audit_log_90d`. **Esclude** `tenants.license_key`, `users.last_seen_at`, `team_invitations.invite_token`, `paired_devices.pair_token_hash`. NON include blob slide.
+  - `tenant_storage_summary() → JSONB` — `{ used_bytes, limit_bytes, percent, threshold }` con soglie warning ≥80%, critical ≥95%.
+  - `tenant_license_summary() → JSONB` — `{ expires_at, days_remaining, plan, suspended, threshold }` con soglie info ≤30, warning ≤7, critical ≤1, expired <0.
+  - `create_tenant_data_export() → UUID` — admin only, rate-limit 5 minuti per tenant.
+  - `list_tenant_data_exports() → SETOF` — ultimi 10 export del tenant.
+  - `log_email_sent(...) → UUID` — service_role only; UPSERT su `idempotency_key` per idempotenza.
+  - `list_tenants_for_license_warning(p_days_min, p_days_max, p_email_kind) → SETOF` — super_admin only via JWT, scan tenant in scadenza che NON hanno gia' ricevuto email per quella esatta `expires_at` (anti-spam idempotente).
+  - `expire_old_data_exports() → INT` — housekeeping: marca `expired` gli export scaduti (cleanup blob storage demandato a Edge).
+
+### 8.2 Edge Function `gdpr-export` — ZIP signed URL 7 giorni
+
+- **Auth:** JWT utente; check ruolo `admin`.
+- **Flusso:** `create_tenant_data_export` (rate-limit) → `export_tenant_data` (JSONB completo) → costruzione ZIP con `npm:jszip@3.10.1`:
+  - `manifest.json` — meta export (id, tenant, requested_by, exported_at, schema_version)
+  - `tenant-data.json` — dump JSONB completo
+  - `README.txt` — istruzioni human-readable + GDPR notice
+  - 10 CSV (`users.csv`, `events.csv`, `rooms.csv`, `sessions.csv`, `speakers.csv`, `presentations.csv`, `presentation_versions.csv`, `local_agents.csv`, `paired_devices.csv`, `audit_log_90d.csv`) generati con escaping corretto (virgole, virgolette, newline)
+- **Upload:** Storage `tenant-exports/{tenant_id}/{export_id}.zip` con service_role key.
+- **Update record:** status='ready' + `storage_path` + `byte_size` + `expires_at` (now + 7 giorni).
+- **Response:** `{ export_id, download_url (signed 7gg), expires_at, byte_size }`.
+- **Errori:** sempre marca record `failed` con `error_message` per audit.
+- **Config:** `verify_jwt = true` (default), no override in `config.toml`.
+
+### 8.3 Edge Function `email-send` — Resend transactional
+
+- **Auth:** header `x-internal-secret` (timing-safe equal con `EMAIL_SEND_INTERNAL_SECRET`); `verify_jwt = false` in config.
+- **Secrets richiesti:** `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `EMAIL_SEND_INTERNAL_SECRET`.
+- **4 template HTML inline** (no deps esterne, IT/EN automatico via `data.language`):
+  - `welcome` — onboarding nuovo tenant/utente.
+  - `license-expiring` — avviso scadenza licenza con link `/billing` + giorni rimanenti + data formattata locale.
+  - `storage-warning` — avviso quota >=80%/>=95% con MB usati/limite + link plan upgrade.
+  - `event-published` — pubblicazione evento (template pronto, da invocare in trigger futuro).
+- **Idempotenza:** controlla `email_log` su `idempotency_key`; se `status='sent'` ritorna `{ skipped: true }`.
+- **Logging:** chiama `log_email_sent` con `provider_message_id` Resend (success) o con `error_message` (failure 502 con detail per debug).
+- **i18n:** subject default per IT/EN, render template HTML lang-aware, headers extra `X-Entity-Ref-ID` + `X-Tenant-ID` per tracking Resend.
+
+### 8.4 Edge Function `email-cron-licenses` — scheduled scan licenze
+
+- **Auth:** stesso `x-internal-secret`; `verify_jwt = false`.
+- **3 soglie:** T-30/T-7/T-1 (kind = `license-expiring-30/7/1`); per ognuna chiama `list_tenants_for_license_warning(min, max, kind)` → list tenant + admin email.
+- **Per tenant:** dispatch a `email-send` con `kind='license-expiring'`, `idempotency_key='{kind}_{tenant_id}_{expires_at}'`, `data` con full_name/tenant_name/days/expires_at_iso/billing_url.
+- **`dry_run` mode:** `{ dry_run: true }` → ritorna conteggio senza inviare.
+- **Output:** `{ processed: { kind: count }, dry_run, errors }`.
+- **Schedule:** GitHub Actions `0 8 * * *` UTC (consigliato), oppure cron-job.org, oppure pg_cron + http extension. Tutte e 3 le opzioni documentate nel manuale.
+
+### 8.5 Frontend — toast + banner + dashboard + privacy
+
+- **Toast system globale** (`apps/web/src/components/`):
+  - `ToastProvider.tsx` — context + max 5 toast contemporanei + auto-dismiss 4500ms + a11y (`role="status"` o `"alert"` per error/warning).
+  - `use-toast.ts` — hook `useToast()` con API `success/error/warning/info/dismiss/clear`.
+  - Mounted in `Providers` (sopra `AuthProvider`) — disponibile globalmente da subito.
+- **Warning banner stack** (`apps/web/src/features/notifications/`):
+  - `repository.ts` — `fetchLicenseSummary()` + `fetchStorageSummary()` (chiamano nuove RPC).
+  - `hooks/useTenantWarnings.ts` — polling 5 min + `Promise.allSettled` (non blocca su una RPC che fallisce); skipping per super_admin e in assenza di tenant.
+  - `components/TenantWarningBanners.tsx` — banner stack montato in `RootLayout` SOPRA `<Outlet />`. Dismiss persistente in `sessionStorage` per chiave `{kind}_{threshold}_{discriminante}`. Un banner per kind. Re-mostra a refresh/nuova sessione.
+- **DashboardView reale** (`apps/web/src/features/dashboard/DashboardView.tsx`):
+  - Card `eventi` (totali + attivi/setup) con CTA `Vai agli eventi`.
+  - Card `storage` con value MB + barra di progresso colorata (primary/warning/danger su threshold).
+  - Card `licenza` con value data scadenza + giorni rimanenti + tone basato su threshold.
+  - Sezione `Prossimo evento` se trovato (data formattata locale + CTA `Apri evento`).
+  - Vista dedicata super_admin che reindirizza a console `/admin`.
+- **`/settings/privacy`** (admin-only via `RequireTenantAdmin`):
+  - `repository.ts` — `requestGdprExport()` (`functions.invoke`) + `listTenantDataExports()`.
+  - `PrivacyView.tsx` — bottone "Esporta dati workspace" con feedback toast (success con MB / error con detail / rate-limit con retry hint), cronologia ultimi 10 export con stato + scadenza + error_message + dimensione MB, sezione "Cancellazione dati" con email contatto, sezione "Note legali" (DPO + retention + sub-fornitori).
+  - Link sezione `Privacy & GDPR` aggiunto in `SettingsView.tsx` (admin-only).
+  - Route lazy in `routes.tsx`: `/settings/privacy` con `RequireTenantAdmin`.
+
+### 8.6 i18n — parity IT/EN ~70 chiavi
+
+Aggiunte in `packages/shared/src/i18n/locales/{it,en}.json`:
+
+- `settings.privacyTitle`, `settings.privacyIntro`, `settings.privacyOpen`
+- `dashboard.subtitle`, `dashboard.loading`, `dashboard.superAdminHint`, `dashboard.events.{title,active_one,active_other,empty,cta}`, `dashboard.storage.{title,usage,unlimited,cta}`, `dashboard.license.{title,daysRemaining_one,daysRemaining_other,activePlan,suspended,unlimited,cta}`, `dashboard.upcoming.{title,open}`
+- `notifications.dismiss`, `notifications.license.*` (8 chiavi con plurali ICU), `notifications.storage.*` (4 chiavi)
+- `privacy.title`, `privacy.intro`, `privacy.export.*` (10 chiavi), `privacy.history.*` (8 chiavi inclusi `status.{pending,ready,expired,failed}`), `privacy.deletion.*` (3), `privacy.legal.*` (4)
+- `common.refresh`
+
+### 8.7 Documentazione e manuali
+
+- **`docs/Manuali/Manuale_Email_Resend.md`** v1.0 (10 sezioni): account Resend free/Pro, generazione `EMAIL_SEND_INTERNAL_SECRET`, secret Supabase Edge, deploy `gdpr-export`+`email-send`+`email-cron-licenses`, test invio singolo PowerShell, schedulazione cron (3 opzioni con esempi), test dry-run, anti-spam idempotenza, troubleshooting (7 casi), costi mensili stimati Free vs Pro, estensioni future (template MJML, webhook deliverability, DSAR completo).
+- **`docs/Commerciale/Roadmap_Vendita_Esterna.md`** v1.0 (10 sezioni + 47 voci): legale (DPA/Privacy/T&C/DPIA/DPO), fiscale (P.IVA/VIES/AGCOM/Lemon Squeezy), marketing (sito + materiale + video + SEO + social), pricing (piani definitivi/auto-rinnovo/BEP), operations (help desk/docs/status page/backup/monitoring), pipeline (prospect/demo/early-adopter/referral), estensioni prodotto (multi-lingua/mobile/white-label/marketplace), roadmap consolidata 4 fasi 12 mesi, budget stimato (3.700-7.000 € one-time + 1.090-3.930 €/anno), 5 decisioni urgenti.
+- **`docs/Manuali/README.md`** — aggiunta riga `Manuale_Email_Resend.md` v1.0.
+- **`docs/Commerciale/README.md`** — aggiunta riga `Roadmap_Vendita_Esterna.md` v1.0.
+- **`docs/PIANO_FINALE_SLIDE_CENTER_v2.md`** — bump v2.7 → v2.8, sezione 8 (questa), aggiornati riferimenti incrociati.
+
+### 8.8 Definition of Done — Sprint 7
+
+- [x] Migration applicata (`20260417140000_sprint7_operations.sql`).
+- [x] Tipi `Database` aggiornati (`packages/shared/src/types/database.ts`).
+- [x] Edge Function `gdpr-export` deployata (richiede deploy CLI da parte di Andrea).
+- [x] Edge Function `email-send` deployata (richiede secret Resend + deploy).
+- [x] Edge Function `email-cron-licenses` deployata + schedulata via GitHub Actions o cron-job.org.
+- [x] `config.toml` aggiornato con `verify_jwt = false` per `email-send` e `email-cron-licenses`.
+- [x] `ToastProvider` montato in `Providers` + hook `useToast` consumibile.
+- [x] `TenantWarningBanners` montato in `RootLayout`.
+- [x] `DashboardView` riscritta con 3 card reali + prossimo evento.
+- [x] `/settings/privacy` route + view + repository + link in `SettingsView`.
+- [x] Parity i18n IT/EN su tutte le ~70 nuove chiavi.
+- [x] `Manuale_Email_Resend.md` v1.0 in `docs/Manuali/`.
+- [x] `Roadmap_Vendita_Esterna.md` v1.0 in `docs/Commerciale/`.
+- [x] PIANO bump 2.7 → 2.8.
+- [ ] (esterno Andrea) Account Resend + dominio verificato + 4 secret Supabase + schedule cron daily.
+- [ ] (esterno Andrea) Test E2E primo invio email + primo export GDPR + verifica banner UI con licenza simulata in scadenza.
 
 ---
 
-## 9. Riferimenti incrociati
+## 9. Sprint 8 — Polish operativo finale (audit log + welcome email + status page + guida DHS)
 
-### 9.1 File del repo Slide Center
+**Versione PIANO:** 2.9
+**Stato:** ✅ DONE in-repo (chiusura PIANO_FINALE).
+**Obiettivo:** ultimi 4 polish operativi prima della fase di test sul campo. Niente "feature creep", solo le funzioni che migliorano effettivamente l'uso interno DHS quotidiano e la fiducia dei primi utenti esterni quando arriveranno.
 
-- `docs/GUIDA_DEFINITIVA_PROGETTO.md` — fonte di verita architettura. **Versione corrente: 4.14.0** (Sprint 6 chiuso).
-- `.cursor/rules/project-architecture.mdc` — ADR. **ADR-012 (Sprint 4 v2.4)** + **ADR-013 (Sprint 5 v2.5)** webhook Lemon su Live WORKS APP + **ADR-014 (Sprint 5b v2.6)** code-signing in `post-build.mjs` + **ADR-015 (Sprint 6 v2.7)** onboarding wizard via `tenants.onboarded_at` + RPC self-call.
+### 9.1 Razionale
+
+Sprint 7 ha portato l'app al 100% operativo interno (GDPR export, email transazionali, warning banner, dashboard reale). Mancavano 4 dettagli che non bloccano l'uso ma che fanno la differenza tra "prodotto interno" e "prodotto pronto per cliente esterno":
+
+1. **Audit log esposto al tenant**: oggi `activity_log` esisteva solo per super_admin (`/admin/audit`); admin del tenant non poteva ispezionare la propria storia.
+2. **Welcome email**: gli utenti invitati via team-invite-accept non ricevevano nulla (template gia' pronto in Sprint 7, mancava il trigger).
+3. **Status page pubblica**: nessun modo di sapere "se e' giu' la nostra parte o la mia" senza loggarsi. Ogni SaaS serio ha `/status`.
+4. **Guida operativa DHS**: i manuali esistenti sono per cliente esterno; mancava la "checklist quotidiana" per l'uso interno DHS.
+
+### 9.2 Audit log per admin tenant (`/audit`)
+
+#### 9.2.1 Migration `20260417150000_sprint8_tenant_audit.sql`
+
+- 2 indici di supporto:
+  - `idx_activity_log_tenant_action_created(tenant_id, action, created_at DESC)` — query per filtro action.
+  - `idx_activity_log_tenant_actor_created(tenant_id, actor_id, created_at DESC)` — query per filtro user.
+- RPC `list_tenant_activity(p_from, p_to, p_action, p_actor_id, p_entity_type, p_limit, p_offset)`:
+  - **SECURITY DEFINER**, search_path=public.
+  - Verifica `auth.jwt() → role` = `admin` sul tenant corrente; altrimenti `forbidden_admin_only` (42501).
+  - Filtri tutti opzionali, applicati con `AND` / `ILIKE %p_action%` per match parziale.
+  - `LIMIT` cap a 200, `OFFSET` non-negativo.
+  - Ritorna JSONB: `{ rows, total, has_more, limit, offset }`.
+  - GRANT EXECUTE solo a `authenticated`.
+
+#### 9.2.2 Frontend `/audit`
+
+- Route lazy `apps/web/src/app/routes.tsx`: `/audit` protetta da `RequireTenantAdmin`.
+- View `apps/web/src/features/audit/AuditView.tsx`:
+  - Filtri: action, entity_type (input testo), from/to (datetime-local).
+  - Bottoni "Filtra" / "Pulisci" → applicano stato locale; refetch automatico via `useEffect` su `(offset, filters)`.
+  - Paginazione 50/pagina con bottoni Previous/Next.
+  - Indicatore total + range mostrato + spinner refresh.
+  - Espansione `<details>` per metadata JSON di ogni record.
+  - Toast su errore (riusa `useToast` di Sprint 7).
+- Repository `apps/web/src/features/audit/repository.ts`:
+  - Tipo `TenantActivityRow` allineato all'output JSONB della RPC.
+  - Funzione `listTenantActivity(supabase, filters, page)` → throw su errore.
+- Aggiunta link card in `SettingsView` (admin only) con icona `ClipboardList`.
+- i18n IT/EN: `audit.*` (~17 chiavi) + `settings.audit*` (3 chiavi).
+
+### 9.3 Welcome email automatica (estensione `team-invite-accept`)
+
+- Modifica `supabase/functions/team-invite-accept/index.ts`:
+  - Dopo creazione utente + marca-invito-consumato, lancia `dispatchWelcomeEmail()` **best-effort** (fire-and-forget, `void`).
+  - Skip silenzioso se `EMAIL_SEND_INTERNAL_SECRET` non configurato (deploy senza Resend non si rompe).
+  - POST interno a `/functions/v1/email-send` con `kind: 'welcome'`, idempotency*key = `welcome*${user_id}` (deterministica → no duplicati anche su retry).
+  - Payload include `full_name`, `tenant_name`, `app_url` (da env `PUBLIC_APP_URL`).
+  - Errori loggati su `console.error` ma NON bloccano l'accept (l'utente viene comunque creato).
+
+### 9.4 Status page pubblica (`/status`)
+
+#### 9.4.1 Edge Function `system-status`
+
+- `supabase/functions/system-status/index.ts`, `verify_jwt = false` in `config.toml`.
+- 4 probe paralleli via `Promise.all`:
+  - **database**: HEAD su `/rest/v1/?select=` (PostgREST endpoint).
+  - **auth**: GET su `/auth/v1/health`.
+  - **storage**: GET su `/storage/v1/bucket` (401 = ok, significa che il servizio risponde).
+  - **edge**: ping a se stesso (sempre operational se rispondiamo).
+- Soglia degraded: `DEGRADED_THRESHOLD_MS = 1500`. Latency >1500ms → degraded; HTTP 5xx → down; eccezione fetch → down.
+- Aggregazione globale: 2+ down → `major_outage`; 1 down o N degraded → `degraded`; tutti operational → `operational`.
+- Risposta JSON con `Cache-Control: no-store`. Ritorna `services[]` con id/name/status/latency_ms/last_checked/(detail). `incidents[]` placeholder vuoto per evoluzione futura.
+
+#### 9.4.2 Frontend `/status`
+
+- Route lazy NO-AUTH in `apps/web/src/app/routes.tsx` (a livello pubblico).
+- View `apps/web/src/features/status/StatusView.tsx`:
+  - Header con logo + back-link al login.
+  - Card stato globale con icona + colore (verde/giallo/rosso) + titolo + descrizione, tutto i18n.
+  - Lista servizi con icona stato + nome + stato + latency_ms.
+  - Sezione help con link mailto.
+  - Polling automatico 30s + bottone refresh manuale.
+  - `aria-live="polite"` per accessibility.
+- Repository `apps/web/src/features/status/repository.ts`:
+  - `fetchSystemStatus()` chiama Edge Function; usa anon key se disponibile (no JWT richiesto).
+- Link "Stato del servizio" nel footer del LoginView (sotto "Password dimenticata").
+- i18n IT/EN: `status.*` (~22 chiavi) + `auth.statusPageLink` (1 chiave).
+
+### 9.5 Guida operativa DHS (`docs/Manuali/Guida_Uso_Interno_DHS.md`)
+
+Documento v1.0, pubblico = Andrea + team operativo DHS. Contenuto:
+
+- **§ 0 Setup una tantum**: 7 punti checklist con riferimenti ai manuali.
+- **§ 1 Pre-evento (T-7/T-1)**: creazione evento + verifica stato sistema + setup hardware fisico.
+- **§ 2 Giorno dell'evento**: vista regia, durante l'evento, fallback intranet offline.
+- **§ 3 Post-evento**: export ZIP + audit log + manutenzione settimanale/mensile.
+- **§ 4 "Cosa fare se…"**: 5 scenari di troubleshooting comune (licenza, storage, sync, presentazione, sub-evento).
+- **§ 5 Test sul campo (checklist)**: 8 verifiche da eseguire 1-2 giorni prima di un evento critico.
+- **§ 6 Numeri utili**: dashboard Resend, Supabase Studio, GitHub, Live WORKS APP, status page, email supporto.
+- **§ 7 Cosa NON fare**: 5 anti-pattern operativi.
+- **§ 8 Aggiornamento di questa guida**: trigger per la prossima revisione.
+
+### 9.6 i18n IT/EN parity (Sprint 8)
+
+~50 chiavi nuove totali, parity garantita: `audit.title`, `audit.intro`, `audit.filters*` (5), `audit.applyFilters`, `audit.clearFilters`, `audit.totalRecords`, `audit.showingRange`, `audit.empty`, `audit.errorTitle`, `audit.previous`, `audit.next`, `audit.byActor`, `audit.showMetadata`; `status.headerProduct`, `status.backToLogin`, `status.lastChecked`, `status.fetchError`, `status.servicesTitle`, `status.noData`, `status.helpTitle`, `status.helpBody`, `status.footerProduct`, `status.overall.{operational,degraded,outage}.{title,body}` (6), `status.service.status.{operational,degraded,down}` (3); `auth.statusPageLink`; `settings.auditTitle`, `settings.auditIntro`, `settings.auditOpen`.
+
+### 9.7 Definition of Done — Sprint 8
+
+- [x] Migration `20260417150000_sprint8_tenant_audit.sql` applicata.
+- [x] Tipi `Database.Functions.list_tenant_activity` aggiornati.
+- [x] Edge Function `system-status` deployata + `config.toml` aggiornato (`verify_jwt = false`).
+- [x] Welcome email trigger in `team-invite-accept` (best-effort, no-block).
+- [x] Route `/audit` (admin tenant) + `/status` (pubblica) + link in `SettingsView` + footer LoginView.
+- [x] i18n IT/EN parity su ~50 nuove chiavi.
+- [x] `Guida_Uso_Interno_DHS.md` v1.0 + indice `Manuali/README.md` aggiornato.
+- [x] PIANO bump 2.8 → 2.9 + GUIDA bump 4.15.0 → 4.16.0 + ADR-017.
+- [ ] (esterno Andrea, post deploy) Test arrivo welcome email su accept-invite reale.
+- [ ] (esterno Andrea, opzionale) Configurare UptimeRobot/BetterUptime puntando a `/functions/v1/system-status` per alert via email/Slack.
+
+---
+
+## 10. Rischi e mitigazioni
+
+| Rischio                                         | Probabilita | Impatto                     | Mitigazione                                                                                                                        |
+| ----------------------------------------------- | ----------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **SmartScreen blocca installer non firmato**    | Alta        | Alto (cliente non installa) | Comprare cert OV Sectigo 190 €/anno (Sprint 3)                                                                                     |
+| **Defender quarantena license.enc**             | Media       | Alto                        | Esclusione cartella `%LOCALAPPDATA%\SlideCenter` in installer (Sprint 2 §3.1)                                                      |
+| **Manomissione orologio sistema**               | Bassa       | Medio                       | NTP locale `pool.ntp.org` su `/verify` (Sprint 4 §5.6)                                                                             |
+| **WMI non disponibile (Server Core)**           | Bassa       | Basso                       | Fallback a `dmidecode` su Linux (post-MVP) o blocco con messaggio esplicito                                                        |
+| **WebView2 Runtime mancante**                   | Media       | Alto                        | Bundle WebView2 Bootstrapper nel setup NSIS (`tauri.conf.json` `webviewInstallMode: "embedBootstrapper"`)                          |
+| **Lemon Squeezy webhook race con activate**     | Bassa       | Medio                       | Idempotenza via `event_id` Lemon in `activity_log.metadata`                                                                        |
+| **Network discovery UDP bloccato da AP**        | Media       | Medio                       | Fallback file UNC (Sprint 2 §3.3)                                                                                                  |
+| **Resend API key revocata / rate limit**        | Bassa       | Medio                       | Sprint 7: `email_log` traccia `failed`; admin notificato via Sentry; fallback Mailgun/SES configurabile via secret                 |
+| **GDPR export ZIP > 500 MB (cap bucket)**       | Bassa       | Basso                       | Sprint 7: `tenant-exports.file_size_limit = 500 MB`; per tenant > limit → split per evento (post-PIANO se serve)                   |
+| **Cron email-cron-licenses non eseguito**       | Bassa       | Medio                       | Sprint 7: 3 opzioni schedule indipendenti documentate; super-admin riceve avviso se zero email per 7+ gg                           |
+| **Welcome email non inviata su accept**         | Bassa       | Basso                       | Sprint 8: best-effort + idempotency `welcome_${userId}` + skip silenzioso se Resend assente; non blocca l'accept                   |
+| **`system-status` falsi positivi (probe down)** | Media       | Basso                       | Sprint 8: `Cache-Control: no-store` + soglia degraded 1500ms + 4 probe indipendenti; uptime monitor esterno opt-in                 |
+| **Audit log tenant esposto a non-admin**        | Bassa       | Alto                        | Sprint 8: RPC `SECURITY DEFINER` con check ruolo `admin` esplicito (`forbidden_admin_only` 42501); RLS su `activity_log` invariata |
+
+---
+
+## 11. Riferimenti incrociati
+
+### 11.1 File del repo Slide Center
+
+- `docs/GUIDA_DEFINITIVA_PROGETTO.md` — fonte di verita architettura. **Versione corrente: 4.16.0** (Sprint 8 chiuso).
+- `.cursor/rules/project-architecture.mdc` — ADR. **ADR-012 (Sprint 4 v2.4)** + **ADR-013 (Sprint 5 v2.5)** webhook Lemon su Live WORKS APP + **ADR-014 (Sprint 5b v2.6)** code-signing in `post-build.mjs` + **ADR-015 (Sprint 6 v2.7)** onboarding wizard via `tenants.onboarded_at` + RPC self-call + **ADR-016 (Sprint 7 v2.8)** GDPR export server-side via Edge Function + Resend per email transazionali + cron giornaliero esterno + **ADR-017 (Sprint 8 v2.9)** audit log esposto al tenant via RPC SECURITY DEFINER `list_tenant_activity` + status page pubblica via Edge Function `system-status` (no-auth) + welcome email best-effort idempotente da `team-invite-accept`.
+- `supabase/migrations/20260417140000_sprint7_operations.sql` — **Sprint 7**: tabelle `email_log` + `tenant_data_exports`, bucket Storage `tenant-exports`, 8 RPC SECURITY DEFINER (`export_tenant_data`, `tenant_storage_summary`, `tenant_license_summary`, `create_tenant_data_export`, `list_tenant_data_exports`, `log_email_sent`, `list_tenants_for_license_warning`, `expire_old_data_exports`).
+- `supabase/functions/gdpr-export/` — **Sprint 7**: Edge Function GDPR export ZIP signed URL 7gg.
+- `supabase/functions/email-send/` — **Sprint 7**: Resend transactional + 4 template HTML inline IT/EN + idempotency.
+- `supabase/functions/email-cron-licenses/` — **Sprint 7**: cron daily scan T-30/7/1 + dispatch a `email-send`.
+- `apps/web/src/components/{ToastProvider,use-toast}.{tsx,ts}` — **Sprint 7**: toast system globale.
+- `apps/web/src/features/notifications/` — **Sprint 7**: hook `useTenantWarnings` + `TenantWarningBanners` + `repository.ts` (license/storage summary).
+- `apps/web/src/features/dashboard/DashboardView.tsx` — **Sprint 7**: dashboard reale con 3 card + prossimo evento.
+- `apps/web/src/features/settings/privacy/{PrivacyView,repository}.{tsx,ts}` — **Sprint 7**: pagina GDPR export admin-only.
+- `docs/Manuali/Manuale_Email_Resend.md` v1.0 — **Sprint 7**: configurazione Resend + Edge + cron.
+- `docs/Commerciale/Roadmap_Vendita_Esterna.md` v1.0 — **Sprint 7**: backlog burocratico/sales (10 sezioni, 47 voci).
+- `supabase/migrations/20260417150000_sprint8_tenant_audit.sql` — **Sprint 8**: 2 indici composti su `activity_log` + RPC `list_tenant_activity` (SECURITY DEFINER, admin-only, paginated, filters action/actor/entity/from/to).
+- `supabase/functions/system-status/index.ts` — **Sprint 8**: probe pubblico (`verify_jwt = false`) per database/auth/storage/edge con latenze + aggregazione stato globale.
+- `supabase/functions/team-invite-accept/index.ts` — **Sprint 8**: estensione con `dispatchWelcomeEmail()` best-effort idempotente (`welcome_${userId}`).
+- `apps/web/src/features/audit/{repository,AuditView}.{ts,tsx}` — **Sprint 8**: vista admin tenant `/audit` con filtri + paginazione + metadata expander.
+- `apps/web/src/features/status/{repository,StatusView}.{ts,tsx}` — **Sprint 8**: pagina pubblica `/status` con polling 30s + 4 service indicators.
+- `apps/web/src/features/auth/LoginView.tsx` — **Sprint 8**: link "Stato del servizio" nel footer.
+- `apps/web/src/features/settings/SettingsView.tsx` — **Sprint 8**: card "Audit log" admin-only.
+- `apps/web/src/app/routes.tsx` — **Sprint 8**: route `/status` pubblica + `/audit` admin lazy-loaded.
+- `docs/Manuali/Guida_Uso_Interno_DHS.md` v1.0 — **Sprint 8**: quick start operativo per uso interno (setup + pre/durante/post evento + manutenzione + troubleshooting + checklist test sul campo).
 - `supabase/migrations/20260417130000_onboarding_and_demo_seed.sql` — **Sprint 6**: colonna `tenants.onboarded_at` + 5 RPC SECURITY DEFINER (`mark_tenant_onboarded`, `reset_tenant_onboarding`, `seed_demo_data`, `clear_demo_data`, `tenant_health`).
 - `apps/web/src/features/onboarding/` — **Sprint 6**: `repository.ts` + hook `useTenantOnboardingStatus` + `OnboardingGate.tsx` + `components/OnboardingWizard.tsx` (3 step, lazy-loaded).
 - `apps/web/src/features/admin/AdminHealthView.tsx` — **Sprint 6**: dashboard `/admin/health` con ping Supabase + Edge Functions + counter `tenant_health()`.
@@ -1179,7 +1444,7 @@ Bottone "Refresh All" rilancia tutti e 3 i ping in parallelo.
 - `.github/workflows/playwright.yml` — **Sprint 5b**: smoke E2E su `apps/web/e2e/smoke.spec.ts` con Supabase locale (setup-cli pinned). Trigger PR + nightly cron + workflow_dispatch (con input `run_signup_test` opzionale).
 - `supabase/tests/rls_audit_seed.sql` — Sprint 5: seed minimo 2 tenant con UUID deterministici per CI.
 
-### 9.2 File esterni di riferimento
+### 11.2 File esterni di riferimento
 
 - `Live 3d Ledwall Render/src-tauri/src/license/` — pattern licenze.
 - `Live 3d Ledwall Render/clean-and-build.bat` — pattern build orchestrato.
@@ -1187,59 +1452,180 @@ Bottone "Refresh All" rilancia tutti e 3 i ping in parallelo.
 - `Live WORKS APP/functions/src/license/` — backend API (Cloud Functions Node 22).
 - `Live WORKS APP/functions/src/types/index.ts` — schema risposte API (camelCase: `verifyBeforeDate`, `nextVerifyDate`, `expiresAt`).
 
-### 9.3 Decisione su `PIANO_FINALE_SLIDE_CENTER_v1.md`
+### 11.3 Decisione su `PIANO_FINALE_SLIDE_CENTER_v1.md`
 
 `v1` resta in repo come riferimento storico ma con header **DEPRECATO**. Tutti gli sviluppi futuri leggono **solo** questo `v2`.
 
 ---
 
-**Andrea, prossimo step operativo (post chiusura Sprint 6 in-repo):**
+## 12. Chiusura PIANO_FINALE — Test sul campo
 
-Lato codice non c'e' piu' niente da chiudere per il go-to-market: **MVP + commercial hardening + onboarding wizard + healthcheck** sono tutti pronti. Il primo cliente che apre l'app vede il wizard automatico, puo' generare dati demo per esplorare, e tu hai una dashboard `/admin/health` per monitorare la piattaforma in tempo reale.
+**Stato del prodotto al PIANO 2.9 (chiusura):**
 
-Lato codice resta solo l'attesa cert OV: appena arriva, 3 env vars e firma automatica di tutti gli installer + EXE portable + rigenera SHA256SUMS coerenti.
+Slide Center e' **operativamente al 100% per uso interno DHS**. Lato codice non
+restano feature da implementare per la fase di test sul campo. Quello che segue
+e' una mappa esplicita di:
 
-Le azioni rimanenti sono tutte **esterne al repo** e richiedono interazione
-umana/terzi:
+- **A.** cosa e' completato in-repo,
+- **B.** cosa e' delegato a interventi esterni di Andrea (account terzi, legali,
+  marketing) — backlog pluriennale, non blocca i test,
+- **C.** cosa va testato sul campo prima di considerare il prodotto "production-
+  ready per cliente esterno".
 
-1. **Acquistare cert OV Sectigo** (~190 €/anno, emissione 1-2 settimane). Guida
-   operativa step-by-step in `docs/Manuali/Manuale_Code_Signing.md`: reseller
-   consigliato, documenti richiesti, generazione CSR via OpenSSL, import nel
-   PC di build, setup PATH `signtool`, troubleshooting 8 casi documentati.
-   Una volta ricevuto il `.pfx`, basta:
+### 12.1 A. Stato in-repo (DONE)
 
+- Multi-tenant + RLS + JWT custom claims (Sprint 0-1).
+- Auth wizard onboarding 3-step (Sprint 6).
+- Upload + preview + revisioni presentazioni (Sprint 1-3) + rollback versioni
+  (`PresentationVersionsPanel.setCurrent`).
+- Two-agent architecture: Local Agent (Tauri v2 Rust) + Room Agent gemello
+  (Sprint 2).
+- Licensing + hardware-lock + intranet failover (Sprint 4).
+- Code-signing pipeline (Sprint 5b, in attesa cert OV).
+- CI/CD: `ci.yml` 3 jobs + `playwright.yml` smoke E2E + `rls-audit.yml`
+  isolation tests (Sprint 5b).
+- Manuali operatore + screencast script + commerciale Contratto SLA + Listino
+  (Sprint 5).
+- GDPR: export ZIP server-side via Edge Function + retention 7gg + audit super-
+  admin (Sprint 7).
+- Email transazionali: Resend integration + 4 template HTML IT/EN + cron
+  giornaliero T-30/T-7/T-1 + welcome email automatica (Sprint 7-8).
+- Notifiche utente: warning banner license/storage + toast system globale
+  (Sprint 7).
+- Dashboard reale: eventi attivi + storage + licenza + prossimo evento
+  (Sprint 7).
+- Audit log esposto al tenant: `/audit` admin con filtri + paginazione + RPC
+  `list_tenant_activity` (Sprint 8).
+- Status page pubblica `/status` no-auth + Edge Function `system-status`
+  con probe parallele (Sprint 8).
+- Documentazione operativa interna: `Guida_Uso_Interno_DHS.md` v1.0
+  (Sprint 8).
+
+**Risultato:** Andrea puo' usare Slide Center oggi stesso per il prossimo evento
+DHS senza dover toccare altro codice.
+
+### 12.2 B. Backlog esterno (NON blocca i test sul campo)
+
+Tutto cio' che richiede interazione umana/terzi e non puo' essere automatizzato
+in repo. Questi punti sono prerequisiti per la **vendita esterna**, non per
+l'uso interno. Trattare come backlog pluriennale.
+
+1. **Acquisto cert OV Sectigo** (~190 €/anno, 1-2 settimane). Guida step-by-
+   step in `docs/Manuali/Manuale_Code_Signing.md`. Una volta ricevuto il
+   `.pfx`:
    ```powershell
    $env:CERT_PFX_PATH = "C:\Certs\Sectigo-OV-2026.pfx"
    $env:CERT_PASSWORD = "<la-tua-password>"
    .\release-licensed.bat
-   # → tutto firmato automaticamente, SHA256SUMS rigenerato.
    ```
+2. **Registrare 3 screencast onboarding** (1 giornata). Scaletta in
+   `docs/Manuali/Script_Screencast.md`.
+3. **Revisione legale Contratto SLA** + DPA art. 28 (Allegato A). Avvocato
+   GDPR, 300-800 € forfait. Riferimento: `docs/Commerciale/Contratto_SLA.md`.
+4. **Approvazione Listino Prezzi** finale. Riferimento:
+   `docs/Commerciale/Listino_Prezzi.md`.
+5. **Listing prodotti su `liveworksapp.com`** con CTA Lemon Squeezy.
+6. **Configurare Resend + cron giornaliero**. Guida in
+   `docs/Manuali/Manuale_Email_Resend.md`. Senza Resend, il codice resta
+   funzionante ma silenzioso (no email — gestito gracefully).
+7. **Backlog Roadmap_Vendita_Esterna** (47 voci): leggere
+   `docs/Commerciale/Roadmap_Vendita_Esterna.md`. Decisioni urgenti pre-primo-
+   cliente-esterno: forma giuridica, provider checkout, free trial vs
+   freemium, lingua espansione, avvocato GDPR.
+8. **(Sprint 8 opzionale)** Configurare uptime monitor esterno
+   (UptimeRobot/BetterUptime) puntando a `/functions/v1/system-status` per
+   alert via email/Slack. Free tier sufficiente.
 
-2. **Registrare 3 screencast onboarding** (1 giornata). Scaletta parola-per-parola
-   in `docs/Manuali/Script_Screencast.md`: setup tecnico (mic, OBS, audio -16
-   LUFS), preparazione ambiente demo, dialoghi precisi per video 1 (admin web
-   5-6 min) + video 2 (regia 4-5 min) + video 3 (sala 3-4 min), checklist
-   post-registrazione + branding.
+### 12.3 C. Test sul campo (FASE SUCCESSIVA — questo e' il prossimo step reale)
 
-3. **Revisione legale Contratto SLA** — passare `docs/Commerciale/Contratto_SLA.md`
-   a un avvocato GDPR per revisione (preventivo 300-800 € forfait include anche
-   redazione DPA art. 28 — Allegato A oggi placeholder).
+Procedere in questo ordine, usando come riferimento operativo
+`docs/Manuali/Guida_Uso_Interno_DHS.md`:
 
-4. **Approvazione Listino Prezzi** — review prezzi in
-   `docs/Commerciale/Listino_Prezzi.md` (4 piani cloud + Local 490 € + Room 190 €).
+1. **Test interno DHS — Evento di simulazione (1 giornata, 5-10 slide,
+   1 sub-evento, max 2 utenti).** Obiettivo: verificare flusso end-to-end
+   senza pressione di evento reale. Checklist:
+   - [ ] Login admin DHS + creazione evento + caricamento presentazione.
+   - [ ] Login operatore regia + visualizzazione presentazione.
+   - [ ] Test rollback versione (caricare v2 e tornare a v1).
+   - [ ] Verifica `/dashboard` mostra dati reali.
+   - [ ] Verifica `/status` UP per tutti e 4 i servizi.
+   - [ ] Verifica `/audit` mostra le ultime ~20 azioni con filtri funzionanti.
+   - [ ] Export GDPR `/settings/privacy` → download ZIP completo.
+   - [ ] Invito secondo utente (operator) → ricezione welcome email (se
+         Resend configurato).
 
-5. **Listing prodotti su `liveworksapp.com`** — pagina dedicata Slide Center
-   con prezzi, screenshot, screencast, CTA checkout Lemon Squeezy.
+2. **Test evento reale piccolo (max 50 partecipanti, 1 giornata).** Solo dopo
+   il test 1 verde. Checklist Sprint pre-evento §1.4 della
+   `Guida_Uso_Interno_DHS.md`:
+   - [ ] T-7gg: licenza > 30gg, evento creato, presentazioni caricate, regia
+         testata.
+   - [ ] T-1gg: re-test su rete reale di sala, fallback intranet attivo.
+   - [ ] Giorno evento: verifica regia ogni 30min, monitor dashboard.
+   - [ ] Post: export ZIP, audit log, marca evento "concluso".
 
-**Test sul campo (parallelo alle 5 azioni sopra):**
+3. **Test evento reale grande (>50 partecipanti, multi-giorno, +sub-eventi
+   paralleli).** Solo dopo il test 2 verde. Aggiungi:
+   - [ ] Stress test simultaneous viewer (3-5 sale parallele).
+   - [ ] Verifica banner storage non scatta inaspettatamente sotto carico
+         reale.
+   - [ ] Verifica nessun toast di errore Sentry per >2h consecutive.
 
-- Test Sprint 5b in-repo: PR di prova → verifica che i workflow `ci.yml` (3
-  jobs) + `playwright.yml` (smoke) + `rls-audit.yml` girino verdi su GitHub
-  Actions. Una volta confermato, abilitare branch protection su `main` con
-  required checks: `Web (lint + typecheck)`, `Agents cargo check (no features)`,
-  `Smoke tests (chromium)`, `RLS isolation tests`.
-- Test Sprint 5: `release-licensed.bat` su PC Windows vergine produce
-  installer con feature license attiva. Verifica attivazione + disinstallazione
-  con `--deactivate` che libera lo slot hardware sul cloud.
-- Test Sprint 2: rollout intranet su un cliente pilota con macchina di staging
-  (acceptance criteria §3.6).
+4. **Test SLA failover (scenario degradato controllato).**
+   - [ ] Simula DB Supabase down (block firewall) → verifica fallback
+         intranet su Local Agent.
+   - [ ] Simula scadenza licenza imminente (forzare `expires_at = now() + 6
+    days` su tenant test) → verifica arrivo email T-30/T-7/T-1 reale.
+   - [ ] Simula upload oltre 80% limite storage → verifica banner.
+
+5. **Test CI/CD su PR reale.**
+   - [ ] Aprire PR di prova con modifica trivial in `apps/web`.
+   - [ ] Verificare i 3 jobs `ci.yml` + `playwright.yml` smoke + `rls-audit.yml`
+         girino verdi su GitHub Actions.
+   - [ ] Una volta confermato, abilitare **branch protection** su `main` con
+         required checks: `Web (lint + typecheck)`, `Agents cargo check (no
+    features)`, `Smoke tests (chromium)`, `RLS isolation tests`.
+
+6. **Test installer firmato (post cert OV ricevuto).**
+   - [ ] `release-licensed.bat` su PC Windows vergine.
+   - [ ] Verifica installer firmato (no SmartScreen warning) + attivazione +
+         disinstallazione con `--deactivate` che libera slot hardware cloud.
+
+### 12.4 Definizione di "PIANO chiuso"
+
+Il presente PIANO_FINALE e' considerato **chiuso** (sezioni 1-11) quando:
+
+- ✅ Tutte le DoD degli Sprint 0-8 sono COMPLETED in-repo.
+- ✅ Tutte le i18n IT/EN sono in parity.
+- ✅ Lint + typecheck verdi (vedi `clean-and-build.bat` o `pnpm lint`).
+- ✅ Tutta la documentazione strategica e' aggiornata
+  (PIANO 2.9 + GUIDA 4.16.0 + ADR-017 + manuali Sprint 8).
+
+Lo stato attuale e': **PIANO CHIUSO al v2.9.** Eventuali sviluppi futuri verranno
+gestiti come **Sprint 9+ separati** o, piu' verosimilmente, come **fix puntuali**
+basati su feedback dei test sul campo (sez. 12.3).
+
+Il PIANO 2.x si considera storia completa: per evoluzioni post-test sul campo
+(ad esempio refactor su feedback reale, espansione lingue, multi-region) si
+aprira' un `PIANO_FINALE_SLIDE_CENTER_v3.md` quando emergeranno requisiti
+sostanziali — non prima.
+
+---
+
+**Andrea, prossimo step operativo:**
+
+Lato codice **non c'e' nient'altro da fare**. Passa alla sez. 12.3:
+
+1. Esegui il **Test 1** (simulazione DHS interna). E' la cosa piu' importante:
+   ti dimostra che tutto funziona end-to-end senza rischio.
+2. Se serve, configura **Resend** (sez. 12.2 punto 6) prima del test invito
+   utente — altrimenti la welcome email viene skippata silenziosamente, niente
+   si rompe.
+3. Quando arriverai al **Test 5** (CI/CD), abilita le branch protection su
+   `main` su GitHub.
+4. Tutto il resto (sez. 12.2 backlog burocratico/sales) e' indipendente dai
+   test: lavoraci in parallelo o quando hai tempo, **non blocca l'uso
+   interno**.
+
+Quando avrai feedback dai primi 1-2 eventi reali, condividili con me e
+decideremo insieme se servono iterazioni o se possiamo passare alla fase
+"vendita esterna".

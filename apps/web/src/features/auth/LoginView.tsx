@@ -168,6 +168,9 @@ export default function LoginView() {
             <Link to="/forgot-password" className="text-sc-text-dim hover:text-sc-text-muted hover:underline">
               {t('auth.forgotPassword')}
             </Link>
+            <Link to="/status" className="mt-2 text-xs text-sc-text-dim hover:text-sc-primary hover:underline">
+              {t('auth.statusPageLink')}
+            </Link>
           </div>
         </div>
       </div>

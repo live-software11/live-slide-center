@@ -11,12 +11,8 @@ interface ImportMetaEnv {
   readonly VITE_LEMONSQUEEZY_CHECKOUT_PRO_URL?: string;
   /** Portale cliente Lemon (gestione abbonamento) — opzionale */
   readonly VITE_LEMONSQUEEZY_CUSTOMER_PORTAL_URL?: string;
-  /** URL pubblico Live WORKS APP (marketing / suite licenze) — opzionale */
+  /** URL pubblico Live WORKS APP (marketing / suite licenze) — opzionale, mostrato in onboarding/help */
   readonly VITE_LIVE_WORKS_APP_URL?: string;
-  /** Deep link Live Speaker Timer (ecosistema) — opzionale, Fase 13 (100%) */
-  readonly VITE_LIVE_SPEAKER_TIMER_URL?: string;
-  /** Deep link Live CREW — opzionale, Fase 13 (100%) */
-  readonly VITE_LIVE_CREW_URL?: string;
   /** Sentry browser SDK — opzionale, Fase 14 */
   readonly VITE_SENTRY_DSN?: string;
 }

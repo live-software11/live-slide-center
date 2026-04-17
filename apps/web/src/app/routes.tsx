@@ -29,6 +29,10 @@ export const router = createBrowserRouter([
         lazy: () => import('@/features/auth/LoginView'),
       },
       {
+        path: '/status',
+        lazy: () => import('@/features/status/StatusView'),
+      },
+      {
         path: '/signup',
         lazy: () => import('@/features/auth/SignupView'),
       },
@@ -103,12 +107,32 @@ export const router = createBrowserRouter([
                 lazy: () => import('@/features/settings/SettingsView'),
               },
               {
+                path: 'settings/privacy',
+                element: <RequireTenantAdmin />,
+                children: [
+                  {
+                    index: true,
+                    lazy: () => import('@/features/settings/privacy/PrivacyView'),
+                  },
+                ],
+              },
+              {
                 path: 'team',
                 element: <RequireTenantAdmin />,
                 children: [
                   {
                     index: true,
                     lazy: () => import('@/features/team/TeamView'),
+                  },
+                ],
+              },
+              {
+                path: 'audit',
+                element: <RequireTenantAdmin />,
+                children: [
+                  {
+                    index: true,
+                    lazy: () => import('@/features/audit/AuditView'),
                   },
                 ],
               },

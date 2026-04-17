@@ -5,6 +5,7 @@ import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { AppBrandLogo } from '@/components/AppBrandLogo';
 import { OnboardingGate } from '@/features/onboarding/OnboardingGate';
+import { TenantWarningBanners } from '@/features/notifications/components/TenantWarningBanners';
 
 export function RootLayout() {
   const { t } = useTranslation();
@@ -92,6 +93,7 @@ export function RootLayout() {
         </div>
       </aside>
       <main className="flex-1 overflow-auto">
+        <TenantWarningBanners />
         <Suspense
           fallback={
             <div className="flex h-full items-center justify-center text-sc-text-muted">

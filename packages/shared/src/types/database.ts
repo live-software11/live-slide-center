@@ -51,6 +51,84 @@ export type Database = {
         };
         Relationships: [];
       };
+      email_log: {
+        Row: {
+          id: string;
+          tenant_id: string | null;
+          kind: string;
+          recipient: string;
+          idempotency_key: string;
+          status: string;
+          provider_message_id: string | null;
+          error_message: string | null;
+          metadata: Json;
+          sent_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id?: string | null;
+          kind: string;
+          recipient: string;
+          idempotency_key: string;
+          status?: string;
+          provider_message_id?: string | null;
+          error_message?: string | null;
+          metadata?: Json;
+          sent_at?: string;
+        };
+        Update: {
+          id?: string;
+          tenant_id?: string | null;
+          kind?: string;
+          recipient?: string;
+          idempotency_key?: string;
+          status?: string;
+          provider_message_id?: string | null;
+          error_message?: string | null;
+          metadata?: Json;
+          sent_at?: string;
+        };
+        Relationships: [];
+      };
+      tenant_data_exports: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          requested_by_user_id: string;
+          requested_at: string;
+          storage_path: string | null;
+          byte_size: number | null;
+          status: string;
+          error_message: string | null;
+          expires_at: string;
+          ready_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          requested_by_user_id: string;
+          requested_at?: string;
+          storage_path?: string | null;
+          byte_size?: number | null;
+          status?: string;
+          error_message?: string | null;
+          expires_at?: string;
+          ready_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          tenant_id?: string;
+          requested_by_user_id?: string;
+          requested_at?: string;
+          storage_path?: string | null;
+          byte_size?: number | null;
+          status?: string;
+          error_message?: string | null;
+          expires_at?: string;
+          ready_at?: string | null;
+        };
+        Relationships: [];
+      };
       events: {
         Row: {
           id: string;
@@ -752,6 +830,61 @@ export type Database = {
       seed_demo_data: { Args: Record<string, never>; Returns: Json };
       clear_demo_data: { Args: Record<string, never>; Returns: Json };
       tenant_health: { Args: Record<string, never>; Returns: Json };
+      export_tenant_data: { Args: Record<string, never>; Returns: Json };
+      tenant_storage_summary: { Args: Record<string, never>; Returns: Json };
+      tenant_license_summary: { Args: Record<string, never>; Returns: Json };
+      create_tenant_data_export: { Args: Record<string, never>; Returns: string };
+      list_tenant_data_exports: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          requested_at: string;
+          status: string;
+          storage_path: string | null;
+          byte_size: number | null;
+          expires_at: string;
+          ready_at: string | null;
+          error_message: string | null;
+        }[];
+      };
+      log_email_sent: {
+        Args: {
+          p_tenant_id: string;
+          p_kind: string;
+          p_recipient: string;
+          p_idempotency_key: string;
+          p_status: string;
+          p_provider_message_id?: string | null;
+          p_error_message?: string | null;
+          p_metadata?: Json;
+        };
+        Returns: string;
+      };
+      list_tenants_for_license_warning: {
+        Args: { p_days_min: number; p_days_max: number; p_email_kind: string };
+        Returns: {
+          tenant_id: string;
+          tenant_name: string;
+          admin_email: string;
+          admin_full_name: string;
+          expires_at: string;
+          plan: string;
+          days_remaining: number;
+        }[];
+      };
+      expire_old_data_exports: { Args: Record<string, never>; Returns: number };
+      list_tenant_activity: {
+        Args: {
+          p_from?: string | null;
+          p_to?: string | null;
+          p_action?: string | null;
+          p_actor_id?: string | null;
+          p_entity_type?: string | null;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Json;
+      };
     };
     Enums: {
       actor_type: 'user' | 'speaker' | 'agent' | 'system';

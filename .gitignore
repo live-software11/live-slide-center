@@ -57,3 +57,7 @@ docs/Manuali/pdf/
 .claude/
 
 .vercel
+
+# Cartelle temporanee di build/scripting locale
+.tmp/
+.tmp-*.txt

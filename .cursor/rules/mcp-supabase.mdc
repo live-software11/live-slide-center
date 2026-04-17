@@ -5,11 +5,23 @@ alwaysApply: true
 
 # MCP Supabase — Accesso al progetto (Live SLIDE CENTER)
 
+## Progetto Supabase di riferimento
+
+- **Nome:** Live Slide Center
+- **Project ref:** `cdjxxxkrhgdkcpkkozdl`
+- **Region:** eu-west-1
+- **Database:** Postgres 17.6 (release_channel `ga`)
+- **Status:** ACTIVE_HEALTHY
+- **Host DB:** `db.cdjxxxkrhgdkcpkkozdl.supabase.co`
+
+Per qualsiasi `CallMcpTool` con server `plugin-supabase-supabase` usa `"project_id": "cdjxxxkrhgdkcpkkozdl"` come argomento.
+
 ## Server per questo workspace
 
-| Nome in Cursor (`mcp.json`) | Tipo                                                        | Note                                                                                                                                                                                                   |
-| --------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **supabase-hosted**         | HTTP + `Authorization: Bearer ${env:SUPABASE_ACCESS_TOKEN}` | In `C:\Users\andre\.cursor\mcp.json`, URL `https://mcp.supabase.com/mcp` (senza `project_ref` = tool account + DB/storage completi). PAT in variabile utente Windows: `pnpm run setup:supabase-mcp` (verifica: `pnpm run verify:supabase-mcp`). Dettaglio: `docs/Setup_Strumenti_e_MCP.md` §2. |
+| Nome in Cursor (`mcp.json`)  | Tipo                                                        | Note                                                                                                                                                                                                                                                                         |
+| ---------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **plugin-supabase-supabase** | Cursor plugin (consigliato)                                 | Plugin marketplace gia' configurato. Esposto come `CallMcpTool` con tool: `list_projects`, `list_tables`, `list_migrations`, `apply_migration`, `execute_sql`, `deploy_edge_function`, `get_advisors`, `get_logs`, ecc. **Usa SEMPRE `project_id: "cdjxxxkrhgdkcpkkozdl"`**. |
+| **supabase-hosted**          | HTTP + `Authorization: Bearer ${env:SUPABASE_ACCESS_TOKEN}` | Fallback. In `C:\Users\andre\.cursor\mcp.json`, URL `https://mcp.supabase.com/mcp`. PAT in variabile utente Windows: `pnpm run setup:supabase-mcp`. Dettaglio: `docs/Setup_Strumenti_e_MCP.md` §2.                                                                           |
 
 ### Perche non OAuth da browser
 

@@ -5,14 +5,16 @@ Tutti i documenti sono **bozze tecniche** redatte dal CTO: prima dell'uso
 operativo richiedono revisione legale (Contratto SLA) e approvazione di Andrea
 Rizzari (Listino Prezzi).
 
-| File                  | Versione | Stato             | Pubblico target                    |
-|-----------------------|----------|-------------------|-------------------------------------|
-| `Contratto_SLA.md`    | 1.0      | BOZZA legale      | cliente finale + consulente legale  |
-| `Listino_Prezzi.md`   | 1.0      | BOZZA commerciale | cliente finale + sito marketing     |
+| File                         | Versione | Stato             | Pubblico target                                                                                        |
+| ---------------------------- | -------- | ----------------- | ------------------------------------------------------------------------------------------------------ |
+| `Contratto_SLA.md`           | 1.0      | BOZZA legale      | cliente finale + consulente legale                                                                     |
+| `Listino_Prezzi.md`          | 1.0      | BOZZA commerciale | cliente finale + sito marketing                                                                        |
+| `Roadmap_Vendita_Esterna.md` | 1.0      | Andrea (decision) | Sprint 7 — backlog burocratico/sales (DPA, T&C, sito marketing, pricing definitivo, status page, etc.) |
 
 ## Allegati al contratto SLA
 
 Quando si firma con il cliente, allegare anche (gia' presenti nel repo):
+
 - `docs/Manuali/Manuale_Installazione_Local_Agent.md` → PDF (Allegato C)
 - `docs/Manuali/Manuale_Installazione_Room_Agent.md` → PDF (Allegato D)
 
@@ -26,6 +28,7 @@ richiede consulenza legale specifica e potrebbe contenere dati di responsabili
 del trattamento (sub-processor) soggetti a riservatezza.
 
 Schema base raccomandato:
+
 1. Identificazione Titolare (Cliente) e Responsabile (Fornitore)
 2. Categorie di dati trattati (relatori, partecipanti, utenti)
 3. Categorie di interessati
@@ -49,6 +52,7 @@ Schema base raccomandato:
 ## Aggiornamenti
 
 Aggiornare questi documenti quando:
+
 - Cambiano i prezzi → bump versione `Listino_Prezzi.md` e comunicare ai clienti
   esistenti con preavviso 90 giorni
 - Cambiano gli SLA → bump versione `Contratto_SLA.md` e firmare addendum con

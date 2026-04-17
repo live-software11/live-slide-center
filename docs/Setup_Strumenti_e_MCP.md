@@ -360,10 +360,6 @@ VITE_APP_VERSION=0.0.1
 # VITE_LEMONSQUEEZY_CUSTOMER_PORTAL_URL=
 # VITE_LIVE_WORKS_APP_URL=https://www.liveworksapp.com
 
-# --- Integrazioni ecosistema (Fase 13) ---
-# VITE_LIVE_SPEAKER_TIMER_URL=
-# VITE_LIVE_CREW_URL=
-
 # --- Osservabilita / hardening (Fase 14) ---
 # VITE_SENTRY_DSN=
 ```

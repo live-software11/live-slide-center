@@ -76,7 +76,8 @@
     "acceptInviteSubmit": "Create account and sign in",
     "acceptInviteSuccess": "Account created! Signing in…",
     "acceptInviteErrorGeneric": "Could not create the account. Contact your administrator.",
-    "acceptInviteErrorEmailExists": "This email address is already registered. Use the regular sign-in."
+    "acceptInviteErrorEmailExists": "This email address is already registered. Use the regular sign-in.",
+    "statusPageLink": "Service status"
   },
   "event": {
     "title": "Event",
@@ -835,17 +836,6 @@
     "languageIt": "Italian",
     "languageEn": "English",
     "languageCurrent": "Active language: {{label}}",
-    "integrationsTitle": "Live Software ecosystem",
-    "integrationsIntro": "Quick links to other suite apps (desktop or web). Live data integrations (control-room session state, countdowns, crew assignments) are planned for upcoming releases.",
-    "integrationsTimerTitle": "Live Speaker Timer",
-    "integrationsTimerBody": "Speaker timers and in-room session countdowns—ideal alongside Slide Center during congresses and live shows.",
-    "integrationsTimerEnvHint": "To show the launch link, set VITE_LIVE_SPEAKER_TIMER_URL in the monorepo root `.env` (URL to the installable Timer build or download page).",
-    "integrationsCrewTitle": "Live CREW",
-    "integrationsCrewBody": "Technician assignments and on-site crew coordination. Deeper Slide Center integration is on the roadmap.",
-    "integrationsApiTitle": "Public API",
-    "integrationsApiBody": "Documented REST endpoints for external automation (CMS, registration, customer dashboards). Not yet exposed in production.",
-    "integrationsOpenApp": "Open / Download",
-    "integrationsBadgeSoon": "Coming soon",
     "demoTitle": "Demo & Onboarding",
     "demoIntro": "Tools to practice, demo the product to clients, or restart the welcome tour. Admin only.",
     "demoSeedTitle": "Generate demo data",
@@ -862,7 +852,13 @@
     "onboardingResetTitle": "Replay onboarding tour",
     "onboardingResetBody": "Resets the tenant onboarding flag: the guided wizard reappears on the next page navigation.",
     "onboardingResetCta": "Replay tour",
-    "onboardingResetSuccess": "Onboarding tour reset. It will appear again shortly."
+    "onboardingResetSuccess": "Onboarding tour reset. It will appear again shortly.",
+    "privacyTitle": "Privacy & GDPR",
+    "privacyIntro": "Export your workspace data and manage GDPR requests. Tenant administrators only.",
+    "privacyOpen": "Open Privacy settings",
+    "auditTitle": "Audit log",
+    "auditIntro": "Full activity history for the workspace: who did what, when. Filter by date, action, entity type.",
+    "auditOpen": "Open Audit log"
   },
   "onboarding": {
     "title": "Welcome to Slide Center, {{tenantName}}",
@@ -930,5 +926,149 @@
     "checking": "Checking…",
     "refresh": "Refresh",
     "navLabel": "Status"
+  },
+  "dashboard": {
+    "subtitle": "A snapshot of your workspace and subscription status.",
+    "loading": "Loading…",
+    "superAdminHint": "Super-admin account: use the admin console to manage tenants, users and licenses.",
+    "events": {
+      "title": "Events",
+      "active_one": "{{count}} active or in setup",
+      "active_other": "{{count}} active or in setup",
+      "empty": "No events yet. Create your first one to get started.",
+      "cta": "Go to events"
+    },
+    "storage": {
+      "title": "Storage",
+      "usage": "Using {{percent}}% of {{limit}} MB",
+      "unlimited": "Unlimited quota",
+      "cta": "Manage plan"
+    },
+    "license": {
+      "title": "License",
+      "daysRemaining_one": "Expires in {{count}} day",
+      "daysRemaining_other": "Expires in {{count}} days",
+      "activePlan": "{{plan}} plan active",
+      "suspended": "Suspended",
+      "unlimited": "No expiry",
+      "cta": "Manage subscription"
+    },
+    "upcoming": {
+      "title": "Next event",
+      "open": "Open event"
+    }
+  },
+  "notifications": {
+    "dismiss": "Dismiss notification",
+    "license": {
+      "expiredTitle": "License expired",
+      "criticalTitle_one": "License expires in {{count}} day",
+      "criticalTitle_other": "License expires in {{count}} days",
+      "warningTitle_one": "License expires in {{count}} day",
+      "warningTitle_other": "License expires in {{count}} days",
+      "infoTitle_one": "License expires in {{count}} day",
+      "infoTitle_other": "License expires in {{count}} days",
+      "description": "{{plan}} plan. Renew before the expiry date to avoid workspace suspension.",
+      "cta": "Renew now"
+    },
+    "storage": {
+      "warningTitle": "Storage almost full ({{percent}}%)",
+      "criticalTitle": "Storage critical ({{percent}}%)",
+      "description": "You used {{used}} MB of {{limit}} MB. Free up space or upgrade your plan to avoid upload failures.",
+      "cta": "Manage plan"
+    }
+  },
+  "privacy": {
+    "title": "Privacy & GDPR",
+    "intro": "Export all your workspace data as a ZIP archive. The export contains events, rooms, sessions, presentations (metadata), team and 90-day audit logs. Binary slide files are not included (only their reference paths). Keep the archive safe.",
+    "export": {
+      "title": "Export workspace data",
+      "body": "Generate a complete ZIP archive of your tenant data. Available for 7 days via signed link. Max 1 export every 5 minutes.",
+      "cta": "Export now",
+      "successTitle": "Export ready",
+      "successBody": "Archive ready ({{mb}} MB). Use the link to download.",
+      "errorTitle": "Export failed",
+      "rateLimitTitle": "Rate limit",
+      "rateLimitBody": "You can request a new export every 5 minutes. Please retry shortly.",
+      "readyTitle": "Archive ready for download",
+      "readyBody": "The link expires in 7 days. Keep the archive in a safe place.",
+      "openLink": "Download archive"
+    },
+    "history": {
+      "title": "Export history",
+      "subtitle": "Last 10 exports requested for this workspace.",
+      "empty": "No exports requested yet.",
+      "errorTitle": "Unable to load history",
+      "statusLabel": "Status",
+      "expiresAt": "Expires on {{date}}",
+      "status": {
+        "pending": "Processing",
+        "ready": "Ready",
+        "expired": "Expired",
+        "failed": "Failed"
+      }
+    },
+    "deletion": {
+      "title": "Data deletion",
+      "body": "To request full workspace and data deletion, contact the system administrator. Deletion is irreversible and requires a 30-day notice as per GDPR.",
+      "contact": "Email: live.software11@gmail.com"
+    },
+    "legal": {
+      "title": "Legal notes",
+      "dpo": "Data controller: Andrea Rizzari (Live Software).",
+      "retention": "Retention: operational data kept for the subscription duration. Audit log: 90 days. Backups: 30 days.",
+      "subprocessors": "Sub-processors: Supabase (database/storage), Resend (transactional email), Lemon Squeezy (licensing)."
+    }
+  },
+  "audit": {
+    "title": "Audit log",
+    "intro": "Complete record of every workspace activity. Useful for internal review, live-event troubleshooting and GDPR traceability. Records are retained for 90 days.",
+    "filtersTitle": "Filters",
+    "filterAction": "Action (e.g. presentation_uploaded)",
+    "filterEntity": "Entity type (e.g. presentation)",
+    "filterFrom": "From (date and time)",
+    "filterTo": "To (date and time)",
+    "applyFilters": "Apply filters",
+    "clearFilters": "Clear",
+    "totalRecords": "{{count}} events found",
+    "showingRange": "Showing {{from}}–{{to}} of {{total}}",
+    "empty": "No activity matches the current filters.",
+    "errorTitle": "Audit log load error",
+    "previous": "Previous",
+    "next": "Next",
+    "byActor": "{{actor}} ({{type}})",
+    "showMetadata": "Show details ({{count}} fields)"
+  },
+  "status": {
+    "headerProduct": "Service status",
+    "backToLogin": "Back to login",
+    "lastChecked": "Last checked: {{time}}",
+    "fetchError": "Could not contact the status monitor",
+    "servicesTitle": "Services",
+    "noData": "No data available.",
+    "helpTitle": "Having a problem?",
+    "helpBody": "If this page reports all systems operational but you still experience issues, the problem may be local (network, browser, antivirus). Contact us and include a screenshot of the browser console.",
+    "footerProduct": "Live SLIDE CENTER · Live Software",
+    "overall": {
+      "operational": {
+        "title": "All systems operational",
+        "body": "Slide Center is running normally. No incidents in progress."
+      },
+      "degraded": {
+        "title": "Degraded service",
+        "body": "We are experiencing slowdowns on one or more components. The app remains usable."
+      },
+      "outage": {
+        "title": "Outage in progress",
+        "body": "One or more critical components are not responding. The team has been notified automatically."
+      }
+    },
+    "service": {
+      "status": {
+        "operational": "Operational",
+        "degraded": "Degraded",
+        "down": "Unavailable"
+      }
+    }
   }
 }

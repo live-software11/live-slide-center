@@ -115,6 +115,21 @@ Deno.serve(async (req: Request) => {
         console.error('team-invite-accept: failed to mark invite as accepted', acceptErr.message);
       }
 
+      // Sprint 8: invio welcome email best-effort. Non blocca l'accept se fallisce.
+      // L'idempotency key e' deterministica sul user_id, cosi' anche se l'utente
+      // accetta lo stesso invito due volte (impossibile via RLS, ma sicurezza in piu')
+      // Resend non manda email duplicate.
+      void dispatchWelcomeEmail({
+        tenantId: invite.tenant_id,
+        recipient: invite.email,
+        fullName: full_name?.trim() || invite.email.split('@')[0],
+        tenantName,
+        userId: authUser.user.id,
+      }).catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : 'unknown';
+        console.error('team-invite-accept: welcome email failed (non-blocking):', msg);
+      });
+
       return json({ ok: true });
     }
 
@@ -130,4 +145,57 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+interface WelcomeEmailPayload {
+  tenantId: string;
+  recipient: string;
+  fullName: string;
+  tenantName: string;
+  userId: string;
+}
+
+/**
+ * Sprint 8: invoca email-send (server-to-server) per inviare la welcome email.
+ *
+ * Best-effort: silenzia errori se EMAIL_SEND_INTERNAL_SECRET non e' configurato
+ * (deploy senza Resend ancora collegato), ritorna senza throw.
+ * Se invece il secret e' presente ma l'invio fallisce, propaga l'errore al
+ * caller che lo loggera' senza bloccare l'accept invite.
+ */
+async function dispatchWelcomeEmail(p: WelcomeEmailPayload): Promise<void> {
+  const internalSecret = Deno.env.get('EMAIL_SEND_INTERNAL_SECRET');
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  if (!internalSecret || !supabaseUrl) {
+    // Welcome email disabilitata in questo environment (es. dev locale o
+    // produzione prima del setup Resend). Nessun errore, semplicemente skip.
+    return;
+  }
+
+  const appUrl = Deno.env.get('PUBLIC_APP_URL') ?? 'https://app.liveworksapp.com';
+
+  const res = await fetch(`${supabaseUrl}/functions/v1/email-send`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-internal-secret': internalSecret,
+    },
+    body: JSON.stringify({
+      tenant_id: p.tenantId,
+      kind: 'welcome',
+      recipient: p.recipient,
+      idempotency_key: `welcome_${p.userId}`,
+      data: {
+        full_name: p.fullName,
+        tenant_name: p.tenantName,
+        app_url: appUrl,
+        language: 'it',
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`email-send returned ${res.status}: ${text.slice(0, 200)}`);
+  }
 }

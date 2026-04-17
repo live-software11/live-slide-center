@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ExternalLink, Languages, Link2, Sparkles, Trash2, RotateCcw, PlayCircle } from 'lucide-react';
+import { Link } from 'react-router';
+import { Languages, Sparkles, Trash2, RotateCcw, PlayCircle, ShieldCheck, ChevronRight, ClipboardList } from 'lucide-react';
 import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
-import { getIntegrationsEnvUrls } from '@/features/settings/lib/integrations-env';
 import { clearDemoData, resetTenantOnboarding, seedDemoData } from '@/features/onboarding/repository';
 
 function normalizeLang(code: string | undefined): 'it' | 'en' {
@@ -20,7 +20,6 @@ type DemoActionState =
 export default function SettingsView() {
   const { t, i18n } = useTranslation();
   const active = useMemo(() => normalizeLang(i18n.language), [i18n.language]);
-  const integrationUrls = useMemo(() => getIntegrationsEnvUrls(), []);
   const { session } = useAuth();
   const role = session?.user?.app_metadata?.role;
   const isAdmin = role === 'admin';
@@ -122,72 +121,53 @@ export default function SettingsView() {
         </p>
       </section>
 
-      <section
-        className="mt-10 max-w-2xl rounded-xl border border-sc-primary/12 bg-sc-surface/60 p-6"
-        aria-labelledby="settings-integrations-heading"
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-sc-accent/20 bg-sc-accent/10 text-sc-accent">
-            <Link2 className="h-4 w-4" aria-hidden />
+      {isAdmin ? (
+        <section
+          className="mt-10 max-w-2xl rounded-xl border border-sc-primary/15 bg-sc-surface/60 p-6"
+          aria-labelledby="settings-privacy-heading"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-sc-primary/20 bg-sc-primary/10 text-sc-primary">
+              <ShieldCheck className="h-4 w-4" aria-hidden />
+            </div>
+            <h2 id="settings-privacy-heading" className="text-lg font-semibold text-sc-text">
+              {t('settings.privacyTitle')}
+            </h2>
           </div>
-          <h2 id="settings-integrations-heading" className="text-lg font-semibold text-sc-text">
-            {t('settings.integrationsTitle')}
-          </h2>
-        </div>
-        <p className="mt-2 text-sm text-sc-text-dim">{t('settings.integrationsIntro')}</p>
+          <p className="mt-2 text-sm text-sc-text-dim">{t('settings.privacyIntro')}</p>
+          <Link
+            to="/settings/privacy"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-xl border border-sc-primary/30 bg-sc-primary/5 px-4 py-2 text-sm font-medium text-sc-primary transition-colors hover:bg-sc-primary/10"
+          >
+            {t('settings.privacyOpen')}
+            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+          </Link>
+        </section>
+      ) : null}
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-sc-primary/12 bg-sc-bg/40 p-4">
-            <h3 className="text-sm font-semibold text-sc-text">{t('settings.integrationsTimerTitle')}</h3>
-            <p className="mt-2 text-xs leading-relaxed text-sc-text-muted">{t('settings.integrationsTimerBody')}</p>
-            {integrationUrls.liveSpeakerTimer ? (
-              <a
-                href={integrationUrls.liveSpeakerTimer}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-sc-primary hover:underline"
-              >
-                {t('settings.integrationsOpenApp')}
-                <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              </a>
-            ) : (
-              <p className="mt-3 text-xs text-sc-text-dim">{t('settings.integrationsTimerEnvHint')}</p>
-            )}
+      {isAdmin ? (
+        <section
+          className="mt-10 max-w-2xl rounded-xl border border-sc-primary/15 bg-sc-surface/60 p-6"
+          aria-labelledby="settings-audit-heading"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-sc-primary/20 bg-sc-primary/10 text-sc-primary">
+              <ClipboardList className="h-4 w-4" aria-hidden />
+            </div>
+            <h2 id="settings-audit-heading" className="text-lg font-semibold text-sc-text">
+              {t('settings.auditTitle')}
+            </h2>
           </div>
-
-          <div className="rounded-xl border border-sc-primary/12 bg-sc-bg/40 p-4">
-            <h3 className="text-sm font-semibold text-sc-text">{t('settings.integrationsCrewTitle')}</h3>
-            <p className="mt-2 text-xs leading-relaxed text-sc-text-muted">{t('settings.integrationsCrewBody')}</p>
-            {integrationUrls.liveCrew ? (
-              <a
-                href={integrationUrls.liveCrew}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-sc-primary hover:underline"
-              >
-                {t('settings.integrationsOpenApp')}
-                <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              </a>
-            ) : (
-              <p className="mt-3">
-                <span className="inline-flex rounded-full border border-sc-primary/20 bg-sc-primary/10 px-2.5 py-0.5 text-xs font-medium text-sc-text-secondary">
-                  {t('settings.integrationsBadgeSoon')}
-                </span>
-              </p>
-            )}
-          </div>
-
-          <div className="rounded-xl border border-sc-primary/12 bg-sc-bg/40 p-4 sm:col-span-2">
-            <h3 className="text-sm font-semibold text-sc-text">{t('settings.integrationsApiTitle')}</h3>
-            <p className="mt-2 text-xs leading-relaxed text-sc-text-muted">{t('settings.integrationsApiBody')}</p>
-            <p className="mt-3">
-              <span className="inline-flex rounded-full border border-sc-primary/20 bg-sc-primary/10 px-2.5 py-0.5 text-xs font-medium text-sc-text-secondary">
-                {t('settings.integrationsBadgeSoon')}
-              </span>
-            </p>
-          </div>
-        </div>
-      </section>
+          <p className="mt-2 text-sm text-sc-text-dim">{t('settings.auditIntro')}</p>
+          <Link
+            to="/audit"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-xl border border-sc-primary/30 bg-sc-primary/5 px-4 py-2 text-sm font-medium text-sc-primary transition-colors hover:bg-sc-primary/10"
+          >
+            {t('settings.auditOpen')}
+            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+          </Link>
+        </section>
+      ) : null}
 
       {isAdmin ? (
         <section
