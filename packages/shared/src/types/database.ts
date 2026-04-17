@@ -565,6 +565,7 @@ export type Database = {
           license_key: string | null;
           license_synced_at: string | null;
           suspended: boolean;
+          onboarded_at: string | null;
           settings: Json;
           created_at: string;
           updated_at: string;
@@ -585,6 +586,7 @@ export type Database = {
           license_key?: string | null;
           license_synced_at?: string | null;
           suspended?: boolean;
+          onboarded_at?: string | null;
           settings?: Json;
           created_at?: string;
           updated_at?: string;
@@ -605,6 +607,7 @@ export type Database = {
           license_key?: string | null;
           license_synced_at?: string | null;
           suspended?: boolean;
+          onboarded_at?: string | null;
           settings?: Json;
           created_at?: string;
           updated_at?: string;
@@ -744,6 +747,11 @@ export type Database = {
         Args: { p_presentation_id: string; p_target_speaker_id: string };
         Returns: Json;
       };
+      mark_tenant_onboarded: { Args: Record<string, never>; Returns: string };
+      reset_tenant_onboarding: { Args: Record<string, never>; Returns: void };
+      seed_demo_data: { Args: Record<string, never>; Returns: Json };
+      clear_demo_data: { Args: Record<string, never>; Returns: Json };
+      tenant_health: { Args: Record<string, never>; Returns: Json };
     };
     Enums: {
       actor_type: 'user' | 'speaker' | 'agent' | 'system';

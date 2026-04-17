@@ -33,6 +33,7 @@ pandoc Manuale_Distribuzione.md -o Manuale_Distribuzione.pdf --pdf-engine=xelate
 | `Manuale_Installazione_Room_Agent.md`  | 0.1.1    | Operatore PC sala        | Installazione PC sala, pairing, discovery Local Agent, modalita intranet offline, **attivazione licenza** (Sprint 4) + slot per sala.                                                                         |
 | `Manuale_Code_Signing.md`              | 1.0      | Andrea (build & release) | **Sprint 5b**: Acquisto cert OV Sectigo (~190 €/anno) + generazione CSR + integrazione `signFileIfConfigured()` in `post-build.mjs` + troubleshooting 8 casi + rinnovo annuale + checklist pre-vendita firma. |
 | `Script_Screencast.md`                 | 1.0      | Andrea (registrazione)   | **Sprint 5b**: Scaletta parola-per-parola dei 3 video onboarding (admin web 5-6 min, regia 4-5 min, sala 3-4 min) + setup tecnico (mic, OBS, audio -16 LUFS) + branding + checklist post-registrazione.       |
+| `Manuale_Onboarding_Admin.md`          | 1.0      | Admin tenant             | **Sprint 6**: Guida user-facing al wizard di primo accesso (3 step: welcome, primo evento o demo, finish), uso dei "Dati demo" da Settings, "Riapri tour", inviti team, installazione Agent, healthcheck.     |
 
 Aggiornare questi documenti ogni volta che cambia uno dei seguenti file:
 

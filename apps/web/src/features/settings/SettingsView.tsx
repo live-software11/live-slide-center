@@ -1,17 +1,33 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ExternalLink, Languages, Link2 } from 'lucide-react';
+import { ExternalLink, Languages, Link2, Sparkles, Trash2, RotateCcw, PlayCircle } from 'lucide-react';
+import { useAuth } from '@/app/use-auth';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { getIntegrationsEnvUrls } from '@/features/settings/lib/integrations-env';
+import { clearDemoData, resetTenantOnboarding, seedDemoData } from '@/features/onboarding/repository';
 
 function normalizeLang(code: string | undefined): 'it' | 'en' {
   const base = (code ?? 'it').split('-')[0]?.toLowerCase() ?? 'it';
   return base === 'en' ? 'en' : 'it';
 }
 
+type DemoActionState =
+  | { status: 'idle' }
+  | { status: 'busy' }
+  | { status: 'success'; message: string }
+  | { status: 'error'; message: string };
+
 export default function SettingsView() {
   const { t, i18n } = useTranslation();
   const active = useMemo(() => normalizeLang(i18n.language), [i18n.language]);
   const integrationUrls = useMemo(() => getIntegrationsEnvUrls(), []);
+  const { session } = useAuth();
+  const role = session?.user?.app_metadata?.role;
+  const isAdmin = role === 'admin';
+  const supabase = useMemo(() => getSupabaseBrowserClient(), []);
+  const [seedState, setSeedState] = useState<DemoActionState>({ status: 'idle' });
+  const [clearState, setClearState] = useState<DemoActionState>({ status: 'idle' });
+  const [resetState, setResetState] = useState<DemoActionState>({ status: 'idle' });
 
   const setLanguage = useCallback(
     (lng: 'it' | 'en') => {
@@ -19,6 +35,48 @@ export default function SettingsView() {
     },
     [i18n],
   );
+
+  const handleSeedDemo = useCallback(async () => {
+    setSeedState({ status: 'busy' });
+    try {
+      const res = await seedDemoData(supabase);
+      setSeedState({
+        status: 'success',
+        message: res.created
+          ? t('settings.demoSeedSuccessNew')
+          : t('settings.demoSeedSuccessExisting'),
+      });
+    } catch (err) {
+      setSeedState({ status: 'error', message: err instanceof Error ? err.message : 'unknown' });
+    }
+  }, [supabase, t]);
+
+  const handleClearDemo = useCallback(async () => {
+    if (!window.confirm(t('settings.demoClearConfirm'))) return;
+    setClearState({ status: 'busy' });
+    try {
+      const res = await clearDemoData(supabase);
+      const count = res.deleted_events ?? 0;
+      setClearState({
+        status: 'success',
+        message: count > 0
+          ? t('settings.demoClearSuccess', { count })
+          : t('settings.demoClearNothing'),
+      });
+    } catch (err) {
+      setClearState({ status: 'error', message: err instanceof Error ? err.message : 'unknown' });
+    }
+  }, [supabase, t]);
+
+  const handleResetOnboarding = useCallback(async () => {
+    setResetState({ status: 'busy' });
+    try {
+      await resetTenantOnboarding(supabase);
+      setResetState({ status: 'success', message: t('settings.onboardingResetSuccess') });
+    } catch (err) {
+      setResetState({ status: 'error', message: err instanceof Error ? err.message : 'unknown' });
+    }
+  }, [supabase, t]);
 
   const activeLabel = active === 'en' ? t('settings.languageEn') : t('settings.languageIt');
 
@@ -130,6 +188,113 @@ export default function SettingsView() {
           </div>
         </div>
       </section>
+
+      {isAdmin ? (
+        <section
+          className="mt-10 max-w-2xl rounded-xl border border-sc-accent/20 bg-sc-accent/5 p-6"
+          aria-labelledby="settings-demo-heading"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-sc-accent/25 bg-sc-accent/10 text-sc-accent">
+              <Sparkles className="h-4 w-4" aria-hidden />
+            </div>
+            <h2 id="settings-demo-heading" className="text-lg font-semibold text-sc-text">
+              {t('settings.demoTitle')}
+            </h2>
+          </div>
+          <p className="mt-2 text-sm text-sc-text-dim">{t('settings.demoIntro')}</p>
+
+          <div className="mt-5 grid gap-3">
+            <DemoActionRow
+              icon={<PlayCircle className="h-4 w-4" aria-hidden />}
+              title={t('settings.demoSeedTitle')}
+              body={t('settings.demoSeedBody')}
+              ctaLabel={t('settings.demoSeedCta')}
+              busy={seedState.status === 'busy'}
+              onClick={() => void handleSeedDemo()}
+              tone="primary"
+              feedback={seedState}
+            />
+            <DemoActionRow
+              icon={<Trash2 className="h-4 w-4" aria-hidden />}
+              title={t('settings.demoClearTitle')}
+              body={t('settings.demoClearBody')}
+              ctaLabel={t('settings.demoClearCta')}
+              busy={clearState.status === 'busy'}
+              onClick={() => void handleClearDemo()}
+              tone="danger"
+              feedback={clearState}
+            />
+            <DemoActionRow
+              icon={<RotateCcw className="h-4 w-4" aria-hidden />}
+              title={t('settings.onboardingResetTitle')}
+              body={t('settings.onboardingResetBody')}
+              ctaLabel={t('settings.onboardingResetCta')}
+              busy={resetState.status === 'busy'}
+              onClick={() => void handleResetOnboarding()}
+              tone="muted"
+              feedback={resetState}
+            />
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function DemoActionRow({
+  icon,
+  title,
+  body,
+  ctaLabel,
+  busy,
+  onClick,
+  tone,
+  feedback,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+  ctaLabel: string;
+  busy: boolean;
+  onClick: () => void;
+  tone: 'primary' | 'danger' | 'muted';
+  feedback: DemoActionState;
+}) {
+  const { t } = useTranslation();
+  const buttonClass = (() => {
+    if (tone === 'primary') {
+      return 'inline-flex items-center gap-1.5 rounded-xl bg-sc-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-sc-primary/85 disabled:opacity-50';
+    }
+    if (tone === 'danger') {
+      return 'inline-flex items-center gap-1.5 rounded-xl border border-sc-danger/40 bg-sc-danger/10 px-4 py-2 text-sm font-medium text-sc-danger transition-colors hover:bg-sc-danger/15 disabled:opacity-50';
+    }
+    return 'inline-flex items-center gap-1.5 rounded-xl border border-sc-primary/20 px-4 py-2 text-sm font-medium text-sc-text-secondary transition-colors hover:bg-sc-primary/8 disabled:opacity-50';
+  })();
+  return (
+    <div className="rounded-xl border border-sc-primary/12 bg-sc-bg/50 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-sc-text">
+            <span className="text-sc-text-muted">{icon}</span>
+            {title}
+          </h3>
+          <p className="mt-1 text-xs leading-relaxed text-sc-text-muted">{body}</p>
+        </div>
+        <button type="button" disabled={busy} onClick={onClick} className={buttonClass}>
+          {busy ? t('common.loading') : ctaLabel}
+        </button>
+      </div>
+      {feedback.status === 'success' ? (
+        <p className="mt-3 text-xs text-sc-success" role="status">
+          {feedback.message}
+        </p>
+      ) : null}
+      {feedback.status === 'error' ? (
+        <p className="mt-3 text-xs text-sc-danger" role="alert">
+          {feedback.message}
+        </p>
+      ) : null}
     </div>
   );
 }

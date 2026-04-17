@@ -235,7 +235,17 @@ export default function TeamView() {
         ) : loadError ? (
           <p className="text-sm text-sc-danger">{loadError}</p>
         ) : invites.length === 0 ? (
-          <p className="text-sm text-sc-text-dim">{t('team.pendingEmpty')}</p>
+          <div className="rounded-2xl border border-dashed border-sc-primary/25 bg-sc-surface/40 p-6 text-center">
+            <h3 className="text-base font-semibold text-sc-text">{t('emptyState.teamTitle')}</h3>
+            <p className="mt-2 mx-auto max-w-md text-sm text-sc-text-muted">{t('emptyState.teamBody')}</p>
+            <button
+              type="button"
+              onClick={() => { setDialogOpen(true); setCreatedLink(null); setCreateError(null); }}
+              className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-sc-primary px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-sc-primary/85"
+            >
+              {t('team.inviteButton')}
+            </button>
+          </div>
         ) : (
           <ul className="divide-y divide-sc-primary/8 rounded-2xl border border-sc-primary/12 bg-sc-surface">
             {invites.map((inv) => {

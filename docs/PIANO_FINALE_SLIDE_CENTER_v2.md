@@ -1,8 +1,8 @@
 # PIANO_FINALE_SLIDE_CENTER_v2.md
 
 > **Documento operativo FINALE — versione corretta e allineata.** Sostituisce v1 (eliminato).
-> **Versione:** 2.6 — 17 Aprile 2026 (chiusura Sprint 5b: pre-integrazione code-signing, CI completa, manuali code-signing + screencast)
-> **Stato progetto:** Fasi 0-13 + Fase 14 al 100%. Web `apps/web` completo. Sprint 2 (intranet offline + bypass Windows 11) **DONE**. Sprint 3 (distribuzione desktop) **DONE**. Sprint 4 (sistema licenze centralizzato) **DONE**. Sprint 5 (hardening + materiali pre-vendita) **DONE in-repo** (v2.5: `release-licensed.bat` con `--features license`, `docs/Manuali/build-pdf.ps1` per PDF via pandoc, GitHub Actions `.github/workflows/rls-audit.yml` con seed `rls_audit_seed.sql`, `apps/web/scripts/upload-sourcemaps.mjs` con skip silenzioso, NSIS pre-uninstall hook `--deactivate` su entrambi gli agent, bozze `docs/Commerciale/Contratto_SLA.md` + `Listino_Prezzi.md`). **Sprint 5b (v2.6) DONE in-repo:** code-signing pre-integrato in `apps/{agent,room-agent}/scripts/post-build.mjs` con skip silenzioso, preflight in `release-licensed.bat`, GitHub Actions `ci.yml` (lint + typecheck + cargo check noFeatures Linux + cargo check `--features license` Windows in matrice), GitHub Actions `playwright.yml` (smoke + nightly + signup on-demand con Supabase locale via setup-cli), Manuale Code-Signing operativo per Andrea, Script_Screencast con scaletta dettagliata 3 video onboarding, ADR-014 sulla scelta `signFileIfConfigured()` in post-build. Manca **SOLO** azione esterna Andrea: acquisto cert OV Sectigo (~190 €/anno), registrazione 3 screencast (1 giornata), revisione legale SLA (avvocato GDPR).
+> **Versione:** 2.7 — 17 Aprile 2026 (chiusura Sprint 6: onboarding wizard + demo data + healthcheck pubblico + dashboard admin/health)
+> **Stato progetto:** Fasi 0-13 + Fase 14 al 100%. Web `apps/web` completo. Sprint 2 (intranet offline + bypass Windows 11) **DONE**. Sprint 3 (distribuzione desktop) **DONE**. Sprint 4 (sistema licenze centralizzato) **DONE**. Sprint 5 (hardening + materiali pre-vendita) **DONE in-repo** (v2.5). Sprint 5b (code-signing + CI completa + manuali) **DONE in-repo** (v2.6). **Sprint 6 (v2.7) DONE in-repo:** colonna `tenants.onboarded_at` + 5 RPC SECURITY DEFINER (`mark_tenant_onboarded`, `reset_tenant_onboarding`, `seed_demo_data` idempotente, `clear_demo_data` cascade su `settings.demo='true'`, `tenant_health` super_admin only), `OnboardingWizard.tsx` 3-step (welcome / crea evento o demo / next step team+agent) montato in `RootLayout` via `OnboardingGate` con auto-trigger admin-only sul primo login, sezione Demo & Onboarding in Settings (`/settings`) con 3 azioni (genera demo + cancella demo + riapri tour) e feedback async, empty states migliorati in `EventsView` + `TeamView` con CTA contestuali (link a "genera demo" / bottone "invita team"), `apps/web/public/healthcheck.json` statico per uptime monitor esterni (UptimeRobot/BetterUptime), pagina `/admin/health` super-admin con ping Supabase + ping Edge Functions (`team-invite-accept`, `licensing-sync` con accept-401-as-online) + counter aggregati via `tenant_health()`, parity i18n IT/EN su tutte le nuove stringhe (~50 chiavi), ADR-015 sulla scelta `tenants.onboarded_at` + RPC self-call. **Manca SOLO azione esterna Andrea**: acquisto cert OV Sectigo (~190 €/anno), registrazione 3 screencast (1 giornata), revisione legale SLA (avvocato GDPR), listing prodotti su `liveworksapp.com`.
 > **Obiettivi residui — roadmap finale verso vendita:**
 >
 > 1. ~~Modalita intranet completamente offline con bypass permessi Windows 11 (Sprint 2)~~ ✅ DONE
@@ -10,7 +10,8 @@
 > 3. ~~Sistema licenze centralizzato Live WORKS APP — lato cloud (v2.1) + lato client Tauri (v2.4) (Sprint 4)~~ ✅ DONE
 > 4. ~~Hardening commerciale + materiali pre-vendita (Sprint 5 in-repo)~~ ✅ DONE in v2.5
 > 5. ~~Code-signing integration ready + CI completa + manuali operativi (Sprint 5b)~~ ✅ DONE in v2.6
-> 6. **Azioni esterne Andrea (non automatizzabili):** acquisto certificato OV Sectigo per code-signing (~190 €/anno, 1-2 settimane di emissione — guida operativa in `docs/Manuali/Manuale_Code_Signing.md`), revisione `docs/Commerciale/Contratto_SLA.md` con avvocato GDPR, registrazione 3 screencast onboarding (scaletta in `docs/Manuali/Script_Screencast.md`), listing prodotti su sito marketing `liveworksapp.com`.
+> 6. ~~Onboarding wizard + demo data + healthcheck (Sprint 6 in-repo)~~ ✅ DONE in v2.7
+> 7. **Azioni esterne Andrea (non automatizzabili):** acquisto certificato OV Sectigo per code-signing (~190 €/anno, 1-2 settimane di emissione — guida operativa in `docs/Manuali/Manuale_Code_Signing.md`), revisione `docs/Commerciale/Contratto_SLA.md` con avvocato GDPR, registrazione 3 screencast onboarding (scaletta in `docs/Manuali/Script_Screencast.md`), listing prodotti su sito marketing `liveworksapp.com`, configurazione UptimeRobot puntato su `https://app.liveworksapp.com/healthcheck.json`.
 
 ---
 
@@ -23,8 +24,9 @@
 4. [Sprint 3 — Distribuzione desktop (`clean-and-build.bat`)](#4-sprint-3--distribuzione-desktop-clean-and-buildbat)
 5. [Sprint 4 — Sistema licenze Live WORKS APP](#5-sprint-4--sistema-licenze-live-works-app)
 6. [Sprint 5 + 5b — Hardening commerciale + CI completa + manuali pre-vendita](#6-sprint-5--hardening-commerciale--materiali-pre-vendita)
-7. [Rischi e mitigazioni](#7-rischi-e-mitigazioni)
-8. [Riferimenti incrociati](#8-riferimenti-incrociati)
+7. [Sprint 6 — Onboarding wizard + demo data + healthcheck](#7-sprint-6--onboarding-wizard--demo-data--healthcheck)
+8. [Rischi e mitigazioni](#8-rischi-e-mitigazioni)
+9. [Riferimenti incrociati](#9-riferimenti-incrociati)
 
 ---
 
@@ -1033,7 +1035,112 @@ di OV `.pfx` vs EV su token USB.
 
 ---
 
-## 7. Rischi e mitigazioni
+## 7. Sprint 6 — Onboarding wizard + demo data + healthcheck
+
+> **Stato:** ✅ DONE in-repo (v2.7, 17/04/2026). Tutti i task completati nei tempi.
+
+### 7.0 Obiettivi e razionale
+
+Il prodotto era completo e vendibile a fine Sprint 5b, ma il **primo accesso** di un cliente non sapeva cosa fare: dashboard vuoto, nessuna guida, nessun esempio di come si usa il prodotto. Lo Sprint 6 colma questo gap con tre interventi mirati:
+
+1. **Onboarding wizard auto-trigger** sul primo login admin: 3 step che spiegano il prodotto, fanno creare il primo evento (o generano dati demo), e indirizzano al passo successivo (invito team, installazione Agent).
+2. **Demo data idempotenti** generabili e cancellabili dall'admin in qualsiasi momento (utile sia per onboarding sia per demo commerciali in vivavoce).
+3. **Healthcheck pubblico + dashboard `/admin/health`** per monitoraggio uptime esterno (UptimeRobot/BetterUptime) e diagnostica platform interna (Supabase + Edge Functions + counter aggregati).
+
+**Risultato commerciale:** time-to-value ridotto da ~30 minuti (cliente naviga senza riferimenti) a ~5 minuti (wizard + demo) per il primo "Aha moment". Healthcheck abilita SLA enforceable (vedi `docs/Commerciale/Contratto_SLA.md`).
+
+### 7.1 Migration `20260417130000_onboarding_and_demo_seed.sql`
+
+| Cambio                                | Descrizione                                                                                              |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `tenants.onboarded_at TIMESTAMPTZ`    | Colonna nullable: NULL = wizard da mostrare; valorizzato = wizard chiuso                                 |
+| RPC `mark_tenant_onboarded()`         | SECURITY DEFINER, admin-only via JWT app_metadata, set `onboarded_at = now()` sul tenant del chiamante   |
+| RPC `reset_tenant_onboarding()`       | SECURITY DEFINER, admin-only, set `onboarded_at = NULL` (per "Riapri tour" da Settings)                  |
+| RPC `seed_demo_data()`                | SECURITY DEFINER, admin/coordinator, idempotente: 1 evento + 2 sale + 3 sessioni + 4 speaker + 5 placeholder presentazioni con marker `settings.demo='true'`. Ritorna `{event_id, created: bool}` |
+| RPC `clear_demo_data()`               | SECURITY DEFINER, admin-only, cancella SOLO eventi con `settings.demo='true'` (cascade su rooms/sessions/speakers/presentations); preserva eventi reali; ritorna count cancellati |
+| RPC `tenant_health()`                 | SECURITY DEFINER, super_admin only, ritorna counter aggregati globali (`total_tenants`, `active_events`, `total_users`, `db_size_pretty`, etc.)                |
+
+Tutte le RPC: `SET search_path = public`, `GRANT EXECUTE TO authenticated`, role-check via `auth.jwt()->'app_metadata'->>'role'` con eccezione esplicita per super_admin.
+
+### 7.2 Frontend onboarding (`apps/web/src/features/onboarding/`)
+
+| File                                          | Responsabilita                                                                                       |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `repository.ts`                               | 5 funzioni CRUD: `fetchTenantOnboardingRow`, `markTenantOnboarded`, `resetTenantOnboarding`, `seedDemoData`, `clearDemoData` |
+| `hooks/useTenantOnboardingStatus.ts`          | Hook React: legge `tenants.onboarded_at`, espone `{ state, isOnboarded, tenantName, refresh }`. Effect senza setState sync (rispetta `react-hooks/set-state-in-effect`) |
+| `OnboardingGate.tsx`                          | Render conditional: monta `OnboardingWizard` solo se `role === 'admin' && !isOnboarded`. Lazy-load del wizard per non pesare sul bundle iniziale dei non-admin |
+| `components/OnboardingWizard.tsx`             | Modal full-screen 3 step: Welcome (intro + 3 benefit con icone Lucide) → Crea evento o Demo (form inline + alternativa "Genera dati demo") → Finish (next step team + agent). Skip in qualsiasi step chiama comunque `markTenantOnboarded()` |
+
+**Mounting:** `OnboardingGate` aggiunto a `RootLayout.tsx`, fuori dall'`<Outlet />`, cosi' resta visibile su qualsiasi route admin.
+
+### 7.3 Settings: sezione Demo & Onboarding
+
+`SettingsView.tsx` ha una nuova sezione admin-only con 3 azioni `DemoActionRow`:
+
+1. **Genera dati demo** — chiama `seedDemoData()`, mostra "creato" o "gia presente" (idempotente)
+2. **Cancella dati demo** — chiama `clearDemoData()`, mostra count eventi cancellati
+3. **Riapri tour onboarding** — chiama `resetTenantOnboarding()` + reload soft (mostra di nuovo wizard al prossimo refresh)
+
+Ogni azione ha stato `idle | busy | done | error` con feedback inline e disabling durante l'esecuzione.
+
+### 7.4 Empty states migliorati
+
+| View         | Prima                       | Dopo                                                                                |
+| ------------ | --------------------------- | ----------------------------------------------------------------------------------- |
+| `EventsView` | "Nessun evento" testo nudo  | Card centrata: titolo + body + CTA → `/settings` (genera dati demo)                |
+| `TeamView`   | "Nessun invito" testo nudo  | Card centrata: titolo + body + bottone "Invita membro" che apre il dialog inviti    |
+
+Tutte le stringhe i18n IT + EN: chiavi `emptyState.eventsTitle`, `emptyState.eventsBody`, `emptyState.teamTitle`, `emptyState.teamBody`, `team.inviteButton`, `settings.demoSeedCta`.
+
+### 7.5 Healthcheck pubblico + `/admin/health`
+
+**`apps/web/public/healthcheck.json`** — file statico servito da Vite/Vercel su `https://app.liveworksapp.com/healthcheck.json`. Risposta 200 OK = app raggiungibile. Compatibile con: UptimeRobot (free fino a 50 monitor), BetterUptime, Pingdom, statuscake.
+
+```json
+{ "status": "ok", "service": "live-slide-center-web", "version": "4.14.0", ... }
+```
+
+**`/admin/health` (super_admin only)** — `apps/web/src/features/admin/AdminHealthView.tsx` con 3 sezioni live:
+
+- **Supabase ping**: misura latency RTT su `tenant_health()` RPC; verde < 500ms, ambra 500-1500ms, rosso > 1500ms o errore
+- **Edge Functions ping**: chiama `team-invite-accept` e `licensing-sync` con request vuota; accetta `401 / 403` come "reachable_auth_gated" (le funzioni richiedono auth, ma rispondono = sono live)
+- **Counter aggregati**: chiama `tenant_health()` e mostra in card colorate (`CounterCard`) i metric chiave: `total_tenants`, `active_events`, `total_users`, `db_size_pretty`
+
+Bottone "Refresh All" rilancia tutti e 3 i ping in parallelo.
+
+### 7.6 i18n IT + EN — parity 100%
+
+~50 chiavi nuove aggiunte in symmetric su `packages/shared/src/i18n/locales/it.json` e `en.json`:
+
+- `onboarding.*` (wizard step, bottoni, messaggi)
+- `settings.demo*` (sezione Demo & Onboarding)
+- `emptyState.*` (events + team)
+- `health.*` (dashboard /admin/health, badge stato, label counter)
+
+### 7.7 ADR-015 + manuali
+
+- **ADR-015** in `.cursor/rules/project-architecture.mdc`: documenta scelta `tenants.onboarded_at` (vs `localStorage` o `app_metadata` JWT) + auto-trigger via `OnboardingGate` + RPC SECURITY DEFINER per gating role-aware.
+- **Manuale_Onboarding_Cliente.md** (opzionale, da scrivere se serve guida user-facing): procedura passo-passo del wizard con screenshot.
+
+### 7.8 Definition of Done — Sprint 6
+
+- [x] Migration `20260417130000_onboarding_and_demo_seed.sql` con 5 RPC.
+- [x] Tipi TypeScript aggiornati in `packages/shared/src/types/database.ts`.
+- [x] Repository + hook + wizard + gate in `apps/web/src/features/onboarding/`.
+- [x] `OnboardingGate` montato in `RootLayout`.
+- [x] Sezione "Demo & Onboarding" in `SettingsView` (admin-only).
+- [x] Empty state CTA in `EventsView` + `TeamView`.
+- [x] `apps/web/public/healthcheck.json` statico.
+- [x] `/admin/health` dashboard con ping Supabase + Edge Functions + counter `tenant_health()`.
+- [x] Link "Health" in `admin-root-layout.tsx`.
+- [x] Parity i18n IT/EN su tutte le nuove stringhe.
+- [x] Lint + typecheck verdi (5/5 pacchetti).
+- [x] ADR-015 documentato.
+- [ ] (esterno) UptimeRobot configurato puntato su `https://app.liveworksapp.com/healthcheck.json`.
+
+---
+
+## 8. Rischi e mitigazioni
 
 | Rischio                                      | Probabilita | Impatto                     | Mitigazione                                                                                               |
 | -------------------------------------------- | ----------- | --------------------------- | --------------------------------------------------------------------------------------------------------- |
@@ -1047,12 +1154,16 @@ di OV `.pfx` vs EV su token USB.
 
 ---
 
-## 8. Riferimenti incrociati
+## 9. Riferimenti incrociati
 
-### 8.1 File del repo Slide Center
+### 9.1 File del repo Slide Center
 
-- `docs/GUIDA_DEFINITIVA_PROGETTO.md` — fonte di verita architettura. **Versione corrente: 4.13.0** (Sprint 5b chiuso).
-- `.cursor/rules/project-architecture.mdc` — ADR. **ADR-012 (Sprint 4 v2.4)** + **ADR-013 (Sprint 5 v2.5)** webhook Lemon su Live WORKS APP + **ADR-014 (Sprint 5b v2.6)** code-signing in `post-build.mjs`.
+- `docs/GUIDA_DEFINITIVA_PROGETTO.md` — fonte di verita architettura. **Versione corrente: 4.14.0** (Sprint 6 chiuso).
+- `.cursor/rules/project-architecture.mdc` — ADR. **ADR-012 (Sprint 4 v2.4)** + **ADR-013 (Sprint 5 v2.5)** webhook Lemon su Live WORKS APP + **ADR-014 (Sprint 5b v2.6)** code-signing in `post-build.mjs` + **ADR-015 (Sprint 6 v2.7)** onboarding wizard via `tenants.onboarded_at` + RPC self-call.
+- `supabase/migrations/20260417130000_onboarding_and_demo_seed.sql` — **Sprint 6**: colonna `tenants.onboarded_at` + 5 RPC SECURITY DEFINER (`mark_tenant_onboarded`, `reset_tenant_onboarding`, `seed_demo_data`, `clear_demo_data`, `tenant_health`).
+- `apps/web/src/features/onboarding/` — **Sprint 6**: `repository.ts` + hook `useTenantOnboardingStatus` + `OnboardingGate.tsx` + `components/OnboardingWizard.tsx` (3 step, lazy-loaded).
+- `apps/web/src/features/admin/AdminHealthView.tsx` — **Sprint 6**: dashboard `/admin/health` con ping Supabase + Edge Functions + counter `tenant_health()`.
+- `apps/web/public/healthcheck.json` — **Sprint 6**: endpoint statico per uptime monitor esterni.
 - `apps/web/src/main.tsx` — wiring Sentry + ErrorBoundary (gia fatto).
 - `apps/web/scripts/upload-sourcemaps.mjs` — Sprint 5: upload sourcemap a Sentry, skip silenzioso senza `SENTRY_AUTH_TOKEN`.
 - `apps/agent/src-tauri/` — Local Agent (Sprint 2 + 3 + 4 + 5 chiusi); modulo `src/license/` (7 file) per Sprint 4; hook NSIS pre-uninstall `--deactivate` per Sprint 5.
@@ -1068,7 +1179,7 @@ di OV `.pfx` vs EV su token USB.
 - `.github/workflows/playwright.yml` — **Sprint 5b**: smoke E2E su `apps/web/e2e/smoke.spec.ts` con Supabase locale (setup-cli pinned). Trigger PR + nightly cron + workflow_dispatch (con input `run_signup_test` opzionale).
 - `supabase/tests/rls_audit_seed.sql` — Sprint 5: seed minimo 2 tenant con UUID deterministici per CI.
 
-### 8.2 File esterni di riferimento
+### 9.2 File esterni di riferimento
 
 - `Live 3d Ledwall Render/src-tauri/src/license/` — pattern licenze.
 - `Live 3d Ledwall Render/clean-and-build.bat` — pattern build orchestrato.
@@ -1076,18 +1187,17 @@ di OV `.pfx` vs EV su token USB.
 - `Live WORKS APP/functions/src/license/` — backend API (Cloud Functions Node 22).
 - `Live WORKS APP/functions/src/types/index.ts` — schema risposte API (camelCase: `verifyBeforeDate`, `nextVerifyDate`, `expiresAt`).
 
-### 8.3 Decisione su `PIANO_FINALE_SLIDE_CENTER_v1.md`
+### 9.3 Decisione su `PIANO_FINALE_SLIDE_CENTER_v1.md`
 
 `v1` resta in repo come riferimento storico ma con header **DEPRECATO**. Tutti gli sviluppi futuri leggono **solo** questo `v2`.
 
 ---
 
-**Andrea, prossimo step operativo (post chiusura Sprint 5b in-repo):**
+**Andrea, prossimo step operativo (post chiusura Sprint 6 in-repo):**
 
-Lato codice non c'e' piu' niente da chiudere. **Tutta** la pre-integrazione
-code-signing e' pronta: appena il cert OV arriva, settare 3 env vars e firma
-automaticamente entrambi gli installer + entrambi gli EXE portable + rigenera
-SHA256SUMS coerenti.
+Lato codice non c'e' piu' niente da chiudere per il go-to-market: **MVP + commercial hardening + onboarding wizard + healthcheck** sono tutti pronti. Il primo cliente che apre l'app vede il wizard automatico, puo' generare dati demo per esplorare, e tu hai una dashboard `/admin/health` per monitorare la piattaforma in tempo reale.
+
+Lato codice resta solo l'attesa cert OV: appena arriva, 3 env vars e firma automatica di tutti gli installer + EXE portable + rigenera SHA256SUMS coerenti.
 
 Le azioni rimanenti sono tutte **esterne al repo** e richiedono interazione
 umana/terzi:

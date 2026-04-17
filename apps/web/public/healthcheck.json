@@ -1,0 +1,10 @@
+{
+  "status": "ok",
+  "service": "live-slide-center-web",
+  "ecosystem": "live-software-andrea-rizzari",
+  "version": "4.14.0",
+  "release_codename": "sprint-6-onboarding",
+  "url": "https://liveworksapp.com",
+  "support": "info@livesoftware.it",
+  "documentation": "https://github.com/live-software11/live-slide-center/tree/main/docs/Manuali"
+}

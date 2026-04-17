@@ -252,7 +252,16 @@ export default function EventsView() {
           {t('event.listTitle')}
         </h2>
         {state.events.length === 0 ? (
-          <p className="mt-4 text-sm text-sc-text-dim">{t('event.emptyList')}</p>
+          <div className="mt-4 rounded-2xl border border-dashed border-sc-primary/25 bg-sc-surface/40 p-6 text-center">
+            <h3 className="text-base font-semibold text-sc-text">{t('emptyState.eventsTitle')}</h3>
+            <p className="mt-2 mx-auto max-w-md text-sm text-sc-text-muted">{t('emptyState.eventsBody')}</p>
+            <Link
+              to="/settings"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-xl border border-sc-accent/30 bg-sc-accent/10 px-4 py-2 text-xs font-medium text-sc-accent transition-colors hover:bg-sc-accent/15"
+            >
+              {t('settings.demoSeedCta')}
+            </Link>
+          </div>
         ) : (
           <ul className="mt-4 divide-y divide-sc-primary/12 rounded-xl border border-sc-primary/12">
             {state.events.map((ev) => (

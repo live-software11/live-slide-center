@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { AppBrandLogo } from '@/components/AppBrandLogo';
+import { OnboardingGate } from '@/features/onboarding/OnboardingGate';
 
 export function RootLayout() {
   const { t } = useTranslation();
@@ -101,6 +102,7 @@ export function RootLayout() {
           <Outlet />
         </Suspense>
       </main>
+      <OnboardingGate />
     </div>
   );
 }

@@ -67,6 +67,10 @@ export const router = createBrowserRouter([
                 path: 'audit',
                 lazy: () => import('@/features/admin/AdminAuditView'),
               },
+              {
+                path: 'health',
+                lazy: () => import('@/features/admin/AdminHealthView'),
+              },
             ],
           },
         ],
