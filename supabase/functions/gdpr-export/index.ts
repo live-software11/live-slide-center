@@ -53,7 +53,11 @@ Deno.serve(async (req: Request) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return json({ error: 'unauthorized' }, 401);
+    if (!authHeader || !authHeader.toLowerCase().startsWith('bearer ')) {
+      return json({ error: 'unauthorized' }, 401);
+    }
+    const jwt = authHeader.slice(7).trim();
+    if (!jwt || jwt.split('.').length !== 3) return json({ error: 'unauthorized' }, 401);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
@@ -62,17 +66,25 @@ Deno.serve(async (req: Request) => {
       return json({ error: 'env_misconfigured' }, 500);
     }
 
-    // Client utente: rispetta RLS + JWT (admin gating gia' su RPC).
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
+    // Validazione identita' via admin.getUser(jwt) - pattern stabile Deno.
+    const adminAuth = createClient(supabaseUrl, serviceRole, {
+      auth: { persistSession: false, autoRefreshToken: false },
     });
-    const { data: userInfo, error: userErr } = await userClient.auth.getUser();
-    if (userErr || !userInfo?.user) return json({ error: 'unauthorized' }, 401);
+    const { data: userInfo, error: userErr } = await adminAuth.auth.getUser(jwt);
+    if (userErr || !userInfo?.user) {
+      console.error('[gdpr-export] auth_get_user_failed', userErr?.message ?? 'no_user');
+      return json({ error: 'unauthorized' }, 401);
+    }
 
     const tenantId =
       (userInfo.user.app_metadata?.tenant_id as string | undefined) ??
       (userInfo.user.user_metadata?.tenant_id as string | undefined);
     if (!tenantId) return json({ error: 'missing_tenant' }, 400);
+
+    // Client utente per le RPC che devono rispettare RLS.
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
 
     // 1. Crea record export (rate limit 5 min via RPC).
     const { data: exportIdRaw, error: createErr } = await userClient.rpc('create_tenant_data_export');

@@ -389,6 +389,20 @@ verify_jwt = false
 [functions.system-status]
 verify_jwt = false
 
+# Pair init / pair poll / gdpr-export: auth utente gestita esplicitamente nel
+# codice via admin.auth.getUser(jwt). Il legacy verify_jwt platform NON supporta
+# le nuove JWT signing keys ES256 (asimmetriche), causando "Invalid JWT" 401
+# anche con token validi. Disabilitato per evitare il blocco platform.
+# Riferimento: https://supabase.com/docs/guides/functions/auth
+[functions.pair-init]
+verify_jwt = false
+
+[functions.pair-poll]
+verify_jwt = false
+
+[functions.gdpr-export]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
