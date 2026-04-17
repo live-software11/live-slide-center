@@ -49,7 +49,34 @@
     "tenantSuspendedBody": "L'accesso al Centro Slide per il tuo tenant è stato disattivato dall'amministratore di piattaforma. Contatta il supporto se ritieni sia un errore.",
     "loadingSession": "Verifica sessione…",
     "a11yLoginTitle": "Accesso al Centro Slide",
-    "a11ySignupTitle": "Registrazione nuovo tenant"
+    "a11ySignupTitle": "Registrazione nuovo tenant",
+    "forgotPasswordPageTitle": "Recupero password",
+    "forgotPasswordLabel": "La tua email",
+    "forgotPasswordSubmit": "Invia link di recupero",
+    "forgotPasswordSuccess": "Se l'indirizzo è registrato, riceverai a breve un'email con le istruzioni.",
+    "forgotPasswordBack": "Torna al login",
+    "resetPasswordPageTitle": "Nuova password",
+    "resetPasswordLabel": "Nuova password",
+    "resetPasswordConfirmLabel": "Conferma password",
+    "resetPasswordSubmit": "Salva nuova password",
+    "resetPasswordSuccess": "Password aggiornata. Accedi con la nuova password.",
+    "resetPasswordErrorMismatch": "Le password non corrispondono.",
+    "resetPasswordErrorSession": "Link di recupero non valido o scaduto. Richiedi un nuovo link.",
+    "acceptInvitePageTitle": "Accetta invito",
+    "acceptInviteLoading": "Verifica invito in corso…",
+    "acceptInviteInvalid": "Questo invito non è valido o è scaduto.",
+    "acceptInviteExpired": "L'invito è scaduto. Chiedi all'amministratore di inviarne uno nuovo.",
+    "acceptInviteAlreadyUsed": "Questo invito è già stato utilizzato.",
+    "acceptInviteSubtitle": "Sei stato invitato come {{role}} nel workspace di {{tenant}}.",
+    "acceptInviteFullNameLabel": "Nome completo",
+    "acceptInviteFullNamePlaceholder": "Il tuo nome e cognome",
+    "acceptInvitePasswordLabel": "Scegli una password",
+    "acceptInvitePasswordHint": "Minimo 8 caratteri",
+    "acceptInviteConfirmPasswordLabel": "Conferma password",
+    "acceptInviteSubmit": "Crea account e accedi",
+    "acceptInviteSuccess": "Account creato! Accesso in corso…",
+    "acceptInviteErrorGeneric": "Impossibile creare l'account. Contatta l'amministratore.",
+    "acceptInviteErrorEmailExists": "Questa email è già registrata. Usa il login normale."
   },
   "event": {
     "title": "Evento",
@@ -161,6 +188,35 @@
       "eventsPerMonthExceeded": "Impossibile creare l'evento: limite mensile di eventi del piano raggiunto.",
       "roomsPerEventExceeded": "Impossibile aggiungere un'altra sala: limite sale per evento del piano raggiunto."
     }
+  },
+  "team": {
+    "pageTitle": "Gestione team",
+    "pageIntro": "Invita collaboratori nel tuo workspace. L'invitato riceve un link per creare il proprio account.",
+    "inviteButton": "Invita membro",
+    "inviteDialogTitle": "Invita un membro del team",
+    "inviteEmailLabel": "Email",
+    "inviteEmailPlaceholder": "email@organizzazione.it",
+    "inviteRoleLabel": "Ruolo",
+    "inviteSubmit": "Crea invito",
+    "inviteSuccessTitle": "Invito creato",
+    "inviteSuccessBody": "Copia il link qui sotto e invialo al collaboratore. Scade tra 7 giorni.",
+    "copyLink": "Copia link invito",
+    "linkCopied": "Link copiato!",
+    "pendingTitle": "Inviti in sospeso",
+    "pendingEmpty": "Nessun invito in sospeso.",
+    "colEmail": "Email",
+    "colRole": "Ruolo",
+    "colExpiry": "Scade il",
+    "colStatus": "Stato",
+    "statusPending": "In attesa",
+    "statusAccepted": "Accettato",
+    "statusExpired": "Scaduto",
+    "revokeButton": "Revoca",
+    "revokeConfirm": "Revocare questo invito? L'azione è irreversibile.",
+    "revokeSuccess": "Invito revocato.",
+    "loadError": "Impossibile caricare gli inviti.",
+    "createError": "Impossibile creare l'invito. Verifica che l'email non sia già registrata.",
+    "noPermission": "Solo gli amministratori del tenant possono gestire il team."
   },
   "billing": {
     "title": "Abbonamento e piano",
@@ -366,7 +422,7 @@
       "loading": "Caricamento versioni…",
       "loadError": "Impossibile caricare lo storico versioni.",
       "actionError": "Operazione non riuscita. Riprova.",
-      "none": "Nessuna presentazione caricata ancora.",
+      "none": "Nessuna presentazione caricata ancora. Trascina qui un file o usa il tasto sopra per caricarla tu.",
       "emptyList": "Nessuna versione presente.",
       "totalCount_one": "{{count}} versione totale",
       "totalCount_other": "{{count}} versioni totali",
@@ -388,6 +444,53 @@
         "failed": "Fallita",
         "superseded": "Superata"
       }
+    },
+    "adminUpload": {
+      "sectionTitle": "Carica nuova versione",
+      "dropTitle": "Trascina qui un file per {{name}}",
+      "dropHint": "PPT, PPTX, PDF, KEY, ZIP — fino al limite del piano.",
+      "selectFile": "Scegli file",
+      "replaceFile": "Sostituisci file",
+      "startUpload": "Avvia upload",
+      "cancel": "Annulla",
+      "uploading": "Upload in corso…",
+      "hashing": "Calcolo SHA-256…",
+      "finalizing": "Finalizzazione…",
+      "uploaded": "Caricata",
+      "uploadAnother": "Carica un'altra versione",
+      "errorTooLarge": "File troppo grande per il piano del tenant.",
+      "errorQuotaExceeded": "Quota di storage del tenant esaurita.",
+      "errorSpeakerInvalid": "Relatore non valido o non accessibile.",
+      "errorTenantMissing": "Sessione senza tenant: rieffettua il login.",
+      "errorFilenameTooLong": "Nome file troppo lungo (max 255 caratteri).",
+      "errorObjectMissing": "Upload incompleto: oggetto non trovato su Storage.",
+      "errorNetwork": "Errore di rete durante l'upload. Riprova.",
+      "errorConfig": "Configurazione Supabase mancante (VITE_SUPABASE_URL/ANON_KEY).",
+      "errorRoleForbidden": "Il tuo ruolo non consente di caricare presentazioni.",
+      "errorTenantSuspended": "Account sospeso: contatta il supporto.",
+      "errorEventClosed": "Evento chiuso o archiviato: caricamento non consentito.",
+      "errorGeneric": "Upload non riuscito. Verifica e riprova."
+    },
+    "move": {
+      "button": "Sposta",
+      "dialogTitle": "Sposta presentazione",
+      "dialogIntro": "Stai spostando la presentazione di {{name}} ad un altro relatore dello stesso evento.",
+      "targetSpeakerLabel": "Relatore di destinazione",
+      "selectSpeakerPlaceholder": "Seleziona un relatore…",
+      "noTargetsAvailable": "Nessun relatore disponibile in questo evento (un relatore puo' avere al massimo una presentazione).",
+      "confirm": "Sposta",
+      "moving": "Spostamento in corso…",
+      "errorTargetHasPresentation": "Il relatore di destinazione ha gia' una presentazione. Eliminala prima di spostare.",
+      "errorCrossEvent": "Impossibile spostare presentazioni tra eventi diversi.",
+      "errorSameSpeaker": "Hai selezionato lo stesso relatore di partenza.",
+      "errorNotFound": "Presentazione non trovata o non accessibile.",
+      "errorTargetNotFound": "Relatore di destinazione non trovato o non accessibile.",
+      "errorTenantMissing": "Sessione senza tenant: rieffettua il login.",
+      "errorRoleForbidden": "Il tuo ruolo non consente di spostare presentazioni.",
+      "errorTenantSuspended": "Account sospeso: contatta il supporto.",
+      "errorEventClosed": "Evento chiuso o archiviato: spostamento non consentito.",
+      "errorPresentationArchived": "Presentazione archiviata: non puo' essere spostata.",
+      "errorGeneric": "Spostamento non riuscito. Riprova."
     }
   },
   "sync": {
@@ -407,6 +510,42 @@
     "statusOnline": "Online",
     "statusOffline": "Offline",
     "statusDegraded": "Degradato"
+  },
+  "license": {
+    "section": "Licenza",
+    "key": "Chiave licenza",
+    "keyPlaceholder": "LIVE-XXXX-XXXX-XXXX-XXXX",
+    "activate": "Attiva licenza",
+    "activating": "Attivazione in corso…",
+    "deactivate": "Disattiva (cambio PC)",
+    "verify": "Verifica online",
+    "verifying": "Verifica in corso…",
+    "fingerprint": "Fingerprint hardware",
+    "fingerprintHint": "Identificativo univoco del PC (per supporto Live Software).",
+    "copyFingerprint": "Copia fingerprint",
+    "customer": "Intestatario",
+    "expiresAt": "Scadenza",
+    "verifyBefore": "Prossima verifica entro",
+    "status": {
+      "notActivated": "Licenza non attivata",
+      "notActivatedHint": "Inserisci la chiave fornita da Live Software per sbloccare l'app.",
+      "pendingApproval": "In attesa approvazione",
+      "pendingApprovalHint": "L'attivazione richiede approvazione amministratore. Verra' completata automaticamente entro pochi minuti.",
+      "licensed": "Licenza attiva",
+      "licensedHint": "Software autorizzato. Buon lavoro.",
+      "expired": "Licenza scaduta",
+      "expiredHint": "Contatta Live Software per il rinnovo.",
+      "wrongMachine": "Hardware non corrispondente",
+      "wrongMachineHint": "La licenza risulta attiva su un altro PC. Disattiva dal PC originale o richiedi reset al supporto.",
+      "needsOnlineVerify": "Verifica online richiesta",
+      "needsOnlineVerifyHint": "Connetti il PC a internet e premi 'Verifica online' per riconvalidare la licenza.",
+      "error": "Errore licenza"
+    },
+    "blocking": {
+      "title": "Software non autorizzato",
+      "subtitle": "L'utilizzo di Live SLIDE CENTER richiede una licenza valida.",
+      "subtitleSupport": "Per assistenza scrivi a info@livesoftware.it indicando il fingerprint qui sotto."
+    }
   },
   "common": {
     "save": "Salva",
@@ -582,7 +721,11 @@
       "success": "PC abbinato con successo: {{name}}",
       "expired": "Il codice è scaduto.",
       "regenerate": "Genera nuovo codice",
-      "errorGeneric": "Errore: {{message}}"
+      "errorGeneric": "Errore: {{message}}",
+      "errorAuth": "Sessione scaduta o non autorizzata.",
+      "errorAuthHint": "Esegui di nuovo il login dalla pagina /login e riapri questa schermata. Se persiste, ricarica la pagina (CTRL+F5) per rinfrescare il token.",
+      "errorFunctionMissing": "Funzione `pair-init` non disponibile sul server.",
+      "errorFunctionMissingHint": "Le Edge Function devono essere deployate sul progetto Supabase remoto. Da CLI: `supabase functions deploy pair-init pair-poll pair-claim`."
     }
   },
   "pair": {
@@ -596,6 +739,37 @@
     "errorUsed": "Codice già utilizzato. Richiedi un nuovo codice.",
     "errorRateLimited": "Troppi tentativi da questo indirizzo. Attendi un minuto e riprova.",
     "errorGeneric": "Errore di connessione. Riprova."
+  },
+  "intranet": {
+    "title": "Modalità intranet offline",
+    "statusLabel": "Stato connettività",
+    "discoveryFile": "File condiviso (UNC)",
+    "discoveryUdp": "Broadcast UDP",
+    "discoveryMdns": "mDNS",
+    "discoveryManual": "IP manuale",
+    "discoveryCache": "Cache locale (60s)",
+    "status": {
+      "cloud-direct": "Cloud diretto",
+      "lan-via-agent": "LAN via Local Agent",
+      "intranet-only": "Solo intranet (offline)",
+      "offline": "Offline — cache locale"
+    },
+    "hint": {
+      "cloudDirectDefault": "Connesso a internet: i file vengono scaricati direttamente da Supabase Storage.",
+      "cloudDirectIntranetMode": "Modalità sala impostata su intranet ma nessun Local Agent registrato: download da cloud finché non arriva l'agent.",
+      "cloudFallback": "Local Agent {{ip}}:{{port}} non risponde all'health check: download via cloud (fallback automatico).",
+      "lanViaAgent": "Internet OK e Local Agent {{ip}}:{{port}} raggiungibile: download prioritario via LAN per ridurre latenza.",
+      "intranetOnly": "Internet assente ma Local Agent {{ip}}:{{port}} risponde in LAN: i file delle presentazioni restano disponibili.",
+      "offlineWithAgentDown": "Internet assente e Local Agent {{ip}}:{{port}} irraggiungibile: viene servita l'ultima cache locale.",
+      "offlineNoAgent": "Nessuna connettività rilevata e nessun Local Agent registrato per la sala: solo cache locale."
+    },
+    "banner": {
+      "offline": "Offline completo. Le funzionalità sono limitate alla cache locale finché internet o il Local Agent non tornano disponibili.",
+      "intranetOnly": "Modalità intranet attiva: connesso al Local Agent in LAN ma senza accesso a internet. I download nuovi delle presentazioni passano dal Local Agent."
+    },
+    "networkMode": {
+      "hint": "Modalità rete configurata per questa sala: {{mode}}."
+    }
   },
   "roomPlayer": {
     "noFiles": "Nessun file caricato per questa sala.",

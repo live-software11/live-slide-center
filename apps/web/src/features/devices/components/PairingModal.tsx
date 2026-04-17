@@ -137,9 +137,25 @@ export function PairingModal({ eventId, roomId, onClose, onPaired }: PairingModa
     }
 
     if (s.status === 'error') {
+      const errorMessage =
+        s.kind === 'auth'
+          ? t('devices.pairing.errorAuth')
+          : s.kind === 'function_missing'
+            ? t('devices.pairing.errorFunctionMissing')
+            : t('devices.pairing.errorGeneric', { message: s.message });
       return (
         <div className="flex flex-col items-center gap-4 py-8">
-          <p className="text-sc-danger">{t('devices.pairing.errorGeneric', { message: s.message })}</p>
+          <p className="max-w-sm text-center text-sc-danger">{errorMessage}</p>
+          {s.kind === 'auth' ? (
+            <p className="max-w-sm text-center text-xs text-sc-text-dim">
+              {t('devices.pairing.errorAuthHint')}
+            </p>
+          ) : null}
+          {s.kind === 'function_missing' ? (
+            <p className="max-w-sm text-center text-xs text-sc-text-dim">
+              {t('devices.pairing.errorFunctionMissingHint')}
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={() => { reset(); startPairing(); }}

@@ -4,11 +4,13 @@ use reqwest::Client;
 use serde::Deserialize;
 use std::path::PathBuf;
 use tokio::io::AsyncWriteExt;
-use tracing::info;
+use tracing::{info, warn};
 
+use crate::motw::strip_mark_of_the_web;
 use crate::state::RoomAgentState;
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct RemoteFile {
     pub version_id: String,
     pub filename: String,
@@ -43,15 +45,31 @@ pub async fn download_file_from_agent(
     let room_dir = state.output_dir.join(&room_id);
     tokio::fs::create_dir_all(&room_dir).await?;
 
+    // Scrittura atomica: scarichiamo prima su <filename>.part, poi rename
+    // sul nome finale. In caso di crash o disconnessione il file parziale
+    // resta visibile come .part e non viene servito a PowerPoint.
     let local_path = room_dir.join(filename);
-    let mut file = tokio::fs::File::create(&local_path).await?;
-    let mut stream = response.bytes_stream();
+    let temp_path = room_dir.join(format!("{}.part", filename));
 
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk?;
-        file.write_all(&chunk).await?;
+    {
+        let mut file = tokio::fs::File::create(&temp_path).await?;
+        let mut stream = response.bytes_stream();
+
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk?;
+            file.write_all(&chunk).await?;
+        }
+        file.flush().await?;
     }
-    file.flush().await?;
+
+    // Rename atomico sul filesystem locale.
+    tokio::fs::rename(&temp_path, &local_path).await?;
+
+    // Strip Mark-of-the-Web (Windows). Best-effort: errori loggati ma non fatali
+    // per non bloccare la sync se l'ADS non e' presente o l'ACL nega l'accesso.
+    if let Err(err) = strip_mark_of_the_web(&local_path) {
+        warn!(file = %filename, error = %err, "Room Agent: strip MOTW fallito");
+    }
 
     info!("Room Agent: downloaded {} -> {}", filename, local_path.display());
 

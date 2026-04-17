@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   Clock,
   Cloud,
+  CloudOff,
   Folder,
   FolderOpen,
   LogOut,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 import { invokeRoomPlayerBootstrap, type RoomPlayerBootstrapSession, type RoomPlayerNetworkMode } from './repository';
 import { useFileSync } from './hooks/useFileSync';
+import { useConnectivityMode, type ConnectivityMode } from './hooks/useConnectivityMode';
 import { FileSyncStatus } from './components/FileSyncStatus';
 import type { Database } from '@slidecenter/shared';
 
@@ -62,41 +64,103 @@ function SyncBadge({ status }: { status: SyncStatus }) {
   );
 }
 
-function RouteModeChip({
+/**
+ * Sprint 2 — Chip di connettivita' a 4 stati (intranet offline aware).
+ * Sostituisce il vecchio RouteModeChip basato solo su `networkMode`.
+ *
+ * Stati visibili:
+ *  - cloud-direct  (verde)     — Internet + nessun agent o probe negativa
+ *  - lan-via-agent (verde-blu) — Internet + Local Agent in LAN (preferito)
+ *  - intranet-only (giallo)    — Internet KO ma Local Agent serve i file
+ *  - offline       (rosso)     — Tutto irraggiungibile, cache locale
+ */
+const CONNECTIVITY_STYLES: Record<ConnectivityMode, string> = {
+  'cloud-direct': 'border-sc-success/30 bg-sc-success/10 text-sc-success',
+  'lan-via-agent': 'border-sc-primary/30 bg-sc-primary/10 text-sc-primary',
+  'intranet-only': 'border-sc-warning/30 bg-sc-warning/10 text-sc-warning',
+  offline: 'border-sc-danger/30 bg-sc-danger/10 text-sc-danger',
+};
+
+function ConnectivityChip({
+  mode,
   networkMode,
-  navigatorOnline,
   agentLan,
+  lanHealthy,
 }: {
+  mode: ConnectivityMode;
   networkMode: RoomPlayerNetworkMode;
-  navigatorOnline: boolean;
   agentLan: { lan_ip: string; lan_port: number } | null;
+  lanHealthy: boolean | null;
 }) {
   const { t } = useTranslation();
 
-  const modeLabel = t(`roomPlayer.route.mode.${networkMode}`);
+  const Icon =
+    mode === 'offline'
+      ? WifiOff
+      : mode === 'intranet-only'
+        ? Network
+        : mode === 'lan-via-agent'
+          ? Network
+          : Cloud;
+
+  const label = t(`intranet.status.${mode}`);
 
   let hint: string;
-  if (!navigatorOnline && agentLan) {
-    hint = t('roomPlayer.route.hintLanNoInternet');
-  } else if (!navigatorOnline && !agentLan) {
-    hint = t('roomPlayer.route.hintFullOffline');
-  } else if (networkMode === 'cloud') {
-    hint = t('roomPlayer.route.hintCloudDirect');
+  if (mode === 'offline') {
+    hint = agentLan
+      ? t('intranet.hint.offlineWithAgentDown', {
+        ip: agentLan.lan_ip,
+        port: agentLan.lan_port,
+      })
+      : t('intranet.hint.offlineNoAgent');
+  } else if (mode === 'intranet-only') {
+    hint = t('intranet.hint.intranetOnly', {
+      ip: agentLan?.lan_ip ?? '-',
+      port: agentLan?.lan_port ?? '-',
+    });
+  } else if (mode === 'lan-via-agent') {
+    hint = t('intranet.hint.lanViaAgent', {
+      ip: agentLan?.lan_ip ?? '-',
+      port: agentLan?.lan_port ?? '-',
+    });
+  } else if (agentLan && lanHealthy === false) {
+    hint = t('intranet.hint.cloudFallback', {
+      ip: agentLan.lan_ip,
+      port: agentLan.lan_port,
+    });
   } else if (networkMode === 'intranet') {
-    hint = agentLan ? t('roomPlayer.route.hintLanPrimary') : t('roomPlayer.route.hintNoAgent');
+    hint = t('intranet.hint.cloudDirectIntranetMode');
   } else {
-    hint = agentLan ? t('roomPlayer.route.hintHybrid') : t('roomPlayer.route.hintHybridCloudOnly');
+    hint = t('intranet.hint.cloudDirectDefault');
   }
-
-  const Icon = networkMode === 'cloud' ? Cloud : Network;
 
   return (
     <span
-      className="inline-flex max-w-40 items-center gap-1 truncate rounded-full border border-sc-primary/20 bg-sc-surface px-2 py-0.5 text-[10px] font-medium text-sc-text-muted"
+      className={`inline-flex max-w-44 items-center gap-1 truncate rounded-full border px-2 py-0.5 text-[10px] font-medium ${CONNECTIVITY_STYLES[mode]}`}
       title={hint}
+      aria-label={`${label}: ${hint}`}
+      role="status"
+    >
+      <Icon className="h-3 w-3 shrink-0" />
+      <span className="truncate">{label}</span>
+    </span>
+  );
+}
+
+function NetworkModeChip({
+  networkMode,
+}: {
+  networkMode: RoomPlayerNetworkMode;
+}) {
+  const { t } = useTranslation();
+  const Icon = networkMode === 'cloud' ? Cloud : networkMode === 'intranet' ? Network : CloudOff;
+  return (
+    <span
+      className="inline-flex items-center gap-1 truncate rounded-full border border-sc-primary/12 bg-sc-surface px-2 py-0.5 text-[10px] font-medium text-sc-text-muted"
+      title={t('intranet.networkMode.hint', { mode: t(`roomPlayer.route.mode.${networkMode}`) })}
     >
       <Icon className="h-3 w-3 shrink-0 text-sc-primary" />
-      <span className="truncate">{modeLabel}</span>
+      <span className="truncate">{t(`roomPlayer.route.mode.${networkMode}`)}</span>
     </span>
   );
 }
@@ -131,6 +195,12 @@ export default function RoomPlayerView() {
     eventId: roomData?.eventId ?? '',
     deviceToken: token ?? '',
     networkMode: roomData?.networkMode ?? 'cloud',
+    agentLan: roomData?.agentLan ?? null,
+    navigatorOnline,
+    enabled: Boolean(roomData && token),
+  });
+
+  const { mode: connectivityMode, lanHealthy } = useConnectivityMode({
     agentLan: roomData?.agentLan ?? null,
     navigatorOnline,
     enabled: Boolean(roomData && token),
@@ -251,11 +321,13 @@ export default function RoomPlayerView() {
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
-          <RouteModeChip
+          <ConnectivityChip
+            mode={connectivityMode}
             networkMode={roomData.networkMode}
-            navigatorOnline={navigatorOnline}
             agentLan={roomData.agentLan}
+            lanHealthy={lanHealthy}
           />
+          <NetworkModeChip networkMode={roomData.networkMode} />
           <SyncBadge status={roomData.syncStatus} />
           <button
             type="button"
@@ -268,9 +340,14 @@ export default function RoomPlayerView() {
         </div>
       </header>
 
-      {!navigatorOnline && (
+      {connectivityMode === 'offline' && (
         <div className="border-b border-sc-danger/25 bg-sc-danger/10 px-4 py-2">
-          <p className="text-center text-xs text-sc-danger">{t('roomPlayer.connectivity.offlineBanner')}</p>
+          <p className="text-center text-xs text-sc-danger">{t('intranet.banner.offline')}</p>
+        </div>
+      )}
+      {connectivityMode === 'intranet-only' && (
+        <div className="border-b border-sc-warning/25 bg-sc-warning/10 px-4 py-2">
+          <p className="text-center text-xs text-sc-warning">{t('intranet.banner.intranetOnly')}</p>
         </div>
       )}
 

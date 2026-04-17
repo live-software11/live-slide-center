@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "icons:brand": "node ./scripts/generate-brand-icons.mjs",
+    "icons:agents": "node ./scripts/generate-agent-icons.mjs",
     "prebuild": "node ./scripts/generate-brand-icons.mjs",
     "predev": "node ./scripts/generate-brand-icons.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "postbuild": "node ./scripts/upload-sourcemaps.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",

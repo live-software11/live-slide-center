@@ -101,27 +101,40 @@ async fn serve_file_handler(
     use axum::http::header;
     use tokio_util::io::ReaderStream;
 
-    let filename = params.get("filename").ok_or(StatusCode::BAD_REQUEST)?;
-    let event_id = params.get("event_id").ok_or(StatusCode::BAD_REQUEST)?;
+    let filename = params
+        .get("filename")
+        .ok_or(StatusCode::BAD_REQUEST)?
+        .to_owned();
+    let event_id = params
+        .get("event_id")
+        .ok_or(StatusCode::BAD_REQUEST)?
+        .to_owned();
 
-    let db = state.db.lock().unwrap();
-    let files = list_cached_files(&db, event_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    drop(db);
+    // Estraiamo il record dal DB in un blocco esplicito cosi' che il
+    // MutexGuard (non-Send) venga droppato PRIMA di qualsiasi `.await`,
+    // requisito per soddisfare il trait `Handler` di axum (Future Send).
+    let cached = {
+        let db = state.db.lock().unwrap();
+        let files =
+            list_cached_files(&db, &event_id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        files
+            .into_iter()
+            .find(|f| f.filename == filename)
+            .ok_or(StatusCode::NOT_FOUND)?
+    };
 
-    let cached = files
-        .into_iter()
-        .find(|f| f.filename == *filename)
-        .ok_or(StatusCode::NOT_FOUND)?;
-
-    let path = std::path::Path::new(&cached.local_path);
+    let path = std::path::Path::new(&cached.local_path).to_path_buf();
     if !path.exists() {
         return Err(StatusCode::NOT_FOUND);
     }
 
-    let file = tokio::fs::File::open(path)
+    let file = tokio::fs::File::open(&path)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let metadata = file.metadata().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let metadata = file
+        .metadata()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let stream = ReaderStream::new(file);
 
     Ok(axum::response::Response::builder()

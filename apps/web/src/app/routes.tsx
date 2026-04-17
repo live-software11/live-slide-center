@@ -1,15 +1,11 @@
-import { i18n } from '@slidecenter/shared/i18n';
 import { Outlet } from 'react-router';
 import { createBrowserRouter } from 'react-router';
 import { AdminRootLayout } from './admin-root-layout';
+import { HydrateFallback } from './hydrate-fallback';
 import { RootLayout } from './root-layout';
 import { RequireAuth } from './require-auth';
 import { RequireSuperAdmin } from './require-super-admin';
 import { RequireTenantAdmin } from './require-tenant-admin';
-
-function HydrateFallback() {
-  return <p className="p-8 text-sc-text-muted">{i18n.t('common.loading')}</p>;
-}
 
 export const router = createBrowserRouter([
   {
@@ -35,6 +31,18 @@ export const router = createBrowserRouter([
       {
         path: '/signup',
         lazy: () => import('@/features/auth/SignupView'),
+      },
+      {
+        path: '/forgot-password',
+        lazy: () => import('@/features/auth/ForgotPasswordView'),
+      },
+      {
+        path: '/reset-password',
+        lazy: () => import('@/features/auth/ResetPasswordView'),
+      },
+      {
+        path: '/accept-invite/:token',
+        lazy: () => import('@/features/auth/AcceptInviteView'),
       },
       {
         path: '/admin',
@@ -89,6 +97,16 @@ export const router = createBrowserRouter([
               {
                 path: 'settings',
                 lazy: () => import('@/features/settings/SettingsView'),
+              },
+              {
+                path: 'team',
+                element: <RequireTenantAdmin />,
+                children: [
+                  {
+                    index: true,
+                    lazy: () => import('@/features/team/TeamView'),
+                  },
+                ],
               },
               {
                 path: 'billing',

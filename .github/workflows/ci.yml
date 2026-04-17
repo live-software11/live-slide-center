@@ -1,0 +1,150 @@
+name: CI (lint + typecheck + cargo check)
+
+# Sprint 5b — Hardening commerciale.
+# Obiettivo: ogni PR deve passare lint + typecheck del frontend e
+# `cargo check` di entrambi gli Agent (con e senza --features license).
+# Questo blocca alla porta i regression che oggi rileviamo solo a build NSIS.
+#
+# Architettura:
+#  - job `web` (Ubuntu, veloce): pnpm install + lint + typecheck.
+#  - job `agents-noFeatures` (Ubuntu, veloce): cargo check entrambi gli agent
+#    SENZA `--features license`. Catch regression sul codice base condiviso.
+#  - job `agents-licensed` (Windows, piu' lento): cargo check con
+#    `--features license` per validare il modulo `wmi` (Windows-only).
+#    Eseguito SOLO quando cambia codice Tauri/Rust o questo workflow.
+#
+# Nota: NIENTE `cargo build` qui. Il bundle NSIS richiede toolchain WiX/NSIS +
+# minuti di build. Per il bundle finale usiamo `release-licensed.bat` in locale
+# o un workflow `release-installer.yml` separato (futuro).
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.github/ISSUE_TEMPLATE/**'
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+  workflow_dispatch:
+
+# Cancella run obsolete sullo stesso branch quando arriva un nuovo push
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────
+  # Frontend monorepo: lint + typecheck su tutti i package del workspace
+  # ────────────────────────────────────────────────────────────────────────
+  web:
+    name: Web (lint + typecheck)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dipendenze (workspace)
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (turbo run lint)
+        run: pnpm lint
+
+      - name: Typecheck (turbo run typecheck)
+        run: pnpm typecheck
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Cargo check agents senza feature license (Linux veloce)
+  # ────────────────────────────────────────────────────────────────────────
+  agents-noFeatures:
+    name: Agents cargo check (no features) — ${{ matrix.agent }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        agent:
+          - { dir: apps/agent/src-tauri, bin: local-agent }
+          - { dir: apps/room-agent/src-tauri, bin: room-agent }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install toolchain Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      # Tauri richiede webkit2gtk + gtk + librsvg2 anche per `cargo check`
+      # (build script di tauri-build invoca pkg-config su Linux).
+      - name: Install dipendenze sistema (Tauri Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            librsvg2-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev \
+            patchelf \
+            build-essential
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ matrix.agent.dir }}
+          key: noFeatures-${{ matrix.agent.bin }}
+
+      - name: cargo check (no features) — ${{ matrix.agent.bin }}
+        working-directory: ${{ matrix.agent.dir }}
+        run: cargo check --locked --bin ${{ matrix.agent.bin }}
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Cargo check agents CON --features license (Windows: wmi e' Win-only)
+  # Eseguito solo se cambia codice Rust/Tauri o questo workflow.
+  # ────────────────────────────────────────────────────────────────────────
+  agents-licensed:
+    name: Agents cargo check (--features license) — ${{ matrix.agent }}
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        agent:
+          - { dir: apps/agent/src-tauri, bin: local-agent }
+          - { dir: apps/room-agent/src-tauri, bin: room-agent }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install toolchain Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ matrix.agent.dir }}
+          key: licensed-${{ matrix.agent.bin }}
+
+      - name: cargo check (--features license) — ${{ matrix.agent.bin }}
+        working-directory: ${{ matrix.agent.dir }}
+        # `--features license` attiva aes-gcm + wmi + sha2 + chrono
+        # (vedi src-tauri/Cargo.toml). Su Windows tutte compilano.
+        run: cargo check --locked --features license --bin ${{ matrix.agent.bin }}

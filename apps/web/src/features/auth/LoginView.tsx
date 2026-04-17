@@ -161,11 +161,14 @@ export default function LoginView() {
               {t('auth.submitLogin')}
             </button>
           </form>
-          <p className="mt-5 text-center text-sm text-sc-text-dim">
+          <div className="mt-5 flex flex-col items-center gap-2 text-center text-sm text-sc-text-dim">
             <Link to="/signup" className="font-medium text-sc-primary hover:text-sc-primary-deep hover:underline">
               {t('auth.goToSignup')}
             </Link>
-          </p>
+            <Link to="/forgot-password" className="text-sc-text-dim hover:text-sc-text-muted hover:underline">
+              {t('auth.forgotPassword')}
+            </Link>
+          </div>
         </div>
       </div>
     </div>

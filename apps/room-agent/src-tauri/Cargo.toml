@@ -41,6 +41,23 @@ uuid = { version = "1", features = ["v4"] }
 dirs = "5"
 gethostname = "0.4"
 
+# Sprint 2 — discovery LAN
+mdns-sd = "0.19"
+local-ip-address = "0.6"
+
+# Sprint 4 — licenze (feature opzionale "license")
+sha2 = { version = "0.10", optional = true }
+aes-gcm = { version = "0.10", optional = true }
+wmi = { version = "0.13", optional = true }
+
+[features]
+default = []
+# Build di vendita: `cargo tauri build --features license`
+license = ["dep:sha2", "dep:aes-gcm", "dep:wmi"]
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["fileapi", "winnt", "errhandlingapi"] }
+
 [profile.release]
 strip = true
 opt-level = 3

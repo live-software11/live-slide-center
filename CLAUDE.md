@@ -185,24 +185,24 @@ CREATE POLICY super_admin_all ON nome_tabella FOR ALL USING (public.is_super_adm
 | 11   | **Completata (100%)** | `/billing` (`RequireTenantAdmin`, `BillingView`), quote + confronto piani `PLAN_LIMITS`, URL Lemon/Live WORKS da env (`.env.example`); i18n `billing.*` IT+EN; webhook/sync store rimandati                                                                                                     |
 | 12   | **Completata (100%)** | `/settings` selettore lingua IT+EN (`settings.*`), `common.menu`, `HydrateFallback` i18n; parity `it.json`/`en.json`; `LanguageDetector` localStorage+navigator                                                                                                                                 |
 | 13   | **Completata (100%)** | `/settings` ecosistema: Timer/CREW da env (`VITE_LIVE_SPEAKER_TIMER_URL`, `VITE_LIVE_CREW_URL`), API pubblica in roadmap; `settings.integrations*` IT+EN; ADR-011; sync dati cross-app = post-MVP                                                                                               |
-| 14   | **In corso (~60%)**   | Rate limit pair-claim 5/15min (`pair_claim_rate_events`); RLS `current_tenant_suspended()` su tabelle operative; Sentry React lazy init (`VITE_SENTRY_DSN`); PairView stale-closure fix; `@playwright/test` dep. **Rimangono:** Playwright E2E suite, Sentry error boundary, audit RLS completo |
+| 14   | **Completata (100%)** | Rate limit pair-claim 5/15min; RLS `current_tenant_suspended()`; Sentry lazy init + `ErrorBoundary` + `unhandledrejection`; PairView fix. **Sprint 1:** `team_invitations` migration + RLS + `handle_new_user` path invito + Edge Function `team-invite-accept` + `TeamView`/`AcceptInviteView`; `ForgotPasswordView`/`ResetPasswordView`; Playwright config + 3 spec; `rls_audit.sql`; i18n `team.*`+`auth.*` IT+EN |
 
-**MVP cloud = Fasi 0-6 (100%).** Con Fasi **7**-**14** (Fase 14 hardening in corso ~60%), stima totale visione prodotto (roadmap 0-14): **circa 95%**. Dettaglio in `docs/GUIDA_DEFINITIVA_PROGETTO.md` §15.
+**MVP cloud = Fasi 0-6 (100%).** Con Fasi **7**-**14** (tutte completate, roadmap 0-14: **~98%**). Dettaglio in `docs/GUIDA_DEFINITIVA_PROGETTO.md` §15.
 
 ### Gap dichiarati (rimandati)
 
-- Inviti team (schema+UI) — pre-vendita
-- Password reset UI — pre-vendita
 - Timeline/calendario interattivo — nice-to-have
 - Import CSV sale/sessioni — non richiesto MVP
-- ~~Routing runtime `network_mode`~~ — **completato in Fase 9** (`room-player-bootstrap` + `useFileSync`)
-- ~~Export fine evento (ZIP/CSV/PDF)~~ — **completato in Fase 10** (`EventExportPanel`, `event.export.*` IT+EN)
-- ~~Billing tenant (checkout Lemon da env)~~ — **completato in Fase 11** (`/billing`, `billing.*` IT+EN); webhook Lemon / sync piano lato server — post-vendita / integrazione Live WORKS APP
-- ~~i18n completamento (lingua UI + chiavi mancanti)~~ — **completato in Fase 12** (`/settings`, `settings.*`, `common.menu`, `HydrateFallback`)
-- ~~Integrazioni ecosistema (UI + env, scope guida Fase 13)~~ — **completato al 100% in Fase 13** (`settings.integrations*`, `integrations-env.ts`, `.env.example`); REST pubblica e sync Timer/CREW rimandati
-- Playwright E2E test suite — Fase 14 (dep aggiunta, test da scrivere)
-- Sentry `captureException` in React error boundary — Fase 14 (SDK init OK, cattura errori non ancora wired)
-- Audit RLS completo / CSP / HSTS — Fase 14 (RLS suspended completato, resto in coda)
+- ~~Routing runtime `network_mode`~~ — **completato Fase 9**
+- ~~Export fine evento (ZIP/CSV/PDF)~~ — **completato Fase 10**
+- ~~Billing tenant~~ — **completato Fase 11**; webhook/sync post-vendita
+- ~~i18n completamento~~ — **completato Fase 12**
+- ~~Integrazioni ecosistema~~ — **completato Fase 13**; REST pubblica post-MVP
+- ~~Inviti team + password reset UI~~ — **completato Sprint 1** (`team_invitations`, `ForgotPasswordView`, `ResetPasswordView`, `AcceptInviteView`)
+- ~~Playwright E2E suite~~ — **completato Sprint 1** (config + smoke + signup-flow + rls-isolation)
+- ~~Sentry `captureException` in error boundary~~ — **completato Sprint 1** (`ErrorBoundary`, `unhandledrejection`)
+- ~~Audit RLS completo~~ — **completato Sprint 1** (`supabase/tests/rls_audit.sql`)
+- CSP / HSTS hardening — post-vendita (infra Vercel/Supabase, non codice)
 
 ---
 
@@ -286,6 +286,7 @@ aggiornare `docs/GUIDA_DEFINITIVA_PROGETTO.md` **nello stesso intervento**.
 9. `20250416120100_tenant_suspended.sql` — colonna `tenants.suspended` (blocco accesso tenant lato app; super_admin escluso)
 10. `20250416140300_phase14_pair_claim_rate_limit.sql` — tabella `pair_claim_rate_events` (rate limit pair-claim: IP hash, 5 tentativi/15 min, grant solo service_role)
 11. `20250416140301_phase14_rls_tenant_suspended.sql` — funzione `current_tenant_suspended()` SECURITY DEFINER, policy RLS granulari su tutte le tabelle operative (suspended = blocco dati, SELECT `users`/`tenants` preservato)
+12. `20260417100000_team_invitations.sql` — tabella `team_invitations` + RLS `tenant_isolation`+`current_tenant_suspended()`, aggiornamento `handle_new_user()` per percorso utente invitato (join tenant esistente senza creazione nuovo tenant)
 
 ### Edge Functions Supabase (supabase/functions/)
 
@@ -297,6 +298,7 @@ aggiornare `docs/GUIDA_DEFINITIVA_PROGETTO.md` **nello stesso intervento**.
 | `pair-poll`             | JWT tenant        | Polling stato pairing: pending / consumed / expired                                                                               |
 | `cleanup-expired-codes` | nessuna (cron)    | DELETE `pairing_codes` scaduti non consumed (>24h)                                                                                |
 | `room-player-bootstrap` | nessuna (token)   | POST `device_token` → sala, `network_mode`, agent LAN, lista versioni ready (service role); `verify_jwt = false` in `config.toml` |
+| `team-invite-accept`    | nessuna (token)   | POST `{ action: 'validate'\|'accept', token, password?, full_name? }` — valida invito o crea utente Auth con `app_metadata.tenant_id+role`; `verify_jwt = false` |
 
 ---
 

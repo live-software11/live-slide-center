@@ -365,6 +365,15 @@ allow_dynamic_registration = false
 [functions.room-player-bootstrap]
 verify_jwt = false
 
+# Team invite accept: token nel body, nessun JWT — azione pubblica per utenti non ancora registrati.
+[functions.team-invite-accept]
+verify_jwt = false
+
+# Licensing sync: chiamata server-to-server da Live WORKS APP (Cloud Functions)
+# protetta da HMAC SHA-256 sul body — NIENTE JWT (no utenti finali).
+[functions.licensing-sync]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

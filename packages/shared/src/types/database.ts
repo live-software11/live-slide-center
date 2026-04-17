@@ -560,6 +560,10 @@ export type Database = {
           storage_limit_bytes: number;
           max_events_per_month: number;
           max_rooms_per_event: number;
+          max_devices_per_room: number;
+          expires_at: string | null;
+          license_key: string | null;
+          license_synced_at: string | null;
           suspended: boolean;
           settings: Json;
           created_at: string;
@@ -576,6 +580,10 @@ export type Database = {
           storage_limit_bytes?: number;
           max_events_per_month?: number;
           max_rooms_per_event?: number;
+          max_devices_per_room?: number;
+          expires_at?: string | null;
+          license_key?: string | null;
+          license_synced_at?: string | null;
           suspended?: boolean;
           settings?: Json;
           created_at?: string;
@@ -592,10 +600,53 @@ export type Database = {
           storage_limit_bytes?: number;
           max_events_per_month?: number;
           max_rooms_per_event?: number;
+          max_devices_per_room?: number;
+          expires_at?: string | null;
+          license_key?: string | null;
+          license_synced_at?: string | null;
           suspended?: boolean;
           settings?: Json;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      team_invitations: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          email: string;
+          role: Database['public']['Enums']['user_role'];
+          invited_by_user_id: string;
+          invite_token: string;
+          invite_token_expires_at: string;
+          accepted_at: string | null;
+          accepted_by_user_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          email: string;
+          role?: Database['public']['Enums']['user_role'];
+          invited_by_user_id: string;
+          invite_token: string;
+          invite_token_expires_at?: string;
+          accepted_at?: string | null;
+          accepted_by_user_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          tenant_id?: string;
+          email?: string;
+          role?: Database['public']['Enums']['user_role'];
+          invited_by_user_id?: string;
+          invite_token?: string;
+          invite_token_expires_at?: string;
+          accepted_at?: string | null;
+          accepted_by_user_id?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -642,6 +693,20 @@ export type Database = {
       is_super_admin: { Args: Record<string, never>; Returns: boolean };
       rpc_reorder_sessions: { Args: { p_ids: string[]; p_event_id: string }; Returns: void };
       tenant_max_file_size: { Args: { p_tenant_id: string }; Returns: number | null };
+      tenant_max_devices_per_room: { Args: { p_tenant_id: string }; Returns: number | null };
+      licensing_apply_quota: {
+        Args: {
+          p_license_key: string;
+          p_tenant_id: string | null;
+          p_plan: Database['public']['Enums']['tenant_plan'];
+          p_storage_limit_bytes: number | null;
+          p_max_rooms_per_event: number | null;
+          p_max_devices_per_room: number | null;
+          p_expires_at: string | null;
+          p_status: string;
+        };
+        Returns: Json;
+      };
       validate_upload_token: { Args: { p_token: string }; Returns: Json };
       init_upload_version: {
         Args: { p_token: string; p_filename: string; p_size: number; p_mime: string };
@@ -661,6 +726,22 @@ export type Database = {
       };
       rpc_update_presentation_status: {
         Args: { p_presentation_id: string; p_status: string; p_note: string | null };
+        Returns: Json;
+      };
+      init_upload_version_admin: {
+        Args: { p_speaker_id: string; p_filename: string; p_size: number; p_mime: string };
+        Returns: Json;
+      };
+      finalize_upload_version_admin: {
+        Args: { p_version_id: string; p_sha256: string };
+        Returns: Json;
+      };
+      abort_upload_version_admin: {
+        Args: { p_version_id: string };
+        Returns: Json;
+      };
+      rpc_move_presentation: {
+        Args: { p_presentation_id: string; p_target_speaker_id: string };
         Returns: Json;
       };
     };

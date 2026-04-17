@@ -49,7 +49,34 @@
     "tenantSuspendedBody": "Access to Slide Center for your tenant has been disabled by the platform administrator. Contact support if you believe this is a mistake.",
     "loadingSession": "Checking session…",
     "a11yLoginTitle": "Slide Center sign-in",
-    "a11ySignupTitle": "New tenant registration"
+    "a11ySignupTitle": "New tenant registration",
+    "forgotPasswordPageTitle": "Password recovery",
+    "forgotPasswordLabel": "Your email address",
+    "forgotPasswordSubmit": "Send recovery link",
+    "forgotPasswordSuccess": "If this address is registered, you will receive an email with instructions shortly.",
+    "forgotPasswordBack": "Back to sign in",
+    "resetPasswordPageTitle": "Set new password",
+    "resetPasswordLabel": "New password",
+    "resetPasswordConfirmLabel": "Confirm password",
+    "resetPasswordSubmit": "Save new password",
+    "resetPasswordSuccess": "Password updated. Sign in with your new password.",
+    "resetPasswordErrorMismatch": "Passwords do not match.",
+    "resetPasswordErrorSession": "Recovery link is invalid or has expired. Please request a new one.",
+    "acceptInvitePageTitle": "Accept invitation",
+    "acceptInviteLoading": "Verifying invitation…",
+    "acceptInviteInvalid": "This invitation is not valid or has expired.",
+    "acceptInviteExpired": "This invitation has expired. Ask your administrator to send a new one.",
+    "acceptInviteAlreadyUsed": "This invitation has already been used.",
+    "acceptInviteSubtitle": "You have been invited as {{role}} to {{tenant}}'s workspace.",
+    "acceptInviteFullNameLabel": "Full name",
+    "acceptInviteFullNamePlaceholder": "Your first and last name",
+    "acceptInvitePasswordLabel": "Choose a password",
+    "acceptInvitePasswordHint": "Minimum 8 characters",
+    "acceptInviteConfirmPasswordLabel": "Confirm password",
+    "acceptInviteSubmit": "Create account and sign in",
+    "acceptInviteSuccess": "Account created! Signing in…",
+    "acceptInviteErrorGeneric": "Could not create the account. Contact your administrator.",
+    "acceptInviteErrorEmailExists": "This email address is already registered. Use the regular sign-in."
   },
   "event": {
     "title": "Event",
@@ -161,6 +188,35 @@
       "eventsPerMonthExceeded": "Cannot create the event: the monthly event limit for your plan has been reached.",
       "roomsPerEventExceeded": "Cannot add another room: the per-event room limit for your plan has been reached."
     }
+  },
+  "team": {
+    "pageTitle": "Team management",
+    "pageIntro": "Invite collaborators to your workspace. Invitees receive a link to create their own account.",
+    "inviteButton": "Invite member",
+    "inviteDialogTitle": "Invite a team member",
+    "inviteEmailLabel": "Email",
+    "inviteEmailPlaceholder": "email@organization.com",
+    "inviteRoleLabel": "Role",
+    "inviteSubmit": "Create invitation",
+    "inviteSuccessTitle": "Invitation created",
+    "inviteSuccessBody": "Copy the link below and send it to the new member. It expires in 7 days.",
+    "copyLink": "Copy invite link",
+    "linkCopied": "Link copied!",
+    "pendingTitle": "Pending invitations",
+    "pendingEmpty": "No pending invitations.",
+    "colEmail": "Email",
+    "colRole": "Role",
+    "colExpiry": "Expires on",
+    "colStatus": "Status",
+    "statusPending": "Pending",
+    "statusAccepted": "Accepted",
+    "statusExpired": "Expired",
+    "revokeButton": "Revoke",
+    "revokeConfirm": "Revoke this invitation? This action cannot be undone.",
+    "revokeSuccess": "Invitation revoked.",
+    "loadError": "Could not load invitations.",
+    "createError": "Could not create the invitation. Verify the email is not already registered.",
+    "noPermission": "Only tenant administrators can manage the team."
   },
   "billing": {
     "title": "Subscription & plan",
@@ -366,7 +422,7 @@
       "loading": "Loading versions…",
       "loadError": "Could not load version history.",
       "actionError": "Operation failed. Please retry.",
-      "none": "No presentation uploaded yet.",
+      "none": "No presentation uploaded yet. Drop a file here or use the button above to upload it yourself.",
       "emptyList": "No versions present.",
       "totalCount_one": "{{count}} version total",
       "totalCount_other": "{{count}} versions total",
@@ -388,6 +444,53 @@
         "failed": "Failed",
         "superseded": "Superseded"
       }
+    },
+    "adminUpload": {
+      "sectionTitle": "Upload new version",
+      "dropTitle": "Drop a file here for {{name}}",
+      "dropHint": "PPT, PPTX, PDF, KEY, ZIP — up to plan limit.",
+      "selectFile": "Select file",
+      "replaceFile": "Replace file",
+      "startUpload": "Start upload",
+      "cancel": "Cancel",
+      "uploading": "Uploading…",
+      "hashing": "Computing SHA-256…",
+      "finalizing": "Finalizing…",
+      "uploaded": "Uploaded",
+      "uploadAnother": "Upload another version",
+      "errorTooLarge": "File too large for the tenant's plan.",
+      "errorQuotaExceeded": "Tenant storage quota exhausted.",
+      "errorSpeakerInvalid": "Speaker invalid or not accessible.",
+      "errorTenantMissing": "Session without tenant: please sign in again.",
+      "errorFilenameTooLong": "Filename too long (max 255 chars).",
+      "errorObjectMissing": "Upload incomplete: object not found on Storage.",
+      "errorNetwork": "Network error during upload. Retry.",
+      "errorConfig": "Missing Supabase configuration (VITE_SUPABASE_URL/ANON_KEY).",
+      "errorRoleForbidden": "Your role does not allow uploading presentations.",
+      "errorTenantSuspended": "Account suspended: please contact support.",
+      "errorEventClosed": "Event closed or archived: uploads disabled.",
+      "errorGeneric": "Upload failed. Verify and retry."
+    },
+    "move": {
+      "button": "Move",
+      "dialogTitle": "Move presentation",
+      "dialogIntro": "Moving {{name}}'s presentation to another speaker of the same event.",
+      "targetSpeakerLabel": "Target speaker",
+      "selectSpeakerPlaceholder": "Select a speaker…",
+      "noTargetsAvailable": "No target speaker available in this event (a speaker can have at most one presentation).",
+      "confirm": "Move",
+      "moving": "Moving…",
+      "errorTargetHasPresentation": "Target speaker already has a presentation. Delete it before moving.",
+      "errorCrossEvent": "Cannot move presentations across different events.",
+      "errorSameSpeaker": "You selected the same source speaker.",
+      "errorNotFound": "Presentation not found or not accessible.",
+      "errorTargetNotFound": "Target speaker not found or not accessible.",
+      "errorTenantMissing": "Session without tenant: please sign in again.",
+      "errorRoleForbidden": "Your role does not allow moving presentations.",
+      "errorTenantSuspended": "Account suspended: please contact support.",
+      "errorEventClosed": "Event closed or archived: move not allowed.",
+      "errorPresentationArchived": "Archived presentation cannot be moved.",
+      "errorGeneric": "Move failed. Retry."
     }
   },
   "sync": {
@@ -407,6 +510,42 @@
     "statusOnline": "Online",
     "statusOffline": "Offline",
     "statusDegraded": "Degraded"
+  },
+  "license": {
+    "section": "License",
+    "key": "License key",
+    "keyPlaceholder": "LIVE-XXXX-XXXX-XXXX-XXXX",
+    "activate": "Activate license",
+    "activating": "Activating…",
+    "deactivate": "Deactivate (PC change)",
+    "verify": "Verify online",
+    "verifying": "Verifying…",
+    "fingerprint": "Hardware fingerprint",
+    "fingerprintHint": "Unique PC identifier (for Live Software support).",
+    "copyFingerprint": "Copy fingerprint",
+    "customer": "Customer",
+    "expiresAt": "Expires",
+    "verifyBefore": "Next verify by",
+    "status": {
+      "notActivated": "License not activated",
+      "notActivatedHint": "Enter the key provided by Live Software to unlock the app.",
+      "pendingApproval": "Pending approval",
+      "pendingApprovalHint": "Activation requires admin approval. It will complete automatically within a few minutes.",
+      "licensed": "License active",
+      "licensedHint": "Software authorized. Have a great show.",
+      "expired": "License expired",
+      "expiredHint": "Contact Live Software for renewal.",
+      "wrongMachine": "Hardware mismatch",
+      "wrongMachineHint": "The license is active on another PC. Deactivate it on the original machine or request a reset.",
+      "needsOnlineVerify": "Online verify required",
+      "needsOnlineVerifyHint": "Connect the PC to the internet and press 'Verify online' to revalidate the license.",
+      "error": "License error"
+    },
+    "blocking": {
+      "title": "Software not authorized",
+      "subtitle": "Using Live SLIDE CENTER requires a valid license.",
+      "subtitleSupport": "For support, contact info@livesoftware.it including the fingerprint shown below."
+    }
   },
   "common": {
     "save": "Save",
@@ -582,7 +721,11 @@
       "success": "PC paired successfully: {{name}}",
       "expired": "The code has expired.",
       "regenerate": "Generate new code",
-      "errorGeneric": "Error: {{message}}"
+      "errorGeneric": "Error: {{message}}",
+      "errorAuth": "Session expired or unauthorized.",
+      "errorAuthHint": "Please sign in again from /login and reopen this dialog. If it persists, hard reload the page (CTRL+F5) to refresh the token.",
+      "errorFunctionMissing": "The `pair-init` Edge Function is not available on the server.",
+      "errorFunctionMissingHint": "Edge Functions must be deployed to the remote Supabase project. From CLI: `supabase functions deploy pair-init pair-poll pair-claim`."
     }
   },
   "pair": {
@@ -596,6 +739,37 @@
     "errorUsed": "Code already used. Request a new code.",
     "errorRateLimited": "Too many attempts from this network. Wait a minute and try again.",
     "errorGeneric": "Connection error. Please try again."
+  },
+  "intranet": {
+    "title": "Offline intranet mode",
+    "statusLabel": "Connectivity status",
+    "discoveryFile": "Shared file (UNC)",
+    "discoveryUdp": "UDP broadcast",
+    "discoveryMdns": "mDNS",
+    "discoveryManual": "Manual IP",
+    "discoveryCache": "Local cache (60s)",
+    "status": {
+      "cloud-direct": "Cloud direct",
+      "lan-via-agent": "LAN via Local Agent",
+      "intranet-only": "Intranet only (offline)",
+      "offline": "Offline — local cache"
+    },
+    "hint": {
+      "cloudDirectDefault": "Internet OK: files are downloaded directly from Supabase Storage.",
+      "cloudDirectIntranetMode": "Room set to intranet mode but no Local Agent registered: serving from cloud until the agent comes online.",
+      "cloudFallback": "Local Agent {{ip}}:{{port}} did not pass the health check: serving from cloud (automatic fallback).",
+      "lanViaAgent": "Internet OK and Local Agent {{ip}}:{{port}} reachable: prioritising LAN download to lower latency.",
+      "intranetOnly": "No internet but Local Agent {{ip}}:{{port}} answering on LAN: presentation files remain available.",
+      "offlineWithAgentDown": "No internet and Local Agent {{ip}}:{{port}} unreachable: serving the latest local cache.",
+      "offlineNoAgent": "No connectivity detected and no Local Agent registered for this room: local cache only."
+    },
+    "banner": {
+      "offline": "Fully offline. Functionality is limited to the local cache until internet or the Local Agent come back.",
+      "intranetOnly": "Intranet mode active: connected to the Local Agent over LAN but no internet. New presentation downloads go through the Local Agent."
+    },
+    "networkMode": {
+      "hint": "Network mode configured for this room: {{mode}}."
+    }
   },
   "roomPlayer": {
     "noFiles": "No files uploaded for this room.",

@@ -1,11 +1,18 @@
 // Previene il warning "not dead code" per il binary entry-point
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use local_agent_lib::{start_lan_server, AppState};
+use local_agent_lib::{spawn_mdns_advertiser, spawn_udp_responder, start_lan_server, AppState};
 use rusqlite::Connection;
 use tracing::info;
 
 fn main() {
+    // Sprint 4 — supporto NSIS pre-uninstall: `local-agent.exe --deactivate`
+    // libera lo slot hardware su Live WORKS APP prima di rimuovere i file.
+    if std::env::args().any(|a| a == "--deactivate") {
+        local_agent_lib::license::run_deactivate_uninstall();
+        return;
+    }
+
     tracing_subscriber::fmt()
         .with_env_filter(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "local_agent=info,warn".to_string()),
@@ -27,28 +34,52 @@ fn main() {
     let supabase_key = std::env::var("SUPABASE_ANON_KEY").unwrap_or_default();
 
     let state = AppState::new(conn, cache_dir, supabase_url, supabase_key);
-    let state_clone = state.clone();
+    let state_for_http = state.clone();
+    let state_for_discovery = state.clone();
 
-    // Avvia server HTTP LAN in background
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.spawn(async move {
-        start_lan_server(state_clone, 8080).await;
+        start_lan_server(state_for_http, 8080).await;
     });
+
+    rt.spawn(async move {
+        spawn_udp_responder(state_for_discovery).await;
+    });
+
+    spawn_mdns_advertiser(env!("CARGO_PKG_VERSION").to_owned());
 
     info!("Starting Tauri UI...");
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
-        .manage(state)
-        .invoke_handler(tauri::generate_handler![
-            cmd_get_status,
-            cmd_set_event,
-            cmd_sync_event,
-            cmd_list_files,
-            cmd_list_room_agents,
-        ])
+        .manage(state);
+
+    #[cfg(feature = "license")]
+    let builder = builder.invoke_handler(tauri::generate_handler![
+        cmd_get_status,
+        cmd_set_event,
+        cmd_sync_event,
+        cmd_list_files,
+        cmd_list_room_agents,
+        local_agent_lib::license::license_activate,
+        local_agent_lib::license::license_verify,
+        local_agent_lib::license::license_deactivate,
+        local_agent_lib::license::license_status,
+        local_agent_lib::license::license_fingerprint,
+    ]);
+
+    #[cfg(not(feature = "license"))]
+    let builder = builder.invoke_handler(tauri::generate_handler![
+        cmd_get_status,
+        cmd_set_event,
+        cmd_sync_event,
+        cmd_list_files,
+        cmd_list_room_agents,
+    ]);
+
+    builder
         .run(tauri::generate_context!())
         .expect("Error running Tauri application");
 }

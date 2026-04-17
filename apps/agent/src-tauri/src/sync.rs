@@ -2,7 +2,6 @@ use anyhow::Result;
 use futures_util::StreamExt;
 use reqwest::Client;
 use sha2::{Digest, Sha256};
-use std::path::Path;
 use tokio::io::AsyncWriteExt;
 use tracing::{info, warn};
 use uuid::Uuid;
@@ -67,8 +66,10 @@ pub async fn download_file(
         downloaded_at: chrono::Utc::now().to_rfc3339(),
     };
 
-    let db = state.db.lock().unwrap();
-    upsert_cached_file(&db, &cached)?;
+    {
+        let db = state.db.lock().unwrap();
+        upsert_cached_file(&db, &cached)?;
+    }
 
     Ok(local_path_str)
 }
@@ -124,13 +125,16 @@ pub async fn sync_event(state: &AppState, event_id: &str) -> Result<()> {
         let storage_key = v.get("storage_key").and_then(|x| x.as_str()).unwrap_or_default();
         let filename = v.get("file_name").and_then(|x| x.as_str()).unwrap_or("file.bin");
 
-        // Controlla se già scaricato
-        let db = state.db.lock().unwrap();
-        let already = crate::db::list_cached_files(&db, event_id)
-            .unwrap_or_default()
-            .into_iter()
-            .any(|f| f.version_id == version_id);
-        drop(db);
+        // Controlla se già scaricato. Manteniamo il lock in uno scope esplicito
+        // così che il MutexGuard (non-Send) venga droppato prima dell'.await
+        // successivo: requisito per Tauri command async (Future Send).
+        let already = {
+            let db = state.db.lock().unwrap();
+            crate::db::list_cached_files(&db, event_id)
+                .unwrap_or_default()
+                .into_iter()
+                .any(|f| f.version_id == version_id)
+        };
 
         if already {
             continue;

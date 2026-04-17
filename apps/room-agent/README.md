@@ -1,41 +1,70 @@
-# Room Agent — Live SLIDE CENTER
+# Live SLIDE CENTER — Room Agent (Tauri v2)
 
-Applicazione desktop leggera (Tauri v2, Rust) installata su ogni **PC sala** durante un evento.
+Applicazione desktop leggera installata su ogni **PC sala** durante un evento.
+Discovery automatica del Local Agent + polling + download cifrato + tray icon.
 
-## Funzionalità
+## Stato
 
-- Polling ogni 5 secondi verso il **Local Agent** LAN per nuovi file della sala assegnata
-- Download automatico nella cartella `C:\Users\<utente>\AppData\Local\SlideCenter\<roomId>\`
-- Tray icon con stato (verde = sync, giallo = download, rosso = offline)
-- Autostart al login di Windows (registro HKCU, nessuna UAC richiesta)
-- Apertura cartella locale con un click
+Implementato fino a Sprint 3 (distribuzione desktop). Sprint 4 (sistema licenze
+Live WORKS APP — client Tauri) e Sprint 5 (hardening commerciale) seguiranno.
 
-## Build
+## Build di sviluppo
 
-```bash
-# Dalla root del monorepo
+```powershell
 cd apps/room-agent/src-tauri
-cargo tauri build
+cargo tauri dev
 ```
 
-L'installer NSIS viene generato in `target/release/bundle/nsis/`.
+## Build di distribuzione (NSIS + portable)
 
-## Setup tipico su PC sala
+Dalla root del monorepo:
 
-1. Installa `Live SLIDE CENTER Room Agent Setup.exe` (un solo click, nessuna UAC)
-2. Avvia il Room Agent dalla tray
-3. Nella UI: inserisci **IP:porta** del Local Agent (es. `192.168.1.100:8080`), **ID Sala**, **ID Evento**
-4. Clicca **Connetti e avvia sync** — i file iniziano a scaricarsi automaticamente
-5. Attiva **Avvio automatico** per far partire l'agent ad ogni accensione del PC
+```
+clean-and-build.bat   (doppio click)
+```
 
-## Note sicurezza Windows 11
+Oppure singolarmente:
 
-- Il Room Agent gira come utente normale (no UAC dopo installazione)
-- Il profilo di rete deve essere "Privato" per permettere la comunicazione LAN — lo puoi impostare nelle impostazioni di rete Windows oppure via PowerShell (eseguito con privilegi admin la prima volta)
-- I file scaricati non hanno Mark-of-the-Web → non vengono bloccati da SmartScreen
-- Per firmare l'installer con code-signing: aggiungere `signtool` nel `tauri.conf.json` bundle section
+```powershell
+cd apps/room-agent
+npm run release:full
+```
+
+Output: `release/live-slide-center-room-agent/` con installer NSIS, portable
+ZIP, e `SHA256SUMS.txt`.
+
+Vedi `docs/Manuali/Manuale_Distribuzione.md` e
+`docs/Manuali/Manuale_Installazione_Room_Agent.md` per dettagli operatore.
+
+## Funzionalita Sprint 1+2 implementate
+
+- Polling LAN ogni 5s verso il Local Agent (`http://<lan-ip>:8080`).
+- Download in cartella `%LOCALAPPDATA%\SlideCenter\<roomId>\` con rename atomico
+  (`<file>.part` -> `<file>`) e strip Mark-of-the-Web post-rename.
+- Discovery 4-tier in cascata: UNC -> UDP broadcast -> mDNS -> IP manuale, cache
+  60s.
+- Tray icon Windows con stato sync.
+- Autostart al login utente via HKCU (no UAC al boot).
+- NSIS installer hooks (Defender exclusion + rete Private + UDP 5353 mDNS).
+- Comando Tauri `set_network_private` esposto.
+
+## Architettura runtime
+
+```
+┌─ Tauri main thread ─────────────────────────────────────┐
+│  ├─ Tray icon          (std)           sync indicator   │
+│  ├─ Poller             (tokio loop)    5s GET /files    │
+│  ├─ Downloader         (tokio task)    rename + MOTW    │
+│  ├─ Discovery cascata  (on-demand)     UNC/UDP/mDNS/IP  │
+│  └─ Autostart HKCU     (std)           start at login   │
+└──────────────────────────────────────────────────────────┘
+```
 
 ## EN
 
-Lightweight desktop tray app (Tauri v2, Rust) installed on each **room PC**.
-Polls the Local Agent every 5 seconds, automatically downloads presentation files to a local folder, and supports Windows auto-start via HKCU registry (no UAC after install).
+Lightweight desktop tray app installed on each **room PC** during an event.
+Auto-discovers the Local Agent on the LAN, polls it every 5 seconds for new
+presentation versions, downloads to a local folder with atomic renames and
+Mark-of-the-Web stripping. Auto-starts at user login via HKCU (no UAC).
+Implemented through Sprint 3 (desktop distribution). See `docs/Manuali/` for
+operator manuals.

@@ -48,6 +48,20 @@ sha2 = "0.10"
 hex = "0.4"
 dirs = "5"
 
+# Discovery LAN (Sprint 2 — intranet offline)
+mdns-sd = "0.19"
+local-ip-address = "0.6"
+gethostname = "0.4"
+
+# Licenze (Sprint 4 — feature opzionale "license")
+aes-gcm = { version = "0.10", optional = true }
+wmi = { version = "0.13", optional = true }
+
+[features]
+default = []
+# Build di vendita: `cargo tauri build --features license`
+license = ["dep:aes-gcm", "dep:wmi"]
+
 [profile.release]
 strip = true
 opt-level = 3

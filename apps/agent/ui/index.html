@@ -157,6 +157,58 @@
     .form-group { margin-bottom: 12px; }
     label { font-size: 13px; color: var(--sc-text-muted); display: block; margin-bottom: 5px; font-weight: 500; }
     .empty-cell { color: var(--sc-text-dim); padding: 14px 10px; }
+
+    /* Sprint 4 - card licenza + overlay gating */
+    .license-card { border-color: rgba(255,122,0,0.20); }
+    .license-card.licensed { border-color: rgba(74,222,128,0.20); }
+    .license-card.error { border-color: rgba(248,113,113,0.30); }
+
+    .license-status-row { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 12px; }
+    .license-status-row .lbl { font-size: 11px; color: var(--sc-text-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+    .license-status-row .val { font-size: 13px; color: var(--sc-text); font-weight: 600; margin-top: 2px; }
+
+    .license-pill {
+      font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+    }
+    .license-pill.licensed { background: #14532d; color: #86efac; }
+    .license-pill.pending  { background: #713f12; color: #fde68a; }
+    .license-pill.expired,
+    .license-pill.error    { background: #7f1d1d; color: #fca5a5; }
+    .license-pill.online   { background: rgba(63,169,245,0.15); color: var(--sc-primary); }
+    .license-pill.idle     { background: var(--sc-elevated); color: var(--sc-text-secondary); }
+
+    .license-msg { font-size: 12px; color: var(--sc-text-secondary); margin: 6px 0 12px; }
+
+    .fp-box {
+      background: rgba(0,0,0,0.3); border: 1px solid var(--sc-border);
+      border-radius: 10px; padding: 10px 12px; margin-top: 10px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 11px;
+      color: var(--sc-text-muted); word-break: break-all;
+    }
+
+    /* Overlay che blocca tutta l'app finche' la licenza non e' valida. */
+    #licenseOverlay {
+      position: fixed; inset: 0;
+      background: rgba(7,16,31,0.92);
+      backdrop-filter: blur(6px);
+      z-index: 9999;
+      display: none;
+      align-items: flex-start; justify-content: center;
+      padding: 60px 20px;
+      overflow-y: auto;
+    }
+    #licenseOverlay.visible { display: flex; }
+    #licenseOverlay .panel {
+      background: var(--sc-surface);
+      border: 1px solid rgba(255,122,0,0.30);
+      border-radius: 18px;
+      padding: 26px 28px;
+      max-width: 520px;
+      width: 100%;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+    }
+    #licenseOverlay h2 { font-size: 18px; margin-bottom: 6px; }
+    #licenseOverlay .lead { color: var(--sc-text-secondary); font-size: 13px; margin-bottom: 18px; }
   </style>
 </head>
 <body>
@@ -216,11 +268,68 @@
       </table>
     </div>
 
+    <div class="card license-card" id="licenseCard" hidden>
+      <h2 id="licenseSectionTitle" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Licenza</span>
+        <span class="license-pill idle" id="licensePill">—</span>
+      </h2>
+      <div class="license-status-row" id="licensedInfo" hidden>
+        <div style="flex:1">
+          <div class="lbl" id="lblCustomer">Intestatario</div>
+          <div class="val" id="licCustomer">—</div>
+        </div>
+        <div>
+          <div class="lbl" id="lblExpires">Scadenza</div>
+          <div class="val" id="licExpires">—</div>
+        </div>
+      </div>
+      <p class="license-msg" id="licenseMsg"></p>
+      <div class="form-group" id="licenseKeyGroup">
+        <label for="inputLicenseKey" id="lblLicenseKey">Chiave licenza</label>
+        <input type="text" id="inputLicenseKey" placeholder="LIVE-XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="row">
+        <button class="btn-primary" id="btnLicActivate" onclick="licenseActivate()">Attiva licenza</button>
+        <button class="btn-ghost" id="btnLicVerify" onclick="licenseVerify()">Verifica online</button>
+        <button class="btn-ghost" id="btnLicDeact" onclick="licenseDeactivate()" hidden>Disattiva (cambio PC)</button>
+      </div>
+      <div class="fp-box" id="licFingerprintBox" hidden>
+        <div class="lbl" id="lblFp" style="font-size:11px;color:var(--sc-text-dim);margin-bottom:4px;">Fingerprint hardware</div>
+        <span id="licFingerprint">—</span>
+        <div style="margin-top:6px;">
+          <button class="btn-ghost" id="btnFpCopy" onclick="copyFingerprint()" style="padding:4px 10px;font-size:11px;">Copia fingerprint</button>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <h2>Log</h2>
       <div class="log" id="logBox">Attendere…</div>
     </div>
   </main>
+
+  <div id="licenseOverlay">
+    <div class="panel">
+      <h2 id="overlayTitle">Software non autorizzato</h2>
+      <p class="lead" id="overlaySubtitle">L'utilizzo di Live SLIDE CENTER richiede una licenza valida.</p>
+      <p class="license-msg" id="overlayMsg"></p>
+      <div class="form-group">
+        <label for="inputOverlayKey" id="lblOverlayKey">Chiave licenza</label>
+        <input type="text" id="inputOverlayKey" placeholder="LIVE-XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="row">
+        <button class="btn-primary" id="btnOverlayActivate" onclick="overlayActivate()">Attiva licenza</button>
+        <button class="btn-ghost" id="btnOverlayVerify" onclick="overlayVerify()">Verifica online</button>
+      </div>
+      <div class="fp-box">
+        <div class="lbl" style="font-size:11px;color:var(--sc-text-dim);margin-bottom:4px;">Fingerprint hardware</div>
+        <span id="overlayFingerprint">—</span>
+        <p class="license-msg" id="overlaySupport" style="margin:6px 0 0;font-size:11px;color:var(--sc-text-dim);">
+          Per assistenza scrivi a info@livesoftware.it indicando il fingerprint qui sopra.
+        </p>
+      </div>
+    </div>
+  </div>
 
   <script>
     const { invoke } = window.__TAURI__.core;
@@ -303,7 +412,270 @@
       btn.textContent = 'Sincronizza ora';
     }
 
+    // ─── Sprint 4 — Licenze ──────────────────────────────────────────────
+    const LANG = (navigator.language || 'it').toLowerCase().startsWith('en') ? 'en' : 'it';
+    const T = {
+      it: {
+        section: 'Licenza',
+        key: 'Chiave licenza',
+        activate: 'Attiva licenza',
+        activating: 'Attivazione in corso…',
+        deactivate: 'Disattiva (cambio PC)',
+        verify: 'Verifica online',
+        verifying: 'Verifica in corso…',
+        copyFp: 'Copia fingerprint',
+        copied: 'Copiato!',
+        customer: 'Intestatario',
+        expires: 'Scadenza',
+        fingerprint: 'Fingerprint hardware',
+        notActivated: 'Licenza non attivata',
+        notActivatedHint: 'Inserisci la chiave fornita da Live Software per sbloccare l\'app.',
+        pending: 'In attesa approvazione',
+        pendingHint: 'L\'attivazione richiede approvazione amministratore. Verra\' completata automaticamente entro pochi minuti.',
+        licensed: 'Licenza attiva',
+        licensedHint: 'Software autorizzato. Buon lavoro.',
+        expired: 'Licenza scaduta',
+        expiredHint: 'Contatta Live Software per il rinnovo.',
+        wrongMachine: 'Hardware non corrispondente',
+        wrongMachineHint: 'La licenza risulta attiva su un altro PC. Disattiva dal PC originale o richiedi reset al supporto.',
+        needsVerify: 'Verifica online richiesta',
+        needsVerifyHint: 'Connetti il PC a internet e premi "Verifica online" per riconvalidare la licenza.',
+        error: 'Errore licenza',
+        blockTitle: 'Software non autorizzato',
+        blockSub: 'L\'utilizzo di Live SLIDE CENTER richiede una licenza valida.',
+        support: 'Per assistenza scrivi a info@livesoftware.it indicando il fingerprint qui sopra.',
+      },
+      en: {
+        section: 'License',
+        key: 'License key',
+        activate: 'Activate license',
+        activating: 'Activating…',
+        deactivate: 'Deactivate (PC change)',
+        verify: 'Verify online',
+        verifying: 'Verifying…',
+        copyFp: 'Copy fingerprint',
+        copied: 'Copied!',
+        customer: 'Customer',
+        expires: 'Expires',
+        fingerprint: 'Hardware fingerprint',
+        notActivated: 'License not activated',
+        notActivatedHint: 'Enter the key provided by Live Software to unlock the app.',
+        pending: 'Pending approval',
+        pendingHint: 'Activation requires admin approval. It will complete automatically within a few minutes.',
+        licensed: 'License active',
+        licensedHint: 'Software authorized. Have a great show.',
+        expired: 'License expired',
+        expiredHint: 'Contact Live Software for renewal.',
+        wrongMachine: 'Hardware mismatch',
+        wrongMachineHint: 'The license is active on another PC. Deactivate it on the original machine or request a reset.',
+        needsVerify: 'Online verify required',
+        needsVerifyHint: 'Connect the PC to the internet and press "Verify online" to revalidate the license.',
+        error: 'License error',
+        blockTitle: 'Software not authorized',
+        blockSub: 'Using Live SLIDE CENTER requires a valid license.',
+        support: 'For support, contact info@livesoftware.it including the fingerprint shown above.',
+      },
+    }[LANG];
+
+    let LICENSE_AVAILABLE = false;
+    let licensePollTimer = null;
+
+    function applyLicenseLabels() {
+      const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+      document.querySelector('#licenseCard h2 span').textContent = T.section;
+      set('lblCustomer', T.customer);
+      set('lblExpires', T.expires);
+      set('lblLicenseKey', T.key);
+      set('btnLicActivate', T.activate);
+      set('btnLicVerify', T.verify);
+      set('btnLicDeact', T.deactivate);
+      set('lblFp', T.fingerprint);
+      set('btnFpCopy', T.copyFp);
+      // Overlay
+      set('overlayTitle', T.blockTitle);
+      set('overlaySubtitle', T.blockSub);
+      set('lblOverlayKey', T.key);
+      set('btnOverlayActivate', T.activate);
+      set('btnOverlayVerify', T.verify);
+      set('overlaySupport', T.support);
+    }
+
+    function describeStatus(status) {
+      switch (status?.kind) {
+        case 'licensed':         return { pill: T.licensed,     pillCls: 'licensed', msg: T.licensedHint };
+        case 'pendingApproval':  return { pill: T.pending,      pillCls: 'pending',  msg: status.message || T.pendingHint };
+        case 'wrongMachine':     return { pill: T.wrongMachine, pillCls: 'expired',  msg: T.wrongMachineHint };
+        case 'expired':          return { pill: T.expired,      pillCls: 'expired',  msg: status.message || T.expiredHint };
+        case 'needsOnlineVerify':return { pill: T.needsVerify,  pillCls: 'pending',  msg: T.needsVerifyHint };
+        case 'error':            return { pill: T.error,        pillCls: 'error',    msg: status.message || '' };
+        case 'notActivated':
+        default:                 return { pill: T.notActivated, pillCls: 'idle',     msg: T.notActivatedHint };
+      }
+    }
+
+    function isLockingStatus(status) {
+      return status?.kind !== 'licensed';
+    }
+
+    function setLicenseUI(status) {
+      const card = document.getElementById('licenseCard');
+      const pill = document.getElementById('licensePill');
+      const info = document.getElementById('licensedInfo');
+      const msg = document.getElementById('licenseMsg');
+      const fpBox = document.getElementById('licFingerprintBox');
+      const btnDeact = document.getElementById('btnLicDeact');
+      const overlay = document.getElementById('licenseOverlay');
+      const overlayMsg = document.getElementById('overlayMsg');
+
+      card.hidden = false;
+      const d = describeStatus(status);
+      pill.textContent = d.pill;
+      pill.className = 'license-pill ' + d.pillCls;
+      msg.textContent = d.msg;
+
+      card.classList.toggle('licensed', status?.kind === 'licensed');
+      card.classList.toggle('error', status?.kind === 'error' || status?.kind === 'expired' || status?.kind === 'wrongMachine');
+
+      if (status?.kind === 'licensed') {
+        info.hidden = false;
+        document.getElementById('licCustomer').textContent = status.customerName || '—';
+        btnDeact.hidden = false;
+        fpBox.hidden = true;
+      } else {
+        info.hidden = true;
+        btnDeact.hidden = true;
+        fpBox.hidden = false;
+      }
+
+      if (isLockingStatus(status)) {
+        overlay.classList.add('visible');
+        overlayMsg.textContent = d.msg;
+        startLicensePolling(status?.kind);
+      } else {
+        overlay.classList.remove('visible');
+        stopLicensePolling();
+      }
+    }
+
+    async function refreshLicense() {
+      if (!LICENSE_AVAILABLE) return;
+      try {
+        const status = await invoke('license_status');
+        setLicenseUI(status);
+        if (status?.kind !== 'licensed') {
+          try {
+            const fp = await invoke('license_fingerprint');
+            document.getElementById('licFingerprint').textContent = fp || '—';
+            document.getElementById('overlayFingerprint').textContent = fp || '—';
+          } catch (e) {
+            document.getElementById('licFingerprint').textContent = 'WMI: ' + e;
+            document.getElementById('overlayFingerprint').textContent = 'WMI: ' + e;
+          }
+        }
+      } catch (e) {
+        log('Errore lettura stato licenza: ' + e);
+      }
+    }
+
+    async function licenseActivate() {
+      const key = document.getElementById('inputLicenseKey').value.trim();
+      if (!key) { alert(T.key); return; }
+      const btn = document.getElementById('btnLicActivate');
+      btn.disabled = true; btn.textContent = T.activating;
+      try {
+        const status = await invoke('license_activate', { key });
+        log('Activate: ' + status.kind);
+        setLicenseUI(status);
+      } catch (e) { alert(e); }
+      btn.disabled = false; btn.textContent = T.activate;
+    }
+
+    async function licenseVerify() {
+      const btn = document.getElementById('btnLicVerify');
+      btn.disabled = true; btn.textContent = T.verifying;
+      try {
+        const status = await invoke('license_verify');
+        log('Verify: ' + status.kind);
+        setLicenseUI(status);
+      } catch (e) { alert(e); }
+      btn.disabled = false; btn.textContent = T.verify;
+    }
+
+    async function licenseDeactivate() {
+      if (!confirm(LANG === 'en' ? 'Deactivate license on this PC?' : 'Disattivare la licenza su questo PC?')) return;
+      try {
+        await invoke('license_deactivate', { reason: 'pc_change' });
+        log('Licenza disattivata su questo PC.');
+        await refreshLicense();
+      } catch (e) { alert(e); }
+    }
+
+    async function copyFingerprint() {
+      const fp = document.getElementById('licFingerprint').textContent;
+      try {
+        await navigator.clipboard.writeText(fp);
+        const b = document.getElementById('btnFpCopy');
+        const orig = b.textContent;
+        b.textContent = T.copied;
+        setTimeout(() => (b.textContent = orig), 1500);
+      } catch {}
+    }
+
+    async function overlayActivate() {
+      const key = document.getElementById('inputOverlayKey').value.trim();
+      if (!key) return;
+      const btn = document.getElementById('btnOverlayActivate');
+      btn.disabled = true; btn.textContent = T.activating;
+      try {
+        const status = await invoke('license_activate', { key });
+        document.getElementById('inputLicenseKey').value = key;
+        setLicenseUI(status);
+      } catch (e) { alert(e); }
+      btn.disabled = false; btn.textContent = T.activate;
+    }
+
+    async function overlayVerify() {
+      const btn = document.getElementById('btnOverlayVerify');
+      btn.disabled = true; btn.textContent = T.verifying;
+      try {
+        const status = await invoke('license_verify');
+        setLicenseUI(status);
+      } catch (e) { alert(e); }
+      btn.disabled = false; btn.textContent = T.verify;
+    }
+
+    function startLicensePolling(kind) {
+      // Polling solo per pending: chiama license_verify ogni 30s.
+      if (kind !== 'pendingApproval') { stopLicensePolling(); return; }
+      if (licensePollTimer) return;
+      licensePollTimer = setInterval(async () => {
+        try {
+          const status = await invoke('license_verify');
+          setLicenseUI(status);
+        } catch {}
+      }, 30000);
+    }
+
+    function stopLicensePolling() {
+      if (licensePollTimer) { clearInterval(licensePollTimer); licensePollTimer = null; }
+    }
+
+    async function detectLicenseFeature() {
+      try {
+        await invoke('license_status');
+        LICENSE_AVAILABLE = true;
+        applyLicenseLabels();
+        await refreshLicense();
+        setInterval(refreshLicense, 60000);
+      } catch (e) {
+        // Comando non registrato → build senza feature `license`.
+        LICENSE_AVAILABLE = false;
+        document.getElementById('licenseCard').hidden = true;
+      }
+    }
+
     async function init() {
+      await detectLicenseFeature();
       await refreshStatus();
       await refreshFiles();
       await refreshAgents();

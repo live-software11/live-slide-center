@@ -1,7 +1,11 @@
 // Previene finestra console su Windows release
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use room_agent_lib::{RoomAgentState, enable_autostart, disable_autostart, start_polling};
+use room_agent_lib::{
+    disable_autostart, discover_local_agent, enable_autostart, invalidate_discovery_cache,
+    manual_agent, set_network_private, start_polling, DiscoveryOutcome, RoomAgentState,
+};
+use room_agent_lib::DiscoveryMethod;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
@@ -10,6 +14,13 @@ use tauri::{
 use tracing::info;
 
 fn main() {
+    // Sprint 4 — supporto NSIS pre-uninstall: `room-agent.exe --deactivate`
+    // libera lo slot hardware su Live WORKS APP prima di rimuovere i file.
+    if std::env::args().any(|a| a == "--deactivate") {
+        room_agent_lib::license::run_deactivate_uninstall();
+        return;
+    }
+
     tracing_subscriber::fmt()
         .with_env_filter(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "room_agent=info,warn".to_string()),
@@ -22,7 +33,7 @@ fn main() {
 
     let state = RoomAgentState::new(hostname.clone());
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
         .manage(state)
@@ -67,16 +78,42 @@ fn main() {
             }
 
             Ok(())
-        })
-        .invoke_handler(tauri::generate_handler![
-            cmd_get_status,
-            cmd_set_agent,
-            cmd_set_room,
-            cmd_set_event_and_start,
-            cmd_enable_autostart,
-            cmd_disable_autostart,
-            cmd_open_folder,
-        ])
+        });
+
+    #[cfg(feature = "license")]
+    let builder = builder.invoke_handler(tauri::generate_handler![
+        cmd_get_status,
+        cmd_set_agent,
+        cmd_set_room,
+        cmd_set_event_and_start,
+        cmd_enable_autostart,
+        cmd_disable_autostart,
+        cmd_open_folder,
+        cmd_discover_agent,
+        cmd_set_manual_agent,
+        cmd_set_network_private,
+        room_agent_lib::license::license_activate,
+        room_agent_lib::license::license_verify,
+        room_agent_lib::license::license_deactivate,
+        room_agent_lib::license::license_status,
+        room_agent_lib::license::license_fingerprint,
+    ]);
+
+    #[cfg(not(feature = "license"))]
+    let builder = builder.invoke_handler(tauri::generate_handler![
+        cmd_get_status,
+        cmd_set_agent,
+        cmd_set_room,
+        cmd_set_event_and_start,
+        cmd_enable_autostart,
+        cmd_disable_autostart,
+        cmd_open_folder,
+        cmd_discover_agent,
+        cmd_set_manual_agent,
+        cmd_set_network_private,
+    ]);
+
+    builder
         .run(tauri::generate_context!())
         .expect("Error running Room Agent");
 }
@@ -89,6 +126,7 @@ fn cmd_get_status(state: tauri::State<RoomAgentState>) -> serde_json::Value {
     let downloaded = state.downloaded.lock().unwrap().len();
     let room_id = state.room_id.lock().unwrap().clone();
     let agent_addr = state.agent_address.lock().unwrap().clone();
+    let discovery = state.last_discovery.lock().unwrap().clone();
     serde_json::json!({
         "status": status,
         "device_name": *state.device_name,
@@ -96,6 +134,7 @@ fn cmd_get_status(state: tauri::State<RoomAgentState>) -> serde_json::Value {
         "agent_address": agent_addr,
         "downloaded_files": downloaded,
         "output_dir": state.output_dir.to_string_lossy(),
+        "discovery": discovery,
     })
 }
 
@@ -154,4 +193,69 @@ fn cmd_open_folder(state: tauri::State<RoomAgentState>) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+/// Sprint 2 — Discovery automatica del Local Agent.
+/// Esegue UNC → UDP → mDNS in cascata. Se trova un agent valido, lo registra
+/// come `agent_address` e salva i dettagli in `last_discovery` per la UI.
+/// Se non trova nulla, ritorna outcome `not_found` con i metodi tentati: la UI
+/// guidera' l'utente verso input manuale.
+#[tauri::command]
+async fn cmd_discover_agent(
+    force: Option<bool>,
+    state: tauri::State<'_, RoomAgentState>,
+) -> Result<serde_json::Value, String> {
+    if force.unwrap_or(false) {
+        invalidate_discovery_cache();
+    }
+    let outcome = discover_local_agent().await;
+    match &outcome {
+        DiscoveryOutcome::Found { agent } => {
+            *state.agent_address.lock().unwrap() = Some(agent.address.clone());
+            *state.last_discovery.lock().unwrap() = Some(room_agent_lib::DiscoveryInfo {
+                method: agent.method.clone(),
+                address: agent.address.clone(),
+                hostname: agent.hostname.clone(),
+                version: agent.version.clone(),
+                discovered_at: chrono::Utc::now().to_rfc3339(),
+            });
+            info!(method = ?agent.method, address = %agent.address, "Room Agent: discovery riuscita");
+        }
+        DiscoveryOutcome::NotFound { tried } => {
+            info!(tried = ?tried, "Room Agent: discovery automatica non riuscita");
+        }
+    }
+    serde_json::to_value(outcome).map_err(|e| e.to_string())
+}
+
+/// Imposta manualmente l'indirizzo del Local Agent (ultimo fallback Sprint 2).
+#[tauri::command]
+fn cmd_set_manual_agent(
+    address: String,
+    state: tauri::State<RoomAgentState>,
+) -> Result<serde_json::Value, String> {
+    let trimmed = address.trim();
+    if trimmed.is_empty() {
+        return Err("address_empty".to_owned());
+    }
+    if !trimmed.contains(':') {
+        return Err("address_missing_port".to_owned());
+    }
+    let agent = manual_agent(trimmed.to_owned());
+    *state.agent_address.lock().unwrap() = Some(agent.address.clone());
+    *state.last_discovery.lock().unwrap() = Some(room_agent_lib::DiscoveryInfo {
+        method: DiscoveryMethod::Manual,
+        address: agent.address.clone(),
+        hostname: None,
+        version: None,
+        discovered_at: chrono::Utc::now().to_rfc3339(),
+    });
+    serde_json::to_value(agent).map_err(|e| e.to_string())
+}
+
+/// Sprint 2 — Imposta il profilo di rete dell'interfaccia attiva su Private,
+/// permettendo broadcast UDP/mDNS/SMB sulla LAN. Richiede PowerShell.
+#[tauri::command]
+fn cmd_set_network_private(interface: String) -> Result<(), String> {
+    set_network_private(&interface).map_err(|e| e.to_string())
 }

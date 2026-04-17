@@ -47,6 +47,12 @@ apps/agent/src-tauri/target
 apps/room-agent/src-tauri/target
 apps/player/src-tauri/target
 
+# Sprint 3 - artefatti di distribuzione (NSIS installer + portable ZIP per i due Agent)
+release/
+
+# Sprint 5 - manuali operatore PDF generati da pandoc (sorgenti MD versionati, PDF no)
+docs/Manuali/pdf/
+
 # Claude Code impostazioni locali
 .claude/
 

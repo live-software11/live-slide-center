@@ -9,16 +9,43 @@ import {
   type PresentationVersion,
 } from '@/features/presentations/repository';
 import { usePresentationForSpeaker } from '@/features/presentations/hooks/usePresentationForSpeaker';
+import { AdminUploaderInline } from './AdminUploaderInline';
+import {
+  MovePresentationDialog,
+  type MoveTargetSpeaker,
+} from './MovePresentationDialog';
+
+export interface PanelEventSpeaker {
+  id: string;
+  full_name: string;
+  session_id: string;
+  has_presentation: boolean;
+}
+
+export interface PanelEventSession {
+  id: string;
+  title: string;
+}
 
 interface Props {
   speakerId: string;
   speakerName: string;
   enabled: boolean;
+  /** Altri speaker dello stesso evento per il dialog "Sposta presentazione". */
+  eventSpeakers?: PanelEventSpeaker[];
+  /** Sessioni dell'evento per mostrare il titolo nel dropdown del dialog "Sposta". */
+  eventSessions?: PanelEventSession[];
 }
 
 // Pannello storico versioni per una presentation. Carica in lazy (quando
 // `enabled=true`). Realtime-aware via hook dedicato.
-export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: Props) {
+export function PresentationVersionsPanel({
+  speakerId,
+  speakerName,
+  enabled,
+  eventSpeakers,
+  eventSessions,
+}: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language?.startsWith('en') ? 'en-US' : 'it-IT';
   const dateTimeFmt = useMemo(
@@ -32,6 +59,19 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
   const [actionError, setActionError] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState<string>('');
   const [noteOpen, setNoteOpen] = useState<PresentationStatus | null>(null);
+  const [moveOpen, setMoveOpen] = useState(false);
+
+  const moveTargets = useMemo<MoveTargetSpeaker[]>(() => {
+    if (!eventSpeakers || !eventSessions) return [];
+    const sessionTitleById = new Map(eventSessions.map((s) => [s.id, s.title]));
+    return eventSpeakers
+      .filter((sp) => sp.id !== speakerId && !sp.has_presentation)
+      .map((sp) => ({
+        id: sp.id,
+        full_name: sp.full_name,
+        session_title: sessionTitleById.get(sp.session_id) ?? '',
+      }));
+  }, [eventSpeakers, eventSessions, speakerId]);
 
   const onDownload = useCallback(async (v: PresentationVersion) => {
     setActionError(null);
@@ -86,192 +126,242 @@ export function PresentationVersionsPanel({ speakerId, speakerName, enabled }: P
 
   if (loading && bundle.versions.length === 0) {
     return (
-      <div className="mt-3 rounded-xl border border-sc-primary/12 bg-sc-bg/40 px-3 py-2 text-xs text-sc-text-dim">
-        {t('presentation.versions.loading')}
+      <div className="mt-3 space-y-3">
+        <AdminUploaderInline
+          speakerId={speakerId}
+          speakerName={speakerName}
+          onUploaded={() => void reload()}
+        />
+        <div className="rounded-xl border border-sc-primary/12 bg-sc-bg/40 px-3 py-2 text-xs text-sc-text-dim">
+          {t('presentation.versions.loading')}
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="mt-3 rounded-xl border border-sc-danger/20 bg-sc-danger/10 px-3 py-2 text-xs text-sc-danger">
-        {t('presentation.versions.loadError')}
+      <div className="mt-3 space-y-3">
+        <AdminUploaderInline
+          speakerId={speakerId}
+          speakerName={speakerName}
+          onUploaded={() => void reload()}
+        />
+        <div className="rounded-xl border border-sc-danger/20 bg-sc-danger/10 px-3 py-2 text-xs text-sc-danger">
+          {t('presentation.versions.loadError')}
+        </div>
       </div>
     );
   }
 
   if (!bundle.presentation) {
     return (
-      <div className="mt-3 rounded-xl border border-sc-primary/12 bg-sc-bg/40 px-3 py-2 text-xs text-sc-text-dim">
-        {t('presentation.versions.none')}
+      <div className="mt-3 space-y-3">
+        <AdminUploaderInline
+          speakerId={speakerId}
+          speakerName={speakerName}
+          onUploaded={() => void reload()}
+        />
+        <div className="rounded-xl border border-sc-primary/12 bg-sc-bg/40 px-3 py-2 text-xs text-sc-text-dim">
+          {t('presentation.versions.none')}
+        </div>
       </div>
     );
   }
 
   const { presentation, versions } = bundle;
   const currentId = presentation.current_version_id;
+  const canShowMoveButton = Boolean(eventSpeakers && eventSessions);
 
   return (
-    <div className="mt-3 space-y-3 rounded-xl border border-sc-primary/12 bg-sc-bg/40 p-3">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-xs">
-          <span className="uppercase tracking-wide text-sc-text-dim">
-            {t('presentation.versions.title')}
-          </span>
-          <StatusBadge status={presentation.status} />
-          <span className="text-sc-text-dim">
-            {t('presentation.versions.totalCount', { count: presentation.total_versions })}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-1">
-          <StatusAction
-            label={t('presentation.versions.markReviewed')}
-            disabled={presentation.status === 'reviewed' || actionBusy !== null}
-            onClick={() => {
-              setNoteOpen('reviewed');
-              setNoteDraft(presentation.reviewer_note ?? '');
-            }}
-          />
-          <StatusAction
-            label={t('presentation.versions.markApproved')}
-            tone="success"
-            disabled={presentation.status === 'approved' || actionBusy !== null}
-            onClick={() => {
-              setNoteOpen('approved');
-              setNoteDraft(presentation.reviewer_note ?? '');
-            }}
-          />
-          <StatusAction
-            label={t('presentation.versions.markRejected')}
-            tone="danger"
-            disabled={presentation.status === 'rejected' || actionBusy !== null}
-            onClick={() => {
-              setNoteOpen('rejected');
-              setNoteDraft(presentation.reviewer_note ?? '');
-            }}
-          />
-        </div>
-      </header>
+    <div className="mt-3 space-y-3">
+      <AdminUploaderInline
+        speakerId={speakerId}
+        speakerName={speakerName}
+        onUploaded={() => void reload()}
+      />
 
-      {noteOpen ? (
-        <div className="rounded border border-sc-primary/20 bg-sc-surface/80 p-3">
-          <label
-            htmlFor={`note-${speakerId}`}
-            className="mb-1 block text-xs text-sc-text-muted"
-          >
-            {t('presentation.versions.reviewerNoteLabel')}
-          </label>
-          <textarea
-            id={`note-${speakerId}`}
-            value={noteDraft}
-            onChange={(e) => setNoteDraft(e.target.value)}
-            rows={2}
-            className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-            placeholder={t('presentation.versions.reviewerNotePlaceholder', { name: speakerName })}
-          />
-          <div className="mt-2 flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={actionBusy !== null}
-              className="rounded-xl bg-sc-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
-              onClick={() => void onStatus(noteOpen, noteDraft.trim() || null)}
-            >
-              {t('common.save')}
-            </button>
-            <button
-              type="button"
-              disabled={actionBusy !== null}
-              className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
-              onClick={() => {
-                setNoteOpen(null);
-                setNoteDraft('');
-              }}
-            >
-              {t('common.cancel')}
-            </button>
-          </div>
-        </div>
-      ) : presentation.reviewer_note ? (
-        <p className="rounded border border-sc-primary/12 bg-sc-surface/60 px-3 py-2 text-xs text-sc-text-muted">
-          <span className="font-semibold text-sc-text-secondary">
-            {t('presentation.versions.reviewerNoteLabel')}:
-          </span>{' '}
-          {presentation.reviewer_note}
-          {presentation.reviewed_at ? (
-            <span className="ml-2 text-sc-text-dim">
-              ({dateTimeFmt.format(new Date(presentation.reviewed_at))})
+      <div className="space-y-3 rounded-xl border border-sc-primary/12 bg-sc-bg/40 p-3">
+        <header className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="uppercase tracking-wide text-sc-text-dim">
+              {t('presentation.versions.title')}
             </span>
-          ) : null}
-        </p>
-      ) : null}
+            <StatusBadge status={presentation.status} />
+            <span className="text-sc-text-dim">
+              {t('presentation.versions.totalCount', { count: presentation.total_versions })}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {canShowMoveButton ? (
+              <StatusAction
+                label={t('presentation.move.button')}
+                disabled={actionBusy !== null}
+                onClick={() => setMoveOpen(true)}
+              />
+            ) : null}
+            <StatusAction
+              label={t('presentation.versions.markReviewed')}
+              disabled={presentation.status === 'reviewed' || actionBusy !== null}
+              onClick={() => {
+                setNoteOpen('reviewed');
+                setNoteDraft(presentation.reviewer_note ?? '');
+              }}
+            />
+            <StatusAction
+              label={t('presentation.versions.markApproved')}
+              tone="success"
+              disabled={presentation.status === 'approved' || actionBusy !== null}
+              onClick={() => {
+                setNoteOpen('approved');
+                setNoteDraft(presentation.reviewer_note ?? '');
+              }}
+            />
+            <StatusAction
+              label={t('presentation.versions.markRejected')}
+              tone="danger"
+              disabled={presentation.status === 'rejected' || actionBusy !== null}
+              onClick={() => {
+                setNoteOpen('rejected');
+                setNoteDraft(presentation.reviewer_note ?? '');
+              }}
+            />
+          </div>
+        </header>
 
-      {actionError ? (
-        <p className="rounded border border-sc-danger/20 bg-sc-danger/10 px-3 py-2 text-xs text-sc-danger">
-          {t('presentation.versions.actionError')}
-        </p>
-      ) : null}
+        {noteOpen ? (
+          <div className="rounded border border-sc-primary/20 bg-sc-surface/80 p-3">
+            <label
+              htmlFor={`note-${speakerId}`}
+              className="mb-1 block text-xs text-sc-text-muted"
+            >
+              {t('presentation.versions.reviewerNoteLabel')}
+            </label>
+            <textarea
+              id={`note-${speakerId}`}
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+              rows={2}
+              className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+              placeholder={t('presentation.versions.reviewerNotePlaceholder', { name: speakerName })}
+            />
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={actionBusy !== null}
+                className="rounded-xl bg-sc-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
+                onClick={() => void onStatus(noteOpen, noteDraft.trim() || null)}
+              >
+                {t('common.save')}
+              </button>
+              <button
+                type="button"
+                disabled={actionBusy !== null}
+                className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
+                onClick={() => {
+                  setNoteOpen(null);
+                  setNoteDraft('');
+                }}
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
+          </div>
+        ) : presentation.reviewer_note ? (
+          <p className="rounded border border-sc-primary/12 bg-sc-surface/60 px-3 py-2 text-xs text-sc-text-muted">
+            <span className="font-semibold text-sc-text-secondary">
+              {t('presentation.versions.reviewerNoteLabel')}:
+            </span>{' '}
+            {presentation.reviewer_note}
+            {presentation.reviewed_at ? (
+              <span className="ml-2 text-sc-text-dim">
+                ({dateTimeFmt.format(new Date(presentation.reviewed_at))})
+              </span>
+            ) : null}
+          </p>
+        ) : null}
 
-      {versions.length === 0 ? (
-        <p className="text-xs text-sc-text-dim">{t('presentation.versions.emptyList')}</p>
-      ) : (
-        <ul className="divide-y divide-sc-primary/12 rounded border border-sc-primary/12">
-          {versions.map((v) => {
-            const isCurrent = currentId === v.id;
-            const canDownload = v.status === 'ready' || v.status === 'superseded';
-            return (
-              <li key={v.id} className="flex flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="font-mono text-sc-text-secondary">v{v.version_number}</span>
-                    <VersionStatusBadge status={v.status} isCurrent={isCurrent} />
-                    <span className="truncate text-sc-text-secondary" title={v.file_name}>
-                      {v.file_name}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-sc-text-dim">
-                    <span>{dateTimeFmt.format(new Date(v.created_at))}</span>
-                    <span>{formatBytes(v.file_size_bytes, locale)}</span>
-                    {v.file_hash_sha256 ? (
-                      <span
-                        title={v.file_hash_sha256}
-                        className="font-mono text-[10px] text-sc-text-dim"
-                      >
-                        {t('presentation.versions.hashShort', {
-                          hash: v.file_hash_sha256.slice(0, 12),
-                        })}
+        {actionError ? (
+          <p className="rounded border border-sc-danger/20 bg-sc-danger/10 px-3 py-2 text-xs text-sc-danger">
+            {t('presentation.versions.actionError')}
+          </p>
+        ) : null}
+
+        {versions.length === 0 ? (
+          <p className="text-xs text-sc-text-dim">{t('presentation.versions.emptyList')}</p>
+        ) : (
+          <ul className="divide-y divide-sc-primary/12 rounded border border-sc-primary/12">
+            {versions.map((v) => {
+              const isCurrent = currentId === v.id;
+              const canDownload = v.status === 'ready' || v.status === 'superseded';
+              return (
+                <li key={v.id} className="flex flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-mono text-sc-text-secondary">v{v.version_number}</span>
+                      <VersionStatusBadge status={v.status} isCurrent={isCurrent} />
+                      <span className="truncate text-sc-text-secondary" title={v.file_name}>
+                        {v.file_name}
                       </span>
-                    ) : null}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-sc-text-dim">
+                      <span>{dateTimeFmt.format(new Date(v.created_at))}</span>
+                      <span>{formatBytes(v.file_size_bytes, locale)}</span>
+                      {v.file_hash_sha256 ? (
+                        <span
+                          title={v.file_hash_sha256}
+                          className="font-mono text-[10px] text-sc-text-dim"
+                        >
+                          {t('presentation.versions.hashShort', {
+                            hash: v.file_hash_sha256.slice(0, 12),
+                          })}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-                <div className="flex shrink-0 flex-wrap gap-1">
-                  <button
-                    type="button"
-                    disabled={!canDownload || actionBusy === `dl:${v.id}`}
-                    className="rounded-xl border border-sc-primary/20 px-2.5 py-1 text-xs text-sc-text hover:bg-sc-elevated disabled:cursor-not-allowed disabled:opacity-40"
-                    onClick={() => void onDownload(v)}
-                  >
-                    {actionBusy === `dl:${v.id}`
-                      ? t('presentation.versions.downloading')
-                      : t('presentation.versions.download')}
-                  </button>
-                  {!isCurrent && v.status !== 'failed' && v.status !== 'uploading' ? (
+                  <div className="flex shrink-0 flex-wrap gap-1">
                     <button
                       type="button"
-                      disabled={actionBusy === `rb:${v.id}`}
-                      className="rounded-xl border border-sc-warning/30 px-2.5 py-1 text-xs font-medium text-sc-warning hover:bg-sc-warning/10 disabled:opacity-40"
-                      onClick={() => void onRollback(v)}
+                      disabled={!canDownload || actionBusy === `dl:${v.id}`}
+                      className="rounded-xl border border-sc-primary/20 px-2.5 py-1 text-xs text-sc-text hover:bg-sc-elevated disabled:cursor-not-allowed disabled:opacity-40"
+                      onClick={() => void onDownload(v)}
                     >
-                      {actionBusy === `rb:${v.id}`
-                        ? t('presentation.versions.settingCurrent')
-                        : t('presentation.versions.setCurrent')}
+                      {actionBusy === `dl:${v.id}`
+                        ? t('presentation.versions.downloading')
+                        : t('presentation.versions.download')}
                     </button>
-                  ) : null}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                    {!isCurrent && v.status !== 'failed' && v.status !== 'uploading' ? (
+                      <button
+                        type="button"
+                        disabled={actionBusy === `rb:${v.id}`}
+                        className="rounded-xl border border-sc-warning/30 px-2.5 py-1 text-xs font-medium text-sc-warning hover:bg-sc-warning/10 disabled:opacity-40"
+                        onClick={() => void onRollback(v)}
+                      >
+                        {actionBusy === `rb:${v.id}`
+                          ? t('presentation.versions.settingCurrent')
+                          : t('presentation.versions.setCurrent')}
+                      </button>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      {moveOpen ? (
+        <MovePresentationDialog
+          presentationId={presentation.id}
+          currentSpeakerName={speakerName}
+          availableSpeakers={moveTargets}
+          onClose={() => setMoveOpen(false)}
+          onMoved={() => {
+            setMoveOpen(false);
+            void reload();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

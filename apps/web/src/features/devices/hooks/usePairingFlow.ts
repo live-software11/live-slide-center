@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  EdgeFunctionAuthError,
+  EdgeFunctionMissingError,
   invokePairInit,
   invokePairPoll,
   type PairPollResponse,
 } from '../repository';
+
+export type PairingErrorKind = 'auth' | 'function_missing' | 'generic';
 
 export type PairingState =
   | { status: 'idle' }
@@ -12,7 +16,7 @@ export type PairingState =
   | { status: 'polling'; code: string; expiresAt: Date }
   | { status: 'paired'; deviceId: string; deviceName: string }
   | { status: 'expired' }
-  | { status: 'error'; message: string };
+  | { status: 'error'; kind: PairingErrorKind; message: string };
 
 interface UsePairingFlowOptions {
   eventId: string;
@@ -93,8 +97,15 @@ export function usePairingFlow({
       setState({ status: 'showing_code', code, expiresAt });
       startPolling(code, expiresAt);
     } catch (err) {
+      const kind: PairingErrorKind =
+        err instanceof EdgeFunctionAuthError
+          ? 'auth'
+          : err instanceof EdgeFunctionMissingError
+            ? 'function_missing'
+            : 'generic';
       setState({
         status: 'error',
+        kind,
         message: err instanceof Error ? err.message : 'Unknown error',
       });
     }

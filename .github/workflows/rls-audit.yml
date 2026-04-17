@@ -1,0 +1,91 @@
+name: RLS Audit (Supabase)
+
+# Sprint 5 — Hardening commerciale
+# Esegue supabase/tests/rls_audit.sql contro un Postgres con tutte le migrations
+# applicate + seed minimo. Blocca PR se uno dei check di isolamento tenant fallisce.
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**.sql'
+      - 'supabase/tests/**.sql'
+      - 'supabase/functions/**'
+      - 'supabase/config.toml'
+      - '.github/workflows/rls-audit.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**.sql'
+      - 'supabase/tests/**.sql'
+  workflow_dispatch:
+
+# Cancella run obsolete sullo stesso branch
+concurrency:
+  group: rls-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rls-audit:
+    name: RLS isolation tests (tenant A vs B + anon + super_admin)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        # IMPORTANTE: NON usare `latest`. Le release recenti (>= 1.120) hanno
+        # rotto piu' volte `supabase start` su CI. Pinniamo a una versione
+        # stabile testata. Aggiornare manualmente dopo verifica locale.
+        # Riferimento: https://github.com/supabase/cli/issues/1737
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.20.3
+
+      - name: Start Supabase local stack (Postgres + Auth + Realtime)
+        run: |
+          supabase start --workdir . --exclude studio,inbucket,imgproxy,storage-api,edge-runtime
+        env:
+          SUPABASE_INTERNAL_BACKOFF: '1'
+
+      - name: Apply migrations (already done by `supabase start`, verify)
+        run: |
+          supabase db reset --workdir . --no-seed
+          supabase migration list --workdir .
+
+      - name: Seed dati minimi per RLS audit
+        run: |
+          PGPASSWORD=postgres psql \
+            -h 127.0.0.1 -p 54322 -U postgres -d postgres \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/rls_audit_seed.sql
+
+      - name: Esegui RLS audit (rls_audit.sql)
+        run: |
+          set -e
+          # psql ferma su EXCEPTION (RAISE EXCEPTION) grazie a ON_ERROR_STOP=1.
+          # Ogni '[FAIL]' in rls_audit.sql diventa errore non-zero che blocca la PR.
+          PGPASSWORD=postgres psql \
+            -h 127.0.0.1 -p 54322 -U postgres -d postgres \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/rls_audit.sql 2>&1 | tee rls_audit_output.log
+
+          # Sanity check post-run: cerchiamo eventuali [FAIL] sfuggiti a raise
+          if grep -qE '^\[FAIL\]|FAIL\]' rls_audit_output.log; then
+            echo "::error::RLS audit ha rilevato leak cross-tenant. Vedere log sopra."
+            exit 1
+          fi
+          echo "::notice::RLS audit OK: nessun leak cross-tenant rilevato."
+
+      - name: Upload audit log come artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rls-audit-log
+          path: rls_audit_output.log
+          retention-days: 14
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop --workdir . --no-backup

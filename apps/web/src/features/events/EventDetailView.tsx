@@ -26,7 +26,12 @@ import {
   speakerCsvTemplateContent,
 } from '@/features/speakers/lib/speaker-csv-import';
 import { useEventDetail } from './hooks/useEventDetail';
-import { PresentationVersionsPanel } from '@/features/presentations/components/PresentationVersionsPanel';
+import {
+  PresentationVersionsPanel,
+  type PanelEventSession,
+  type PanelEventSpeaker,
+} from '@/features/presentations/components/PresentationVersionsPanel';
+import { useEventPresentationSpeakerIds } from '@/features/presentations/hooks/useEventPresentationSpeakerIds';
 import { DevicesPanel } from '@/features/devices/DevicesPanel';
 const EventExportPanel = lazy(async () => {
   const m = await import('@/features/events/components/EventExportPanel');
@@ -304,6 +309,26 @@ export default function EventDetailView() {
       list.sort((a, b) => a.scheduled_start.localeCompare(b.scheduled_start));
     }
     return map;
+  }, [state]);
+
+  // Sprint 2 — supporto al dialog "Sposta presentazione".
+  // Lista speaker dell'evento con flag `has_presentation`, in modo che il dialog
+  // mostri solo target liberi (1 presentation per speaker, vincolo schema).
+  const { speakerIdsWithPresentation } = useEventPresentationSpeakerIds(readyEventId);
+
+  const panelEventSpeakers = useMemo<PanelEventSpeaker[]>(() => {
+    if (state.status !== 'ready') return [];
+    return state.speakers.map((sp) => ({
+      id: sp.id,
+      full_name: sp.full_name,
+      session_id: sp.session_id,
+      has_presentation: speakerIdsWithPresentation.has(sp.id),
+    }));
+  }, [state, speakerIdsWithPresentation]);
+
+  const panelEventSessions = useMemo<PanelEventSession[]>(() => {
+    if (state.status !== 'ready') return [];
+    return state.sessions.map((s) => ({ id: s.id, title: s.title }));
   }, [state]);
 
   const downloadSpeakerCsvTemplate = useCallback(() => {
@@ -1872,6 +1897,8 @@ export default function EventDetailView() {
                       speakerId={sp.id}
                       speakerName={sp.full_name}
                       enabled={versionsOpen}
+                      eventSpeakers={panelEventSpeakers}
+                      eventSessions={panelEventSessions}
                     />
                   </div>
                 </li>

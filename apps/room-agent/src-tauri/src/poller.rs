@@ -1,5 +1,4 @@
 use std::time::Duration;
-use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
 
 use crate::downloader::list_remote_files;

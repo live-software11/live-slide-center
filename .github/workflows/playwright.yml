@@ -1,0 +1,121 @@
+name: Playwright E2E (smoke)
+
+# Sprint 5b — Hardening commerciale.
+# Esegue gli smoke test Playwright contro un dev server con Supabase LOCALE
+# (Postgres + Auth + Realtime in container, niente progetto cloud toccato).
+#
+# Obiettivo: cogliere regression UI/route prima che arrivino in mano al cliente.
+# I test signup-flow e rls-isolation richiedono fixture utenti reali e si
+# auto-skippano se le env E2E_TENANT_* / E2E_ENABLE_SIGNUP_TEST mancano: il
+# workflow li lascia disattivati di default e li espone via workflow_dispatch
+# inputs per chi voglia eseguirli on-demand con secrets dedicati.
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'packages/**'
+      - '.github/workflows/playwright.yml'
+      - 'supabase/migrations/**.sql'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'packages/**'
+  schedule:
+    # Nightly alle 03:00 UTC (04:00 / 05:00 ora italiana) — cattura regression dipendenze
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      run_signup_test:
+        description: 'Esegui anche signup-flow.spec.ts (crea utente reale)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: playwright-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Smoke tests (chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dipendenze workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Supabase CLI (per stack locale)
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.20.3
+
+      - name: Start Supabase locale (Postgres + Auth)
+        # Stack minimo per dev server: Postgres + GoTrue. Niente storage/realtime
+        # nelle smoke (non testiamo upload o canale broadcast qui).
+        run: |
+          supabase start --workdir . \
+            --exclude studio,inbucket,imgproxy,storage-api,edge-runtime,logflare,vector,realtime
+        env:
+          SUPABASE_INTERNAL_BACKOFF: '1'
+
+      - name: Estrai chiavi Supabase locali in env
+        # `supabase status -o env` produce env vars del tipo:
+        #   API_URL=http://127.0.0.1:54321
+        #   ANON_KEY=eyJhbGciOi...
+        # Le rimappiamo nei nomi VITE_* attesi da apps/web.
+        run: |
+          eval "$(supabase status -o env)"
+          echo "VITE_SUPABASE_URL=${API_URL}" >> $GITHUB_ENV
+          echo "VITE_SUPABASE_ANON_KEY=${ANON_KEY}" >> $GITHUB_ENV
+          echo "Supabase locale → URL=${API_URL}"
+
+      - name: Install Playwright Chromium + deps
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Esegui smoke tests
+        working-directory: apps/web
+        env:
+          # Disabilita reportistica colorata per CI
+          CI: 'true'
+          # Path di test ristretto: solo smoke per ora
+          PLAYWRIGHT_TESTS: 'e2e/smoke.spec.ts'
+        run: |
+          # Se l'utente ha richiesto signup test via workflow_dispatch, lo abilita
+          if [ "${{ github.event.inputs.run_signup_test }}" = "true" ]; then
+            export E2E_ENABLE_SIGNUP_TEST=1
+            export PLAYWRIGHT_TESTS="e2e/smoke.spec.ts e2e/signup-flow.spec.ts"
+          fi
+          pnpm exec playwright test $PLAYWRIGHT_TESTS --project=chromium
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+          retention-days: 7
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop --workdir . --no-backup
