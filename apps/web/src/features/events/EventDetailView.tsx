@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
-import QRCode from 'react-qr-code';
+import { QRCodeSVG } from 'qrcode.react';
 import { z } from 'zod';
 import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
@@ -1773,7 +1773,7 @@ export default function EventDetailView() {
                             role="img"
                             aria-label={t('speaker.uploadQrAria', { name: sp.full_name })}
                           >
-                            <QRCode value={portalUrl} size={104} level="M" />
+                            <QRCodeSVG value={portalUrl} size={104} level="M" />
                           </div>
                         </div>
                       ) : (

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import QRCode from 'react-qr-code';
+import { QRCodeSVG } from 'qrcode.react';
 import {
   CheckCircle2,
   Loader2,
@@ -90,7 +90,7 @@ export function PairingModal({ eventId, roomId, onClose, onPaired }: PairingModa
           </div>
 
           <div className="rounded-xl bg-white p-3">
-            <QRCode value={pairUrl} size={160} />
+            <QRCodeSVG value={pairUrl} size={160} level="M" />
           </div>
 
           <div className="flex flex-col items-center gap-1">
