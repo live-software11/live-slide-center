@@ -3,11 +3,10 @@
   "buildCommand": "pnpm run build",
   "outputDirectory": "apps/web/dist",
   "installCommand": "pnpm install",
-  "framework": null,
-  "cleanUrls": true,
+  "framework": "vite",
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!assets/|icons/|workbox-|registerSW\\.js|sw\\.js|manifest\\.webmanifest|favicon|apple-touch-icon|pwa-|logo-live-slide-center).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
