@@ -39,6 +39,7 @@ import { useRoomStates } from '@/features/devices/hooks/useRoomStates';
 import { useRoomDevices } from '@/features/devices/hooks/useRoomDevices';
 import { PlaybackModeBadge } from '@/features/devices/components/PlaybackModeBadge';
 import { NowPlayingBadge } from '@/features/devices/components/NowPlayingBadge';
+import { NextUpPreview } from '@/features/devices/components/NextUpPreview';
 import { RoomDevicesPanel } from '@/features/devices/components/RoomDevicesPanel';
 import { EventSearchBar } from './components/EventSearchBar';
 import type { EventFileSearchResult } from './lib/event-file-search';
@@ -1027,6 +1028,14 @@ export default function EventDetailView() {
                             startedAt={roomStates[r.id].last_play_started_at}
                           />
                         )}
+                        {/* Sprint T-3-E (G10): pannello "Prossimo file" — render
+                            condizionato a sessione/file attivi, lazy import pdf.js
+                            avviene solo quando c'e' davvero qualcosa da mostrare. */}
+                        <NextUpPreview
+                          roomId={r.id}
+                          enabled={Boolean(roomStates[r.id]?.current_presentation_id)}
+                          versionTrigger={roomStates[r.id]?.current_presentation_id ?? null}
+                        />
                       </>
                     )}
                   </div>

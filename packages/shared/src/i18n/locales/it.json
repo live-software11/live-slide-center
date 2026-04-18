@@ -1376,6 +1376,14 @@
       "timeHours_one": "{{count}} ora fa",
       "timeHours_other": "{{count}} ore fa"
     },
+    "nextUp": {
+      "label": "Prossimo",
+      "aria": "Prossimo file in scaletta: {{name}}",
+      "position": "{{n}}/{{total}}",
+      "thumbLoading": "Generazione anteprima…",
+      "thumbUnsupported": "Anteprima non disponibile per questo formato ({{name}})",
+      "thumbFailed": "Anteprima non generata: il file potrebbe essere corrotto ({{name}})"
+    },
     "error": {
       "invalidToken": "Token non valido. Abbina nuovamente questo PC.",
       "noRoom": "Nessuna sala assegnata a questo dispositivo.",

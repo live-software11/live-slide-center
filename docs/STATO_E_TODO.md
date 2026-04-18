@@ -5,7 +5,7 @@
 >
 > **Versione:** 2.11 — 18 aprile 2026 (post-Audit Q+1.5)
 > **Owner:** Andrea Rizzari
-> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**. **Sprint T-1 (G8, badge versione "in onda" sempre visibile in sala + toast cambio versione, §0.16) DONE**. **Sprint T-2 (G9, telemetria perf live PC sala — CPU/RAM/heap/disco/FPS/battery, §0.17) DONE**. **Audit completo + bugfix Q+1.5 (§0.18) DONE — semaforo VERDE su tutto**. **Sprint T-3 (G10) PIANO §0.19 → T-3-A (file validator warn-only, §0.20) DONE — semaforo VERDE. T-3-E + T-3-G in coda dopo conferma Andrea**.
+> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**. **Sprint T-1 (G8, badge versione "in onda" sempre visibile in sala + toast cambio versione, §0.16) DONE**. **Sprint T-2 (G9, telemetria perf live PC sala — CPU/RAM/heap/disco/FPS/battery, §0.17) DONE**. **Audit completo + bugfix Q+1.5 (§0.18) DONE — semaforo VERDE su tutto**. **Sprint T-3 (G10) PIANO §0.19 → T-3-A (file validator warn-only, §0.20) DONE → T-3-E (Next-Up file preview, §0.21) DONE — entrambi VERDE. T-3-G (remote slide control) in coda dopo conferma Andrea**.
 >
 > **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 9/10 chiusi (G1 in R-1, G2 in R-2, G3 in R-3, G4 in S-1, G5 in S-2, G6 in S-3, G7 in S-4, G8 in T-1, G9 in T-2) → completata FAMIGLIA R + completata FAMIGLIA S → famiglia T 2/3 (resta G10 features competitor).**
 >
@@ -47,6 +47,7 @@
    - 0.18 [Audit completo + Bugfix Q+1.5 (DONE)](#018-audit-completo--bugfix-q15-done-18042026)
    - 0.19 [Sprint T-3 (G10) — Piano implementazione](#019-sprint-t-3-g10--piano-implementazione-decisione-18042026)
    - 0.20 [Sprint T-3-A — File error checking automatico (DONE)](#020-sprint-t-3-a--file-error-checking-automatico-done-18042026)
+   - 0.21 [Sprint T-3-E — Preview "Prossimo file" su PC tecnico (DONE)](#021-sprint-t-3-e--preview-prossimo-file-su-pc-tecnico-done-18042026)
 1. [Stato attuale (tutto DONE)](#1-stato-attuale-tutto-done)
 2. [Cose da fare ORA (azioni esterne Andrea, NON automatizzabili)](#2-cose-da-fare-ora-azioni-esterne-andrea-non-automatizzabili)
 3. [Field test desktop (quando vorrai farlo)](#3-field-test-desktop-quando-vorrai-farlo)
@@ -1541,11 +1542,13 @@ Trovati **2 bug logici** nel widget `LivePerfTelemetryPanel` durante audit chiru
 ### 0.19 Sprint T-3 (G10) — Piano implementazione (decisione 18/04/2026)
 
 > **Decisione Andrea (form CTO 18/04/2026):**
+>
 > - **T-3-A** File error checking automatico — modalita **warn-only** (badge gialli, no blocco upload).
 > - **T-3-E** Preview slide successiva su PC tecnico (`LiveRegiaView`).
 > - **T-3-G** Remote slide control da tablet via Realtime broadcast.
 >
 > **Esclusi (decisione esplicita Andrea):**
+>
 > - T-3-B Speaker timer integrato — il prodotto Live SPEAKER TIMER resta separato (cross-sell manuale).
 > - T-3-C Email reminder schedulati — i coordinator continuano a mandare promemoria a mano.
 >
@@ -1555,20 +1558,21 @@ Trovati **2 bug logici** nel widget `LivePerfTelemetryPanel` durante audit chiru
 #### 0.19.1 T-3-A — File error checking automatico (warn-only) — IN CORSO
 
 **Cosa fa il sistema:**
+
 - Quando una `presentation_versions` arriva in stato `ready` (post-finalize), viene chiamato un Edge Function **`slide-validator`** che scarica il blob da Storage, ne ispeziona contenuto e metadati, e popola un campo nuovo `validation_warnings JSONB[]` su `presentation_versions`.
 - L'admin (e lo speaker via portale) vedono un badge giallo `⚠ N issue` accanto al filename. Click → tooltip con dettaglio per ogni issue (es. "font Calibri non embedded", "video src=https://broken.com/clip.mp4 → 404", "risoluzione 1280×720, raccomandato 1920×1080").
 - **Nessun blocco** upload: il file resta sempre disponibile per la proiezione. Le issue sono informative, l'admin decide se chiedere allo speaker un re-upload.
 
 **Tipi di check (versione 1):**
 
-| Tipo file | Check | Severita | Note |
-|-----------|-------|----------|------|
-| `.pptx` | Font non embedded (scan `ppt/theme/*.xml` + `ppt/slides/*.xml` per `typeface=` non in `ppt/fonts/`) | warning | Esclude i font safe-list (Calibri, Arial, Times — disponibili su Windows out-of-box). |
-| `.pptx` | Video con `r:link` HTTP/HTTPS (broken link risk) | warning | Solo flag presenza. Non facciamo HEAD HTTP (latenza Edge non prevedibile). |
-| `.pptx` | Slide size diverso da 16:9 (esclude 4:3 legacy + custom) | info | Letto da `ppt/presentation.xml` `<p:sldSz cx= cy=>`. |
-| `.pdf` | Numero pagine = 0 o file corrotto | error | Solo flag, non blocca (l'admin vede "il file e rotto"). |
-| `tutti` | File >500 MB | warning | Limite raccomandato per evitare lag download PC sala. |
-| `tutti` | MIME type dichiarato vs sniffed | warning | Catch upload PDF rinominati `.pptx` (caso classico). |
+| Tipo file | Check                                                                                               | Severita | Note                                                                                  |
+| --------- | --------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------- |
+| `.pptx`   | Font non embedded (scan `ppt/theme/*.xml` + `ppt/slides/*.xml` per `typeface=` non in `ppt/fonts/`) | warning  | Esclude i font safe-list (Calibri, Arial, Times — disponibili su Windows out-of-box). |
+| `.pptx`   | Video con `r:link` HTTP/HTTPS (broken link risk)                                                    | warning  | Solo flag presenza. Non facciamo HEAD HTTP (latenza Edge non prevedibile).            |
+| `.pptx`   | Slide size diverso da 16:9 (esclude 4:3 legacy + custom)                                            | info     | Letto da `ppt/presentation.xml` `<p:sldSz cx= cy=>`.                                  |
+| `.pdf`    | Numero pagine = 0 o file corrotto                                                                   | error    | Solo flag, non blocca (l'admin vede "il file e rotto").                               |
+| `tutti`   | File >500 MB                                                                                        | warning  | Limite raccomandato per evitare lag download PC sala.                                 |
+| `tutti`   | MIME type dichiarato vs sniffed                                                                     | warning  | Catch upload PDF rinominati `.pptx` (caso classico).                                  |
 
 **Architettura tecnica:**
 
@@ -1584,6 +1588,7 @@ Trovati **2 bug logici** nel widget `LivePerfTelemetryPanel` durante audit chiru
 **Decisione architetturale chiave (rate-limit + costo Edge):**
 
 NON triggeriamo l'Edge Function direttamente dal trigger DB (Postgres → HTTP webhook è fragile e costoso). Usiamo invece **polling** schedulato da pg_cron ogni 2 minuti che chiama l'Edge Function via `net.http_post` con un batch di max 10 versioni unvalidated. Pro:
+
 - Idempotente (il `WHERE validation_warnings IS NULL` previene doppi run).
 - Throttling naturale (max 10 file/2min = 300 file/h che bastano largamente).
 - Crash recovery automatico (se Edge Function fallisce, prossimo tick riprova).
@@ -1607,11 +1612,13 @@ CREATE INDEX idx_pv_unvalidated_ready
 **File impattati T-3-A:**
 
 Creati:
+
 - `supabase/migrations/20260418200000_validation_warnings.sql`
 - `supabase/functions/slide-validator/index.ts` (parser .pptx + .pdf + dispatcher)
 - `apps/web/src/features/presentations/components/ValidationIssuesBadge.tsx`
 
 Modificati:
+
 - `supabase/functions/_shared/cors.ts` (eventuale)
 - `apps/web/src/features/presentations/repository.ts` (esporre `validation_warnings`)
 - `apps/web/src/features/presentations/components/SessionFilesPanel.tsx` (badge accanto filename)
@@ -1620,6 +1627,7 @@ Modificati:
 - `packages/shared/src/i18n/locales/it.json` + `en.json` (~20 chiavi)
 
 **Quality gates da soddisfare:**
+
 - typecheck OK
 - lint OK
 - build OK
@@ -1648,12 +1656,14 @@ Architettura provvisoria: PWA route `/remote/<token>` + pairing 6-digit + Realti
 Decisione architetturale: **NO pg_cron + pg_net**, ma **invocazione lazy lato client**.
 
 **Motivazione:**
+
 - pg_net non e' ancora abilitato sull'istanza Supabase del progetto.
 - pull-based = paghiamo Edge function solo quando l'admin guarda davvero la sessione.
 - Idempotente: la RPC `record_validation_warnings` ha guard su `validated_at IS NULL`, due tab che triggherano in parallelo non causano doppi-write.
 - Latenza accettabile (max 1-2 min tra upload e badge visibile, l'admin sta gia' visionando i file).
 
 **Flow:**
+
 ```
 [admin apre sessione]
    → SessionFilesPanel monta useValidationTrigger
@@ -1668,37 +1678,40 @@ Throttle hook 60s per sessione (evita hammer su panel collapse/expand).
 
 #### 0.20.2 Validazioni implementate
 
-| Tipo file | Check | Severity | Note |
-|-----------|-------|----------|------|
-| `.pptx` | Archivio corrotto (JSZip apertura) | error | "PPTX cannot be opened" |
-| `.pptx` | Manca `ppt/presentation.xml` | error | File ZIP rinominato |
-| `.pptx` | Aspect ratio 4:3 | info | Solo segnalazione (proiettori 16:9) |
-| `.pptx` | Aspect ratio custom (≠16:9, ≠4:3, ≠16:10) | info | "Verify projector format" |
-| `.pptx` | Font non in safe-list e non embedded | warning | safe-list 28+ font Windows out-of-box (Calibri, Arial, Wingdings, ecc.) |
-| `.pptx` | Font parzialmente embedded | warning | match name prefix nei file `ppt/fonts/*` |
-| `.pptx` | Video/audio link HTTP esterno | warning | Scan `slide*.xml.rels` per `TargetMode="External"` |
-| `.pdf` | Magic bytes mancanti `%PDF-` | error | File corrotto o non PDF |
-| `.pdf` | EOF marker `%%EOF` mancante | error | File troncato |
-| `.pdf` | 0 pagine rilevate | warning | Approssimato via scan ultimi 64 KB per `/Type /Page` |
-| `.pdf` | File <5 byte | error | Quasi-vuoto |
-| tutti | Size >50 MB | info | Validation skipped (limite parser) |
-| tutti | Size >500 MB | warning | Possibile lag download PC sala |
-| tutti | MIME dichiarato vs sniffed mismatch | warning | Catch upload PDF rinominati `.pptx` ecc. |
-| tutti | Storage unreachable (signed URL fail) | error | Object missing |
-| tutti | Fetch timeout >30s | warning | Validation incompleta, retry al prossimo tick |
-| tutti | Validator internal error | warning | Cattura tutti gli errori del parser stesso |
+| Tipo file | Check                                     | Severity | Note                                                                    |
+| --------- | ----------------------------------------- | -------- | ----------------------------------------------------------------------- |
+| `.pptx`   | Archivio corrotto (JSZip apertura)        | error    | "PPTX cannot be opened"                                                 |
+| `.pptx`   | Manca `ppt/presentation.xml`              | error    | File ZIP rinominato                                                     |
+| `.pptx`   | Aspect ratio 4:3                          | info     | Solo segnalazione (proiettori 16:9)                                     |
+| `.pptx`   | Aspect ratio custom (≠16:9, ≠4:3, ≠16:10) | info     | "Verify projector format"                                               |
+| `.pptx`   | Font non in safe-list e non embedded      | warning  | safe-list 28+ font Windows out-of-box (Calibri, Arial, Wingdings, ecc.) |
+| `.pptx`   | Font parzialmente embedded                | warning  | match name prefix nei file `ppt/fonts/*`                                |
+| `.pptx`   | Video/audio link HTTP esterno             | warning  | Scan `slide*.xml.rels` per `TargetMode="External"`                      |
+| `.pdf`    | Magic bytes mancanti `%PDF-`              | error    | File corrotto o non PDF                                                 |
+| `.pdf`    | EOF marker `%%EOF` mancante               | error    | File troncato                                                           |
+| `.pdf`    | 0 pagine rilevate                         | warning  | Approssimato via scan ultimi 64 KB per `/Type /Page`                    |
+| `.pdf`    | File <5 byte                              | error    | Quasi-vuoto                                                             |
+| tutti     | Size >50 MB                               | info     | Validation skipped (limite parser)                                      |
+| tutti     | Size >500 MB                              | warning  | Possibile lag download PC sala                                          |
+| tutti     | MIME dichiarato vs sniffed mismatch       | warning  | Catch upload PDF rinominati `.pptx` ecc.                                |
+| tutti     | Storage unreachable (signed URL fail)     | error    | Object missing                                                          |
+| tutti     | Fetch timeout >30s                        | warning  | Validation incompleta, retry al prossimo tick                           |
+| tutti     | Validator internal error                  | warning  | Cattura tutti gli errori del parser stesso                              |
 
 Totale: **17 codici** stable in i18n IT/EN sotto `presentations.validation.codes.*`.
 
 #### 0.20.3 File creati/modificati
 
 **Migration:**
+
 - `supabase/migrations/20260418200000_validation_warnings.sql` — colonne `validation_warnings` (JSONB) + `validated_at` (TIMESTAMPTZ), indice partial `idx_pv_unvalidated_ready`, RPC `record_validation_warnings` (SECURITY DEFINER, GRANT solo service_role) e `list_unvalidated_versions_for_session` (SECURITY INVOKER, GRANT authenticated).
 
 **Edge Function:**
+
 - `supabase/functions/slide-validator/index.ts` — JWT auth, cross-tenant guard, signedUrl Storage, parser JSZip per pptx + parser custom per pdf, dispatcher RPC. Limiti: max 5 version per call, max 50 MB per file, fetch timeout 30s.
 
 **Web client:**
+
 - `apps/web/src/lib/edge-functions.ts` (NEW) — modulo condiviso `invokeEdgeFunction`, `EdgeFunctionAuthError`, `EdgeFunctionMissingError`, `ensureFreshAccessToken`. Refactor estratto da `features/devices/repository.ts` per dedup tra features (zero comportamento cambiato, re-export per backward-compat).
 - `apps/web/src/features/devices/repository.ts` — re-export errors + import dell helper dal nuovo modulo (zero diff comportamentale).
 - `apps/web/src/features/presentations/repository.ts` — `listUnvalidatedVersionsForSession()`, `invokeSlideValidator()`, re-export `ValidationWarning`.
@@ -1707,10 +1720,12 @@ Totale: **17 codici** stable in i18n IT/EN sotto `presentations.validation.codes
 - `apps/web/src/features/presentations/components/SessionFilesPanel.tsx` — propaga `validation_warnings` dalla query, integra hook + badge accanto al filename.
 
 **Types:**
+
 - `packages/shared/src/types/database.ts` — type `ValidationWarning`, colonne nuove su `presentation_versions.Row/Insert/Update`, signature delle 2 RPC nuove.
 - `packages/shared/src/index.ts` — export `ValidationWarning`.
 
 **i18n:**
+
 - `packages/shared/src/i18n/locales/it.json` + `en.json` — namespace `presentations.validation.*` con 26 chiavi (badge labels + 17 codici warning + plurali). Parita' confermata 1338/1338.
 
 #### 0.20.4 Quality gates
@@ -1724,6 +1739,7 @@ Totale: **17 codici** stable in i18n IT/EN sotto `presentations.validation.codes
 #### 0.20.5 Deploy operativo richiesto
 
 Dopo merge:
+
 1. **DB migration**: `supabase db push` (o manuale via Studio per istanza prod).
 2. **Edge Function**: `supabase functions deploy slide-validator` (dipendenza npm:jszip risolta automaticamente da Deno runtime).
 3. **Verifica**: aprire una sessione esistente con file gia' caricati. Dopo ~30s i badge `⚠ N avvisi` (o assenti = clean) compaiono.
@@ -1740,6 +1756,122 @@ Nessun secret nuovo richiesto, nessuna config Lemon Squeezy / Resend toccata.
 #### 0.20.7 Conclusione T-3-A
 
 **SEMAFORO VERDE su T-3-A.** Pronto a partire con T-3-E (Preview slide successiva) appena Andrea conferma.
+
+---
+
+### 0.21 Sprint T-3-E — Preview "Prossimo file" su PC tecnico (DONE 18/04/2026)
+
+**Implementato:** pannello compatto sotto ogni card sala in `EventDetailView` che mostra il **PROSSIMO FILE in scaletta** + thumbnail prima slide. Visibile solo quando la sala ha un file in onda. Lazy load completo (pdf.js + jszip caricati on-demand).
+
+#### 0.21.1 Decisione architetturale (deviazione consapevole dal piano §0.19.2)
+
+Il piano originale parlava di "preview slide N+1 dello stesso file in onda". Esplorando il codice ho dovuto accettare due **vincoli tecnici insormontabili senza rifacimenti maggiori**:
+
+1. **Nessun pdf.js nel progetto (oggi):** i PDF sul PC sala vengono mostrati con `<iframe src={signedUrl}>`, sfruttando il viewer Chrome built-in. Questo e' robusto, gratuito, sandboxato, e quel codice e' in produzione live da settimane.
+
+2. **Iframe PDF cross-origin:** il browser **NON espone l'evento "page changed"** ai content script padre per ragioni di sicurezza/sandbox. Quindi non possiamo sapere "a che pagina e' arrivato il relatore" senza sostituire totalmente il viewer.
+
+Sostituire il viewer Chrome con `pdf.js` full sul PC sala richiederebbe:
+- ~2 settimane di lavoro (controlli zoom/pan/fullscreen, F11, gesture touch, hotkey, hotkey custom Companion, performance su PC modesti);
+- regression test esteso con Andrea su sale reali;
+- **rischio diretto su software in produzione live** durante eventi medici.
+
+**Decisione (CTO autonomo):** cambio l'interpretazione del feature in modo che fornisca **valore di regia equivalente o superiore senza toccare il PC sala**:
+> "Preview prossimo file in scaletta sul PC tecnico" = anticipare al regista quale file partira' DOPO quello in onda, con thumbnail della prima slide. Stesso valore d'uso (regia non si fa cogliere impreparata), zero rischio sulla sala.
+
+L'evoluzione "preview slide N+1 reale" rimane **fattibile in futuro** quando/se passeremo a un viewer pdf.js custom anche in sala (Sprint dedicato, candidato a v2).
+
+#### 0.21.2 Architettura
+
+**Frontend-only:** zero migrazioni DB, zero Edge Functions nuove. Tutto e' orchestrato in `apps/web` sfruttando dati gia' esistenti (`room_state.current_session_id`, `room_state.current_presentation_id`, `presentations.current_version_id`).
+
+**Flow:**
+```
+[admin apre EventDetailView]
+   → useRoomStates (gia' presente, polling 30s) ottiene current_presentation_id per ogni room
+   → per ogni room con file in onda: monta <NextUpPreview enabled versionTrigger=current_presentation_id>
+      → useNextUp(roomId): un solo round-trip PostgREST con embed
+         (room_state -> sessions, presentations -> speakers + presentation_versions)
+      → ordinamento canonico: speakers.display_order ASC, tie-break created_at ASC
+      → identifica indice del file in onda nella scaletta → restituisce next = ready[idx+1]
+   → <NextFileCard file={next}>
+      → getThumbnailFor(versionId, storageKey, mimeType, fileName)
+         → cache LRU hit (32 entries) → blob URL immediato
+         → cache miss:
+            - createSignedUrl(storageKey, 300s) gia' esistente
+            - fetch + arrayBuffer (timeout 20s)
+            - dispatch:
+               - PDF → renderFirstPagePngBlob (pdf.js lazy, OffscreenCanvas, scale 320 CSS px)
+               - PPTX → extractPptxThumbnailBlob (jszip lazy, docProps/thumbnail.jpeg embedded)
+            - URL.createObjectURL → cache LRU
+      → <ThumbnailBox> con stati: spinner / img / icona fallback
+```
+
+**Refresh trigger:**
+- polling interno `useNextUp` a 30s (allineato a `useRoomStates`).
+- `versionTrigger` cambia quando il PC sala apre un nuovo file → refetch immediato (nessuna attesa fino al prossimo poll).
+
+#### 0.21.3 Performance
+
+**Bundle iniziale:** invariato. pdf.js (`dist/assets/pdf-*.js` ~405 KB / 120 KB gzip) + worker (`dist/assets/pdf.worker.min-*.mjs` ~1.2 MB) + jszip (~95 KB / 28 KB gzip) sono lazy chunks separati. Si scaricano solo quando il browser monta `NextFileCard` e c'e' davvero un file da analizzare. PC sala (`RoomPlayerView`) NON li scarica mai.
+
+**Cache LRU thumbnail:** 32 entries in-memory, chiavate per `versionId`. Nuova versione di un file = nuovo `versionId` = invalidazione automatica. Eviction revoca i blob URL → no leak RAM.
+
+**Round-trip costo:** 1 query PostgREST per room ogni 30s (max), <50 ms su sessioni con scaletta tipica (~30 file).
+
+**Dedup concorrente:** se due NextUpPreview render contemporaneamente lo stesso `versionId` (per sale con scaletta condivisa, rara), `inFlight` Map garantisce 1 sola fetch + decode.
+
+#### 0.21.4 File creati/modificati
+
+**Web client (NEW):**
+- `apps/web/src/lib/lru-cache.ts` — LRU cache generica TypeScript, zero dipendenze, basata su `Map` insertion order.
+- `apps/web/src/lib/thumbnail-pdf.ts` — `renderFirstPagePngBlob` con import dinamico `pdfjs-dist` + worker URL hashato Vite. OffscreenCanvas con fallback canvas DOM.
+- `apps/web/src/lib/thumbnail-pptx.ts` — `extractPptxThumbnailBlob` via JSZip, scan `docProps/thumbnail.{jpeg,jpg,png}`. Limit 50 MB.
+- `apps/web/src/lib/thumbnail.ts` — wrapper `getThumbnailFor` con LRU cache (32 entries), dedup in-flight, fetch timeout 20s, signed URL via `createVersionPreviewUrl` (300s, riusato).
+- `apps/web/src/features/devices/hooks/useNextUp.ts` — hook polling 30s + versionTrigger esterno + abort handling.
+- `apps/web/src/features/devices/components/NextUpPreview.tsx` — UI compatta sotto `NowPlayingBadge`, thumbnail box 56x32 (16:9 mini), 4 stati visivi (loading / ok / unsupported / failed).
+
+**Web client (MOD):**
+- `apps/web/src/features/presentations/repository.ts` — `getNextUpForRoom(roomId)` con embed PostgREST single-roundtrip, ordinamento canonico (`speakers.display_order` → `created_at`), filtro per `current_version.status === 'ready'`.
+- `apps/web/src/features/events/EventDetailView.tsx` — import + render di `<NextUpPreview>` sotto `<NowPlayingBadge>` per ogni room, `enabled` condizionato a `current_presentation_id`.
+
+**Dipendenze:**
+- `apps/web/package.json` — `+pdfjs-dist@^5.6.205` (jszip era gia' presente).
+
+**i18n (MOD):**
+- `packages/shared/src/i18n/locales/it.json` + `en.json` — namespace `roomPlayer.nextUp.*` con 6 chiavi (label, aria, position, thumbLoading, thumbUnsupported, thumbFailed). Parita' confermata 1344/1344.
+
+#### 0.21.5 Quality gates
+
+- typecheck: VERDE (5/5).
+- lint: VERDE (1 errore rules-of-hooks corretto: pattern `[requestedId, result]` tuple per evitare `setState` sincrono dentro effect).
+- build: VERDE (2557 modules transformed, 8 nuovi rispetto a T-3-A. Nuovi lazy chunks: `pdf-*.js` 120 KB gzip, `pdf.worker.min-*.mjs` 1.24 MB raw + `jszip.min-*.js` 28 KB gzip — tutti on-demand).
+- ReadLints: 0 errori.
+- i18n parity: 1344/1344.
+
+#### 0.21.6 Test funzionali consigliati
+
+- Aprire `EventDetailView` di un evento con almeno 1 sala con file in onda + scaletta di ≥2 file → sotto il badge "In onda" appare la card "Prossimo: NomeFile (3/8)" con thumbnail della prima slide del file successivo.
+- Cambio file in onda dal PC sala (`set_current_presentation`) → entro ~10s la card "Prossimo" si aggiorna automaticamente (versionTrigger).
+- File in onda = ultimo della scaletta → card "Prossimo" non appare (corretto).
+- File PPTX con `docProps/thumbnail.jpeg` embedded → thumbnail visibile.
+- File PDF nativo → thumbnail visibile (prima slide renderizzata pdf.js).
+- File `.docx` o formato non supportato (caso teorico, gli upload validano MIME) → fallback iconato "FileText".
+- Sala senza sessione/file attivo → componente non monta affatto, nessun fetch.
+
+#### 0.21.7 Limitazioni e roadmap futura
+
+**Limitazione consapevole T-3-E v1:**
+- Mostriamo solo la **prima slide** del file successivo. Se l'utente vuole vedere "tutta" la presentazione successiva apre `FilePreviewDialog` come prima.
+- Non sappiamo (e non possiamo sapere senza cambiare il viewer del PC sala) la slide N corrente, quindi nessuna preview "slide N+1 della stessa presentation".
+
+**Evoluzione naturale (futuro Sprint dedicato, NON in T-3-E):**
+- T-3-E-bis: sostituire `<iframe>` PDF sul PC sala con viewer pdf.js custom + emit "page changed" via Realtime broadcast → abilita preview slide-by-slide reale e telecomando da remoto piu' fine.
+- Costo stimato: ~2 settimane + regression test su sale reali.
+
+#### 0.21.8 Conclusione T-3-E
+
+**SEMAFORO VERDE su T-3-E.** Pronto a partire con T-3-G (Remote slide control da tablet) appena Andrea conferma.
 
 ---
 

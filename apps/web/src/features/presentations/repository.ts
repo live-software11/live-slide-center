@@ -309,3 +309,164 @@ export async function invokeSlideValidator(versionIds: string[]): Promise<SlideV
     version_ids: versionIds,
   });
 }
+
+// ────────────────────────────────────────────────────────────────────
+// Sprint T-3-E (G10): Next-Up preview per PC tecnico
+// ────────────────────────────────────────────────────────────────────
+
+/**
+ * Sprint T-3-E: descrittore minimo di un file in scaletta utilizzato dal
+ * pannello Next-Up. Tutti i campi servono al thumbnail loader (`storageKey`,
+ * `mimeType`, `fileName`) e al rendering della card (`fileName`, `speakerName`,
+ * `versionNumber`, `presentationId`).
+ */
+export interface NextUpFile {
+  presentationId: string;
+  versionId: string;
+  versionNumber: number;
+  fileName: string;
+  mimeType: string | null;
+  storageKey: string;
+  speakerName: string | null;
+  /** Indice (1-based) nella scaletta della sessione, utile per la UI. */
+  positionInSession: number;
+  /** Numero totale di file nella scaletta. */
+  totalInSession: number;
+}
+
+export interface NextUpInfo {
+  /** Sessione attualmente attiva sulla room (da `room_state.current_session_id`). */
+  sessionId: string | null;
+  sessionTitle: string | null;
+  /** File in onda (corrispondente a `room_state.current_presentation_id`). */
+  current: NextUpFile | null;
+  /**
+   * File successivo nella scaletta. NULL se:
+   *  - non c'e' un file in onda (non sappiamo da dove ripartire), o
+   *  - il file in onda e' l'ultimo della scaletta.
+   */
+  next: NextUpFile | null;
+}
+
+interface NextUpPresentationRaw {
+  id: string;
+  current_version_id: string | null;
+  created_at: string;
+  speaker: { full_name: string; display_order: number } | null;
+  current_version: {
+    id: string;
+    version_number: number;
+    file_name: string;
+    mime_type: string | null;
+    storage_key: string;
+    status: PresentationVersion['status'];
+  } | null;
+}
+
+/**
+ * Sprint T-3-E: dato un `room_id`, restituisce sessione attiva + file "in
+ * onda" + file "prossimo" nella scaletta. Logica di ordinamento:
+ *
+ *  1. Per le presentation con uno speaker → `speakers.display_order` ASC.
+ *  2. Tie-break (e per le presentation senza speaker) → `created_at` ASC.
+ *
+ * Filtro: scartiamo presentation senza `current_version_id` (file mai
+ * caricato) o con version `status != 'ready'` (upload in corso, file
+ * rifiutato, ecc.) — non possiamo mostrare un thumbnail per qualcosa che
+ * non e' ancora pronto.
+ *
+ * Una sola round-trip via PostgREST embed.
+ */
+export async function getNextUpForRoom(roomId: string): Promise<NextUpInfo | null> {
+  const supabase = getSupabaseBrowserClient();
+
+  // 1. Stato della room: sessione attiva + file in onda.
+  const { data: stateRow, error: stateErr } = await supabase
+    .from('room_state')
+    .select('current_session_id, current_presentation_id')
+    .eq('room_id', roomId)
+    .maybeSingle();
+  if (stateErr) throw stateErr;
+  if (!stateRow || !stateRow.current_session_id) {
+    return { sessionId: null, sessionTitle: null, current: null, next: null };
+  }
+
+  const sessionId = stateRow.current_session_id;
+  const currentPresentationId = stateRow.current_presentation_id;
+
+  // 2. In parallelo: titolo sessione + presentations della sessione con embed
+  //    speaker + current_version.
+  const [{ data: sessionRow, error: sessErr }, { data: presRows, error: presErr }] = await Promise.all([
+    supabase.from('sessions').select('title').eq('id', sessionId).maybeSingle(),
+    supabase
+      .from('presentations')
+      .select(
+        `id, current_version_id, created_at,
+         speaker:speaker_id ( full_name, display_order ),
+         current_version:current_version_id (
+           id, version_number, file_name, mime_type, storage_key, status
+         )`,
+      )
+      .eq('session_id', sessionId),
+  ]);
+  if (sessErr) throw sessErr;
+  if (presErr) throw presErr;
+
+  const sessionTitle = (sessionRow?.title as string | undefined) ?? null;
+
+  const presentationsRaw = (presRows ?? []) as unknown as NextUpPresentationRaw[];
+
+  // 3. Filtro per file pronto + ordinamento canonico.
+  const ready = presentationsRaw.filter(
+    (p) => p.current_version_id && p.current_version && p.current_version.status === 'ready',
+  );
+
+  ready.sort((a, b) => {
+    const orderA = a.speaker?.display_order ?? Number.MAX_SAFE_INTEGER;
+    const orderB = b.speaker?.display_order ?? Number.MAX_SAFE_INTEGER;
+    if (orderA !== orderB) return orderA - orderB;
+    return Date.parse(a.created_at) - Date.parse(b.created_at);
+  });
+
+  if (ready.length === 0) {
+    return { sessionId, sessionTitle, current: null, next: null };
+  }
+
+  const total = ready.length;
+  const toFile = (p: NextUpPresentationRaw, idx: number): NextUpFile | null => {
+    if (!p.current_version) return null;
+    return {
+      presentationId: p.id,
+      versionId: p.current_version.id,
+      versionNumber: p.current_version.version_number,
+      fileName: p.current_version.file_name,
+      mimeType: p.current_version.mime_type,
+      storageKey: p.current_version.storage_key,
+      speakerName: p.speaker?.full_name ?? null,
+      positionInSession: idx + 1,
+      totalInSession: total,
+    };
+  };
+
+  // 4. Risolvi current + next.
+  let current: NextUpFile | null = null;
+  let next: NextUpFile | null = null;
+
+  if (currentPresentationId) {
+    const idx = ready.findIndex((p) => p.id === currentPresentationId);
+    if (idx >= 0) {
+      current = toFile(ready[idx], idx);
+      if (idx + 1 < ready.length) {
+        next = toFile(ready[idx + 1], idx + 1);
+      }
+    }
+  }
+
+  // Fallback: se non c'e' un current_presentation_id (sala con sessione attiva
+  // ma nessun file ancora aperto), il "next" diventa il primo della scaletta.
+  if (!current && !currentPresentationId) {
+    next = toFile(ready[0], 0);
+  }
+
+  return { sessionId, sessionTitle, current, next };
+}

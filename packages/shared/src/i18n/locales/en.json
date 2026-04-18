@@ -1376,6 +1376,14 @@
       "timeHours_one": "{{count}}h ago",
       "timeHours_other": "{{count}}h ago"
     },
+    "nextUp": {
+      "label": "Next",
+      "aria": "Next file in the schedule: {{name}}",
+      "position": "{{n}}/{{total}}",
+      "thumbLoading": "Generating preview…",
+      "thumbUnsupported": "Preview not available for this format ({{name}})",
+      "thumbFailed": "Preview not generated: file may be corrupted ({{name}})"
+    },
     "error": {
       "invalidToken": "Invalid token. Please pair this PC again.",
       "noRoom": "No room assigned to this device.",
