@@ -1080,6 +1080,38 @@
       "rename": "Rename this PC",
       "disconnect": "Leave the event"
     },
+    "upload": {
+      "title": "Upload file to session",
+      "hint": "Drag a PDF/PPTX/Keynote file here or pick from disk. It will be uploaded to the current on-air session and the admin will be notified.",
+      "selectButton": "Choose file",
+      "noCurrentSession": "Uploading requires an active session. The slide center admin must set the current session for this room.",
+      "currentSession": "Current session: {{title}}",
+      "preparing": "Preparing…",
+      "uploading": "Uploading {{percent}}%",
+      "hashing": "Verifying integrity…",
+      "finalizing": "Finalizing…",
+      "success": "File \"{{name}}\" uploaded. The admin has been notified.",
+      "successCta": "Close",
+      "cancelButton": "Cancel",
+      "dragOverlay": "Drop the file here to upload",
+      "error": {
+        "generic": "Upload failed. Please retry or contact the admin.",
+        "invalidToken": "Room PC session expired. Sign out and re-pair the device.",
+        "noRoomAssigned": "This PC is not assigned to a room yet. Notify the admin.",
+        "sessionCrossRoom": "The selected session does not belong to this room. Only the admin can upload to other rooms.",
+        "sessionNotFound": "Session not found. It may have been removed.",
+        "tenantSuspended": "Account suspended. Contact your administrator.",
+        "eventClosed": "The event is closed or archived: new uploads are not allowed.",
+        "fileTooLarge": "File too large for the current subscription plan.",
+        "storageQuota": "Slide center storage quota exhausted. Notify the admin to free space.",
+        "filenameTooLong": "Filename too long (max 255 characters).",
+        "invalidSize": "The selected file is empty or unreadable.",
+        "objectMissing": "Incomplete upload. Please retry.",
+        "versionNotUploading": "Invalid file state. Reload the page and retry.",
+        "versionNotFound": "Upload session expired. Please retry.",
+        "network": "Network error during upload. Check your connection and retry."
+      }
+    },
     "fileSync": {
       "pickFolderTitle": "Select a folder to save files",
       "pickFolderHint": "Choose a folder on this PC: presentation files will be downloaded automatically as soon as they are available.",

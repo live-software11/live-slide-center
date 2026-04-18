@@ -1080,6 +1080,38 @@
       "rename": "Rinomina questo PC",
       "disconnect": "Esci dall'evento"
     },
+    "upload": {
+      "title": "Carica file in sessione",
+      "hint": "Trascina qui un file PDF/PPTX/Keynote o seleziona dal disco. Verrà caricato sulla sessione attualmente in onda e l'admin sarà notificato.",
+      "selectButton": "Seleziona file",
+      "noCurrentSession": "Per caricare un file serve una sessione attiva. L'admin del centro slide deve impostare la sessione corrente per questa sala.",
+      "currentSession": "Sessione corrente: {{title}}",
+      "preparing": "Preparazione…",
+      "uploading": "Caricamento {{percent}}%",
+      "hashing": "Verifica integrità…",
+      "finalizing": "Finalizzazione…",
+      "success": "File «{{name}}» caricato. L'admin è stato notificato.",
+      "successCta": "Chiudi",
+      "cancelButton": "Annulla",
+      "dragOverlay": "Rilascia qui il file da caricare",
+      "error": {
+        "generic": "Caricamento non riuscito. Riprova o contatta l'admin.",
+        "invalidToken": "Sessione PC sala scaduta. Esci e riassocia il PC.",
+        "noRoomAssigned": "Questo PC non è ancora assegnato a una sala. Avvisa l'admin.",
+        "sessionCrossRoom": "La sessione selezionata non appartiene a questa sala. Solo l'admin può caricare per altre sale.",
+        "sessionNotFound": "Sessione non trovata. Probabilmente è stata rimossa.",
+        "tenantSuspended": "Account sospeso. Contatta l'amministratore.",
+        "eventClosed": "Evento chiuso o archiviato: non si possono caricare nuovi file.",
+        "fileTooLarge": "File troppo grande per il piano di abbonamento.",
+        "storageQuota": "Spazio storage del centro slide esaurito. Avvisa l'admin per liberare spazio.",
+        "filenameTooLong": "Nome file troppo lungo (max 255 caratteri).",
+        "invalidSize": "Il file selezionato è vuoto o non leggibile.",
+        "objectMissing": "Caricamento incompleto. Riprova.",
+        "versionNotUploading": "Stato file non valido. Ricarica la pagina e riprova.",
+        "versionNotFound": "Sessione di upload scaduta. Riprova.",
+        "network": "Errore di rete durante il caricamento. Verifica la connessione e riprova."
+      }
+    },
     "fileSync": {
       "pickFolderTitle": "Scegli dove salvare i file",
       "pickFolderHint": "Scegli una cartella sul PC: i file delle presentazioni verranno scaricati automaticamente appena disponibili.",

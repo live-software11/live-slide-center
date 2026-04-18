@@ -118,6 +118,8 @@ Il Centro Slide viene venduto in **tre forme** che condividono il 100% della SPA
 > **Sprint R-1 chiuso (DONE 18/04/2026):** super-admin (Andrea) puo' creare nuovi tenant cliente + invito primo admin direttamente da `/admin/tenants` senza passare da CLI. Implementato via RPC SECURITY DEFINER `admin_create_tenant_with_invite` + `CreateTenantDialog`. **Gap G1 chiuso (1/10).** Vedi `docs/STATO_E_TODO.md` §0.9.
 >
 > **Sprint R-2 chiuso (DONE 18/04/2026):** integrazione bidirezionale Lemon Squeezy → Live WORKS APP. Edge Function `lemon-squeezy-webhook` riceve subscription events, idempotency strict via `lemon_squeezy_event_log`, mapping configurabile via `lemon_squeezy_plan_mapping`, RPC `lemon_squeezy_apply_subscription_event` crea/aggiorna/sospende tenant. Email automatica `kind='admin-invite'` IT/EN al primo admin (R-1.b inline). **Gap G2 chiuso (2/10).** Vedi `docs/STATO_E_TODO.md` §0.10.
+>
+> **Sprint R-3 chiuso (DONE 18/04/2026):** PC sala upload speaker check-in. Relatore last-minute carica/sostituisce file dal PC sala via `RoomDeviceUploadDropzone` (drag&drop + progress + SHA-256). Auth via `device_token` (no JWT), upload diretto a Storage via signed URL (bypass limite 6MB Edge Functions). 3 nuove RPC `SECURITY DEFINER` (`init/finalize/abort_upload_version_for_room_device`), 3 nuove Edge Functions (`room-device-upload-init/finalize/abort`). Trigger esistente `broadcast_presentation_version_change` propaga `presentation_changed` su `room:<id>` → admin live view aggiornata in <1s. Activity log con `actor='device'`, `actor_name='PC sala N'`. Enum `upload_source += 'room_device'`, `actor_type += 'device'`. **Gap G3 chiuso → famiglia R commercial readiness completa (3/10).** Vedi `docs/STATO_E_TODO.md` §0.11.
 
 | Area                                                       | Cloud (web)                               | Desktop offline (Tauri 2)                    |
 | ---------------------------------------------------------- | ----------------------------------------- | -------------------------------------------- |
@@ -465,7 +467,10 @@ WHERE email = 'live.software11@gmail.com';
 | `admin_create_tenant_with_invite(...)`                                                       | super_admin           | Crea tenant + invito primo admin in transazione atomica (Sprint R-1)  |
 | `record_lemon_squeezy_event(...)`                                                            | service_role          | Idempotency check + INSERT log evento Lemon Squeezy (Sprint R-2)      |
 | `mark_lemon_squeezy_event_processed(...)`                                                    | service_role          | Marca esito processing evento Lemon Squeezy (Sprint R-2)              |
-| `lemon_squeezy_apply_subscription_event(...)`                                                | service_role          | Crea/aggiorna/sospende tenant da subscription_* events (Sprint R-2)   |
+| `lemon_squeezy_apply_subscription_event(...)`                                                | service_role          | Crea/aggiorna/sospende tenant da subscription\_\* events (Sprint R-2) |
+| `init_upload_version_for_room_device(p_token, p_session_id, ...)`                            | service_role          | PC sala: apre version 'uploading', validazione cross-room (Sprint R-3)|
+| `finalize_upload_version_for_room_device(p_token, p_version_id, p_sha256)`                   | service_role          | PC sala: promuove a 'ready' + supersedes altre versions (Sprint R-3)  |
+| `abort_upload_version_for_room_device(p_token, p_version_id)`                                | service_role          | PC sala: marca version 'failed' su cancel/error client (Sprint R-3)   |
 | `seed_demo_data()` / `clear_demo_data()`                                                     | authenticated         | Onboarding demo (Sprint 6)                                            |
 | `mark_tenant_onboarded()` / `reset_tenant_onboarding()`                                      | authenticated         | Wizard onboarding (Sprint 6)                                          |
 | `tenant_health()`                                                                            | super_admin           | Counter aggregati globali (Sprint 6)                                  |
@@ -1285,15 +1290,15 @@ Sprint Q implementa push-only worker desktop → cloud (presentation_versions, r
 
 Vedi `docs/STATO_E_TODO.md` §0.8 per dettaglio file modificati e azioni manuali Andrea (deploy migrations, env vars Vercel, secrets GitHub Actions).
 
-#### Multi-tenant commercial readiness (Sprint R) — IN PROGRESS
+#### Multi-tenant commercial readiness (Sprint R) — DONE
 
-| Sprint | Gap | Nome                                                                                    | Stato   |
-| ------ | --- | --------------------------------------------------------------------------------------- | ------- |
-| R-1    | G1  | Super-admin crea tenant + invito primo admin da `/admin/tenants`                        | DONE    |
-| R-2    | G2  | Live WORKS APP integrazione bidirezionale (Lemon Squeezy webhook + email admin-invite)  | DONE    |
-| R-3    | G3  | PC sala upload speaker check-in (Edge `room-device-upload-init` + `RoomSpeakerCheckIn`) | NEXT    |
+| Sprint | Gap | Nome                                                                                                              | Stato |
+| ------ | --- | ----------------------------------------------------------------------------------------------------------------- | ----- |
+| R-1    | G1  | Super-admin crea tenant + invito primo admin da `/admin/tenants`                                                  | DONE  |
+| R-2    | G2  | Live WORKS APP integrazione bidirezionale (Lemon Squeezy webhook + email admin-invite)                            | DONE  |
+| R-3    | G3  | PC sala upload speaker check-in (Edge `room-device-upload-init/finalize/abort` + `RoomDeviceUploadDropzone`)      | DONE  |
 
-Sprint S (file management OneDrive-style) e Sprint T (perf + competitor parity) restano in pianificazione. Vedi `docs/STATO_E_TODO.md` §0.4 per il dettaglio dei 10 GAP e la roadmap.
+Famiglia R chiusa: Slide Center e' ora **commercial-ready end-to-end** (purchase Lemon Squeezy → tenant zero-touch → admin invite email → operativita completa con upload da admin/speaker portal/PC sala). Sprint S (file management OneDrive-style, G4-G7) e Sprint T (perf + competitor parity, G8-G10) restano in pianificazione. Vedi `docs/STATO_E_TODO.md` §0.4 per il dettaglio dei 10 GAP e la roadmap.
 
 ---
 

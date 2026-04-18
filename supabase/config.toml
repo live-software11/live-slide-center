@@ -369,6 +369,21 @@ verify_jwt = false
 [functions.room-player-rename]
 verify_jwt = false
 
+# Room Player Set Current: PC sala segnala "ora in onda" all'admin (auth via device_token).
+[functions.room-player-set-current]
+verify_jwt = false
+
+# Sprint R-3 (G3): PC sala carica/sostituisce file della propria sessione.
+# Auth via device_token hash (no JWT utente). Genera signed upload URL Storage.
+[functions.room-device-upload-init]
+verify_jwt = false
+
+[functions.room-device-upload-finalize]
+verify_jwt = false
+
+[functions.room-device-upload-abort]
+verify_jwt = false
+
 # Team invite accept: token nel body, nessun JWT — azione pubblica per utenti non ancora registrati.
 [functions.team-invite-accept]
 verify_jwt = false

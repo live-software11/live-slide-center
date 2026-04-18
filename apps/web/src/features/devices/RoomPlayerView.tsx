@@ -45,6 +45,7 @@ import { useFileSync, type FileSyncItem, type RealtimeChannelStatus } from './ho
 import { useConnectivityMode, type ConnectivityMode } from './hooks/useConnectivityMode';
 import { FileSyncStatus } from './components/FileSyncStatus';
 import { StorageUsagePanel } from './components/StorageUsagePanel';
+import { RoomDeviceUploadDropzone } from './components/RoomDeviceUploadDropzone';
 import { FilePreviewDialog } from '@/features/presentations/components/FilePreviewDialog';
 import { useFilePreviewSource } from '@/features/presentations/hooks/useFilePreviewSource';
 import type { Database } from '@slidecenter/shared';
@@ -945,6 +946,23 @@ export default function RoomPlayerView() {
 
         {dirHandle && storage && (
           <StorageUsagePanel storage={storage} onCleanup={cleanupOrphanFiles} />
+        )}
+
+        {/* Sprint R-3 (G3) — Upload dal PC sala (relatore last-minute).
+            La dropzone e' visibile sempre quando c'e' una sessione corrente.
+            Senza sessione corrente mostra hint informativo (no nuovi upload). */}
+        {token && (
+          <RoomDeviceUploadDropzone
+            deviceToken={token}
+            currentSessionId={roomData.currentSession?.id ?? null}
+            currentSessionTitle={roomData.currentSession?.title ?? null}
+            onUploadComplete={() => {
+              // Il file appena caricato deve apparire SUBITO nella lista locale.
+              // refreshNow ri-chiama bootstrap → list_room_files → useFileSync
+              // ricomputa items + scarica il nuovo file su disco se cartella attiva.
+              void refreshNow();
+            }}
+          />
         )}
 
         {sortedItems.length > 0 ? (

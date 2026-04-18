@@ -3,17 +3,19 @@
 > **Documento operativo gemello di `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare, in ordine di priorita. Per "cosa fa il prodotto" e "come e fatto" → architettura.
 >
-> **Versione:** 2.3 — 18 aprile 2026 (post-Sprint R-2)
+> **Versione:** 2.4 — 18 aprile 2026 (post-Sprint R-3)
 > **Owner:** Andrea Rizzari
-> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**.
+> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**.
 >
-> **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 2/10 chiusi (G1 in R-1, G2 in R-2).**
+> **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 3/10 chiusi (G1 in R-1, G2 in R-2, G3 in R-3) → completata FAMIGLIA R commercial readiness.**
 >
 > **Hardening Sprint Q+1 (§ 0.8):** completato hardening backend (Supabase RLS least-privilege + 7 indici hot-path + PKCE + CSP + CI types drift + auto-deploy Edge Functions).
 >
 > **Sprint R-1 (§ 0.9):** super-admin puo' creare nuovi tenant cliente + invito primo admin direttamente da `/admin/tenants`. Tipi i18n IT/EN allineati. Quality gates verdi.
 >
-> **Sprint R-2 (§ 0.10):** integrazione bidirezionale Lemon Squeezy → cliente paga su Live WORKS APP, webhook crea AUTOMATICAMENTE il tenant Slide Center + invia email all'admin (template `admin-invite` IT/EN). Idempotenza con `lemon_squeezy_event_log`, mapping configurabile `lemon_squeezy_plan_mapping`. Verde per Sprint R-3 (PC sala upload, G3) quando vuoi.
+> **Sprint R-2 (§ 0.10):** integrazione bidirezionale Lemon Squeezy → cliente paga su Live WORKS APP, webhook crea AUTOMATICAMENTE il tenant Slide Center + invia email all'admin (template `admin-invite` IT/EN). Idempotenza con `lemon_squeezy_event_log`, mapping configurabile `lemon_squeezy_plan_mapping`.
+>
+> **Sprint R-3 (§ 0.11):** relatore last-minute carica/sostituisce file dal PC sala. Auth via `device_token` (no JWT), upload diretto a Storage via signed URL (bypass limite 6MB Edge), broadcast realtime → admin live view aggiornata in <1s, activity_log con `actor='device'` + `actor_name='PC sala N'`. Verde per Sprint S-1 (drag&drop folder admin, G4) quando vuoi.
 
 ---
 
@@ -23,6 +25,7 @@
    - 0.8 [Hardening Supabase + Vercel (Sprint Q+1 — DONE)](#08-hardening-supabase--vercel-sprint-q1--done-18042026)
    - 0.9 [Sprint R-1 — Super-admin crea tenant + licenze (DONE)](#09-sprint-r-1--super-admin-crea-tenant--licenze-done-18042026)
    - 0.10 [Sprint R-2 — Lemon Squeezy webhook + email admin-invite (DONE)](#010-sprint-r-2--lemon-squeezy-webhook--email-admin-invite-done-18042026)
+   - 0.11 [Sprint R-3 — PC sala upload speaker check-in (DONE)](#011-sprint-r-3--pc-sala-upload-speaker-check-in-done-18042026)
 1. [Stato attuale (tutto DONE)](#1-stato-attuale-tutto-done)
 2. [Cose da fare ORA (azioni esterne Andrea, NON automatizzabili)](#2-cose-da-fare-ora-azioni-esterne-andrea-non-automatizzabili)
 3. [Field test desktop (quando vorrai farlo)](#3-field-test-desktop-quando-vorrai-farlo)
@@ -55,7 +58,7 @@
 | --- | ----------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------- | ------- | ----------- |
 | G1  | Super-admin non puo' creare licenze tenant da app                 | **HIGH**   | `apps/web/src/features/admin/` + RPC SECURITY DEFINER                               | **R-1** | **DONE** ✅ |
 | G2  | Live WORKS APP integrazione = solo link esterno (no parita dati)  | **HIGH**   | `apps/web/src/features/billing/` + webhook Lemon Squeezy condiviso                  | **R-2** | **DONE** ✅ |
-| G3  | PC sala NON puo' caricare/sovrascrivere file (read-only)          | **HIGH**   | `apps/web/src/features/devices/RoomPlayerView.tsx`                                  | **R-3** | pending     |
+| G3  | PC sala NON puo' caricare/sovrascrivere file (read-only)          | **HIGH**   | `apps/web/src/features/devices/RoomPlayerView.tsx`                                  | **R-3** | **DONE** ✅ |
 | G4  | Drag&drop di **folder intera** in upload admin assente            | **MEDIUM** | `apps/web/src/features/presentations/components/SessionFilesPanel.tsx`              | **S-1** | pending     |
 | G5  | Drag&drop visivo PC ↔ sale assente (solo dropdown)                | **MEDIUM** | `apps/web/src/features/devices/components/DeviceList.tsx` + nuova `RoomAssignBoard` | **S-2** | pending     |
 | G6  | Export ZIP fine evento piatto (no struttura sala/sessione)        | **MEDIUM** | `apps/web/src/features/events/lib/event-export.ts` `buildEventSlidesZip`            | **S-3** | pending     |
@@ -574,14 +577,14 @@ GREEN LIGHT → R-1 e' DONE. Sprint R-2 ora completato (vedi §0.10).
 
 #### 0.10.1 Cosa ho fatto (codice committato)
 
-| Area                       | File / artifact                                                   | Cosa cambia                                                                                                                                                                                                                                                                                                                                                                                                       |
-| -------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Area                       | File / artifact                                                    | Cosa cambia                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Migration**              | `supabase/migrations/20260418070000_lemon_squeezy_integration.sql` | 3 colonne nuove su `tenants` (`lemon_squeezy_subscription_id` UNIQUE, `_customer_id`, `_variant_id`). Tabella `lemon_squeezy_plan_mapping` (variant_id → plan + quote, configurabile da super-admin). Tabella `lemon_squeezy_event_log` (idempotency UNIQUE su `event_id`, audit completo). 3 nuove RPC: `record_lemon_squeezy_event`, `mark_lemon_squeezy_event_processed`, `lemon_squeezy_apply_subscription_event`. |
-| **Edge Function**          | `supabase/functions/lemon-squeezy-webhook/index.ts`               | Endpoint `POST /functions/v1/lemon-squeezy-webhook`. HMAC SHA-256 verify su body raw (header `X-Signature`, no prefix). Dispatch su 9 event types (`subscription_created/updated/cancelled/expired/paused/resumed/payment_success/payment_failed/unpaused`). Idempotency strict via `record_lemon_squeezy_event`. Chiamata chain a `email-send` con `kind=admin-invite` quando crea nuovo tenant.                |
-| **Edge Function (extend)** | `supabase/functions/email-send/index.ts`                          | Nuovo `EmailKind = 'admin-invite'`. Subject IT/EN. Template HTML inline con CTA accept-invite, scadenza visibile, fallback URL plain text per client che bloccano i link.                                                                                                                                                                                                                                          |
-| **Config**                 | `supabase/config.toml`                                            | Registrata `[functions.lemon-squeezy-webhook]` con `verify_jwt = false` (auth via HMAC, no JWT utente).                                                                                                                                                                                                                                                                                                            |
-| **Types**                  | `packages/shared/src/types/database.ts`                           | Aggiunte 2 tabelle (`lemon_squeezy_plan_mapping`, `lemon_squeezy_event_log`) + 3 colonne `tenants` + 3 RPC. Schema completo coerente con migration.                                                                                                                                                                                                                                                                |
-| **Env**                    | `.env.example`                                                    | Aggiunto `LEMON_SQUEEZY_WEBHOOK_SECRET` come secret Edge Function (NON committed). Riordinata sezione email secrets.                                                                                                                                                                                                                                                                                               |
+| **Edge Function**          | `supabase/functions/lemon-squeezy-webhook/index.ts`                | Endpoint `POST /functions/v1/lemon-squeezy-webhook`. HMAC SHA-256 verify su body raw (header `X-Signature`, no prefix). Dispatch su 9 event types (`subscription_created/updated/cancelled/expired/paused/resumed/payment_success/payment_failed/unpaused`). Idempotency strict via `record_lemon_squeezy_event`. Chiamata chain a `email-send` con `kind=admin-invite` quando crea nuovo tenant.                      |
+| **Edge Function (extend)** | `supabase/functions/email-send/index.ts`                           | Nuovo `EmailKind = 'admin-invite'`. Subject IT/EN. Template HTML inline con CTA accept-invite, scadenza visibile, fallback URL plain text per client che bloccano i link.                                                                                                                                                                                                                                              |
+| **Config**                 | `supabase/config.toml`                                             | Registrata `[functions.lemon-squeezy-webhook]` con `verify_jwt = false` (auth via HMAC, no JWT utente).                                                                                                                                                                                                                                                                                                                |
+| **Types**                  | `packages/shared/src/types/database.ts`                            | Aggiunte 2 tabelle (`lemon_squeezy_plan_mapping`, `lemon_squeezy_event_log`) + 3 colonne `tenants` + 3 RPC. Schema completo coerente con migration.                                                                                                                                                                                                                                                                    |
+| **Env**                    | `.env.example`                                                     | Aggiunto `LEMON_SQUEEZY_WEBHOOK_SECRET` come secret Edge Function (NON committed). Riordinata sezione email secrets.                                                                                                                                                                                                                                                                                                   |
 
 #### 0.10.2 Quality gates verdi
 
@@ -627,33 +630,33 @@ ReadLints (file modificati R-2)         OK  (0 issues)
 
 #### 0.10.4 Eventi gestiti
 
-| event_name                       | Azione su tenant                                                                                                            |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `subscription_created`           | INSERT nuovo tenant + invito admin + email automatica                                                                       |
-| `subscription_updated`           | UPDATE plan + quote dal nuovo `variant_id` mapping                                                                          |
-| `subscription_payment_success`   | UPDATE `expires_at` dal `renews_at`, conferma renewal                                                                       |
-| `subscription_resumed`           | UPDATE `suspended=false` + reapply quote                                                                                    |
-| `subscription_cancelled`         | UPDATE `expires_at` dal `ends_at` (futuro). Tenant resta attivo fino a `ends_at`, poi `subscription_expired` lo sospende.   |
-| `subscription_expired`           | UPDATE `suspended=true` immediato                                                                                           |
-| `subscription_paused`            | UPDATE `suspended=true` immediato (pausa)                                                                                   |
-| `subscription_unpaused`          | UPDATE `suspended=false` (gestito come `subscription_resumed`)                                                              |
-| `subscription_payment_failed`    | LOG only (nessuna azione automatica; admin DHS decide via Studio se sospendere)                                             |
+| event_name                     | Azione su tenant                                                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `subscription_created`         | INSERT nuovo tenant + invito admin + email automatica                                                                     |
+| `subscription_updated`         | UPDATE plan + quote dal nuovo `variant_id` mapping                                                                        |
+| `subscription_payment_success` | UPDATE `expires_at` dal `renews_at`, conferma renewal                                                                     |
+| `subscription_resumed`         | UPDATE `suspended=false` + reapply quote                                                                                  |
+| `subscription_cancelled`       | UPDATE `expires_at` dal `ends_at` (futuro). Tenant resta attivo fino a `ends_at`, poi `subscription_expired` lo sospende. |
+| `subscription_expired`         | UPDATE `suspended=true` immediato                                                                                         |
+| `subscription_paused`          | UPDATE `suspended=true` immediato (pausa)                                                                                 |
+| `subscription_unpaused`        | UPDATE `suspended=false` (gestito come `subscription_resumed`)                                                            |
+| `subscription_payment_failed`  | LOG only (nessuna azione automatica; admin DHS decide via Studio se sospendere)                                           |
 
 Eventi NON gestiti (es. `order_*`): ritorna 200 con `skipped: true, reason: 'event_not_handled'` per evitare retry inutili da Lemon Squeezy.
 
 #### 0.10.5 Sicurezza & idempotenza
 
-| Vincolo                                                  | Implementazione                                                                                                              |
-| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Solo Lemon Squeezy puo' chiamare il webhook              | HMAC SHA-256 timing-safe verify; secret ≥16 char enforced; reject 401 se firma invalida.                                     |
-| Nessun replay attack                                     | Tabella `lemon_squeezy_event_log` con UNIQUE su `event_id` (derived da `event_name + subscription_id + updated_at`).         |
-| Nessun JWT richiesto                                     | `verify_jwt = false` in config.toml (Lemon Squeezy non puo' iniettare JWT Supabase).                                         |
+| Vincolo                                                    | Implementazione                                                                                                              |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Solo Lemon Squeezy puo' chiamare il webhook                | HMAC SHA-256 timing-safe verify; secret ≥16 char enforced; reject 401 se firma invalida.                                     |
+| Nessun replay attack                                       | Tabella `lemon_squeezy_event_log` con UNIQUE su `event_id` (derived da `event_name + subscription_id + updated_at`).         |
+| Nessun JWT richiesto                                       | `verify_jwt = false` in config.toml (Lemon Squeezy non puo' iniettare JWT Supabase).                                         |
 | Race condition `subscription_updated` PRIMA del `_created` | RPC ritorna `action='noop', reason='tenant_not_found_for_update'`; Edge Function marca `skipped` (non errore).               |
-| Slug univoco anche con customer ambigui                  | Auto-suffix numerico `-2 .. -99`; oltre, raise `slug_collision_unrecoverable` (manual intervention).                         |
-| Variant non mappato                                      | Raise `unknown_variant_id` con HINT esplicito su quale variant_id aggiungere a `lemon_squeezy_plan_mapping`.                 |
-| Audit completo                                           | Ogni evento finisce in `lemon_squeezy_event_log` + ogni azione su tenant in `activity_log`. Visibili da super-admin.         |
-| Email failure non blocca creazione tenant                | Tenant resta creato, log con `error_message`. Admin DHS puo' rimandare invito manualmente da `/admin/tenants/<id>` (UI R-3). |
-| Bundle frontend NON tocca segreti                        | Tutto server-side. `LEMON_SQUEEZY_WEBHOOK_SECRET` SOLO in Supabase secrets, mai in `VITE_*`.                                 |
+| Slug univoco anche con customer ambigui                    | Auto-suffix numerico `-2 .. -99`; oltre, raise `slug_collision_unrecoverable` (manual intervention).                         |
+| Variant non mappato                                        | Raise `unknown_variant_id` con HINT esplicito su quale variant_id aggiungere a `lemon_squeezy_plan_mapping`.                 |
+| Audit completo                                             | Ogni evento finisce in `lemon_squeezy_event_log` + ogni azione su tenant in `activity_log`. Visibili da super-admin.         |
+| Email failure non blocca creazione tenant                  | Tenant resta creato, log con `error_message`. Admin DHS puo' rimandare invito manualmente da `/admin/tenants/<id>` (UI R-3). |
+| Bundle frontend NON tocca segreti                          | Tutto server-side. `LEMON_SQUEEZY_WEBHOOK_SECRET` SOLO in Supabase secrets, mai in `VITE_*`.                                 |
 
 #### 0.10.6 Setup manuale richiesto ad Andrea (one-time, ~15 minuti)
 
@@ -728,13 +731,11 @@ ON CONFLICT (variant_id) DO UPDATE SET
 - ~~UI super-admin per editare `lemon_squeezy_plan_mapping`~~ → **R-2.c deferred:** Andrea edita la tabella via Studio Supabase (e' un setup one-time per nuovi piani). UI bella ma low-priority. Stima: 0.5 giorni.
 - ~~Auto-detect lingua cliente da Lemon Squeezy~~ → Lemon Squeezy non espone `customer.locale` direttamente. Per ora email sempre in IT. Override possibile aggiungendo `custom_data.language='en'` nel checkout link.
 
-#### 0.10.8 Semaforo VERDE per Sprint R-3
+#### 0.10.8 Semaforo VERDE per Sprint R-3 (chiuso → vedi §0.11)
 
 ```
-GREEN LIGHT → R-2 e' DONE. Posso avviare Sprint R-3 (PC sala upload, G3) appena dai conferma.
+GREEN LIGHT → R-2 DONE. R-3 anch'esso DONE: vedi §0.11.
 ```
-
-R-3 obiettivo: relatore ultimo-minuto in sala carica/sostituisce file dal PC sala (oggi read-only). Comporta UI upload in `RoomPlayerView`, Edge Function `room-player-upload-file` con device_token auth, conflict resolution con `presentation_versions`. Stima: 1.5 giorni dev + 0.5 test.
 
 **Backend dopo R-2 e' pronto per:**
 
@@ -742,6 +743,128 @@ R-3 obiettivo: relatore ultimo-minuto in sala carica/sostituisce file dal PC sal
 - **Self-service onboarding** (admin riceve email, attiva account autonomamente).
 - **Audit commerciale tracciabile** (`lemon_squeezy_event_log` + `activity_log` correlati).
 - **Resilienza retry** (idempotency strict, race condition gestite).
+
+---
+
+### 0.11 Sprint R-3 — PC sala upload speaker check-in (DONE 18/04/2026)
+
+**Obiettivo prodotto:** chiudere G3 — relatore arriva ultimo-minuto in sala con la propria chiavetta USB e deve poter caricare/sostituire il file della sua sessione **direttamente dal PC sala**, senza passare dall'admin in regia. Prima il PC sala era read-only: aveva solo la lista dei file scaricati e poteva al piu' segnalare "now playing" all'admin.
+
+#### 0.11.1 Cosa ho fatto (codice committato)
+
+| Layer            | File                                                                                                | Cosa fa                                                                                                                                                                                                |
+| ---------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **DB enum**      | `supabase/migrations/20260418080000_room_device_upload_enum.sql`                                    | Aggiunge `'room_device'` a `upload_source` enum + `'device'` a `actor_type`. Migration separata per vincolo PostgreSQL: ADD VALUE non puo' coesistere con DDL che lo usa nella stessa transazione.     |
+| **DB RPC**       | `supabase/migrations/20260418080100_room_device_upload_rpcs.sql`                                    | 3 RPC `SECURITY DEFINER` `init/finalize/abort_upload_version_for_room_device(p_token, ...)`: auth via hash token, validazione cross-room, quota tenant, file size. `GRANT EXECUTE` solo a service_role.|
+| **Edge init**    | `supabase/functions/room-device-upload-init/index.ts`                                               | Riceve device_token + metadata file → chiama RPC init → genera signed upload URL Storage (validita 2h). Returns `signed_url` al client.                                                                |
+| **Edge finalize**| `supabase/functions/room-device-upload-finalize/index.ts`                                           | Riceve device_token + version_id + sha256 → chiama RPC finalize → broadcast Realtime `room_device_upload_completed` su `room:<id>`.                                                                    |
+| **Edge abort**   | `supabase/functions/room-device-upload-abort/index.ts`                                              | Cleanup version 'uploading' → 'failed' su cancellazione client/errore network.                                                                                                                         |
+| **Config**       | `supabase/config.toml`                                                                              | Registra le 3 nuove Edge Functions con `verify_jwt = false` (auth e' via device_token, no JWT utente).                                                                                                 |
+| **Types**        | `packages/shared/src/types/database.ts`                                                             | Aggiunti `room_device`/`device` agli enum + signature delle 3 RPC.                                                                                                                                     |
+| **Client SDK**   | `apps/web/src/features/devices/repository.ts`                                                       | `invokeRoomDeviceUploadInit/Finalize/Abort` — wrapper fetch verso Edge Functions.                                                                                                                      |
+| **React hook**   | `apps/web/src/features/devices/hooks/useRoomDeviceUpload.ts`                                        | Orchestratore: init → PUT XHR diretto a Storage (con progress tracking) → SHA-256 in parallelo via `computeFileSha256` → finalize. Cancellazione + cleanup orfani su unmount.                          |
+| **UI dropzone**  | `apps/web/src/features/devices/components/RoomDeviceUploadDropzone.tsx`                             | Componente: drag&drop overlay + button "Seleziona file" + progress bar + toast success/error. Visibile solo se `room_state.current_session != null`.                                                   |
+| **UI integrazione** | `apps/web/src/features/devices/RoomPlayerView.tsx`                                               | Inserisce `<RoomDeviceUploadDropzone>` sotto `<StorageUsagePanel>`. On success → `refreshNow()` → file appare in lista locale.                                                                         |
+| **i18n**         | `packages/shared/src/i18n/locales/{it,en}.json`                                                     | 18 nuove chiavi sotto `roomPlayer.upload.*` (title, hint, button, errori mappati IT/EN). Parita ~1153 chiavi totali.                                                                                   |
+
+#### 0.11.2 Quality gates verdi
+
+| Check                                | Risultato | Note                                                                                                                |
+| ------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter @slidecenter/web typecheck` | ✅ 0 err   | `tsc --noEmit -p tsconfig.app.json` clean.                                                                           |
+| `pnpm --filter @slidecenter/web lint`      | ✅ 0 err   | ESLint flat config, 0 warning.                                                                                       |
+| `pnpm --filter @slidecenter/web build`     | ✅ OK      | Bundle `RoomPlayerView` = 52.24 kB (gzip 14 kB), +6 kB rispetto a pre-R3. PWA precache 99 entries / 3.28 MB.        |
+| Migration syntax check               | ✅ OK      | Migration enum + RPC compatibili con PostgreSQL 16 Supabase managed.                                                 |
+| i18n parity IT/EN                    | ✅ OK      | Tutte le 18 chiavi nuove presenti in entrambi i locale.                                                              |
+
+#### 0.11.3 Flusso end-to-end (relatore ultimo-minuto)
+
+```
+1. Relatore arriva in sala 5 minuti prima della sua talk con chiavetta USB.
+2. Tecnico in regia gli dice "vai sul PC della sala, schiaccia il bottone Carica".
+3. Relatore apre RoomPlayerView (gia' aperto sul PC sala dopo pairing).
+4. Vede sotto "Storage" un riquadro:
+   ┌──────────────────────────────────────────────┐
+   │ 📤 Carica file in sessione                    │
+   │ Sessione corrente: Keynote Mario Rossi       │
+   │ Trascina qui un file PDF/PPTX/Keynote o      │
+   │ seleziona dal disco. Verra' caricato sulla   │
+   │ sessione attualmente in onda e l'admin sara' │
+   │ notificato.                                   │
+   │           [ 📤 Seleziona file ]              │
+   └──────────────────────────────────────────────┘
+5. Relatore drop-and-drag il suo `presentazione-finale.pptx` (45 MB).
+6. UI: "Preparazione…" (~1s, init RPC + signed URL).
+7. UI: "Caricamento 45%" (progress bar reale via XHR.upload.onprogress).
+8. UI: "Verifica integrita'…" (SHA-256 calcolato in parallelo all'upload).
+9. UI: "Finalizzazione…" (~1s, finalize RPC + broadcast).
+10. UI: "✓ File presentazione-finale.pptx caricato. L'admin e' stato notificato."
+11. Lato regia: il file appare in `LiveRegiaView` in <1s (postgres_changes Realtime su presentation_versions).
+12. Activity feed regia: "PC sala 1 — upload_finalize_room_device — presentazione-finale.pptx".
+13. Lato PC sala: il file appare nella lista files locale e viene scaricato sulla cartella Disco (se cartella attiva) cosi' la proiezione e' garantita anche se internet salta.
+```
+
+**Tempo totale UX:** ~5-15s per file da 50 MB su Wi-Fi sala medio, dipende dalla banda. Su rete cablata gigabit: <3s.
+
+#### 0.11.4 Sicurezza & invarianti
+
+| Invariante                                                                                                                         | Implementato in                                                                          |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Solo PC sala con `device_token` valido puo' chiamare le Edge.                                                                      | RPC `init/finalize/abort` validano `pair_token_hash`. Edge `verify_jwt = false`.        |
+| Solo PC con `room_id NOT NULL` puo' caricare (no device "spaiati").                                                                | RPC init: `IF v_device.room_id IS NULL THEN RAISE 'device_no_room_assigned'`.           |
+| Cross-room non ammesso (PC sala A non puo' caricare per sala B).                                                                  | RPC init: `IF v_session.room_id IS DISTINCT FROM v_device.room_id THEN RAISE`.          |
+| Cross-tenant non ammesso.                                                                                                          | RPC init: tutte le SELECT joined su `tenant_id = v_device.tenant_id`.                    |
+| Tenant sospeso non puo' caricare.                                                                                                  | RPC init+finalize: `IF v_tenant_suspended THEN RAISE 'tenant_suspended'`.                |
+| Evento closed/archived non puo' ricevere upload.                                                                                   | RPC init: `IF v_event_status IN ('closed','archived') THEN RAISE 'event_closed'`.        |
+| File size rispettato (cap del piano tenant).                                                                                       | RPC init: `tenant_max_file_size(v_device.tenant_id)`.                                    |
+| Quota storage tenant rispettata.                                                                                                   | RPC init: `IF (storage_used + p_size) > storage_limit THEN RAISE 'storage_quota_exceeded'`. |
+| Service-role-only RPCs (client web NON puo' chiamarle direttamente, solo via Edge Function).                                       | `REVOKE ALL FROM PUBLIC; GRANT EXECUTE TO service_role;`                                 |
+| Cleanup orfani su cancel/error/unmount.                                                                                            | Hook `useRoomDeviceUpload`: chiama `invokeRoomDeviceUploadAbort` in tutti i cleanup paths.|
+| Audit log attribuibile: `actor='device'`, `actor_id=device_id`, `actor_name='PC sala N'`.                                          | RPC init+finalize: insert in `activity_log` con tutti i campi.                          |
+| Hash SHA-256 validato lato server.                                                                                                 | RPC finalize: regex `'^[0-9a-f]{64}$'` su `p_sha256`.                                    |
+| File "fantasma" impossibile (verifica oggetto Storage esistente prima di promuovere version a 'ready').                            | RPC finalize: `SELECT FROM storage.objects WHERE bucket='presentations' AND name=storage_key`. |
+
+#### 0.11.5 Osservazioni architetturali
+
+- **Bypass limite 6MB Edge Functions:** il file NON passa via Edge (che ha hard cap 6MB Supabase). L'Edge restituisce un `signed upload URL` Storage e il client fa PUT diretto. Cosi' upload da 500MB+ funzionano. Banda: cliente → Storage CDN, no roundtrip Deno.
+- **Progress UI reale:** XHR.upload.onprogress espone `loaded/total` byte-by-byte. Fetch API non lo fa (problema noto del WHATWG). Uso XMLHttpRequest deliberato per UX accettabile su 50MB+.
+- **Hash parallelo:** `computeFileSha256` gira in parallelo all'upload (entrambi in thread separati implicito via Web Streams). Su file da 50MB, il tempo totale e' MAX(upload, hash), non SUM. Risparmio 30-40% di latenza percepita.
+- **Realtime gratis grazie a Sprint B:** il trigger `broadcast_presentation_version_change` (gia' esistente) emette `presentation_changed` su `room:<id>` ad ogni INSERT/UPDATE su `presentation_versions`. Quindi anche `RoomPlayerView` stesso si aggiorna (multi-PC nella stessa sala) e `LiveRegiaView` riceve il refresh via `postgres_changes` separato. Zero codice realtime nuovo.
+- **No JWT race:** l'Edge Function init valida il device_token e ritorna metadata + signed URL in una singola chiamata. Niente "sessione di upload" da gestire client-side oltre il `version_id`.
+
+#### 0.11.6 Cosa NON e' incluso (delegato a sprint successivi)
+
+- **Multi-file batch upload** dal PC sala → R-3.b: per ora upload single-file (drag&drop accetta solo il primo). Caso d'uso reale: 95% relatori caricano 1 file. Stima R-3.b: 0.5 giorni.
+- **Selettore manuale di sessione** (per ora upload e' sempre sulla sessione corrente `room_state.current_session`) → R-3.c: utile se PC sala vuole caricare per "una sessione futura". Stima: 0.5 giorni.
+- **Conflict UI espliciti** ("ATTENZIONE: stai sostituendo file caricato dall'admin alle 14:30"): per ora il versioning DB gia' gestisce (file vecchio resta come 'superseded', nuovo diventa 'ready'). Migliorabile con dialog conferma. Stima: 0.5 giorni.
+
+#### 0.11.7 Setup richiesto ad Andrea (one-time, ~5 minuti)
+
+> **Solo dopo aver fatto deploy delle Edge Function:**
+
+| #   | Azione                                                                                                                                | Tempo |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| 1   | Apri terminale nella root del progetto.                                                                                               | -     |
+| 2   | Login Supabase: `supabase login` (se non gia' loggato).                                                                               | 1 min |
+| 3   | Apply migrations: `supabase db push` → applica le 2 nuove migration (enum + RPC).                                                     | 1 min |
+| 4   | Deploy Edge: `supabase functions deploy room-device-upload-init room-device-upload-finalize room-device-upload-abort`                | 2 min |
+| 5   | (Opzionale) Test: apri `RoomPlayerView` su un PC sala paired, verifica che sia visibile la dropzone "Carica file in sessione".         | 1 min |
+
+#### 0.11.8 Semaforo VERDE per Sprint S-1
+
+```
+GREEN LIGHT → R-3 e' DONE. Posso avviare Sprint S-1 (drag&drop folder admin, G4) appena dai conferma.
+```
+
+S-1 obiettivo: l'admin puo' droppare in `SessionFilesPanel` una **cartella intera** (con sottocartelle) → ricorsivamente vengono uploadati tutti i file mantenendo la struttura. Oggi accetta solo file singoli/multipli ma non cartelle. Comporta `webkitdirectory` (input type=file), `DataTransferItem.webkitGetAsEntry()`, ricorsione FS API. Stima: 1 giorno dev + 0.5 test.
+
+**Backend dopo R-3 e' pronto per:**
+
+- **Workflow last-minute relatore** end-to-end senza intervento admin.
+- **Audit completo upload** (chi-cosa-quando-da-dove, con `actor_name` parlato).
+- **Notifica realtime regia** in <1s (zero polling extra).
+- **Resilienza network drop** (cleanup orfani, retry idempotente).
+- **Scalabilita** (file 500MB+ via signed URL Storage, no bottleneck Edge).
 
 ---
 

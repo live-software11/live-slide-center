@@ -1066,9 +1066,30 @@ export type Database = {
         };
         Returns: Json;
       };
+      // Sprint R-3 (G3): upload da PC sala (device_token auth, no JWT utente).
+      // Chiamate SOLO dalle Edge Function room-device-upload-{init,finalize,abort}
+      // (GRANT EXECUTE solo a service_role, NON a authenticated/anon).
+      init_upload_version_for_room_device: {
+        Args: {
+          p_token: string;
+          p_session_id: string;
+          p_filename: string;
+          p_size: number;
+          p_mime: string;
+        };
+        Returns: Json;
+      };
+      finalize_upload_version_for_room_device: {
+        Args: { p_token: string; p_version_id: string; p_sha256: string };
+        Returns: Json;
+      };
+      abort_upload_version_for_room_device: {
+        Args: { p_token: string; p_version_id: string };
+        Returns: Json;
+      };
     };
     Enums: {
-      actor_type: 'user' | 'speaker' | 'agent' | 'system';
+      actor_type: 'user' | 'speaker' | 'agent' | 'system' | 'device';
       connection_status: 'online' | 'offline' | 'degraded';
       event_status: 'draft' | 'setup' | 'active' | 'closed' | 'archived';
       network_mode: 'cloud' | 'intranet' | 'hybrid';
@@ -1078,7 +1099,7 @@ export type Database = {
       session_type: 'talk' | 'panel' | 'workshop' | 'break' | 'ceremony';
       sync_status: 'synced' | 'syncing' | 'outdated' | 'offline';
       tenant_plan: 'trial' | 'starter' | 'pro' | 'enterprise';
-      upload_source: 'web_portal' | 'preview_room' | 'agent_upload';
+      upload_source: 'web_portal' | 'preview_room' | 'agent_upload' | 'room_device';
       user_role: 'admin' | 'tech' | 'coordinator' | 'super_admin';
       version_status: 'uploading' | 'processing' | 'ready' | 'failed' | 'superseded';
     };

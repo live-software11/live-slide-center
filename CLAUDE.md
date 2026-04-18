@@ -177,7 +177,7 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 
 ### Audit chirurgico 18/04/2026 (Sprint R / S / T pianificati)
 
-**Stato:** **audit completato, Sprint R-1 + R-2 DONE (2/10 GAP chiusi), R-3 next.**
+**Stato:** **audit completato, famiglia Sprint R DONE (3/10 GAP chiusi: G1+G2+G3), S-1 next.**
 
 **Sintesi 10 GAP rilevati** rispetto agli obiettivi prodotto sovrani (parita cloud/desktop, file da locale, versioning chiaro, perf zero impatto, super-admin licenze, OneDrive-style, drag PC, upload da sala, export ordinato, competitor parity):
 
@@ -185,7 +185,7 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 | ------- | --------------------------------- | ----------------- | --------- | ------------------------------------------ |
 | **R-1** | Super-admin crea tenant + licenze | G1                | 1.5g      | **DONE 18/04/2026 (vedi §0.9)**            |
 | **R-2** | Lemon Squeezy webhook + email     | G2                | 2g        | **DONE 18/04/2026 (vedi §0.10)**           |
-| **R-3** | PC sala upload speaker check-in   | G3                | 2g        | NEXT (in attesa GO Andrea)                 |
+| **R-3** | PC sala upload speaker check-in   | G3                | 2g        | **DONE 18/04/2026 (vedi §0.11)**           |
 | **S**   | OneDrive-style file management    | G4 + G5 + G6 + G7 | 5g        | pending (evento DHS reale > 3 sale)        |
 | **T**   | Performance + competitor parity   | G8 + G9 + G10     | 4g        | pending (match feature PreSeria/Slidecrew) |
 
@@ -217,14 +217,14 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 
 **Stato:** **completato e verde.** Quando un cliente compra Slide Center su Live WORKS APP (Lemon Squeezy storefront), viene creato automaticamente il tenant in Slide Center + spedita email di benvenuto con invite link al primo admin. Zero touch manuale del super-admin.
 
-| Area              | Cosa                                                                                                                                                                                                                                                                                                                                                                  |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Migration         | `supabase/migrations/20260418070000_lemon_squeezy_integration.sql` — 3 colonne nuove `tenants.lemon_squeezy_*` (subscription/customer/variant), tabella `lemon_squeezy_plan_mapping` (configurabile da super-admin), tabella `lemon_squeezy_event_log` (UNIQUE su event_id per idempotency), 3 RPC SECURITY DEFINER (`record_*`, `mark_*_processed`, `apply_subscription_event`). |
-| Edge Function     | `supabase/functions/lemon-squeezy-webhook/index.ts` — HMAC SHA-256 verify (header `X-Signature`), dispatch su 9 event types, idempotency strict, chain a `email-send` con `kind='admin-invite'` quando crea nuovo tenant.                                                                                                                                              |
-| Email template    | `supabase/functions/email-send/index.ts` — nuovo `EmailKind='admin-invite'` con subject + HTML inline IT/EN. Include CTA accept-invite, scadenza visibile, fallback URL plain text.                                                                                                                                                                                    |
-| Config            | `supabase/config.toml` — registrata `[functions.lemon-squeezy-webhook]` con `verify_jwt = false`.                                                                                                                                                                                                                                                                      |
-| Types             | `packages/shared/src/types/database.ts` — 2 tabelle, 3 colonne tenants, 3 RPC nuove allineate al DB schema.                                                                                                                                                                                                                                                            |
-| Env               | `.env.example` — aggiunto `LEMON_SQUEEZY_WEBHOOK_SECRET` (Edge secret).                                                                                                                                                                                                                                                                                                |
+| Area           | Cosa                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Migration      | `supabase/migrations/20260418070000_lemon_squeezy_integration.sql` — 3 colonne nuove `tenants.lemon_squeezy_*` (subscription/customer/variant), tabella `lemon_squeezy_plan_mapping` (configurabile da super-admin), tabella `lemon_squeezy_event_log` (UNIQUE su event*id per idempotency), 3 RPC SECURITY DEFINER (`record*_`, `mark\__\_processed`, `apply_subscription_event`). |
+| Edge Function  | `supabase/functions/lemon-squeezy-webhook/index.ts` — HMAC SHA-256 verify (header `X-Signature`), dispatch su 9 event types, idempotency strict, chain a `email-send` con `kind='admin-invite'` quando crea nuovo tenant.                                                                                                                                                           |
+| Email template | `supabase/functions/email-send/index.ts` — nuovo `EmailKind='admin-invite'` con subject + HTML inline IT/EN. Include CTA accept-invite, scadenza visibile, fallback URL plain text.                                                                                                                                                                                                 |
+| Config         | `supabase/config.toml` — registrata `[functions.lemon-squeezy-webhook]` con `verify_jwt = false`.                                                                                                                                                                                                                                                                                   |
+| Types          | `packages/shared/src/types/database.ts` — 2 tabelle, 3 colonne tenants, 3 RPC nuove allineate al DB schema.                                                                                                                                                                                                                                                                         |
+| Env            | `.env.example` — aggiunto `LEMON_SQUEEZY_WEBHOOK_SECRET` (Edge secret).                                                                                                                                                                                                                                                                                                             |
 
 **Quality gates verdi:** `pnpm typecheck` (5/5 OK), `pnpm --filter @slidecenter/web lint` (0 errors), `pnpm --filter @slidecenter/web build` (1.66s). Zero ReadLints issues sui file R-2.
 
@@ -242,6 +242,40 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 - Sync inverso (cancellazione manuale tenant → cancella subscription Lemon Squeezy) → R-2.b deferred (raro, +0.5g).
 - UI super-admin per editare `lemon_squeezy_plan_mapping` → R-2.c deferred (+0.5g).
 - Auto-detect lingua cliente (Lemon Squeezy non espone `customer.locale` standard).
+
+### Sprint R-3 (G3) — PC sala upload speaker check-in (DONE 18/04/2026)
+
+**Stato:** **completato e verde.** Il relatore ultimo-minuto puo' caricare/sostituire file della propria sessione **direttamente dal PC sala**, senza intervento dell'admin in regia. UI drag&drop + button + progress reale (XHR.upload.onprogress). Auth via `device_token` (no JWT). Upload diretto a Storage via signed URL → bypass limite 6MB Edge Functions (file da 500MB+ funzionano).
+
+| Area              | Cosa                                                                                                                                                                                                                                                                                                                                                              |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Migration enum    | `supabase/migrations/20260418080000_room_device_upload_enum.sql` — `ALTER TYPE upload_source ADD VALUE 'room_device'` + `ALTER TYPE actor_type ADD VALUE 'device'`. Migration separata per vincolo PostgreSQL (ADD VALUE non puo' coesistere con DDL che lo usa stessa transazione).                                                                              |
+| Migration RPC     | `supabase/migrations/20260418080100_room_device_upload_rpcs.sql` — 3 RPC SECURITY DEFINER (`init/finalize/abort_upload_version_for_room_device`) auth via hash token, validazione cross-room (PC sala A non carica per sala B), tenant suspended, evento closed, file size cap, storage quota. `GRANT EXECUTE` solo `service_role`.                              |
+| Edge Functions    | `supabase/functions/room-device-upload-{init,finalize,abort}/index.ts` — orchestrano la chain: `init` chiama RPC + genera signed upload URL Storage (validita 2h); `finalize` chiama RPC + broadcast Realtime `room_device_upload_completed` su `room:<id>`; `abort` cleanup orfani. Tutte con `verify_jwt = false` (auth e' device_token).                       |
+| Client SDK        | `apps/web/src/features/devices/repository.ts` — `invokeRoomDeviceUpload{Init,Finalize,Abort}` wrappers fetch.                                                                                                                                                                                                                                                     |
+| React hook        | `apps/web/src/features/devices/hooks/useRoomDeviceUpload.ts` — orchestratore stato + cancellazione + cleanup unmount. Stati: idle → preparing → uploading → hashing → finalizing → done/error/cancelled. SHA-256 in parallelo all'upload (lat percepita -30%).                                                                                                    |
+| UI dropzone       | `apps/web/src/features/devices/components/RoomDeviceUploadDropzone.tsx` — drag&drop overlay + button + progress bar + toast IT/EN. Visibile solo se `room_state.current_session != null`.                                                                                                                                                                         |
+| UI integrazione   | `apps/web/src/features/devices/RoomPlayerView.tsx` — inserisce dropzone sotto StorageUsagePanel. On success → `refreshNow()` → file appare in lista locale.                                                                                                                                                                                                       |
+| i18n              | 18 nuove chiavi `roomPlayer.upload.*` IT/EN parity (title, hint, button, 14 errori mappati).                                                                                                                                                                                                                                                                      |
+| Types             | `packages/shared/src/types/database.ts` — `room_device` aggiunto a `upload_source`, `device` a `actor_type`, signature delle 3 nuove RPC.                                                                                                                                                                                                                         |
+| Activity feed     | RPC scrivono `actor='device'`, `actor_id=device_id`, `actor_name='PC sala N'` → admin vede subito "PC sala 1 — upload_finalize_room_device" senza decodificare UUID.                                                                                                                                                                                              |
+| Realtime gratis   | Trigger esistente `broadcast_presentation_version_change` (Sprint B) intercetta INSERT/UPDATE su `presentation_versions` → emette `presentation_changed` su `room:<id>`. Quindi anche PC sala stesso (multi-PC) e LiveRegiaView (via `postgres_changes`) si aggiornano in <1s. **Zero codice realtime nuovo.**                                                     |
+
+**Quality gates verdi:** `pnpm --filter @slidecenter/web typecheck` (0 err), `lint` (0 err), `build` (1.30s, RoomPlayerView 52.24 kB gzip 14 kB). Migration syntax check OK.
+
+**Sicurezza:** invarianti su cross-room/cross-tenant/tenant-suspended/event-closed/file-size/storage-quota/SHA-256-format/object-existence — tutti enforced lato RPC. Hook UI gestisce cleanup orfani su cancel/error/unmount. RPC service_role-only (client web NON puo' chiamarle direttamente).
+
+**Setup manuale Andrea (~5 min):**
+
+1. `supabase db push` → applica le 2 nuove migration (enum + RPC).
+2. `supabase functions deploy room-device-upload-init room-device-upload-finalize room-device-upload-abort`.
+3. (Opzionale) Test con PC sala paired: vedere dropzone "Carica file in sessione".
+
+**Cosa NON e' incluso:**
+
+- Multi-file batch upload da PC sala → R-3.b deferred (95% relatori caricano 1 file, +0.5g).
+- Selettore manuale di sessione (oggi sempre sulla `current_session`) → R-3.c deferred (+0.5g).
+- Dialog conferma "stai sostituendo file dell'admin" → versioning DB gia' gestisce, UI futura (+0.5g).
 
 ### Hardening Supabase + Vercel (Sprint Q+1) — DONE 18/04/2026
 

@@ -444,6 +444,140 @@ export async function invokeRoomPlayerSetCurrent(
   };
 }
 
+// ────────────────────────────────────────────────────────────────────
+// Sprint R-3 (G3) — Upload da PC sala (relatore last-minute)
+// ────────────────────────────────────────────────────────────────────
+
+export interface RoomDeviceUploadInitResponse {
+  ok: true;
+  version_id: string;
+  presentation_id: string;
+  storage_key: string;
+  bucket: string;
+  session_id: string;
+  room_id: string;
+  device_id: string;
+  signed_url: string;
+  /** Token interno necessario a `supabase.storage.uploadToSignedUrl(path, token, file)`. */
+  token: string;
+  /** Path nel bucket (uguale a storage_key). */
+  path: string;
+}
+
+export interface RoomDeviceUploadFinalizeResponse {
+  ok: true;
+  version_id: string;
+  presentation_id: string;
+  session_id: string | null;
+  room_id: string;
+  file_name: string;
+}
+
+/**
+ * Sprint R-3 — init upload da PC sala. Auth via device_token hash.
+ * Ritorna signed upload URL Storage (validita' 2h) per PUT diretto del file
+ * senza forwardare via Edge Function.
+ */
+export async function invokeRoomDeviceUploadInit(input: {
+  deviceToken: string;
+  sessionId: string;
+  filename: string;
+  size: number;
+  mime: string;
+}): Promise<RoomDeviceUploadInitResponse> {
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/room-device-upload-init`;
+  const res = await fetchWithRetry(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${anonKey}`,
+      apikey: anonKey,
+    },
+    body: JSON.stringify({
+      device_token: input.deviceToken,
+      session_id: input.sessionId,
+      filename: input.filename,
+      size: input.size,
+      mime: input.mime,
+    }),
+  });
+  const json = (await res.json().catch(() => ({}))) as
+    | RoomDeviceUploadInitResponse
+    | { error?: string };
+  if (!res.ok || !('ok' in json) || !json.ok) {
+    throw new Error(
+      ('error' in json && json.error) || `room_device_upload_init_${res.status}`,
+    );
+  }
+  return json;
+}
+
+/**
+ * Sprint R-3 — finalize upload da PC sala. Promuove version a 'ready' e
+ * pubblica broadcast realtime `room:<roomId>` event 'room_device_upload_completed'
+ * cosi' la dashboard admin riceve notifica in <1s.
+ */
+export async function invokeRoomDeviceUploadFinalize(input: {
+  deviceToken: string;
+  versionId: string;
+  sha256: string;
+}): Promise<RoomDeviceUploadFinalizeResponse> {
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/room-device-upload-finalize`;
+  const res = await fetchWithRetry(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${anonKey}`,
+      apikey: anonKey,
+    },
+    body: JSON.stringify({
+      device_token: input.deviceToken,
+      version_id: input.versionId,
+      sha256: input.sha256,
+    }),
+  });
+  const json = (await res.json().catch(() => ({}))) as
+    | RoomDeviceUploadFinalizeResponse
+    | { error?: string };
+  if (!res.ok || !('ok' in json) || !json.ok) {
+    throw new Error(
+      ('error' in json && json.error) || `room_device_upload_finalize_${res.status}`,
+    );
+  }
+  return json;
+}
+
+/**
+ * Sprint R-3 — abort upload da PC sala. Cleanup version 'uploading' su errore
+ * o cancel utente, marca 'failed'. Best-effort: errori ignorabili dal chiamante.
+ */
+export async function invokeRoomDeviceUploadAbort(input: {
+  deviceToken: string;
+  versionId: string;
+}): Promise<{ ok: true }> {
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/room-device-upload-abort`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${anonKey}`,
+      apikey: anonKey,
+    },
+    body: JSON.stringify({
+      device_token: input.deviceToken,
+      version_id: input.versionId,
+    }),
+  });
+  const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+  if (!res.ok || !json.ok) {
+    throw new Error(json.error ?? `room_device_upload_abort_${res.status}`);
+  }
+  return { ok: true };
+}
+
 /** Rinomina chiamata dal PC sala (autenticazione via device_token, no JWT). */
 export async function invokeRoomPlayerRename(
   deviceToken: string,
