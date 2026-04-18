@@ -77,11 +77,10 @@ export async function reorderSessionsDisplayOrder(
   orderedSessionIds: string[],
   eventId: string,
 ) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC non in types generati fino a `supabase gen types`
-  const { error } = await (supabase.rpc as any)('rpc_reorder_sessions', {
+  const { error } = await supabase.rpc('rpc_reorder_sessions', {
     p_ids: orderedSessionIds,
     p_event_id: eventId,
   });
-  if (error) return { errorMessage: (error as { message: string }).message };
+  if (error) return { errorMessage: error.message };
   return { errorMessage: null as string | null };
 }

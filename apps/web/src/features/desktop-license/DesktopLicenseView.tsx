@@ -13,11 +13,20 @@
 // ════════════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, KeyRound, Loader2, RefreshCw, Trash2, Unplug } from 'lucide-react';
+import {
+  CalendarClock,
+  CheckCircle2,
+  KeyRound,
+  Loader2,
+  RefreshCw,
+  Trash2,
+  Unplug,
+} from 'lucide-react';
 import { getBackendMode } from '@/lib/backend-mode';
 import {
   bindDesktopLicense,
   getDesktopLicenseStatus,
+  renewDesktopLicenseNow,
   resetDesktopLicense,
   verifyDesktopLicenseNow,
   type DesktopLicenseStatus,
@@ -53,6 +62,14 @@ function StatusCard({ status }: { status: DesktopLicenseStatus }) {
       label = t('desktopLicense.status.active');
       color = 'bg-emerald-500';
       break;
+    case 'pairTokenExpiring':
+      label = t('desktopLicense.status.pairTokenExpiring');
+      color = 'bg-amber-500';
+      break;
+    case 'pairTokenExpired':
+      label = t('desktopLicense.status.pairTokenExpired');
+      color = 'bg-red-500';
+      break;
     case 'gracePeriod':
       label = t('desktopLicense.status.gracePeriod');
       color = 'bg-amber-500';
@@ -85,6 +102,12 @@ function StatusCard({ status }: { status: DesktopLicenseStatus }) {
   const lastVerifiedAt = 'lastVerifiedAt' in status ? status.lastVerifiedAt : null;
   const graceUntil = 'graceUntil' in status ? status.graceUntil : null;
   const daysRemaining = 'daysRemaining' in status ? status.daysRemaining : null;
+  const pairTokenExpiresAt =
+    status.kind === 'pairTokenExpiring' || status.kind === 'pairTokenExpired'
+      ? status.pairTokenExpiresAt
+      : null;
+  const pairTokenDaysRemaining =
+    status.kind === 'pairTokenExpiring' ? status.pairTokenDaysRemaining : null;
 
   return (
     <div className="rounded-lg border border-sc-border bg-sc-surface p-4 shadow-sm">
@@ -134,6 +157,20 @@ function StatusCard({ status }: { status: DesktopLicenseStatus }) {
             <dd />
           </>
         ) : null}
+        {pairTokenExpiresAt ? (
+          <>
+            <dt className="text-sc-text-muted">{t('desktopLicense.status.pairTokenExpiresAt')}</dt>
+            <dd className="font-medium text-sc-text">{formatDate(pairTokenExpiresAt)}</dd>
+          </>
+        ) : null}
+        {pairTokenDaysRemaining !== null ? (
+          <>
+            <dt className="text-sc-text-muted">
+              {t('desktopLicense.status.pairTokenDaysRemaining', { days: pairTokenDaysRemaining })}
+            </dt>
+            <dd />
+          </>
+        ) : null}
       </dl>
     </div>
   );
@@ -147,11 +184,13 @@ function DesktopLicenseView() {
   const [deviceName, setDeviceName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [renewing, setRenewing] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [bindError, setBindError] = useState<string | null>(null);
   const [bindSuccess, setBindSuccess] = useState(false);
   const [verifyMessage, setVerifyMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [renewMessage, setRenewMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   const refresh = useCallback(async () => {
     const s = await getDesktopLicenseStatus();
@@ -206,6 +245,23 @@ function DesktopLicenseView() {
       setVerifyMessage({
         ok: false,
         text: t('desktopLicense.actions.verifyError', { error: res.error ?? '' }),
+      });
+    }
+    await refresh();
+  }
+
+  async function handleRenew() {
+    if (renewing) return;
+    setRenewing(true);
+    setRenewMessage(null);
+    const res = await renewDesktopLicenseNow();
+    setRenewing(false);
+    if (res.ok) {
+      setRenewMessage({ ok: true, text: t('desktopLicense.actions.renewOk') });
+    } else {
+      setRenewMessage({
+        ok: false,
+        text: t('desktopLicense.actions.renewError', { error: res.error ?? '' }),
       });
     }
     await refresh();
@@ -312,19 +368,41 @@ function DesktopLicenseView() {
       {status && status.kind !== 'notBound' ? (
         <section className="rounded-lg border border-sc-border bg-sc-surface p-4 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={() => void handleVerify()}
-              disabled={verifying}
-              className="inline-flex items-center gap-2 rounded-md border border-sc-border bg-sc-bg px-3 py-2 text-sm font-medium text-sc-text transition-colors hover:bg-sc-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {verifying ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              ) : (
-                <RefreshCw className="h-4 w-4" aria-hidden />
-              )}
-              <span>{verifying ? t('desktopLicense.actions.verifying') : t('desktopLicense.actions.verifyNow')}</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void handleVerify()}
+                disabled={verifying}
+                className="inline-flex items-center gap-2 rounded-md border border-sc-border bg-sc-bg px-3 py-2 text-sm font-medium text-sc-text transition-colors hover:bg-sc-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {verifying ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <RefreshCw className="h-4 w-4" aria-hidden />
+                )}
+                <span>
+                  {verifying ? t('desktopLicense.actions.verifying') : t('desktopLicense.actions.verifyNow')}
+                </span>
+              </button>
+              {status.kind === 'pairTokenExpiring' || status.kind === 'active' ? (
+                <button
+                  type="button"
+                  onClick={() => void handleRenew()}
+                  disabled={renewing}
+                  title={t('desktopLicense.actions.renewTooltip')}
+                  className="inline-flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:text-amber-300"
+                >
+                  {renewing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  ) : (
+                    <CalendarClock className="h-4 w-4" aria-hidden />
+                  )}
+                  <span>
+                    {renewing ? t('desktopLicense.actions.renewing') : t('desktopLicense.actions.renewNow')}
+                  </span>
+                </button>
+              ) : null}
+            </div>
             {confirmReset ? (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-sc-text-muted">{t('desktopLicense.actions.resetConfirmTitle')}</span>
@@ -358,13 +436,22 @@ function DesktopLicenseView() {
           </div>
           {verifyMessage ? (
             <div
-              className={`mt-3 rounded-md border px-3 py-2 text-xs ${
-                verifyMessage.ok
+              className={`mt-3 rounded-md border px-3 py-2 text-xs ${verifyMessage.ok
                   ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
                   : 'border-sc-danger/30 bg-sc-danger/10 text-sc-danger'
-              }`}
+                }`}
             >
               {verifyMessage.text}
+            </div>
+          ) : null}
+          {renewMessage ? (
+            <div
+              className={`mt-3 rounded-md border px-3 py-2 text-xs ${renewMessage.ok
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                  : 'border-sc-danger/30 bg-sc-danger/10 text-sc-danger'
+                }`}
+            >
+              {renewMessage.text}
             </div>
           ) : null}
           {confirmReset ? (

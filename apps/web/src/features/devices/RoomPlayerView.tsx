@@ -28,6 +28,7 @@ import {
   invokeRoomPlayerBootstrap,
   invokeRoomPlayerRename,
   invokeRoomPlayerSetCurrent,
+  revokePairTokenSelf,
   type DeviceRole,
   type PlaybackMode,
   type RoomPlayerBootstrapSession,
@@ -45,6 +46,7 @@ import { isRunningInTauri } from '@/lib/backend-mode';
 import { useFileSync, type FileSyncItem, type RealtimeChannelStatus } from './hooks/useFileSync';
 import { useConnectivityMode, type ConnectivityMode } from './hooks/useConnectivityMode';
 import { useDevicePerformanceCollector } from './hooks/useDevicePerformanceCollector';
+import { useLastSession } from './hooks/useLastSession';
 import { FileSyncStatus } from './components/FileSyncStatus';
 import { StorageUsagePanel } from './components/StorageUsagePanel';
 import { RoomDeviceUploadDropzone } from './components/RoomDeviceUploadDropzone';
@@ -568,6 +570,22 @@ export default function RoomPlayerView() {
   const lastSeenVersionRef = useRef<Map<string, number> | null>(null);
   const toast = useToast();
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Sprint Z (post-field-test) Gap C — last session persistence (Tauri-only)
+  // ───────────────────────────────────────────────────────────────────────
+  // Lo hook persiste un blob `last-session.json` accanto a `device.json`
+  // ad ogni cambio rilevante (current presentation, current session id,
+  // event/room id). Cosi' al prossimo boot:
+  //   1. il Rust legge il blob via `cmd_get_last_session`,
+  //   2. la SPA puo' decidere lato React come usarlo (auto-restore, tray
+  //      menu "Resume", diagnostic pannello).
+  //
+  // In cloud (PWA browser) lo hook e' un no-op: non lo passiamo a children
+  // e non aggiungiamo cicli inutili. `lastSession` resta `null`, `save()`
+  // ritorna immediatamente.
+  // ───────────────────────────────────────────────────────────────────────
+  const { save: saveLastSession } = useLastSession();
+
   useEffect(() => {
     try {
       localStorage.setItem(STORED_PLAYBACK_MODE_KEY, playbackMode);
@@ -863,7 +881,54 @@ export default function RoomPlayerView() {
     return () => window.clearInterval(id);
   }, [token, roomId, playbackMode, collectMetrics]);
 
+  // Sprint Z (post-field-test) Gap C — persist last session.
+  // Trigger: cambio di token / event / room / current presentation / current
+  // session. `useLastSession` fa throttle a 2s, quindi il cluster di update
+  // tipico di un cambio scena (admin sceglie file → polling tira current →
+  // useFileSync setta selectedItem → setNowPlayingPresentationId) viene
+  // coalescente in una sola write su disco.
+  useEffect(() => {
+    if (!token || !roomData?.eventId) return;
+    saveLastSession({
+      device_token: token,
+      event_id: roomData.eventId,
+      room_id: roomData.id ?? null,
+      current_presentation_id: nowPlayingPresentationId,
+      current_session_id: roomData.currentSession?.id ?? null,
+    });
+  }, [
+    token,
+    roomData?.eventId,
+    roomData?.id,
+    roomData?.currentSession?.id,
+    nowPlayingPresentationId,
+    saveLastSession,
+  ]);
+
   const handleDisconnect = () => {
+    // Sprint Z (post-field-test) Gap D — prima della pulizia locale, chiamiamo
+    // la edge function `pair-revoke-self` per marcare il device offline lato
+    // cloud (paired_devices.status='offline'). Cosi' il pannello admin
+    // "Centri Slide" / "Mappa rete" vede il PC sparire dal riquadro online
+    // nello stesso istante in cui l'utente clicca "Esci dall'evento", senza
+    // dover aspettare che il timer di 5 min lo demuova automaticamente.
+    //
+    // Fire-and-forget: se la rete e' giu' la disconnessione locale procede
+    // comunque (l'utente e' offline e vuole staccare il PC). Il record cloud
+    // verra' demosso entro 5 min dal cron heartbeat-aging gia' esistente.
+    const pairTokenForRevoke = (() => {
+      try {
+        return localStorage.getItem(STORED_TOKEN_KEY);
+      } catch {
+        return null;
+      }
+    })();
+    if (pairTokenForRevoke) {
+      void revokePairTokenSelf(pairTokenForRevoke).catch(() => {
+        /* best-effort: non blocchiamo l'utente che ha gia' deciso di uscire */
+      });
+    }
+
     try {
       localStorage.removeItem(STORED_TOKEN_KEY);
       localStorage.removeItem(STORED_DEVICE_ID_KEY);

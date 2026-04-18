@@ -353,7 +353,7 @@ export async function fetchDeviceMetricsForEvent(
     p_max_pings_per_device: options.maxPingsPerDevice ?? 60,
   });
   if (error) throw new Error(error.message);
-  return (data ?? []) as DeviceMetricsRow[];
+  return (data ?? []) as unknown as DeviceMetricsRow[];
 }
 
 export async function renameDevice(deviceId: string, deviceName: string): Promise<void> {
@@ -786,9 +786,9 @@ export async function createRoomProvisionToken(input: {
   const { data, error } = await supabase.rpc('rpc_admin_create_room_provision_token', {
     p_event_id: input.eventId,
     p_room_id: input.roomId,
-    p_expires_minutes: input.expiresMinutes ?? null,
-    p_max_uses: input.maxUses ?? null,
-    p_label: input.label ?? null,
+    p_expires_minutes: input.expiresMinutes ?? undefined,
+    p_max_uses: input.maxUses ?? undefined,
+    p_label: input.label ?? undefined,
   });
   if (error) throw new Error(error.message);
   if (!data || typeof data !== 'object') {
@@ -881,6 +881,35 @@ export async function claimRoomProvisionToken(input: {
     throw new Error(err);
   }
   return json;
+}
+
+/**
+ * Sprint Z (post-field-test) Gap D — il PC sala (PWA o Tauri) auto-revoca
+ * il proprio pair_token cloud-side. Idempotente, fire-and-forget compatibile
+ * (l'utente ha gia' deciso di disconnettersi).
+ *
+ * - Edge function: pair-revoke-self (verify_jwt=false, rate-limit 30/5min/IP).
+ * - Token plain inviato in `Authorization: Bearer`, mai loggato lato client.
+ * - In modalita desktop la chiamata va comunque al cloud Supabase (serve a
+ *   marcare `desktop_devices.status = revoked` o `paired_devices.status =
+ *   offline`); il cleanup locale (file device.json, license.enc, ...) e'
+ *   responsabilita del chiamante via `clearDevicePairing()`.
+ */
+export async function revokePairTokenSelf(pairToken: string): Promise<{ ok: boolean; kind?: string }> {
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pair-revoke-self`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${pairToken}`,
+    },
+    body: '{}',
+  });
+  const json = (await res.json().catch(() => ({}))) as { ok?: boolean; kind?: string; error?: string };
+  if (!res.ok) {
+    throw new Error(json.error ?? `pair_revoke_self_${res.status}`);
+  }
+  return { ok: Boolean(json.ok), kind: json.kind };
 }
 
 /**

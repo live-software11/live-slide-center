@@ -10,23 +10,12 @@
 // Pattern allineato a `apps/web/src/features/devices/repository.ts` (Sprint
 // U-4) — se cambi qui, considera consistency anche col gemello room_*.
 //
-// Tipi: i types Database non includono ancora le nuove tabelle (la rigenerazione
-// `supabase gen types` e' in TODO sprint successivo); definiamo manualmente
-// le interfacce DTO finche' il drift check non viene riconciliato.
+// Sprint Hardening Pre-Field-Test §1.1 (audit doc): i tipi DB sono stati
+// rigenerati con `supabase gen types`, le RPC sono ora type-safe e il vecchio
+// helper `rpcLoose()` e' stato rimosso.
 // ════════════════════════════════════════════════════════════════════════════
 
 import { getSupabaseBrowserClient } from '@/lib/supabase';
-
-// Le 3 nuove RPC `rpc_admin_*_desktop_*` esistono in produzione (migration
-// 20260418290000_desktop_devices_licensing.sql) ma non sono ancora nei tipi
-// generati `database.types.ts`. Usiamo un cast minimale per non rompere
-// i tipi generati per le altre RPC.
-type SupabaseRpcLoose = ReturnType<typeof getSupabaseBrowserClient>['rpc'];
-function rpcLoose(): (fn: string, args?: Record<string, unknown>) => ReturnType<SupabaseRpcLoose> {
-  const client = getSupabaseBrowserClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return ((fn: string, args?: Record<string, unknown>) => (client.rpc as any)(fn, args)) as never;
-}
 
 // ── DTOs ────────────────────────────────────────────────────────────────────
 
@@ -43,6 +32,8 @@ export interface DesktopDevice {
   last_seen_at: string | null;
   revoked_at: string | null;
   notes: string | null;
+  /** Sprint SR: scadenza pair_token (rotation/extension; default +1 anno dal bind). */
+  pair_token_expires_at: string;
 }
 
 export interface DesktopProvisionToken {
@@ -72,7 +63,7 @@ export async function listDesktopDevices(): Promise<DesktopDevice[]> {
   const { data, error } = await supabase
     .from('desktop_devices')
     .select(
-      'id, tenant_id, device_name, machine_fingerprint, app_version, os_version, status, registered_at, last_verified_at, last_seen_at, revoked_at, notes',
+      'id, tenant_id, device_name, machine_fingerprint, app_version, os_version, status, registered_at, last_verified_at, last_seen_at, revoked_at, notes, pair_token_expires_at',
     )
     .order('last_seen_at', { ascending: false, nullsFirst: false })
     .order('registered_at', { ascending: false })
@@ -109,10 +100,11 @@ export async function createDesktopProvisionToken(input: {
   expiresMinutes?: number;
   maxUses?: number;
 }): Promise<CreatedDesktopProvisionToken> {
-  const { data, error } = await rpcLoose()('rpc_admin_create_desktop_provision_token', {
-    p_label: input.label ?? null,
-    p_expires_minutes: input.expiresMinutes ?? null,
-    p_max_uses: input.maxUses ?? null,
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.rpc('rpc_admin_create_desktop_provision_token', {
+    p_label: input.label ?? undefined,
+    p_expires_minutes: input.expiresMinutes,
+    p_max_uses: input.maxUses,
   });
   if (error) throw new Error(error.message);
   if (!data || typeof data !== 'object') throw new Error('create_desktop_token_empty');
@@ -121,7 +113,8 @@ export async function createDesktopProvisionToken(input: {
 
 /** Revoca atomica di un magic-link non ancora consumato. */
 export async function revokeDesktopProvisionToken(tokenId: string): Promise<void> {
-  const { error } = await rpcLoose()('rpc_admin_revoke_desktop_provision_token', {
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.rpc('rpc_admin_revoke_desktop_provision_token', {
     p_token_id: tokenId,
   });
   if (error) throw new Error(error.message);
@@ -134,10 +127,54 @@ export async function revokeDesktopProvisionToken(tokenId: string): Promise<void
  * LAN preservata).
  */
 export async function revokeDesktopDevice(deviceId: string): Promise<void> {
-  const { error } = await rpcLoose()('rpc_admin_revoke_desktop_device', {
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.rpc('rpc_admin_revoke_desktop_device', {
     p_device_id: deviceId,
   });
   if (error) throw new Error(error.message);
+}
+
+// ── Sprint SR (Security Review): rotazione/estensione pair_token desktop ─────
+
+export interface ExtendDesktopTokenResult {
+  device_id: string;
+  pair_token_expires_at: string;
+  pair_token_expires_in_days: number;
+  extra_months: number;
+}
+
+/**
+ * Sprint SR: admin/tech del tenant prolunga manualmente la scadenza del
+ * pair_token di un device attivo (default +12 mesi, max +60). Pensato come
+ * safety net per device fuori sede che non possono auto-rinnovarsi.
+ */
+export async function extendDesktopDeviceToken(input: {
+  deviceId: string;
+  extraMonths?: number;
+}): Promise<ExtendDesktopTokenResult> {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.rpc('rpc_admin_extend_desktop_token', {
+    p_device_id: input.deviceId,
+    p_extra_months: input.extraMonths ?? 12,
+  });
+  if (error) throw new Error(error.message);
+  if (!data || typeof data !== 'object') throw new Error('extend_desktop_token_empty');
+  return data as unknown as ExtendDesktopTokenResult;
+}
+
+/** Sprint SR: classifica lo stato del pair_token in base a giorni residui. */
+export function classifyDesktopTokenExpiry(
+  device: Pick<DesktopDevice, 'status' | 'pair_token_expires_at'>,
+  nowMs: number,
+): 'expired' | 'expiring_soon' | 'ok' | 'na' {
+  if (device.status !== 'active') return 'na';
+  if (!device.pair_token_expires_at) return 'na';
+  const exp = new Date(device.pair_token_expires_at).getTime();
+  if (Number.isNaN(exp)) return 'na';
+  const diffDays = (exp - nowMs) / (1000 * 60 * 60 * 24);
+  if (diffDays < 0) return 'expired';
+  if (diffDays <= 30) return 'expiring_soon';
+  return 'ok';
 }
 
 // ── Sprint S-4: toggle ruolo paired_devices (room ↔ control_center) ─────────

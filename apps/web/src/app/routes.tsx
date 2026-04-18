@@ -182,6 +182,20 @@ export const router = createBrowserRouter([
                 ],
               },
               {
+                // Sprint Z (post-field-test) Gap A — Network Map del tenant.
+                // Vista unificata di TUTTI i PC node (paired + desktop server)
+                // con stato online/degraded/offline derivato lato DB e azione
+                // "sposta PC sull'evento X" (Gap B). Solo tenant admin.
+                path: 'network-map',
+                element: <RequireTenantAdmin />,
+                children: [
+                  {
+                    index: true,
+                    lazy: () => import('@/features/network-map/NetworkMapView'),
+                  },
+                ],
+              },
+              {
                 path: 'audit',
                 element: <RequireTenantAdmin />,
                 children: [

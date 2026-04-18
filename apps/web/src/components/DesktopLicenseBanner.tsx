@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { AlertTriangle, KeyRound, RefreshCw, ShieldAlert, ShieldX } from 'lucide-react';
+import {
+  AlertTriangle,
+  CalendarClock,
+  KeyRound,
+  RefreshCw,
+  ShieldAlert,
+  ShieldX,
+} from 'lucide-react';
 import { getBackendMode } from '@/lib/backend-mode';
 import {
   getDesktopLicenseStatus,
+  renewDesktopLicenseNow,
   verifyDesktopLicenseNow,
   type DesktopLicenseStatus,
 } from '@/lib/desktop-bridge';
@@ -28,6 +36,7 @@ export function DesktopLicenseBanner() {
   const { t } = useTranslation();
   const [status, setStatus] = useState<DesktopLicenseStatus | null>(null);
   const [verifying, setVerifying] = useState(false);
+  const [renewing, setRenewing] = useState(false);
 
   const isDesktop = getBackendMode() === 'desktop';
 
@@ -65,9 +74,24 @@ export function DesktopLicenseBanner() {
     }
   }
 
+  async function handleRenew() {
+    if (renewing) return;
+    setRenewing(true);
+    try {
+      await renewDesktopLicenseNow();
+      await refresh();
+    } finally {
+      setRenewing(false);
+    }
+  }
+
   let title = '';
   let hint: string | null = null;
-  let cta: { kind: 'link'; label: string } | { kind: 'verify'; label: string } | null = null;
+  let cta:
+    | { kind: 'link'; label: string }
+    | { kind: 'verify'; label: string }
+    | { kind: 'renew'; label: string }
+    | null = null;
   let tone: 'warn' | 'danger' = 'warn';
   let Icon = AlertTriangle;
 
@@ -77,6 +101,22 @@ export function DesktopLicenseBanner() {
       cta = { kind: 'link', label: t('desktopLicense.banner.notBoundCta') };
       Icon = KeyRound;
       tone = 'warn';
+      break;
+    case 'pairTokenExpiring': {
+      const days = Math.max(0, status.pairTokenDaysRemaining);
+      title = t('desktopLicense.banner.pairTokenExpiringTitle', { days });
+      hint = t('desktopLicense.banner.pairTokenExpiringHint');
+      cta = { kind: 'renew', label: t('desktopLicense.banner.pairTokenExpiringCta') };
+      Icon = CalendarClock;
+      tone = 'warn';
+      break;
+    }
+    case 'pairTokenExpired':
+      title = t('desktopLicense.banner.pairTokenExpiredTitle');
+      hint = t('desktopLicense.banner.pairTokenExpiredHint');
+      cta = { kind: 'link', label: t('desktopLicense.banner.pairTokenExpiredCta') };
+      Icon = ShieldAlert;
+      tone = 'danger';
       break;
     case 'gracePeriod': {
       const days = Math.max(0, status.daysRemaining);
@@ -132,6 +172,17 @@ export function DesktopLicenseBanner() {
             className="inline-flex items-center gap-1.5 rounded-md bg-sc-primary px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-white transition-colors hover:bg-sc-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {verifying ? <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
+            <span>{cta.label}</span>
+          </button>
+        ) : null}
+        {cta?.kind === 'renew' ? (
+          <button
+            type="button"
+            onClick={() => void handleRenew()}
+            disabled={renewing}
+            className="inline-flex items-center gap-1.5 rounded-md bg-sc-primary px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-white transition-colors hover:bg-sc-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {renewing ? <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
             <span>{cta.label}</span>
           </button>
         ) : null}

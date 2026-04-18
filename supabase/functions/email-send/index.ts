@@ -31,7 +31,16 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { corsHeaders, handleCors } from '../_shared/cors.ts';
 
-type EmailKind = 'welcome' | 'license-expiring' | 'storage-warning' | 'event-published' | 'admin-invite';
+type EmailKind =
+  | 'welcome'
+  | 'license-expiring'
+  | 'storage-warning'
+  | 'event-published'
+  | 'admin-invite'
+  | 'desktop-token-expiring'
+  | 'desktop-token-expiring-30'
+  | 'desktop-token-expiring-14'
+  | 'desktop-token-expiring-7';
 
 interface EmailRequestBody {
   tenant_id: string | null;
@@ -63,6 +72,22 @@ const KIND_DEFAULTS: Record<EmailKind, { subjectIt: string; subjectEn: string }>
   'admin-invite': {
     subjectIt: 'Sei stato invitato come amministratore su Live SLIDE CENTER',
     subjectEn: 'You have been invited as administrator on Live SLIDE CENTER',
+  },
+  'desktop-token-expiring': {
+    subjectIt: 'Token desktop in scadenza - Rinnovo automatico richiesto',
+    subjectEn: 'Desktop token expiring - Automatic renewal required',
+  },
+  'desktop-token-expiring-30': {
+    subjectIt: 'Token desktop in scadenza tra 30 giorni',
+    subjectEn: 'Desktop token expires in 30 days',
+  },
+  'desktop-token-expiring-14': {
+    subjectIt: 'Token desktop in scadenza tra 14 giorni',
+    subjectEn: 'Desktop token expires in 14 days',
+  },
+  'desktop-token-expiring-7': {
+    subjectIt: 'Token desktop in scadenza tra 7 giorni - Azione consigliata',
+    subjectEn: 'Desktop token expires in 7 days - Action recommended',
   },
 };
 
@@ -322,6 +347,52 @@ function renderTemplate(kind: EmailKind, lang: 'it' | 'en', data: Record<string,
   <p><a href="${escapeHtml(inviteUrl)}" style="${buttonStyle}">Accetta l'invito</a></p>
   <p style="font-size: 13px; color: #6c7689;">${expiresLabel ? `Questo invito scade il <strong>${escapeHtml(expiresLabel)}</strong>. ` : ''}Se il bottone non funziona, copia e incolla questo URL nel browser:<br><span style="word-break: break-all; color: #5b8def;">${escapeHtml(inviteUrl)}</span></p>
   <p style="font-size: 14px; color: #6c7689;">Non ti aspettavi questa email? Puoi ignorarla — l'invito scadra' da solo.</p>
+  ${footer}
+</div>`;
+  }
+
+  if (
+    kind === 'desktop-token-expiring' ||
+    kind === 'desktop-token-expiring-30' ||
+    kind === 'desktop-token-expiring-14' ||
+    kind === 'desktop-token-expiring-7'
+  ) {
+    const days = (data?.['days_remaining'] as number | undefined) ?? 0;
+    const deviceName = (data?.['device_name'] as string | undefined) ?? '';
+    const expiresIso = (data?.['expires_at_iso'] as string | undefined) ?? '';
+    const expiresLabel = expiresIso
+      ? new Date(expiresIso).toLocaleDateString(lang === 'en' ? 'en-GB' : 'it-IT')
+      : '';
+    const devicesUrl = (data?.['devices_url'] as string | undefined) ?? `${appUrl}/admin/desktop-devices`;
+
+    if (lang === 'en') {
+      return `<div style="${baseStyle}">
+  <h1 style="font-size: 22px; margin-bottom: 8px;">Desktop token expires in ${days} day${days === 1 ? '' : 's'}</h1>
+  <p>Hi${fullName ? ` ${escapeHtml(fullName)}` : ''},</p>
+  <p>The pairing token for desktop device <strong>${escapeHtml(deviceName)}</strong> in workspace <strong>${escapeHtml(tenantName)}</strong> will expire on <strong>${escapeHtml(expiresLabel)}</strong>.</p>
+  <p><strong>What happens automatically:</strong> the desktop client will renew the token by itself the next time it connects (rotation 7 days before expiry). Usually no action is required.</p>
+  <p><strong>What to do if the device is offline or off-site:</strong></p>
+  <ul style="padding-left: 20px;">
+    <li>Open the device once and let it connect (auto-renewal)</li>
+    <li>OR extend the token manually from the admin panel (+12 months)</li>
+  </ul>
+  <p><a href="${escapeHtml(devicesUrl)}" style="${buttonStyle}">Manage desktop devices</a></p>
+  <p style="font-size: 14px; color: #6c7689;">If the token expires without renewal, the device will be temporarily blocked until a new bind from the admin panel.</p>
+  ${footer}
+</div>`;
+    }
+    return `<div style="${baseStyle}">
+  <h1 style="font-size: 22px; margin-bottom: 8px;">Token desktop in scadenza tra ${days} giorn${days === 1 ? 'o' : 'i'}</h1>
+  <p>Ciao${fullName ? ` ${escapeHtml(fullName)}` : ''},</p>
+  <p>Il token di pairing del dispositivo desktop <strong>${escapeHtml(deviceName)}</strong> nel workspace <strong>${escapeHtml(tenantName)}</strong> scade il <strong>${escapeHtml(expiresLabel)}</strong>.</p>
+  <p><strong>Cosa succede in automatico:</strong> il client desktop rinnova il token da solo alla prossima connessione (rotazione 7 giorni prima della scadenza). Di solito nessuna azione e' richiesta.</p>
+  <p><strong>Cosa fare se il dispositivo e' offline o fuori sede:</strong></p>
+  <ul style="padding-left: 20px;">
+    <li>Apri il dispositivo una volta e lascialo connettere (rinnovo automatico)</li>
+    <li>OPPURE estendi il token manualmente dal pannello admin (+12 mesi)</li>
+  </ul>
+  <p><a href="${escapeHtml(devicesUrl)}" style="${buttonStyle}">Gestisci dispositivi desktop</a></p>
+  <p style="font-size: 14px; color: #6c7689;">Se il token scade senza rinnovo, il dispositivo verra' temporaneamente bloccato fino a un nuovo bind dal pannello admin.</p>
   ${footer}
 </div>`;
   }

@@ -8,6 +8,7 @@
 mod license;
 mod role;
 mod server;
+mod session_store;
 
 use std::sync::OnceLock;
 
@@ -98,12 +99,15 @@ fn main() {
             cmd_discover_lan_pcs,
             cmd_get_persisted_device,
             cmd_clear_device_pairing,
+            cmd_get_last_session,
+            cmd_save_last_session,
             cmd_updater_status,
             cmd_check_for_update,
             cmd_install_update_and_restart,
             license::cmd_license_status,
             license::cmd_license_bind,
             license::cmd_license_verify_now,
+            license::cmd_license_renew_now,
             license::cmd_license_reset,
         ])
         .run(tauri::generate_context!())
@@ -303,10 +307,53 @@ fn cmd_clear_device_pairing() -> Result<serde_json::Value, String> {
         }
     }
 
+    // 5. Sprint Z (post-field-test) Gap C — pulizia last-session.json: senza
+    //    questo, dopo "Esci dall'evento" il prossimo boot rifarebbe il
+    //    restore alla session vecchia mentre il device.json non c'e' piu'
+    //    (loop infinito risolto da fallback ma sporco UX).
+    if let Err(e) = session_store::clear(&data_root) {
+        tracing::warn!(error = %e, "clear last-session.json fallito (non bloccante)");
+    }
+
     Ok(serde_json::json!({
         "ok": true,
         "had_device_json": persisted.is_some(),
     }))
+}
+
+// ─── Sprint Z (post-field-test) Gap C — Tauri commands last session ──────
+//
+// La SPA in modalita desktop (Tauri) chiama questi due comandi per leggere /
+// salvare lo stato "ultimo evento + sala + presentation + slide" del PC sala.
+// In modalita cloud (browser) il bridge JS torna `null` e questi comandi
+// non vengono mai invocati (vedi `desktop-bridge.ts`).
+//
+// Strategia di restore (lato React, hook `useLastSession`):
+//   1. boot Tauri → SPA chiama `getLastSession()`
+//   2. se ritorna non-null E `device.json` esiste con lo stesso device_token,
+//      naviga direttamente a `/sala/<token>` con stato pre-caricato
+//   3. altrimenti fallback al flow normale (PairView o waiting room)
+
+#[tauri::command]
+fn cmd_get_last_session() -> serde_json::Value {
+    let data_root = match BACKEND.get() {
+        Some(b) => b.data_root.clone(),
+        None => resolve_data_root_for_setup(),
+    };
+    match session_store::read(&data_root) {
+        Some(s) => serde_json::json!({ "ok": true, "session": s }),
+        None => serde_json::json!({ "ok": true, "session": null }),
+    }
+}
+
+#[tauri::command]
+fn cmd_save_last_session(payload: session_store::LastSession) -> Result<serde_json::Value, String> {
+    let data_root = match BACKEND.get() {
+        Some(b) => b.data_root.clone(),
+        None => resolve_data_root_for_setup(),
+    };
+    session_store::write(&data_root, &payload).map_err(|e| e.to_string())?;
+    Ok(serde_json::json!({ "ok": true }))
 }
 
 /// Helper: cancella la riga paired_devices col dato `pair_token_hash` aprendo

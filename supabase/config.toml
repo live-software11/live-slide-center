@@ -443,6 +443,25 @@ verify_jwt = false
 [functions.desktop-license-verify]
 verify_jwt = false
 
+# Sprint Z (post-field-test) Gap D: il PC stesso (PC sala PWA o PC desktop
+# server Tauri) auto-revoca il proprio pair_token cloud-side cliccando
+# "Disconnetti questo PC dall'evento". Auth via Bearer pair_token
+# sha256-matchato in DB. Speculare a desktop-license-verify.
+[functions.pair-revoke-self]
+verify_jwt = false
+
+# Sprint SR (Security Review): rotazione pair_token desktop. Auth via Bearer
+# vecchio pair_token. Body porta sha256 del NUOVO pair_token generato lato
+# client (mai esposto in chiaro al cloud). Allineato a desktop-license-verify.
+[functions.desktop-license-renew]
+verify_jwt = false
+
+# Sprint SR: cron warning scadenza pair_token desktop. Stesso secret di
+# email-send (header x-internal-secret). Schedulato giornalmente come
+# email-cron-licenses.
+[functions.email-cron-desktop-tokens]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

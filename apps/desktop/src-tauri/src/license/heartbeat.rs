@@ -104,13 +104,45 @@ pub fn spawn_background_loop() {
                 {
                     Ok(Ok(())) => {
                         debug!("Sprint D6 — heartbeat OK");
+                        // Sprint SR — dopo verify riuscita, controlla se il
+                        // pair_token sta scadendo (≤ 7gg) e tenta auto-renew
+                        // (con cooldown anti-loop). Salta se token già scaduto
+                        // (serve re-bind) o se il cooldown non è trascorso.
+                        if manager.should_attempt_auto_renew() {
+                            info!("Sprint SR — pair_token in scadenza ≤ 7gg, tento auto-renew");
+                            let renew_call = manager.renew_now();
+                            match tokio::time::timeout(
+                                Duration::from_secs(SINGLE_CALL_TIMEOUT_SECONDS),
+                                renew_call,
+                            )
+                            .await
+                            {
+                                Ok(Ok(())) => {
+                                    info!("Sprint SR — auto-renew pair_token OK");
+                                }
+                                Ok(Err(e)) => {
+                                    warn!(
+                                        error = %e,
+                                        "Sprint SR — auto-renew fallito (riprovo dopo cooldown 6h)"
+                                    );
+                                }
+                                Err(_) => {
+                                    warn!(
+                                        timeout_seconds = SINGLE_CALL_TIMEOUT_SECONDS,
+                                        "Sprint SR — auto-renew timeout (riprovo dopo cooldown 6h)"
+                                    );
+                                }
+                            }
+                        }
                     }
                     Ok(Err(e)) => {
                         // Errori semanticamente rilevanti (revoked,
-                        // tenant_suspended) NON modificano lo stato locale
-                        // direttamente: e' verify_now() stesso che salva
-                        // license.enc e classify() che ricalcola lo stato
-                        // alla prossima query. Qui logghiamo e basta.
+                        // tenant_suspended, pair_token_expired) NON modificano
+                        // direttamente lo stato locale: e' verify_now() stesso
+                        // che salva license.enc e classify() che ricalcola lo
+                        // stato alla prossima query. Qui logghiamo e basta.
+                        // Specificamente per pair_token_expired la SPA mostrerà
+                        // banner "contatta admin per re-bind" via classify().
                         warn!(error = %e, "Sprint D6 — heartbeat fallito (continuo)");
                     }
                     Err(_) => {

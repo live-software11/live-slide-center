@@ -1,1509 +1,2342 @@
-/**
- * Tipi schema `public` allineati alle migration in `supabase/migrations/`.
- * Quando Docker + `supabase db reset` sono disponibili, rigenerare con:
- *   npx supabase gen types typescript --local > packages/shared/src/types/database.ts
- * e ripristinare eventuali personalizzazioni documentate in guida §7.
- */
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
-
-/**
- * Sprint T-3-A (G10): schema warning emesso dall'Edge Function `slide-validator`.
- * `code` e' la chiave i18n stable (es. 'pptx_fonts_not_embedded'), `message`
- * e' la fallback in inglese, `details` payload diagnostico libero.
- */
-export interface ValidationWarning {
-  code: string;
-  severity: 'info' | 'warning' | 'error';
-  message: string;
-  details?: Record<string, unknown>;
-}
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
       activity_log: {
         Row: {
-          id: string;
-          tenant_id: string;
-          event_id: string | null;
-          actor: Database['public']['Enums']['actor_type'];
-          actor_id: string | null;
-          actor_name: string | null;
-          action: string;
-          entity_type: string | null;
-          entity_id: string | null;
-          metadata: Json | null;
-          created_at: string;
-        };
+          action: string
+          actor: Database["public"]["Enums"]["actor_type"]
+          actor_id: string | null
+          actor_name: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          event_id: string | null
+          id: string
+          metadata: Json | null
+          tenant_id: string
+        }
         Insert: {
-          id?: string;
-          tenant_id: string;
-          event_id?: string | null;
-          actor: Database['public']['Enums']['actor_type'];
-          actor_id?: string | null;
-          actor_name?: string | null;
-          action: string;
-          entity_type?: string | null;
-          entity_id?: string | null;
-          metadata?: Json | null;
-          created_at?: string;
-        };
+          action: string
+          actor: Database["public"]["Enums"]["actor_type"]
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          event_id?: string | null
+          id?: string
+          metadata?: Json | null
+          tenant_id: string
+        }
         Update: {
-          id?: string;
-          tenant_id?: string;
-          event_id?: string | null;
-          actor?: Database['public']['Enums']['actor_type'];
-          actor_id?: string | null;
-          actor_name?: string | null;
-          action?: string;
-          entity_type?: string | null;
-          entity_id?: string | null;
-          metadata?: Json | null;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
-      email_log: {
-        Row: {
-          id: string;
-          tenant_id: string | null;
-          kind: string;
-          recipient: string;
-          idempotency_key: string;
-          status: string;
-          provider_message_id: string | null;
-          error_message: string | null;
-          metadata: Json;
-          sent_at: string;
-        };
-        Insert: {
-          id?: string;
-          tenant_id?: string | null;
-          kind: string;
-          recipient: string;
-          idempotency_key: string;
-          status?: string;
-          provider_message_id?: string | null;
-          error_message?: string | null;
-          metadata?: Json;
-          sent_at?: string;
-        };
-        Update: {
-          id?: string;
-          tenant_id?: string | null;
-          kind?: string;
-          recipient?: string;
-          idempotency_key?: string;
-          status?: string;
-          provider_message_id?: string | null;
-          error_message?: string | null;
-          metadata?: Json;
-          sent_at?: string;
-        };
-        Relationships: [];
-      };
-      tenant_data_exports: {
-        Row: {
-          id: string;
-          tenant_id: string;
-          requested_by_user_id: string;
-          requested_at: string;
-          storage_path: string | null;
-          byte_size: number | null;
-          status: string;
-          error_message: string | null;
-          expires_at: string;
-          ready_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          tenant_id: string;
-          requested_by_user_id: string;
-          requested_at?: string;
-          storage_path?: string | null;
-          byte_size?: number | null;
-          status?: string;
-          error_message?: string | null;
-          expires_at?: string;
-          ready_at?: string | null;
-        };
-        Update: {
-          id?: string;
-          tenant_id?: string;
-          requested_by_user_id?: string;
-          requested_at?: string;
-          storage_path?: string | null;
-          byte_size?: number | null;
-          status?: string;
-          error_message?: string | null;
-          expires_at?: string;
-          ready_at?: string | null;
-        };
-        Relationships: [];
-      };
-      events: {
-        Row: {
-          id: string;
-          tenant_id: string;
-          name: string;
-          name_en: string | null;
-          location: string | null;
-          venue: string | null;
-          start_date: string;
-          end_date: string;
-          timezone: string;
-          status: Database['public']['Enums']['event_status'];
-          network_mode: Database['public']['Enums']['network_mode'];
-          settings: Json;
-          created_by: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          tenant_id: string;
-          name: string;
-          name_en?: string | null;
-          location?: string | null;
-          venue?: string | null;
-          start_date: string;
-          end_date: string;
-          timezone?: string;
-          status?: Database['public']['Enums']['event_status'];
-          network_mode?: Database['public']['Enums']['network_mode'];
-          settings?: Json;
-          created_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          tenant_id?: string;
-          name?: string;
-          name_en?: string | null;
-          location?: string | null;
-          venue?: string | null;
-          start_date?: string;
-          end_date?: string;
-          timezone?: string;
-          status?: Database['public']['Enums']['event_status'];
-          network_mode?: Database['public']['Enums']['network_mode'];
-          settings?: Json;
-          created_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      local_agents: {
-        Row: {
-          id: string;
-          tenant_id: string;
-          event_id: string;
-          name: string;
-          machine_id: string | null;
-          lan_ip: string | null;
-          lan_port: number;
-          status: Database['public']['Enums']['connection_status'];
-          last_heartbeat: string | null;
-          cached_files_count: number;
-          cached_size_bytes: number;
-          agent_version: string | null;
-          registered_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          tenant_id: string;
-          event_id: string;
-          name: string;
-          machine_id?: string | null;
-          lan_ip?: string | null;
-          lan_port?: number;
-          status?: Database['public']['Enums']['connection_status'];
-          last_heartbeat?: string | null;
-          cached_files_count?: number;
-          cached_size_bytes?: number;
-          agent_version?: string | null;
-          registered_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          tenant_id?: string;
-          event_id?: string;
-          name?: string;
-          machine_id?: string | null;
-          lan_ip?: string | null;
-          lan_port?: number;
-          status?: Database['public']['Enums']['connection_status'];
-          last_heartbeat?: string | null;
-          cached_files_count?: number;
-          cached_size_bytes?: number;
-          agent_version?: string | null;
-          registered_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      paired_devices: {
-        Row: {
-          id: string;
-          tenant_id: string;
-          event_id: string;
-          room_id: string | null;
-          device_name: string;
-          device_type: string | null;
-          browser: string | null;
-          user_agent: string | null;
-          pair_token_hash: string;
-          last_ip: string | null;
-          last_seen_at: string | null;
-          status: Database['public']['Enums']['connection_status'];
-          paired_at: string;
-          paired_by_user_id: string | null;
-          notes: string | null;
-          updated_at: string;
-          /**
-           * Sprint S-4 (G7) — ruolo del device:
-           * - `'room'` (default): 1 device assegnato a 1 sala specifica.
-           * - `'control_center'`: device "Centro Slide" (room_id NULL),
-           *   riceve i file di TUTTE le sale dell'evento per backup/export.
-           * Vedi migration 20260418090000_paired_devices_role.sql.
-           */
-          role: 'room' | 'control_center';
-        };
-        Insert: {
-          id?: string;
-          tenant_id: string;
-          event_id: string;
-          room_id?: string | null;
-          device_name: string;
-          device_type?: string | null;
-          browser?: string | null;
-          user_agent?: string | null;
-          pair_token_hash: string;
-          last_ip?: string | null;
-          last_seen_at?: string | null;
-          status?: Database['public']['Enums']['connection_status'];
-          paired_at?: string;
-          paired_by_user_id?: string | null;
-          notes?: string | null;
-          updated_at?: string;
-          role?: 'room' | 'control_center';
-        };
-        Update: {
-          id?: string;
-          tenant_id?: string;
-          event_id?: string;
-          room_id?: string | null;
-          device_name?: string;
-          device_type?: string | null;
-          browser?: string | null;
-          user_agent?: string | null;
-          pair_token_hash?: string;
-          last_ip?: string | null;
-          last_seen_at?: string | null;
-          status?: Database['public']['Enums']['connection_status'];
-          paired_at?: string;
-          paired_by_user_id?: string | null;
-          notes?: string | null;
-          updated_at?: string;
-          role?: 'room' | 'control_center';
-        };
-        Relationships: [];
-      };
-      device_metric_pings: {
-        /**
-         * Sprint T-2 (G9) — telemetria perf live PC sala (CPU/RAM/disco/heap)
-         * NON aggregata. Append-only, retention 24h via cleanup_device_metric_pings.
-         * Vedi migration 20260418100000_device_metric_pings.sql.
-         */
-        Row: {
-          id: number;
-          tenant_id: string;
-          device_id: string;
-          event_id: string | null;
-          room_id: string | null;
-          ts: string;
-          source: 'browser' | 'desktop';
-          js_heap_used_pct: number | null;
-          js_heap_used_mb: number | null;
-          storage_quota_used_pct: number | null;
-          storage_quota_used_mb: number | null;
-          fps: number | null;
-          network_type: string | null;
-          network_downlink_mbps: number | null;
-          battery_pct: number | null;
-          battery_charging: boolean | null;
-          visibility: 'visible' | 'hidden' | null;
-          cpu_pct: number | null;
-          ram_used_pct: number | null;
-          ram_used_mb: number | null;
-          disk_free_pct: number | null;
-          disk_free_gb: number | null;
-          app_uptime_sec: number | null;
-          playback_mode: 'auto' | 'live' | 'turbo' | null;
-          device_role: 'room' | 'control_center' | null;
-        };
-        Insert: never;
-        Update: never;
-        Relationships: [];
-      };
-      pairing_codes: {
-        Row: {
-          code: string;
-          tenant_id: string;
-          event_id: string;
-          room_id: string | null;
-          generated_by_user_id: string | null;
-          expires_at: string;
-          consumed_at: string | null;
-          consumed_by_device_id: string | null;
-          created_at: string;
-        };
-        Insert: {
-          code: string;
-          tenant_id: string;
-          event_id: string;
-          room_id?: string | null;
-          generated_by_user_id?: string | null;
-          expires_at: string;
-          consumed_at?: string | null;
-          consumed_by_device_id?: string | null;
-          created_at?: string;
-        };
-        Update: {
-          code?: string;
-          tenant_id?: string;
-          event_id?: string;
-          room_id?: string | null;
-          generated_by_user_id?: string | null;
-          expires_at?: string;
-          consumed_at?: string | null;
-          consumed_by_device_id?: string | null;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
-      pair_claim_rate_events: {
-        Row: {
-          id: number;
-          ip_hash: string;
-          created_at: string;
-        };
-        Insert: {
-          ip_hash: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: number;
-          ip_hash?: string;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
-      /**
-       * Sprint T-3-G (G10) — pairing token per telecomando remoto via tablet.
-       * Hash SHA-256 del token UUID (token in chiaro mostrato all'admin SOLO
-       * al momento della creazione). TTL 5min-7gg, revoca via revoked_at.
-       */
-      remote_control_pairings: {
-        Row: {
-          id: string;
-          tenant_id: string;
-          event_id: string;
-          room_id: string;
-          name: string;
-          token_hash: string;
-          created_by_user_id: string | null;
-          created_at: string;
-          expires_at: string;
-          last_used_at: string | null;
-          revoked_at: string | null;
-          commands_count: number;
-        };
-        Insert: never;
-        Update: never;
-        Relationships: [];
-      };
-      /** Sprint T-3-G — rate-limit eventi per pairing telecomando (60 cmd/min). */
-      remote_control_rate_events: {
-        Row: {
-          id: number;
-          pairing_id: string;
-          created_at: string;
-        };
-        Insert: never;
-        Update: never;
-        Relationships: [];
-      };
-      /**
-       * Sprint U-4 (UX V2.0) — magic-link tokens per zero-friction
-       * provisioning di PC sala. Il token plain non e' mai persistito (solo
-       * lo sha256 in `token_hash`); l'admin lo riceve UNA volta sola in
-       * risposta a `rpc_admin_create_room_provision_token`.
-       */
-      room_provision_tokens: {
-        Row: {
-          id: string;
-          tenant_id: string;
-          event_id: string;
-          room_id: string;
-          token_hash: string;
-          label: string | null;
-          max_uses: number;
-          consumed_count: number;
-          expires_at: string;
-          revoked_at: string | null;
-          created_by_user_id: string | null;
-          created_at: string;
-        };
-        Insert: never;
-        Update: {
-          revoked_at?: string | null;
-          consumed_count?: number;
-        };
-        Relationships: [];
-      };
-      presentation_versions: {
-        Row: {
-          id: string;
-          presentation_id: string;
-          tenant_id: string;
-          version_number: number;
-          storage_key: string;
-          file_name: string;
-          file_size_bytes: number;
-          file_hash_sha256: string | null;
-          mime_type: string;
-          uploaded_by_speaker: boolean;
-          uploaded_by_user_id: string | null;
-          upload_source: Database['public']['Enums']['upload_source'];
-          status: Database['public']['Enums']['version_status'];
-          notes: string | null;
-          created_at: string;
-          validation_warnings: ValidationWarning[] | null;
-          validated_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          presentation_id: string;
-          tenant_id: string;
-          version_number?: number;
-          storage_key: string;
-          file_name: string;
-          file_size_bytes: number;
-          file_hash_sha256?: string | null;
-          mime_type: string;
-          uploaded_by_speaker?: boolean;
-          uploaded_by_user_id?: string | null;
-          upload_source?: Database['public']['Enums']['upload_source'];
-          status?: Database['public']['Enums']['version_status'];
-          notes?: string | null;
-          created_at?: string;
-          validation_warnings?: ValidationWarning[] | null;
-          validated_at?: string | null;
-        };
-        Update: {
-          id?: string;
-          presentation_id?: string;
-          tenant_id?: string;
-          version_number?: number;
-          storage_key?: string;
-          file_name?: string;
-          file_size_bytes?: number;
-          file_hash_sha256?: string | null;
-          mime_type?: string;
-          uploaded_by_speaker?: boolean;
-          uploaded_by_user_id?: string | null;
-          upload_source?: Database['public']['Enums']['upload_source'];
-          status?: Database['public']['Enums']['version_status'];
-          notes?: string | null;
-          created_at?: string;
-          validation_warnings?: ValidationWarning[] | null;
-          validated_at?: string | null;
-        };
-        Relationships: [];
-      };
-      presentations: {
-        Row: {
-          id: string;
-          speaker_id: string | null;
-          session_id: string;
-          event_id: string;
-          tenant_id: string;
-          /** Sprint U-2: cartella opzionale per organizzazione Production. NULL = root. */
-          folder_id: string | null;
-          current_version_id: string | null;
-          total_versions: number;
-          status: Database['public']['Enums']['presentation_status'];
-          reviewer_note: string | null;
-          reviewed_at: string | null;
-          reviewed_by_user_id: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          speaker_id?: string | null;
-          session_id: string;
-          event_id: string;
-          tenant_id: string;
-          folder_id?: string | null;
-          current_version_id?: string | null;
-          total_versions?: number;
-          status?: Database['public']['Enums']['presentation_status'];
-          reviewer_note?: string | null;
-          reviewed_at?: string | null;
-          reviewed_by_user_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          speaker_id?: string | null;
-          session_id?: string;
-          event_id?: string;
-          tenant_id?: string;
-          folder_id?: string | null;
-          current_version_id?: string | null;
-          total_versions?: number;
-          status?: Database['public']['Enums']['presentation_status'];
-          reviewer_note?: string | null;
-          reviewed_at?: string | null;
-          reviewed_by_user_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      /**
-       * Sprint U-2: gerarchia cartelle Production view per organizzare
-       * presentations OneDrive-style. Tree ricorsivo con `parent_id`.
-       */
-      event_folders: {
-        Row: {
-          id: string;
-          tenant_id: string;
-          event_id: string;
-          parent_id: string | null;
-          name: string;
-          created_at: string;
-          updated_at: string;
-          created_by: string | null;
-        };
-        Insert: {
-          id?: string;
-          tenant_id: string;
-          event_id: string;
-          parent_id?: string | null;
-          name: string;
-          created_at?: string;
-          updated_at?: string;
-          created_by?: string | null;
-        };
-        Update: {
-          id?: string;
-          tenant_id?: string;
-          event_id?: string;
-          parent_id?: string | null;
-          name?: string;
-          created_at?: string;
-          updated_at?: string;
-          created_by?: string | null;
-        };
-        Relationships: [];
-      };
-      room_state: {
-        Row: {
-          room_id: string;
-          tenant_id: string;
-          current_session_id: string | null;
-          current_presentation_id: string | null;
-          current_version_id: string | null;
-          /** Sprint I (now-playing): quando il PC sala ha aperto il file in onda. */
-          last_play_started_at: string | null;
-          /** Sprint U-3 (On Air): indice 1-based della slide attualmente proiettata. NULL se sconosciuto. */
-          current_slide_index: number | null;
-          /** Sprint U-3 (On Air): numero totale di slide del file in onda. NULL se sconosciuto. */
-          current_slide_total: number | null;
-          sync_status: Database['public']['Enums']['sync_status'];
-          agent_connection: Database['public']['Enums']['connection_status'];
-          last_sync_at: string | null;
-          assigned_agent_id: string | null;
-          playback_mode: Database['public']['Enums']['playback_mode'];
-          updated_at: string;
-        };
-        Insert: {
-          room_id: string;
-          tenant_id: string;
-          current_session_id?: string | null;
-          current_presentation_id?: string | null;
-          current_version_id?: string | null;
-          last_play_started_at?: string | null;
-          current_slide_index?: number | null;
-          current_slide_total?: number | null;
-          sync_status?: Database['public']['Enums']['sync_status'];
-          agent_connection?: Database['public']['Enums']['connection_status'];
-          last_sync_at?: string | null;
-          assigned_agent_id?: string | null;
-          playback_mode?: Database['public']['Enums']['playback_mode'];
-          updated_at?: string;
-        };
-        Update: {
-          room_id?: string;
-          tenant_id?: string;
-          current_session_id?: string | null;
-          current_presentation_id?: string | null;
-          current_version_id?: string | null;
-          last_play_started_at?: string | null;
-          current_slide_index?: number | null;
-          current_slide_total?: number | null;
-          sync_status?: Database['public']['Enums']['sync_status'];
-          agent_connection?: Database['public']['Enums']['connection_status'];
-          last_sync_at?: string | null;
-          assigned_agent_id?: string | null;
-          playback_mode?: Database['public']['Enums']['playback_mode'];
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      rooms: {
-        Row: {
-          id: string;
-          event_id: string;
-          tenant_id: string;
-          name: string;
-          name_en: string | null;
-          floor: string | null;
-          capacity: number | null;
-          display_order: number;
-          room_type: Database['public']['Enums']['room_type'];
-          settings: Json;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          event_id: string;
-          tenant_id: string;
-          name: string;
-          name_en?: string | null;
-          floor?: string | null;
-          capacity?: number | null;
-          display_order?: number;
-          room_type?: Database['public']['Enums']['room_type'];
-          settings?: Json;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          event_id?: string;
-          tenant_id?: string;
-          name?: string;
-          name_en?: string | null;
-          floor?: string | null;
-          capacity?: number | null;
-          display_order?: number;
-          room_type?: Database['public']['Enums']['room_type'];
-          settings?: Json;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
-      sessions: {
-        Row: {
-          id: string;
-          room_id: string;
-          event_id: string;
-          tenant_id: string;
-          title: string;
-          title_en: string | null;
-          session_type: Database['public']['Enums']['session_type'];
-          scheduled_start: string;
-          scheduled_end: string;
-          display_order: number;
-          chair_name: string | null;
-          notes: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          room_id: string;
-          event_id: string;
-          tenant_id: string;
-          title: string;
-          title_en?: string | null;
-          session_type?: Database['public']['Enums']['session_type'];
-          scheduled_start: string;
-          scheduled_end: string;
-          display_order?: number;
-          chair_name?: string | null;
-          notes?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          room_id?: string;
-          event_id?: string;
-          tenant_id?: string;
-          title?: string;
-          title_en?: string | null;
-          session_type?: Database['public']['Enums']['session_type'];
-          scheduled_start?: string;
-          scheduled_end?: string;
-          display_order?: number;
-          chair_name?: string | null;
-          notes?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      speakers: {
-        Row: {
-          id: string;
-          session_id: string;
-          event_id: string;
-          tenant_id: string;
-          full_name: string;
-          email: string | null;
-          company: string | null;
-          job_title: string | null;
-          bio: string | null;
-          upload_token: string | null;
-          upload_token_expires_at: string | null;
-          display_order: number;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          session_id: string;
-          event_id: string;
-          tenant_id: string;
-          full_name: string;
-          email?: string | null;
-          company?: string | null;
-          job_title?: string | null;
-          bio?: string | null;
-          upload_token?: string | null;
-          upload_token_expires_at?: string | null;
-          display_order?: number;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          session_id?: string;
-          event_id?: string;
-          tenant_id?: string;
-          full_name?: string;
-          email?: string | null;
-          company?: string | null;
-          job_title?: string | null;
-          bio?: string | null;
-          upload_token?: string | null;
-          upload_token_expires_at?: string | null;
-          display_order?: number;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
-      tenants: {
-        Row: {
-          id: string;
-          name: string;
-          slug: string;
-          plan: Database['public']['Enums']['tenant_plan'];
-          ls_customer_id: string | null;
-          ls_subscription_id: string | null;
-          storage_used_bytes: number;
-          storage_limit_bytes: number;
-          max_events_per_month: number;
-          max_rooms_per_event: number;
-          max_devices_per_room: number;
-          expires_at: string | null;
-          license_key: string | null;
-          license_synced_at: string | null;
-          lemon_squeezy_subscription_id: string | null;
-          lemon_squeezy_customer_id: string | null;
-          lemon_squeezy_variant_id: string | null;
-          suspended: boolean;
-          onboarded_at: string | null;
-          settings: Json;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          slug: string;
-          plan?: Database['public']['Enums']['tenant_plan'];
-          ls_customer_id?: string | null;
-          ls_subscription_id?: string | null;
-          storage_used_bytes?: number;
-          storage_limit_bytes?: number;
-          max_events_per_month?: number;
-          max_rooms_per_event?: number;
-          max_devices_per_room?: number;
-          expires_at?: string | null;
-          license_key?: string | null;
-          license_synced_at?: string | null;
-          lemon_squeezy_subscription_id?: string | null;
-          lemon_squeezy_customer_id?: string | null;
-          lemon_squeezy_variant_id?: string | null;
-          suspended?: boolean;
-          onboarded_at?: string | null;
-          settings?: Json;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          slug?: string;
-          plan?: Database['public']['Enums']['tenant_plan'];
-          ls_customer_id?: string | null;
-          ls_subscription_id?: string | null;
-          storage_used_bytes?: number;
-          storage_limit_bytes?: number;
-          max_events_per_month?: number;
-          max_rooms_per_event?: number;
-          max_devices_per_room?: number;
-          expires_at?: string | null;
-          license_key?: string | null;
-          license_synced_at?: string | null;
-          lemon_squeezy_subscription_id?: string | null;
-          lemon_squeezy_customer_id?: string | null;
-          lemon_squeezy_variant_id?: string | null;
-          suspended?: boolean;
-          onboarded_at?: string | null;
-          settings?: Json;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      lemon_squeezy_plan_mapping: {
-        Row: {
-          variant_id: string;
-          plan: Database['public']['Enums']['tenant_plan'];
-          storage_limit_bytes: number;
-          max_events_per_month: number;
-          max_rooms_per_event: number;
-          max_devices_per_room: number;
-          display_name: string;
-          active: boolean;
-          notes: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          variant_id: string;
-          plan: Database['public']['Enums']['tenant_plan'];
-          storage_limit_bytes: number;
-          max_events_per_month: number;
-          max_rooms_per_event: number;
-          max_devices_per_room: number;
-          display_name: string;
-          active?: boolean;
-          notes?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          variant_id?: string;
-          plan?: Database['public']['Enums']['tenant_plan'];
-          storage_limit_bytes?: number;
-          max_events_per_month?: number;
-          max_rooms_per_event?: number;
-          max_devices_per_room?: number;
-          display_name?: string;
-          active?: boolean;
-          notes?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      lemon_squeezy_event_log: {
-        Row: {
-          id: string;
-          event_id: string;
-          event_name: string;
-          subscription_id: string | null;
-          customer_id: string | null;
-          tenant_id: string | null;
-          received_at: string;
-          processed_at: string | null;
-          processing_status: 'received' | 'processed' | 'skipped' | 'failed';
-          payload: Json;
-          error_message: string | null;
-        };
-        Insert: {
-          id?: string;
-          event_id: string;
-          event_name: string;
-          subscription_id?: string | null;
-          customer_id?: string | null;
-          tenant_id?: string | null;
-          received_at?: string;
-          processed_at?: string | null;
-          processing_status?: 'received' | 'processed' | 'skipped' | 'failed';
-          payload: Json;
-          error_message?: string | null;
-        };
-        Update: {
-          id?: string;
-          event_id?: string;
-          event_name?: string;
-          subscription_id?: string | null;
-          customer_id?: string | null;
-          tenant_id?: string | null;
-          received_at?: string;
-          processed_at?: string | null;
-          processing_status?: 'received' | 'processed' | 'skipped' | 'failed';
-          payload?: Json;
-          error_message?: string | null;
-        };
+          action?: string
+          actor?: Database["public"]["Enums"]["actor_type"]
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          event_id?: string | null
+          id?: string
+          metadata?: Json | null
+          tenant_id?: string
+        }
         Relationships: [
           {
-            foreignKeyName: 'lemon_squeezy_event_log_tenant_id_fkey';
-            columns: ['tenant_id'];
-            isOneToOne: false;
-            referencedRelation: 'tenants';
-            referencedColumns: ['id'];
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+          {
+            foreignKeyName: "activity_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      desktop_devices: {
+        Row: {
+          app_version: string | null
+          device_name: string
+          id: string
+          last_seen_at: string | null
+          last_verified_at: string | null
+          machine_fingerprint: string | null
+          notes: string | null
+          os_version: string | null
+          pair_token_expires_at: string
+          pair_token_hash: string
+          registered_at: string
+          registered_by_user_id: string | null
+          revoked_at: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          app_version?: string | null
+          device_name: string
+          id?: string
+          last_seen_at?: string | null
+          last_verified_at?: string | null
+          machine_fingerprint?: string | null
+          notes?: string | null
+          os_version?: string | null
+          pair_token_expires_at?: string
+          pair_token_hash: string
+          registered_at?: string
+          registered_by_user_id?: string | null
+          revoked_at?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          app_version?: string | null
+          device_name?: string
+          id?: string
+          last_seen_at?: string | null
+          last_verified_at?: string | null
+          machine_fingerprint?: string | null
+          notes?: string | null
+          os_version?: string | null
+          pair_token_expires_at?: string
+          pair_token_hash?: string
+          registered_at?: string
+          registered_by_user_id?: string | null
+          revoked_at?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "desktop_devices_registered_by_user_id_fkey"
+            columns: ["registered_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "desktop_devices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      desktop_provision_tokens: {
+        Row: {
+          consumed_count: number
+          created_at: string
+          created_by_user_id: string | null
+          expires_at: string
+          id: string
+          label: string | null
+          max_uses: number
+          revoked_at: string | null
+          tenant_id: string
+          token_hash: string
+        }
+        Insert: {
+          consumed_count?: number
+          created_at?: string
+          created_by_user_id?: string | null
+          expires_at: string
+          id?: string
+          label?: string | null
+          max_uses?: number
+          revoked_at?: string | null
+          tenant_id: string
+          token_hash: string
+        }
+        Update: {
+          consumed_count?: number
+          created_at?: string
+          created_by_user_id?: string | null
+          expires_at?: string
+          id?: string
+          label?: string | null
+          max_uses?: number
+          revoked_at?: string | null
+          tenant_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "desktop_provision_tokens_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "desktop_provision_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_metric_pings: {
+        Row: {
+          app_uptime_sec: number | null
+          battery_charging: boolean | null
+          battery_pct: number | null
+          cpu_pct: number | null
+          device_id: string
+          device_role: string | null
+          disk_free_gb: number | null
+          disk_free_pct: number | null
+          event_id: string | null
+          fps: number | null
+          id: number
+          js_heap_used_mb: number | null
+          js_heap_used_pct: number | null
+          network_downlink_mbps: number | null
+          network_type: string | null
+          playback_mode: string | null
+          ram_used_mb: number | null
+          ram_used_pct: number | null
+          room_id: string | null
+          source: string
+          storage_quota_used_mb: number | null
+          storage_quota_used_pct: number | null
+          tenant_id: string
+          ts: string
+          visibility: string | null
+        }
+        Insert: {
+          app_uptime_sec?: number | null
+          battery_charging?: boolean | null
+          battery_pct?: number | null
+          cpu_pct?: number | null
+          device_id: string
+          device_role?: string | null
+          disk_free_gb?: number | null
+          disk_free_pct?: number | null
+          event_id?: string | null
+          fps?: number | null
+          id?: number
+          js_heap_used_mb?: number | null
+          js_heap_used_pct?: number | null
+          network_downlink_mbps?: number | null
+          network_type?: string | null
+          playback_mode?: string | null
+          ram_used_mb?: number | null
+          ram_used_pct?: number | null
+          room_id?: string | null
+          source: string
+          storage_quota_used_mb?: number | null
+          storage_quota_used_pct?: number | null
+          tenant_id: string
+          ts?: string
+          visibility?: string | null
+        }
+        Update: {
+          app_uptime_sec?: number | null
+          battery_charging?: boolean | null
+          battery_pct?: number | null
+          cpu_pct?: number | null
+          device_id?: string
+          device_role?: string | null
+          disk_free_gb?: number | null
+          disk_free_pct?: number | null
+          event_id?: string | null
+          fps?: number | null
+          id?: number
+          js_heap_used_mb?: number | null
+          js_heap_used_pct?: number | null
+          network_downlink_mbps?: number | null
+          network_type?: string | null
+          playback_mode?: string | null
+          ram_used_mb?: number | null
+          ram_used_pct?: number | null
+          room_id?: string | null
+          source?: string
+          storage_quota_used_mb?: number | null
+          storage_quota_used_pct?: number | null
+          tenant_id?: string
+          ts?: string
+          visibility?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_metric_pings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "paired_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_metric_pings_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_metric_pings_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_metric_pings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      edge_function_rate_events: {
+        Row: {
+          created_at: string
+          id: number
+          ip_hash: string
+          scope: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          ip_hash: string
+          scope: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          ip_hash?: string
+          scope?: string
+        }
+        Relationships: []
+      }
+      email_log: {
+        Row: {
+          error_message: string | null
+          id: string
+          idempotency_key: string
+          kind: string
+          metadata: Json
+          provider_message_id: string | null
+          recipient: string
+          sent_at: string
+          status: string
+          tenant_id: string | null
+        }
+        Insert: {
+          error_message?: string | null
+          id?: string
+          idempotency_key: string
+          kind: string
+          metadata?: Json
+          provider_message_id?: string | null
+          recipient: string
+          sent_at?: string
+          status?: string
+          tenant_id?: string | null
+        }
+        Update: {
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string
+          kind?: string
+          metadata?: Json
+          provider_message_id?: string | null
+          recipient?: string
+          sent_at?: string
+          status?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_folders: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_id: string
+          id: string
+          name: string
+          parent_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_id: string
+          id?: string
+          name: string
+          parent_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_id?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_folders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_folders_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "event_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_folders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          end_date: string
+          id: string
+          location: string | null
+          name: string
+          name_en: string | null
+          network_mode: Database["public"]["Enums"]["network_mode"]
+          settings: Json
+          start_date: string
+          status: Database["public"]["Enums"]["event_status"]
+          tenant_id: string
+          timezone: string
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          id?: string
+          location?: string | null
+          name: string
+          name_en?: string | null
+          network_mode?: Database["public"]["Enums"]["network_mode"]
+          settings?: Json
+          start_date: string
+          status?: Database["public"]["Enums"]["event_status"]
+          tenant_id: string
+          timezone?: string
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          id?: string
+          location?: string | null
+          name?: string
+          name_en?: string | null
+          network_mode?: Database["public"]["Enums"]["network_mode"]
+          settings?: Json
+          start_date?: string
+          status?: Database["public"]["Enums"]["event_status"]
+          tenant_id?: string
+          timezone?: string
+          updated_at?: string
+          venue?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lemon_squeezy_event_log: {
+        Row: {
+          customer_id: string | null
+          error_message: string | null
+          event_id: string
+          event_name: string
+          id: string
+          payload: Json
+          processed_at: string | null
+          processing_status: string
+          received_at: string
+          subscription_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          customer_id?: string | null
+          error_message?: string | null
+          event_id: string
+          event_name: string
+          id?: string
+          payload: Json
+          processed_at?: string | null
+          processing_status?: string
+          received_at?: string
+          subscription_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          customer_id?: string | null
+          error_message?: string | null
+          event_id?: string
+          event_name?: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          processing_status?: string
+          received_at?: string
+          subscription_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lemon_squeezy_event_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lemon_squeezy_plan_mapping: {
+        Row: {
+          active: boolean
+          created_at: string
+          display_name: string
+          max_devices_per_room: number
+          max_events_per_month: number
+          max_rooms_per_event: number
+          notes: string | null
+          plan: Database["public"]["Enums"]["tenant_plan"]
+          storage_limit_bytes: number
+          updated_at: string
+          variant_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          display_name: string
+          max_devices_per_room: number
+          max_events_per_month: number
+          max_rooms_per_event: number
+          notes?: string | null
+          plan: Database["public"]["Enums"]["tenant_plan"]
+          storage_limit_bytes: number
+          updated_at?: string
+          variant_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          display_name?: string
+          max_devices_per_room?: number
+          max_events_per_month?: number
+          max_rooms_per_event?: number
+          notes?: string | null
+          plan?: Database["public"]["Enums"]["tenant_plan"]
+          storage_limit_bytes?: number
+          updated_at?: string
+          variant_id?: string
+        }
+        Relationships: []
+      }
+      local_agents: {
+        Row: {
+          agent_version: string | null
+          cached_files_count: number
+          cached_size_bytes: number
+          event_id: string
+          id: string
+          lan_ip: string | null
+          lan_port: number
+          last_heartbeat: string | null
+          machine_id: string | null
+          name: string
+          registered_at: string
+          status: Database["public"]["Enums"]["connection_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          agent_version?: string | null
+          cached_files_count?: number
+          cached_size_bytes?: number
+          event_id: string
+          id?: string
+          lan_ip?: string | null
+          lan_port?: number
+          last_heartbeat?: string | null
+          machine_id?: string | null
+          name: string
+          registered_at?: string
+          status?: Database["public"]["Enums"]["connection_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          agent_version?: string | null
+          cached_files_count?: number
+          cached_size_bytes?: number
+          event_id?: string
+          id?: string
+          lan_ip?: string | null
+          lan_port?: number
+          last_heartbeat?: string | null
+          machine_id?: string | null
+          name?: string
+          registered_at?: string
+          status?: Database["public"]["Enums"]["connection_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_agents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "local_agents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pair_claim_rate_events: {
+        Row: {
+          created_at: string
+          id: number
+          ip_hash: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          ip_hash: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          ip_hash?: string
+        }
+        Relationships: []
+      }
+      paired_devices: {
+        Row: {
+          browser: string | null
+          device_name: string
+          device_type: string | null
+          event_id: string
+          id: string
+          last_ip: unknown
+          last_seen_at: string | null
+          notes: string | null
+          pair_token_hash: string
+          paired_at: string
+          paired_by_user_id: string | null
+          role: string
+          room_id: string | null
+          status: Database["public"]["Enums"]["connection_status"]
+          tenant_id: string
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          browser?: string | null
+          device_name: string
+          device_type?: string | null
+          event_id: string
+          id?: string
+          last_ip?: unknown
+          last_seen_at?: string | null
+          notes?: string | null
+          pair_token_hash: string
+          paired_at?: string
+          paired_by_user_id?: string | null
+          role?: string
+          room_id?: string | null
+          status?: Database["public"]["Enums"]["connection_status"]
+          tenant_id: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          browser?: string | null
+          device_name?: string
+          device_type?: string | null
+          event_id?: string
+          id?: string
+          last_ip?: unknown
+          last_seen_at?: string | null
+          notes?: string | null
+          pair_token_hash?: string
+          paired_at?: string
+          paired_by_user_id?: string | null
+          role?: string
+          room_id?: string | null
+          status?: Database["public"]["Enums"]["connection_status"]
+          tenant_id?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paired_devices_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paired_devices_paired_by_user_id_fkey"
+            columns: ["paired_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paired_devices_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paired_devices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pairing_codes: {
+        Row: {
+          code: string
+          consumed_at: string | null
+          consumed_by_device_id: string | null
+          created_at: string
+          event_id: string
+          expires_at: string
+          generated_by_user_id: string | null
+          room_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          code: string
+          consumed_at?: string | null
+          consumed_by_device_id?: string | null
+          created_at?: string
+          event_id: string
+          expires_at: string
+          generated_by_user_id?: string | null
+          room_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          code?: string
+          consumed_at?: string | null
+          consumed_by_device_id?: string | null
+          created_at?: string
+          event_id?: string
+          expires_at?: string
+          generated_by_user_id?: string | null
+          room_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pairing_codes_consumed_by_device_id_fkey"
+            columns: ["consumed_by_device_id"]
+            isOneToOne: false
+            referencedRelation: "paired_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pairing_codes_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pairing_codes_generated_by_user_id_fkey"
+            columns: ["generated_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pairing_codes_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pairing_codes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      presentation_versions: {
+        Row: {
+          created_at: string
+          file_hash_sha256: string | null
+          file_name: string
+          file_size_bytes: number
+          id: string
+          mime_type: string
+          notes: string | null
+          presentation_id: string
+          status: Database["public"]["Enums"]["version_status"]
+          storage_key: string
+          tenant_id: string
+          upload_source: Database["public"]["Enums"]["upload_source"]
+          uploaded_by_speaker: boolean
+          uploaded_by_user_id: string | null
+          validated_at: string | null
+          validation_warnings: Json | null
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          file_hash_sha256?: string | null
+          file_name: string
+          file_size_bytes: number
+          id?: string
+          mime_type: string
+          notes?: string | null
+          presentation_id: string
+          status?: Database["public"]["Enums"]["version_status"]
+          storage_key: string
+          tenant_id: string
+          upload_source?: Database["public"]["Enums"]["upload_source"]
+          uploaded_by_speaker?: boolean
+          uploaded_by_user_id?: string | null
+          validated_at?: string | null
+          validation_warnings?: Json | null
+          version_number: number
+        }
+        Update: {
+          created_at?: string
+          file_hash_sha256?: string | null
+          file_name?: string
+          file_size_bytes?: number
+          id?: string
+          mime_type?: string
+          notes?: string | null
+          presentation_id?: string
+          status?: Database["public"]["Enums"]["version_status"]
+          storage_key?: string
+          tenant_id?: string
+          upload_source?: Database["public"]["Enums"]["upload_source"]
+          uploaded_by_speaker?: boolean
+          uploaded_by_user_id?: string | null
+          validated_at?: string | null
+          validation_warnings?: Json | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "presentation_versions_presentation_id_fkey"
+            columns: ["presentation_id"]
+            isOneToOne: false
+            referencedRelation: "presentations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "presentation_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "presentation_versions_uploaded_by_user_id_fkey"
+            columns: ["uploaded_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      presentations: {
+        Row: {
+          created_at: string
+          current_version_id: string | null
+          event_id: string
+          folder_id: string | null
+          id: string
+          reviewed_at: string | null
+          reviewed_by_user_id: string | null
+          reviewer_note: string | null
+          session_id: string
+          speaker_id: string | null
+          status: Database["public"]["Enums"]["presentation_status"]
+          tenant_id: string
+          total_versions: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_version_id?: string | null
+          event_id: string
+          folder_id?: string | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by_user_id?: string | null
+          reviewer_note?: string | null
+          session_id: string
+          speaker_id?: string | null
+          status?: Database["public"]["Enums"]["presentation_status"]
+          tenant_id: string
+          total_versions?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_version_id?: string | null
+          event_id?: string
+          folder_id?: string | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by_user_id?: string | null
+          reviewer_note?: string | null
+          session_id?: string
+          speaker_id?: string | null
+          status?: Database["public"]["Enums"]["presentation_status"]
+          tenant_id?: string
+          total_versions?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_current_version"
+            columns: ["current_version_id"]
+            isOneToOne: false
+            referencedRelation: "presentation_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "presentations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "presentations_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "event_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "presentations_reviewed_by_user_id_fkey"
+            columns: ["reviewed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "presentations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "presentations_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "speakers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "presentations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      remote_control_pairings: {
+        Row: {
+          commands_count: number
+          created_at: string
+          created_by_user_id: string | null
+          event_id: string
+          expires_at: string
+          id: string
+          last_used_at: string | null
+          name: string
+          revoked_at: string | null
+          room_id: string
+          tenant_id: string
+          token_hash: string
+        }
+        Insert: {
+          commands_count?: number
+          created_at?: string
+          created_by_user_id?: string | null
+          event_id: string
+          expires_at: string
+          id?: string
+          last_used_at?: string | null
+          name: string
+          revoked_at?: string | null
+          room_id: string
+          tenant_id: string
+          token_hash: string
+        }
+        Update: {
+          commands_count?: number
+          created_at?: string
+          created_by_user_id?: string | null
+          event_id?: string
+          expires_at?: string
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          revoked_at?: string | null
+          room_id?: string
+          tenant_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "remote_control_pairings_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remote_control_pairings_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remote_control_pairings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      remote_control_rate_events: {
+        Row: {
+          created_at: string
+          id: number
+          pairing_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          pairing_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          pairing_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "remote_control_rate_events_pairing_id_fkey"
+            columns: ["pairing_id"]
+            isOneToOne: false
+            referencedRelation: "remote_control_pairings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_provision_tokens: {
+        Row: {
+          consumed_count: number
+          created_at: string
+          created_by_user_id: string | null
+          event_id: string
+          expires_at: string
+          id: string
+          label: string | null
+          max_uses: number
+          revoked_at: string | null
+          room_id: string
+          tenant_id: string
+          token_hash: string
+        }
+        Insert: {
+          consumed_count?: number
+          created_at?: string
+          created_by_user_id?: string | null
+          event_id: string
+          expires_at: string
+          id?: string
+          label?: string | null
+          max_uses?: number
+          revoked_at?: string | null
+          room_id: string
+          tenant_id: string
+          token_hash: string
+        }
+        Update: {
+          consumed_count?: number
+          created_at?: string
+          created_by_user_id?: string | null
+          event_id?: string
+          expires_at?: string
+          id?: string
+          label?: string | null
+          max_uses?: number
+          revoked_at?: string | null
+          room_id?: string
+          tenant_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_provision_tokens_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_provision_tokens_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_provision_tokens_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_provision_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_state: {
+        Row: {
+          agent_connection: Database["public"]["Enums"]["connection_status"]
+          assigned_agent_id: string | null
+          current_presentation_id: string | null
+          current_session_id: string | null
+          current_slide_index: number | null
+          current_slide_total: number | null
+          current_version_id: string | null
+          last_play_started_at: string | null
+          last_sync_at: string | null
+          playback_mode: Database["public"]["Enums"]["playback_mode"]
+          room_id: string
+          sync_status: Database["public"]["Enums"]["sync_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          agent_connection?: Database["public"]["Enums"]["connection_status"]
+          assigned_agent_id?: string | null
+          current_presentation_id?: string | null
+          current_session_id?: string | null
+          current_slide_index?: number | null
+          current_slide_total?: number | null
+          current_version_id?: string | null
+          last_play_started_at?: string | null
+          last_sync_at?: string | null
+          playback_mode?: Database["public"]["Enums"]["playback_mode"]
+          room_id: string
+          sync_status?: Database["public"]["Enums"]["sync_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          agent_connection?: Database["public"]["Enums"]["connection_status"]
+          assigned_agent_id?: string | null
+          current_presentation_id?: string | null
+          current_session_id?: string | null
+          current_slide_index?: number | null
+          current_slide_total?: number | null
+          current_version_id?: string | null
+          last_play_started_at?: string | null
+          last_sync_at?: string | null
+          playback_mode?: Database["public"]["Enums"]["playback_mode"]
+          room_id?: string
+          sync_status?: Database["public"]["Enums"]["sync_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_state_current_presentation_id_fkey"
+            columns: ["current_presentation_id"]
+            isOneToOne: false
+            referencedRelation: "presentations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_state_current_session_id_fkey"
+            columns: ["current_session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_state_current_version_id_fkey"
+            columns: ["current_version_id"]
+            isOneToOne: false
+            referencedRelation: "presentation_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_state_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: true
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rooms: {
+        Row: {
+          capacity: number | null
+          created_at: string
+          display_order: number
+          event_id: string
+          floor: string | null
+          id: string
+          name: string
+          name_en: string | null
+          room_type: Database["public"]["Enums"]["room_type"]
+          settings: Json
+          tenant_id: string
+        }
+        Insert: {
+          capacity?: number | null
+          created_at?: string
+          display_order?: number
+          event_id: string
+          floor?: string | null
+          id?: string
+          name: string
+          name_en?: string | null
+          room_type?: Database["public"]["Enums"]["room_type"]
+          settings?: Json
+          tenant_id: string
+        }
+        Update: {
+          capacity?: number | null
+          created_at?: string
+          display_order?: number
+          event_id?: string
+          floor?: string | null
+          id?: string
+          name?: string
+          name_en?: string | null
+          room_type?: Database["public"]["Enums"]["room_type"]
+          settings?: Json
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rooms_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rooms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessions: {
+        Row: {
+          chair_name: string | null
+          created_at: string
+          display_order: number
+          event_id: string
+          id: string
+          notes: string | null
+          room_id: string
+          scheduled_end: string
+          scheduled_start: string
+          session_type: Database["public"]["Enums"]["session_type"]
+          tenant_id: string
+          title: string
+          title_en: string | null
+          updated_at: string
+        }
+        Insert: {
+          chair_name?: string | null
+          created_at?: string
+          display_order?: number
+          event_id: string
+          id?: string
+          notes?: string | null
+          room_id: string
+          scheduled_end: string
+          scheduled_start: string
+          session_type?: Database["public"]["Enums"]["session_type"]
+          tenant_id: string
+          title: string
+          title_en?: string | null
+          updated_at?: string
+        }
+        Update: {
+          chair_name?: string | null
+          created_at?: string
+          display_order?: number
+          event_id?: string
+          id?: string
+          notes?: string | null
+          room_id?: string
+          scheduled_end?: string
+          scheduled_start?: string
+          session_type?: Database["public"]["Enums"]["session_type"]
+          tenant_id?: string
+          title?: string
+          title_en?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      speakers: {
+        Row: {
+          bio: string | null
+          company: string | null
+          created_at: string
+          display_order: number
+          email: string | null
+          event_id: string
+          full_name: string
+          id: string
+          job_title: string | null
+          session_id: string
+          tenant_id: string
+          upload_token: string | null
+          upload_token_expires_at: string | null
+        }
+        Insert: {
+          bio?: string | null
+          company?: string | null
+          created_at?: string
+          display_order?: number
+          email?: string | null
+          event_id: string
+          full_name: string
+          id?: string
+          job_title?: string | null
+          session_id: string
+          tenant_id: string
+          upload_token?: string | null
+          upload_token_expires_at?: string | null
+        }
+        Update: {
+          bio?: string | null
+          company?: string | null
+          created_at?: string
+          display_order?: number
+          email?: string | null
+          event_id?: string
+          full_name?: string
+          id?: string
+          job_title?: string | null
+          session_id?: string
+          tenant_id?: string
+          upload_token?: string | null
+          upload_token_expires_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speakers_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speakers_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speakers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_invitations: {
         Row: {
-          id: string;
-          tenant_id: string;
-          email: string;
-          role: Database['public']['Enums']['user_role'];
-          invited_by_user_id: string | null;
-          invited_by_role: string;
-          invite_token: string;
-          invite_token_expires_at: string;
-          accepted_at: string | null;
-          accepted_by_user_id: string | null;
-          created_at: string;
-        };
+          accepted_at: string | null
+          accepted_by_user_id: string | null
+          created_at: string
+          email: string
+          id: string
+          invite_token: string
+          invite_token_expires_at: string
+          invited_by_role: string
+          invited_by_user_id: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          tenant_id: string
+        }
         Insert: {
-          id?: string;
-          tenant_id: string;
-          email: string;
-          role?: Database['public']['Enums']['user_role'];
-          invited_by_user_id?: string | null;
-          invited_by_role?: string;
-          invite_token: string;
-          invite_token_expires_at?: string;
-          accepted_at?: string | null;
-          accepted_by_user_id?: string | null;
-          created_at?: string;
-        };
+          accepted_at?: string | null
+          accepted_by_user_id?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          invite_token: string
+          invite_token_expires_at?: string
+          invited_by_role?: string
+          invited_by_user_id?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          tenant_id: string
+        }
         Update: {
-          id?: string;
-          tenant_id?: string;
-          email?: string;
-          role?: Database['public']['Enums']['user_role'];
-          invited_by_user_id?: string | null;
-          invited_by_role?: string;
-          invite_token?: string;
-          invite_token_expires_at?: string;
-          accepted_at?: string | null;
-          accepted_by_user_id?: string | null;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
+          accepted_at?: string | null
+          accepted_by_user_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          invite_token?: string
+          invite_token_expires_at?: string
+          invited_by_role?: string
+          invited_by_user_id?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invitations_accepted_by_user_id_fkey"
+            columns: ["accepted_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_invitations_invited_by_user_id_fkey"
+            columns: ["invited_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_invitations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_data_exports: {
+        Row: {
+          byte_size: number | null
+          error_message: string | null
+          expires_at: string
+          id: string
+          ready_at: string | null
+          requested_at: string
+          requested_by_user_id: string
+          status: string
+          storage_path: string | null
+          tenant_id: string
+        }
+        Insert: {
+          byte_size?: number | null
+          error_message?: string | null
+          expires_at?: string
+          id?: string
+          ready_at?: string | null
+          requested_at?: string
+          requested_by_user_id: string
+          status?: string
+          storage_path?: string | null
+          tenant_id: string
+        }
+        Update: {
+          byte_size?: number | null
+          error_message?: string | null
+          expires_at?: string
+          id?: string
+          ready_at?: string | null
+          requested_at?: string
+          requested_by_user_id?: string
+          status?: string
+          storage_path?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_data_exports_requested_by_user_id_fkey"
+            columns: ["requested_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_data_exports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          lemon_squeezy_customer_id: string | null
+          lemon_squeezy_subscription_id: string | null
+          lemon_squeezy_variant_id: string | null
+          license_key: string | null
+          license_synced_at: string | null
+          ls_customer_id: string | null
+          ls_subscription_id: string | null
+          max_devices_per_room: number
+          max_events_per_month: number
+          max_rooms_per_event: number
+          name: string
+          onboarded_at: string | null
+          plan: Database["public"]["Enums"]["tenant_plan"]
+          settings: Json
+          slug: string
+          storage_limit_bytes: number
+          storage_used_bytes: number
+          suspended: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          lemon_squeezy_customer_id?: string | null
+          lemon_squeezy_subscription_id?: string | null
+          lemon_squeezy_variant_id?: string | null
+          license_key?: string | null
+          license_synced_at?: string | null
+          ls_customer_id?: string | null
+          ls_subscription_id?: string | null
+          max_devices_per_room?: number
+          max_events_per_month?: number
+          max_rooms_per_event?: number
+          name: string
+          onboarded_at?: string | null
+          plan?: Database["public"]["Enums"]["tenant_plan"]
+          settings?: Json
+          slug: string
+          storage_limit_bytes?: number
+          storage_used_bytes?: number
+          suspended?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          lemon_squeezy_customer_id?: string | null
+          lemon_squeezy_subscription_id?: string | null
+          lemon_squeezy_variant_id?: string | null
+          license_key?: string | null
+          license_synced_at?: string | null
+          ls_customer_id?: string | null
+          ls_subscription_id?: string | null
+          max_devices_per_room?: number
+          max_events_per_month?: number
+          max_rooms_per_event?: number
+          name?: string
+          onboarded_at?: string | null
+          plan?: Database["public"]["Enums"]["tenant_plan"]
+          settings?: Json
+          slug?: string
+          storage_limit_bytes?: number
+          storage_used_bytes?: number
+          suspended?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
-          id: string;
-          tenant_id: string;
-          email: string;
-          full_name: string;
-          role: Database['public']['Enums']['user_role'];
-          avatar_url: string | null;
-          last_seen_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
+          avatar_url: string | null
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          last_seen_at: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          tenant_id: string
+          updated_at: string
+        }
         Insert: {
-          id: string;
-          tenant_id: string;
-          email: string;
-          full_name: string;
-          role?: Database['public']['Enums']['user_role'];
-          avatar_url?: string | null;
-          last_seen_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          full_name: string
+          id: string
+          last_seen_at?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          tenant_id: string
+          updated_at?: string
+        }
         Update: {
-          id?: string;
-          tenant_id?: string;
-          email?: string;
-          full_name?: string;
-          role?: Database['public']['Enums']['user_role'];
-          avatar_url?: string | null;
-          last_seen_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-    };
-    Views: Record<string, never>;
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          last_seen_at?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "users_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      tenant_network_map: {
+        Row: {
+          app_version: string | null
+          derived_status: string | null
+          display_name: string | null
+          event_id: string | null
+          kind: string | null
+          last_seen_at: string | null
+          machine_fingerprint: string | null
+          node_id: string | null
+          raw_status: string | null
+          registered_at: string | null
+          role: string | null
+          room_id: string | null
+          tenant_id: string | null
+        }
+        Relationships: []
+      }
+    }
     Functions: {
-      app_tenant_id: { Args: Record<string, never>; Returns: string | null };
-      is_super_admin: { Args: Record<string, never>; Returns: boolean };
-      rpc_reorder_sessions: { Args: { p_ids: string[]; p_event_id: string }; Returns: void };
-      tenant_max_file_size: { Args: { p_tenant_id: string }; Returns: number | null };
-      tenant_max_devices_per_room: { Args: { p_tenant_id: string }; Returns: number | null };
-      licensing_apply_quota: {
-        Args: {
-          p_license_key: string;
-          p_tenant_id: string | null;
-          p_plan: Database['public']['Enums']['tenant_plan'];
-          p_storage_limit_bytes: number | null;
-          p_max_rooms_per_event: number | null;
-          p_max_devices_per_room: number | null;
-          p_expires_at: string | null;
-          p_status: string;
-        };
-        Returns: Json;
-      };
-      validate_upload_token: { Args: { p_token: string }; Returns: Json };
-      init_upload_version: {
-        Args: { p_token: string; p_filename: string; p_size: number; p_mime: string };
-        Returns: Json;
-      };
-      finalize_upload_version: {
-        Args: { p_token: string; p_version_id: string; p_sha256: string };
-        Returns: Json;
-      };
       abort_upload_version: {
-        Args: { p_token: string; p_version_id: string };
-        Returns: Json;
-      };
-      rpc_set_current_version: {
-        Args: { p_presentation_id: string; p_version_id: string };
-        Returns: Json;
-      };
-      rpc_update_presentation_status: {
-        Args: { p_presentation_id: string; p_status: string; p_note: string | null };
-        Returns: Json;
-      };
-      init_upload_version_admin: {
-        Args: { p_speaker_id: string; p_filename: string; p_size: number; p_mime: string };
-        Returns: Json;
-      };
-      finalize_upload_version_admin: {
-        Args: { p_version_id: string; p_sha256: string };
-        Returns: Json;
-      };
+        Args: { p_token: string; p_version_id: string }
+        Returns: Json
+      }
       abort_upload_version_admin: {
-        Args: { p_version_id: string };
-        Returns: Json;
-      };
-      rpc_move_presentation: {
-        Args: { p_presentation_id: string; p_target_speaker_id: string };
-        Returns: Json;
-      };
-      rpc_move_presentation_to_session: {
-        Args: { p_presentation_id: string; p_target_session_id: string };
-        Returns: Json;
-      };
-      /** Sprint U-2: muove N presentations in folder atomicamente con tenant+event scope. */
-      move_presentations_to_folder: {
-        Args: { p_presentation_ids: string[]; p_folder_id: string | null };
-        Returns: number;
-      };
-      rpc_room_player_set_current: {
-        Args: {
-          p_token: string;
-          p_presentation_id: string | null;
-          /** Sprint U-3: opzionale, indice 1-based slide corrente. */
-          p_current_slide_index?: number | null;
-          /** Sprint U-3: opzionale, totale slide del file in onda. */
-          p_current_slide_total?: number | null;
-        };
-        Returns: Json;
-      };
-      init_upload_version_for_session: {
-        Args: { p_session_id: string; p_filename: string; p_size: number; p_mime: string };
-        Returns: Json;
-      };
-      delete_presentation_admin: {
-        Args: { p_presentation_id: string };
-        Returns: Json;
-      };
-      rename_paired_device_by_token: {
-        Args: { p_token: string; p_name: string };
-        Returns: Json;
-      };
-      mark_tenant_onboarded: { Args: Record<string, never>; Returns: string };
-      reset_tenant_onboarding: { Args: Record<string, never>; Returns: void };
-      seed_demo_data: { Args: Record<string, never>; Returns: Json };
-      clear_demo_data: { Args: Record<string, never>; Returns: Json };
-      tenant_health: { Args: Record<string, never>; Returns: Json };
-      export_tenant_data: { Args: Record<string, never>; Returns: Json };
-      tenant_storage_summary: { Args: Record<string, never>; Returns: Json };
-      tenant_license_summary: { Args: Record<string, never>; Returns: Json };
-      create_tenant_data_export: { Args: Record<string, never>; Returns: string };
-      list_tenant_data_exports: {
-        Args: Record<string, never>;
-        Returns: {
-          id: string;
-          requested_at: string;
-          status: string;
-          storage_path: string | null;
-          byte_size: number | null;
-          expires_at: string;
-          ready_at: string | null;
-          error_message: string | null;
-        }[];
-      };
-      log_email_sent: {
-        Args: {
-          p_tenant_id: string;
-          p_kind: string;
-          p_recipient: string;
-          p_idempotency_key: string;
-          p_status: string;
-          p_provider_message_id?: string | null;
-          p_error_message?: string | null;
-          p_metadata?: Json;
-        };
-        Returns: string;
-      };
-      list_tenants_for_license_warning: {
-        Args: { p_days_min: number; p_days_max: number; p_email_kind: string };
-        Returns: {
-          tenant_id: string;
-          tenant_name: string;
-          admin_email: string;
-          admin_full_name: string;
-          expires_at: string;
-          plan: string;
-          days_remaining: number;
-        }[];
-      };
-      expire_old_data_exports: { Args: Record<string, never>; Returns: number };
-      list_tenant_activity: {
-        Args: {
-          p_from?: string | null;
-          p_to?: string | null;
-          p_action?: string | null;
-          p_actor_id?: string | null;
-          p_entity_type?: string | null;
-          p_limit?: number;
-          p_offset?: number;
-        };
-        Returns: Json;
-      };
+        Args: { p_version_id: string }
+        Returns: Json
+      }
+      abort_upload_version_for_room_device: {
+        Args: { p_token: string; p_version_id: string }
+        Returns: Json
+      }
       admin_create_tenant_with_invite: {
         Args: {
-          p_name: string;
-          p_slug: string;
-          p_plan: Database['public']['Enums']['tenant_plan'];
-          p_storage_limit_bytes: number;
-          p_max_events_per_month: number;
-          p_max_rooms_per_event: number;
-          p_max_devices_per_room: number;
-          p_expires_at: string | null;
-          p_license_key: string | null;
-          p_admin_email: string;
-          p_app_url: string;
-        };
-        Returns: Json;
-      };
-      record_lemon_squeezy_event: {
+          p_admin_email: string
+          p_app_url: string
+          p_expires_at: string
+          p_license_key: string
+          p_max_devices_per_room: number
+          p_max_events_per_month: number
+          p_max_rooms_per_event: number
+          p_name: string
+          p_plan: Database["public"]["Enums"]["tenant_plan"]
+          p_slug: string
+          p_storage_limit_bytes: number
+        }
+        Returns: Json
+      }
+      app_tenant_id: { Args: never; Returns: string }
+      app_user_role: {
+        Args: never
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
+      check_and_record_edge_rate: {
         Args: {
-          p_event_id: string;
-          p_event_name: string;
-          p_subscription_id: string | null;
-          p_customer_id: string | null;
-          p_payload: Json;
-        };
-        Returns: Json;
-      };
-      mark_lemon_squeezy_event_processed: {
+          p_ip_hash: string
+          p_max_per_window: number
+          p_scope: string
+          p_window_minutes: number
+        }
+        Returns: Json
+      }
+      claim_pairing_code_atomic: {
         Args: {
-          p_log_id: string;
-          p_status: 'processed' | 'skipped' | 'failed';
-          p_tenant_id: string | null;
-          p_error_message: string | null;
-        };
-        Returns: void;
-      };
-      lemon_squeezy_apply_subscription_event: {
-        Args: {
-          p_event_name: string;
-          p_subscription_id: string;
-          p_customer_id: string | null;
-          p_variant_id: string;
-          p_customer_email: string;
-          p_customer_name: string | null;
-          p_status: string;
-          p_renews_at: string | null;
-          p_ends_at: string | null;
-          p_app_url: string;
-        };
-        Returns: Json;
-      };
-      // Sprint R-3 (G3): upload da PC sala (device_token auth, no JWT utente).
-      // Chiamate SOLO dalle Edge Function room-device-upload-{init,finalize,abort}
-      // (GRANT EXECUTE solo a service_role, NON a authenticated/anon).
-      init_upload_version_for_room_device: {
-        Args: {
-          p_token: string;
-          p_session_id: string;
-          p_filename: string;
-          p_size: number;
-          p_mime: string;
-        };
-        Returns: Json;
-      };
-      finalize_upload_version_for_room_device: {
-        Args: { p_token: string; p_version_id: string; p_sha256: string };
-        Returns: Json;
-      };
-      abort_upload_version_for_room_device: {
-        Args: { p_token: string; p_version_id: string };
-        Returns: Json;
-      };
-      // Sprint S-4 (G7): promuove/demuove un device tra ruolo "room" e
-      // "control_center". SECURITY INVOKER: rispetta RLS tenant_isolation.
-      update_device_role: {
-        Args: { p_device_id: string; p_new_role: 'room' | 'control_center' };
-        Returns: { id: string; role: 'room' | 'control_center'; room_id: string | null }[];
-      };
-      /**
-       * Sprint T-2 (G9) — ingest metric ping. Chiamata SOLO da Edge Function
-       * `room-player-bootstrap` con service_role. Rate-limit 3s per device.
-       */
-      record_device_metric_ping: {
-        Args: { p_device_id: string; p_payload: Record<string, unknown> };
-        Returns: { ok: boolean; error?: string; skipped?: string };
-      };
-      /**
-       * Sprint T-2 (G9) — admin live perf widget LivePerfTelemetryPanel.
-       * Per ogni device dell'evento: ultimo ping + array ping ultimi N min.
-       */
+          p_browser: string
+          p_code: string
+          p_device_name: string
+          p_device_type: string
+          p_last_ip: string
+          p_token_hash: string
+          p_user_agent: string
+        }
+        Returns: Json
+      }
+      cleanup_device_metric_pings: { Args: never; Returns: number }
+      cleanup_lemon_squeezy_event_log: { Args: never; Returns: number }
+      cleanup_pair_claim_rate_events: { Args: never; Returns: number }
+      clear_demo_data: { Args: never; Returns: Json }
+      create_tenant_data_export: { Args: never; Returns: string }
+      current_tenant_suspended: { Args: never; Returns: boolean }
+      delete_presentation_admin: {
+        Args: { p_presentation_id: string }
+        Returns: Json
+      }
+      expire_old_data_exports: { Args: never; Returns: number }
+      export_tenant_data: { Args: never; Returns: Json }
       fetch_device_metrics_for_event: {
         Args: {
-          p_event_id: string;
-          p_window_min?: number;
-          p_max_pings_per_device?: number;
-        };
-        Returns: Array<{
-          device: {
-            id: string;
-            name: string;
-            role: 'room' | 'control_center';
-            status: 'online' | 'offline' | 'degraded';
-            room_id: string | null;
-            last_seen_at: string | null;
-            last_ip: string | null;
-          };
-          latest: Database['public']['Tables']['device_metric_pings']['Row'] | null;
-          pings: Array<{
-            ts: string;
-            cpu_pct: number | null;
-            ram_used_pct: number | null;
-            js_heap_used_pct: number | null;
-            storage_quota_used_pct: number | null;
-            disk_free_pct: number | null;
-            fps: number | null;
-            battery_pct: number | null;
-            battery_charging: boolean | null;
-            network_type: string | null;
-            visibility: 'visible' | 'hidden' | null;
-          }>;
-        }>;
-      };
-      /** Sprint T-2 — cleanup retention 24h, chiamato da pg_cron daily. */
-      cleanup_device_metric_pings: {
-        Args: Record<string, never>;
-        Returns: number;
-      };
-      /**
-       * Sprint T-3-A (G10) — scrittura idempotente warnings da Edge Function
-       * `slide-validator`. SECURITY DEFINER + GRANT solo service_role.
-       */
-      record_validation_warnings: {
-        Args: { p_version_id: string; p_warnings: ValidationWarning[] };
-        Returns: { ok: boolean; skipped: boolean; reason?: string; warnings_count?: number };
-      };
-      /**
-       * Sprint T-3-A (G10) — lista versions ready ancora non validate per una
-       * sessione, usata dal hook `useValidationTrigger` per kick dell Edge.
-       */
-      list_unvalidated_versions_for_session: {
-        Args: { p_session_id: string; p_limit?: number };
-        Returns: Array<{
-          version_id: string;
-          presentation_id: string;
-          file_name: string;
-          storage_key: string;
-        }>;
-      };
-      /**
-       * Sprint T-3-G (G10) — crea un pairing telecomando. TTL minutes 5..10080
-       * (5min..7gg, default 1440 = 24h). Solo tenant_admin del tenant target.
-       * Ritorna il TOKEN IN CHIARO una sola volta — l'admin deve copiarlo
-       * subito (DB conserva solo l'hash SHA-256).
-       */
-      rpc_create_remote_control_pairing: {
-        Args: { p_room_id: string; p_name: string; p_ttl_minutes?: number };
-        Returns: {
-          ok: boolean;
-          pairing_id: string;
-          token: string;
-          expires_at: string;
-          room_id: string;
-          event_id: string;
-        };
-      };
-      /** Sprint T-3-G — revoca pairing (set revoked_at). Idempotente. */
-      rpc_revoke_remote_control_pairing: {
-        Args: { p_pairing_id: string };
-        Returns: { ok: boolean; revoked_at?: string; already_revoked?: boolean };
-      };
-      /**
-       * Sprint T-3-G — valida token telecomando. Anon-callable. Aggiorna
-       * last_used_at. Lancia eccezione se token invalido/revocato/scaduto.
-       */
-      rpc_validate_remote_control_token: {
-        Args: { p_token: string };
-        Returns: {
-          ok: boolean;
-          pairing_id: string;
-          tenant_id: string;
-          event_id: string;
-          room_id: string;
-          name: string;
-          expires_at: string;
-          room_name: string | null;
-          event_title: string | null;
-        };
-      };
-      /**
-       * Sprint T-3-G — scaletta sessione corrente per UI tablet remote.
-       * Auth via token (anon-callable). Ordering allineato a getNextUpForRoom.
-       */
-      rpc_get_room_schedule_remote: {
-        Args: { p_token: string };
-        Returns: {
-          ok: boolean;
-          session_id: string | null;
-          session_title: string | null;
-          current_presentation_id: string | null;
-          schedule: Array<{
-            presentation_id: string;
-            version_id: string;
-            file_name: string;
-            speaker_name: string | null;
-            display_order: number | null;
-          }>;
-        };
-      };
-      /**
-       * Sprint T-3-G — dispatch comando telecomando. Comandi: next | prev |
-       * goto | blank | first. Rate-limit 60/min/pairing. Solo service_role
-       * (chiamata da Edge Function `remote-control-dispatch`).
-       */
-      rpc_dispatch_remote_command: {
+          p_event_id: string
+          p_max_pings_per_device?: number
+          p_window_min?: number
+        }
+        Returns: Json
+      }
+      finalize_upload_version: {
+        Args: { p_sha256: string; p_token: string; p_version_id: string }
+        Returns: Json
+      }
+      finalize_upload_version_admin: {
+        Args: { p_sha256: string; p_version_id: string }
+        Returns: Json
+      }
+      finalize_upload_version_for_room_device: {
+        Args: { p_sha256: string; p_token: string; p_version_id: string }
+        Returns: Json
+      }
+      has_tenant_admin_role: { Args: never; Returns: boolean }
+      init_upload_version: {
         Args: {
-          p_token: string;
-          p_command: 'next' | 'prev' | 'goto' | 'blank' | 'first';
-          p_target_presentation_id?: string | null;
-        };
+          p_filename: string
+          p_mime: string
+          p_size: number
+          p_token: string
+        }
+        Returns: Json
+      }
+      init_upload_version_admin: {
+        Args: {
+          p_filename: string
+          p_mime: string
+          p_size: number
+          p_speaker_id: string
+        }
+        Returns: Json
+      }
+      init_upload_version_for_room_device: {
+        Args: {
+          p_filename: string
+          p_mime: string
+          p_session_id: string
+          p_size: number
+          p_token: string
+        }
+        Returns: Json
+      }
+      init_upload_version_for_session: {
+        Args: {
+          p_filename: string
+          p_mime: string
+          p_session_id: string
+          p_size: number
+        }
+        Returns: Json
+      }
+      is_super_admin: { Args: never; Returns: boolean }
+      lemon_squeezy_apply_subscription_event: {
+        Args: {
+          p_app_url: string
+          p_customer_email: string
+          p_customer_id: string
+          p_customer_name: string
+          p_ends_at: string
+          p_event_name: string
+          p_renews_at: string
+          p_status: string
+          p_subscription_id: string
+          p_variant_id: string
+        }
+        Returns: Json
+      }
+      licensing_apply_quota: {
+        Args: {
+          p_expires_at: string
+          p_license_key: string
+          p_max_devices_per_room: number
+          p_max_rooms_per_event: number
+          p_plan: Database["public"]["Enums"]["tenant_plan"]
+          p_status: string
+          p_storage_limit_bytes: number
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      list_tenant_activity: {
+        Args: {
+          p_action?: string
+          p_actor_id?: string
+          p_entity_type?: string
+          p_from?: string
+          p_limit?: number
+          p_offset?: number
+          p_to?: string
+        }
+        Returns: Json
+      }
+      list_tenant_data_exports: {
+        Args: never
         Returns: {
-          ok: boolean;
-          room_id: string;
-          command: string;
-          presentation_id: string | null;
-          started_at: string | null;
-        };
-      };
-      /** Sprint T-3-G — cleanup pairings scaduti da > N giorni. Solo super_admin. */
+          byte_size: number
+          error_message: string
+          expires_at: string
+          id: string
+          ready_at: string
+          requested_at: string
+          status: string
+          storage_path: string
+        }[]
+      }
+      list_tenants_for_license_warning: {
+        Args: { p_days_max: number; p_days_min: number; p_email_kind: string }
+        Returns: {
+          admin_email: string
+          admin_full_name: string
+          days_remaining: number
+          expires_at: string
+          plan: string
+          tenant_id: string
+          tenant_name: string
+        }[]
+      }
+      list_unvalidated_versions_for_session: {
+        Args: { p_limit?: number; p_session_id: string }
+        Returns: {
+          file_name: string
+          presentation_id: string
+          storage_key: string
+          version_id: string
+        }[]
+      }
+      log_email_sent: {
+        Args: {
+          p_error_message?: string
+          p_idempotency_key: string
+          p_kind: string
+          p_metadata?: Json
+          p_provider_message_id?: string
+          p_recipient: string
+          p_status: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      mark_lemon_squeezy_event_processed: {
+        Args: {
+          p_error_message: string
+          p_log_id: string
+          p_status: string
+          p_tenant_id: string
+        }
+        Returns: undefined
+      }
+      mark_tenant_onboarded: { Args: never; Returns: string }
+      move_presentations_to_folder: {
+        Args: { p_folder_id: string; p_presentation_ids: string[] }
+        Returns: number
+      }
       purge_old_remote_control_pairings: {
-        Args: { p_older_than_days?: number };
-        Returns: { ok: boolean; deleted: number; cutoff: string };
-      };
-      /**
-       * Sprint U-4 — magic link admin: genera token plain UNA volta sola.
-       * `expires_minutes` 5..43200 (clamped), `max_uses` 1..10 (clamped).
-       */
+        Args: { p_older_than_days?: number }
+        Returns: Json
+      }
+      record_device_metric_ping: {
+        Args: { p_device_id: string; p_payload: Json }
+        Returns: Json
+      }
+      record_lemon_squeezy_event: {
+        Args: {
+          p_customer_id: string
+          p_event_id: string
+          p_event_name: string
+          p_payload: Json
+          p_subscription_id: string
+        }
+        Returns: Json
+      }
+      record_validation_warnings: {
+        Args: { p_version_id: string; p_warnings: Json }
+        Returns: Json
+      }
+      rename_paired_device_by_token: {
+        Args: { p_name: string; p_token: string }
+        Returns: Json
+      }
+      reset_tenant_onboarding: { Args: never; Returns: undefined }
+      rpc_admin_create_desktop_provision_token: {
+        Args: {
+          p_expires_minutes?: number
+          p_label?: string
+          p_max_uses?: number
+        }
+        Returns: Json
+      }
       rpc_admin_create_room_provision_token: {
         Args: {
-          p_event_id: string;
-          p_room_id: string;
-          p_expires_minutes?: number | null;
-          p_max_uses?: number | null;
-          p_label?: string | null;
-        };
+          p_event_id: string
+          p_expires_minutes?: number
+          p_label?: string
+          p_max_uses?: number
+          p_room_id: string
+        }
+        Returns: Json
+      }
+      rpc_admin_extend_desktop_token: {
+        Args: { p_device_id: string; p_extra_months?: number }
+        Returns: Json
+      }
+      rpc_admin_list_expiring_desktop_devices: {
+        Args: { p_days_max: number; p_days_min: number; p_email_kind: string }
         Returns: {
-          id: string;
-          token: string;
-          expires_at: string;
-          max_uses: number;
-          tenant_id: string;
-          event_id: string;
-          room_id: string;
-        };
-      };
-      /**
-       * Sprint U-4 — consume del magic link da PC sala (anonimo, via Edge
-       * Function `room-provision-claim`). Crea atomicamente un
-       * `paired_devices` record. Errori granulari: token_invalid,
-       * token_revoked, token_expired, token_exhausted.
-       */
+          admin_email: string
+          admin_full_name: string
+          days_remaining: number
+          device_id: string
+          device_name: string
+          machine_fingerprint: string
+          pair_token_expires_at: string
+          tenant_id: string
+          tenant_name: string
+        }[]
+      }
+      rpc_admin_move_paired_device: {
+        Args: {
+          p_device_id: string
+          p_target_event_id: string
+          p_target_room_id?: string
+        }
+        Returns: Json
+      }
+      rpc_admin_revoke_desktop_device: {
+        Args: { p_device_id: string }
+        Returns: Json
+      }
+      rpc_admin_revoke_desktop_provision_token: {
+        Args: { p_token_id: string }
+        Returns: Json
+      }
+      rpc_admin_revoke_room_provision_token: {
+        Args: { p_token_id: string }
+        Returns: Json
+      }
+      rpc_consume_desktop_provision_token: {
+        Args: {
+          p_app_version?: string
+          p_device_name?: string
+          p_machine_fingerprint?: string
+          p_os_version?: string
+          p_pair_token_hash: string
+          p_token: string
+        }
+        Returns: Json
+      }
       rpc_consume_room_provision_token: {
         Args: {
-          p_token: string;
-          p_pair_token_hash: string;
-          p_device_name?: string | null;
-          p_device_type?: string | null;
-          p_browser?: string | null;
-          p_user_agent?: string | null;
-          p_last_ip?: string | null;
-        };
+          p_browser?: string
+          p_device_name?: string
+          p_device_type?: string
+          p_last_ip?: string
+          p_pair_token_hash: string
+          p_token: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
+      rpc_create_remote_control_pairing: {
+        Args: { p_name: string; p_room_id: string; p_ttl_minutes?: number }
+        Returns: Json
+      }
+      rpc_desktop_license_verify: {
+        Args: { p_app_version?: string; p_pair_token_hash: string }
+        Returns: Json
+      }
+      rpc_desktop_renew_token: {
+        Args: { p_new_pair_token_hash: string; p_old_pair_token_hash: string }
+        Returns: Json
+      }
+      rpc_dispatch_remote_command: {
+        Args: {
+          p_command: string
+          p_target_presentation_id?: string
+          p_token: string
+        }
+        Returns: Json
+      }
+      rpc_get_room_schedule_remote: { Args: { p_token: string }; Returns: Json }
+      rpc_move_presentation: {
+        Args: { p_presentation_id: string; p_target_speaker_id: string }
+        Returns: Json
+      }
+      rpc_move_presentation_to_session: {
+        Args: { p_presentation_id: string; p_target_session_id: string }
+        Returns: Json
+      }
+      rpc_reorder_sessions: {
+        Args: { p_event_id: string; p_ids: string[] }
+        Returns: undefined
+      }
+      rpc_revoke_pair_self: {
+        Args: { p_pair_token_hash: string }
+        Returns: Json
+      }
+      rpc_revoke_remote_control_pairing: {
+        Args: { p_pairing_id: string }
+        Returns: Json
+      }
+      rpc_room_player_set_current: {
+        Args: {
+          p_current_slide_index?: number
+          p_current_slide_total?: number
+          p_presentation_id: string
+          p_token: string
+        }
+        Returns: Json
+      }
+      rpc_set_current_version: {
+        Args: { p_presentation_id: string; p_version_id: string }
+        Returns: Json
+      }
+      rpc_update_presentation_status: {
+        Args: { p_note: string; p_presentation_id: string; p_status: string }
+        Returns: Json
+      }
+      rpc_validate_remote_control_token: {
+        Args: { p_token: string }
+        Returns: Json
+      }
+      seed_demo_data: { Args: never; Returns: Json }
+      tenant_health: { Args: never; Returns: Json }
+      tenant_license_summary: { Args: never; Returns: Json }
+      tenant_max_devices_per_room: {
+        Args: { p_tenant_id: string }
+        Returns: number
+      }
+      tenant_max_file_size: { Args: { p_tenant_id: string }; Returns: number }
+      tenant_storage_summary: { Args: never; Returns: Json }
+      update_device_role: {
+        Args: { p_device_id: string; p_new_role: string }
         Returns: {
-          device_id: string;
-          tenant_id: string;
-          event_id: string;
-          room_id: string;
-          max_uses: number;
-          consumed_count: number;
-        };
-      };
-      /** Sprint U-4 — revoca un magic link attivo (admin-only). */
-      rpc_admin_revoke_room_provision_token: {
-        Args: { p_token_id: string };
-        Returns: { ok: boolean; id: string };
-      };
-    };
+          id: string
+          role: string
+          room_id: string
+        }[]
+      }
+      validate_upload_token: { Args: { p_token: string }; Returns: Json }
+    }
     Enums: {
-      actor_type: 'user' | 'speaker' | 'agent' | 'system' | 'device';
-      connection_status: 'online' | 'offline' | 'degraded';
-      event_status: 'draft' | 'setup' | 'active' | 'closed' | 'archived';
-      network_mode: 'cloud' | 'intranet' | 'hybrid';
-      playback_mode: 'auto' | 'live' | 'turbo';
-      presentation_status: 'pending' | 'uploaded' | 'reviewed' | 'approved' | 'rejected';
-      room_type: 'main' | 'breakout' | 'preview' | 'poster';
-      session_type: 'talk' | 'panel' | 'workshop' | 'break' | 'ceremony';
-      sync_status: 'synced' | 'syncing' | 'outdated' | 'offline';
-      tenant_plan: 'trial' | 'starter' | 'pro' | 'enterprise';
-      upload_source: 'web_portal' | 'preview_room' | 'agent_upload' | 'room_device';
-      user_role: 'admin' | 'tech' | 'coordinator' | 'super_admin';
-      version_status: 'uploading' | 'processing' | 'ready' | 'failed' | 'superseded';
-    };
-    CompositeTypes: Record<string, never>;
-  };
-};
+      actor_type: "user" | "speaker" | "agent" | "system" | "device"
+      connection_status: "online" | "offline" | "degraded"
+      event_status: "draft" | "setup" | "active" | "closed" | "archived"
+      network_mode: "cloud" | "intranet" | "hybrid"
+      playback_mode: "auto" | "live" | "turbo"
+      presentation_status:
+        | "pending"
+        | "uploaded"
+        | "reviewed"
+        | "approved"
+        | "rejected"
+      room_type: "main" | "breakout" | "preview" | "poster"
+      session_type: "talk" | "panel" | "workshop" | "break" | "ceremony"
+      sync_status: "synced" | "syncing" | "outdated" | "offline"
+      tenant_plan: "trial" | "starter" | "pro" | "enterprise"
+      upload_source:
+        | "web_portal"
+        | "preview_room"
+        | "agent_upload"
+        | "room_device"
+      user_role: "admin" | "tech" | "coordinator" | "super_admin"
+      version_status:
+        | "uploading"
+        | "processing"
+        | "ready"
+        | "failed"
+        | "superseded"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      actor_type: ["user", "speaker", "agent", "system", "device"],
+      connection_status: ["online", "offline", "degraded"],
+      event_status: ["draft", "setup", "active", "closed", "archived"],
+      network_mode: ["cloud", "intranet", "hybrid"],
+      playback_mode: ["auto", "live", "turbo"],
+      presentation_status: [
+        "pending",
+        "uploaded",
+        "reviewed",
+        "approved",
+        "rejected",
+      ],
+      room_type: ["main", "breakout", "preview", "poster"],
+      session_type: ["talk", "panel", "workshop", "break", "ceremony"],
+      sync_status: ["synced", "syncing", "outdated", "offline"],
+      tenant_plan: ["trial", "starter", "pro", "enterprise"],
+      upload_source: [
+        "web_portal",
+        "preview_room",
+        "agent_upload",
+        "room_device",
+      ],
+      user_role: ["admin", "tech", "coordinator", "super_admin"],
+      version_status: [
+        "uploading",
+        "processing",
+        "ready",
+        "failed",
+        "superseded",
+      ],
+    },
+  },
+} as const

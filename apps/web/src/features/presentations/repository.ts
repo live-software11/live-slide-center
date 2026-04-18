@@ -90,10 +90,12 @@ export async function updatePresentationStatus(
   note: string | null,
 ): Promise<void> {
   const supabase = getSupabaseBrowserClient();
+  // `p_note` accetta NULL runtime (motivazione opzionale per status changes),
+  // ma il type generator lo riflette come `string` non-nullable. Cast.
   const { error } = await supabase.rpc('rpc_update_presentation_status', {
     p_presentation_id: presentationId,
     p_status: status,
-    p_note: note,
+    p_note: note as unknown as string,
   });
   if (error) throw error;
 }

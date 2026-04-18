@@ -174,8 +174,8 @@ export function ProductionView() {
           .eq('event_id', eventId)
           .limit(1000),
         supabase
-          .from('event_speakers')
-          .select('speaker_id, speakers(id, full_name)')
+          .from('speakers')
+          .select('id, full_name')
           .eq('event_id', eventId)
           .limit(2000),
       ]);
@@ -192,8 +192,8 @@ export function ProductionView() {
       });
       const speakers: Record<string, SpeakerLite> = {};
       (speakersRes.data ?? []).forEach((row) => {
-        const sp = (row as { speakers: SpeakerLite | null }).speakers;
-        if (sp) speakers[sp.id] = sp;
+        const sp = row as SpeakerLite;
+        if (sp?.id) speakers[sp.id] = sp;
       });
 
       // versions: prendo solo le current_version_id presenti

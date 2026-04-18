@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   LogOut,
   Monitor,
+  Network,
   ScrollText,
   Search,
   Server,
@@ -240,8 +241,8 @@ function TenantSidebarSections({
   isSuperAdmin,
 }: {
   events: ReturnType<typeof useSidebarData>['state'] extends { status: 'ready'; data: { events: infer E } }
-    ? E
-    : Array<{ id: string; name: string; status: string }>;
+  ? E
+  : Array<{ id: string; name: string; status: string }>;
   devices: SidebarDeviceLite[];
   isTenantAdmin: boolean;
   isSuperAdmin: boolean;
@@ -366,6 +367,15 @@ function TenantSidebarSections({
                   >
                     <Server />
                     <span>{t('nav.desktopDevices')}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={isActive('/network-map')}
+                    onClick={() => navigate('/network-map')}
+                  >
+                    <Network />
+                    <span>{t('nav.networkMap')}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>

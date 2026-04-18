@@ -41,6 +41,20 @@ pub async fn cmd_license_verify_now() -> Result<Value, String> {
     }))
 }
 
+/// Sprint SR — `cmd_license_renew_now()` → rotazione manuale del pair_token
+/// dal banner UI. Genera 32 byte random, chiama desktop-license-renew con
+/// l'old token, salva il nuovo + nuova expiry su license.enc atomicamente.
+#[tauri::command]
+pub async fn cmd_license_renew_now() -> Result<Value, String> {
+    let mgr = LicenseManager::new().map_err(|e| format!("init manager: {e}"))?;
+    mgr.renew_now().await.map_err(|e| format!("{e}"))?;
+    let status = mgr.current_status();
+    Ok(json!({
+        "ok": true,
+        "status": serde_json::to_value(status).unwrap_or_else(|_| json!({}))
+    }))
+}
+
 /// `cmd_license_reset()` → cancella `license.enc`. Usato da UI "scollega"
 /// e da uninstaller (--reset CLI flag, futuro).
 #[tauri::command]

@@ -16,6 +16,7 @@
     "settings": "Impostazioni",
     "team": "Team",
     "desktopDevices": "Centri Slide",
+    "networkMap": "Mappa rete",
     "billing": "Abbonamento",
     "activity": "Attività"
   },
@@ -1078,7 +1079,13 @@
       "revokedTitle": "Questo PC e' stato scollegato dal cloud",
       "revokedCta": "Ricollega",
       "tenantSuspendedTitle": "Account cloud sospeso",
-      "tenantSuspendedHint": "Contatta l'amministratore o regolarizza l'abbonamento."
+      "tenantSuspendedHint": "Contatta l'amministratore o regolarizza l'abbonamento.",
+      "pairTokenExpiringTitle": "Chiave di collegamento in scadenza tra {{days}} giorni",
+      "pairTokenExpiringHint": "Il rinnovo automatico parte in background. Puoi anche rinnovare ora manualmente.",
+      "pairTokenExpiringCta": "Rinnova ora",
+      "pairTokenExpiredTitle": "Chiave di collegamento scaduta",
+      "pairTokenExpiredHint": "Le verifiche cloud sono bloccate. Chiedi all'amministratore un nuovo magic-link per ricollegare il PC.",
+      "pairTokenExpiredCta": "Vai alla pagina licenza"
     },
     "status": {
       "label": "Stato licenza",
@@ -1089,13 +1096,17 @@
       "revoked": "Revocata",
       "tenantSuspended": "Tenant sospeso",
       "error": "Errore",
+      "pairTokenExpiring": "Chiave in scadenza",
+      "pairTokenExpired": "Chiave scaduta",
       "tenantName": "Tenant",
       "plan": "Piano",
       "expiresAt": "Scade il",
       "lastVerifiedAt": "Ultima verifica",
       "graceUntil": "Scadenza tolleranza",
       "daysRemaining": "Giorni rimanenti: {{days}}",
-      "noExpiry": "Senza scadenza"
+      "noExpiry": "Senza scadenza",
+      "pairTokenExpiresAt": "Scadenza chiave collegamento",
+      "pairTokenDaysRemaining": "Giorni alla scadenza chiave: {{days}}"
     },
     "bind": {
       "title": "Collega questo PC al cloud",
@@ -1122,6 +1133,11 @@
       "verifying": "Verifica in corso...",
       "verifyOk": "Verifica completata.",
       "verifyError": "Verifica fallita: {{error}}",
+      "renewNow": "Rinnova chiave",
+      "renewing": "Rinnovo in corso...",
+      "renewOk": "Chiave rinnovata: prossima scadenza fra 12 mesi.",
+      "renewError": "Rinnovo fallito: {{error}}",
+      "renewTooltip": "Rigenera la chiave di collegamento e la sposta a 12 mesi nel futuro.",
       "reset": "Scollega questo PC",
       "resetConfirmTitle": "Scollegare questo PC dal cloud?",
       "resetConfirmBody": "Il PC continuera' a funzionare in modalita LAN. Per ricollegarlo serve un nuovo magic-link.",
@@ -1896,6 +1912,72 @@
       "dismiss": "Chiudi"
     }
   },
+  "networkMap": {
+    "title": "Mappa rete",
+    "subtitle": "Tutti i PC node del tenant in un'unica vista. PC sala (paired) + PC desktop server. Stato online/degraded/offline aggiornato in tempo reale.",
+    "filters": {
+      "search": "Cerca per nome PC…",
+      "allEvents": "Tutti gli eventi",
+      "allKinds": "Tutti i tipi",
+      "kindPaired": "PC sala",
+      "kindDesktop": "PC desktop server",
+      "allStatuses": "Tutti gli stati",
+      "statusOnline": "Online",
+      "statusDegraded": "Degradato",
+      "statusOffline": "Offline"
+    },
+    "summary": {
+      "total": "Totali",
+      "online": "Online",
+      "degraded": "Degradati",
+      "offline": "Offline"
+    },
+    "table": {
+      "device": "PC",
+      "kind": "Tipo",
+      "event": "Evento",
+      "room": "Sala",
+      "lastSeen": "Ultimo contatto",
+      "status": "Stato",
+      "actions": "Azioni",
+      "noEvent": "—",
+      "noRoom": "—",
+      "appVersion": "v{{v}}"
+    },
+    "empty": {
+      "title": "Nessun PC collegato",
+      "body": "Non ci sono ancora PC paired o PC desktop server attivi nel tuo tenant. Vai su Centri Slide per aggiungerne uno."
+    },
+    "actions": {
+      "moveToEvent": "Sposta su evento…",
+      "openCenters": "Vai a Centri Slide",
+      "refresh": "Aggiorna",
+      "moveOnlyForPaired": "Solo i PC sala possono essere spostati tra eventi"
+    },
+    "moveDialog": {
+      "title": "Sposta PC su un altro evento",
+      "subtitle": "Sposta {{name}} su un evento del tuo tenant. Il pairing fisico non viene rifatto: il PC continua a usare il pair_token corrente.",
+      "eventLabel": "Evento di destinazione",
+      "eventPlaceholder": "Seleziona un evento…",
+      "roomLabel": "Sala (opzionale)",
+      "roomPlaceholder": "Nessuna sala — lascia in waiting room",
+      "noRoomsForEvent": "Questo evento non ha sale: il PC verrà associato all'evento ma resterà senza sala.",
+      "loadingRooms": "Caricamento sale…",
+      "cancel": "Annulla",
+      "confirm": "Sposta qui",
+      "movingBusy": "Spostamento in corso…",
+      "successToast": "PC spostato su {{event}}",
+      "errorTitle": "Spostamento fallito",
+      "errorEventNotInTenant": "L'evento selezionato non appartiene al tuo tenant.",
+      "errorRoomNotInEvent": "La sala selezionata non appartiene all'evento di destinazione.",
+      "errorDeviceNotFound": "Il PC selezionato non è più disponibile.",
+      "errorForbidden": "Solo admin e tech possono spostare i PC.",
+      "errorGeneric": "Spostamento non riuscito: {{message}}"
+    },
+    "errors": {
+      "loadFailed": "Impossibile caricare la mappa rete: {{message}}"
+    }
+  },
   "desktopDevices": {
     "title": "Centri Slide",
     "subtitle": "Gestisci i PC desktop server collegati al tuo account, genera link di attivazione e promuovi un PC sala a Centro Slide.",
@@ -1919,7 +2001,17 @@
       "appVersion": "App v{{v}}",
       "osVersion": "OS {{v}}",
       "revokeBtn": "Scollega",
-      "revokeConfirm": "Scollegare questo PC server? Le funzioni cloud verranno disabilitate, la modalità LAN locale resterà attiva."
+      "revokeConfirm": "Scollegare questo PC server? Le funzioni cloud verranno disabilitate, la modalità LAN locale resterà attiva.",
+      "tokenOkBadge": "Token attivo",
+      "tokenExpiringBadge": "Scade tra {{days}}g",
+      "tokenExpiredBadge": "Token scaduto",
+      "tokenExpiryTooltip": "Scadenza pair-token: {{when}}",
+      "tokenExpiresAt": "Token scade il {{when}}",
+      "extendBtnLabel": "+12 mesi",
+      "extendBtnAria": "Estendi la scadenza del token di 12 mesi",
+      "extendBtnTitle": "Estendi manualmente la scadenza del pair-token (+12 mesi). Pensato per PC offline o fuori sede che non possono auto-rinnovarsi.",
+      "extendConfirm": "Estendere la scadenza del token di \"{{name}}\" di {{months}} mesi? Il PC continuerà a essere riconosciuto dal cloud anche se offline alla data di scadenza originale.",
+      "extendSuccess": "Token di \"{{name}}\" esteso. Nuova scadenza: {{until}} (tra {{days}} giorni)."
     },
     "tokens": {
       "title": "Link di attivazione",

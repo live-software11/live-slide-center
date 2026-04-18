@@ -16,6 +16,7 @@
     "settings": "Settings",
     "team": "Team",
     "desktopDevices": "Slide Centers",
+    "networkMap": "Network map",
     "billing": "Subscription",
     "activity": "Activity"
   },
@@ -1078,7 +1079,13 @@
       "revokedTitle": "This PC has been unlinked from the cloud",
       "revokedCta": "Re-link",
       "tenantSuspendedTitle": "Cloud account suspended",
-      "tenantSuspendedHint": "Contact the administrator or renew the subscription."
+      "tenantSuspendedHint": "Contact the administrator or renew the subscription.",
+      "pairTokenExpiringTitle": "Pairing key expires in {{days}} days",
+      "pairTokenExpiringHint": "Auto-renewal will run in the background. You can also renew now manually.",
+      "pairTokenExpiringCta": "Renew now",
+      "pairTokenExpiredTitle": "Pairing key expired",
+      "pairTokenExpiredHint": "Cloud verifications are blocked. Ask the administrator for a new magic-link to re-link this PC.",
+      "pairTokenExpiredCta": "Open license page"
     },
     "status": {
       "label": "License status",
@@ -1089,13 +1096,17 @@
       "revoked": "Revoked",
       "tenantSuspended": "Tenant suspended",
       "error": "Error",
+      "pairTokenExpiring": "Pairing key expiring",
+      "pairTokenExpired": "Pairing key expired",
       "tenantName": "Tenant",
       "plan": "Plan",
       "expiresAt": "Expires on",
       "lastVerifiedAt": "Last verified",
       "graceUntil": "Grace ends",
       "daysRemaining": "Days remaining: {{days}}",
-      "noExpiry": "No expiry"
+      "noExpiry": "No expiry",
+      "pairTokenExpiresAt": "Pairing key expires on",
+      "pairTokenDaysRemaining": "Days until pairing key expires: {{days}}"
     },
     "bind": {
       "title": "Link this PC to the cloud",
@@ -1122,6 +1133,11 @@
       "verifying": "Verifying...",
       "verifyOk": "Verification complete.",
       "verifyError": "Verification failed: {{error}}",
+      "renewNow": "Renew key",
+      "renewing": "Renewing...",
+      "renewOk": "Pairing key renewed: next expiry in 12 months.",
+      "renewError": "Renewal failed: {{error}}",
+      "renewTooltip": "Regenerate the pairing key and push expiry 12 months into the future.",
       "reset": "Unlink this PC",
       "resetConfirmTitle": "Unlink this PC from the cloud?",
       "resetConfirmBody": "The PC will keep working in LAN mode. To re-link it you'll need a new magic-link.",
@@ -1896,6 +1912,72 @@
       "dismiss": "Close"
     }
   },
+  "networkMap": {
+    "title": "Network map",
+    "subtitle": "All your tenant PC nodes in a single view. Paired room PCs + desktop server PCs. Online/degraded/offline status updated in real time.",
+    "filters": {
+      "search": "Search by PC name…",
+      "allEvents": "All events",
+      "allKinds": "All kinds",
+      "kindPaired": "Room PC",
+      "kindDesktop": "Desktop server PC",
+      "allStatuses": "All statuses",
+      "statusOnline": "Online",
+      "statusDegraded": "Degraded",
+      "statusOffline": "Offline"
+    },
+    "summary": {
+      "total": "Total",
+      "online": "Online",
+      "degraded": "Degraded",
+      "offline": "Offline"
+    },
+    "table": {
+      "device": "PC",
+      "kind": "Kind",
+      "event": "Event",
+      "room": "Room",
+      "lastSeen": "Last seen",
+      "status": "Status",
+      "actions": "Actions",
+      "noEvent": "—",
+      "noRoom": "—",
+      "appVersion": "v{{v}}"
+    },
+    "empty": {
+      "title": "No PC connected",
+      "body": "No paired PCs or desktop server PCs are active in your tenant yet. Go to Slide Centers to add one."
+    },
+    "actions": {
+      "moveToEvent": "Move to event…",
+      "openCenters": "Go to Slide Centers",
+      "refresh": "Refresh",
+      "moveOnlyForPaired": "Only room PCs can be moved between events"
+    },
+    "moveDialog": {
+      "title": "Move PC to another event",
+      "subtitle": "Move {{name}} to an event in your tenant. Physical pairing is preserved: the PC keeps using the current pair_token.",
+      "eventLabel": "Target event",
+      "eventPlaceholder": "Select an event…",
+      "roomLabel": "Room (optional)",
+      "roomPlaceholder": "No room — leave in waiting room",
+      "noRoomsForEvent": "This event has no rooms: the PC will be assigned to the event but without a room.",
+      "loadingRooms": "Loading rooms…",
+      "cancel": "Cancel",
+      "confirm": "Move here",
+      "movingBusy": "Moving…",
+      "successToast": "PC moved to {{event}}",
+      "errorTitle": "Move failed",
+      "errorEventNotInTenant": "The selected event does not belong to your tenant.",
+      "errorRoomNotInEvent": "The selected room does not belong to the target event.",
+      "errorDeviceNotFound": "The selected PC is no longer available.",
+      "errorForbidden": "Only admins and techs can move PCs.",
+      "errorGeneric": "Move failed: {{message}}"
+    },
+    "errors": {
+      "loadFailed": "Failed to load network map: {{message}}"
+    }
+  },
   "desktopDevices": {
     "title": "Slide Centers",
     "subtitle": "Manage the desktop server PCs paired to your account, generate activation links and promote a room PC to a Slide Center.",
@@ -1919,7 +2001,17 @@
       "appVersion": "App v{{v}}",
       "osVersion": "OS {{v}}",
       "revokeBtn": "Unpair",
-      "revokeConfirm": "Unpair this server PC? Cloud features will be disabled, the local LAN mode will keep working."
+      "revokeConfirm": "Unpair this server PC? Cloud features will be disabled, the local LAN mode will keep working.",
+      "tokenOkBadge": "Token active",
+      "tokenExpiringBadge": "Expires in {{days}}d",
+      "tokenExpiredBadge": "Token expired",
+      "tokenExpiryTooltip": "Pair-token expiry: {{when}}",
+      "tokenExpiresAt": "Token expires on {{when}}",
+      "extendBtnLabel": "+12 months",
+      "extendBtnAria": "Extend the pair-token by 12 months",
+      "extendBtnTitle": "Manually extend the pair-token expiry (+12 months). Useful for offline or off-site PCs that cannot auto-renew.",
+      "extendConfirm": "Extend the token of \"{{name}}\" by {{months}} months? The PC will keep being recognised by the cloud even if offline at the original expiry date.",
+      "extendSuccess": "Token of \"{{name}}\" extended. New expiry: {{until}} (in {{days}} days)."
     },
     "tokens": {
       "title": "Activation links",

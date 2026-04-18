@@ -63,6 +63,11 @@ export default defineConfig(({ mode }) => {
           clientsClaim: true,
           cleanupOutdatedCaches: true,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,jpg}'],
+          // Sprint Hardening Pre-Field-Test §2.1: alza il cap precache da 2 MB
+          // (default Workbox) a 5 MB. I chunk pdfjs-dist (~700 KB) e le icone
+          // alta risoluzione altrimenti vengono silently skippati senza
+          // warning loud nei log build, lasciando il primo load offline rotto.
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
           // Sprint Q+1 hardening commerciale:
           //   - NIENTE cache su /auth/v1/* e /realtime/v1/* (sicurezza sessioni
           //     + websocket non cacheable).

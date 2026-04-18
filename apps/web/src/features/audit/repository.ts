@@ -50,11 +50,11 @@ export async function listTenantActivity(
   page: { limit: number; offset: number },
 ): Promise<TenantActivityPage> {
   const { data, error } = await supabase.rpc('list_tenant_activity', {
-    p_from: filters.from ?? null,
-    p_to: filters.to ?? null,
-    p_action: filters.action ?? null,
-    p_actor_id: filters.actorId ?? null,
-    p_entity_type: filters.entityType ?? null,
+    p_from: filters.from ?? undefined,
+    p_to: filters.to ?? undefined,
+    p_action: filters.action ?? undefined,
+    p_actor_id: filters.actorId ?? undefined,
+    p_entity_type: filters.entityType ?? undefined,
     p_limit: page.limit,
     p_offset: page.offset,
   });

@@ -20,6 +20,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
 import {
+  CalendarClock,
   Check,
   Copy,
   Download,
@@ -35,7 +36,9 @@ import {
 } from 'lucide-react';
 import { useNowMs } from '@/lib/use-now-ms';
 import {
+  classifyDesktopTokenExpiry,
   createDesktopProvisionToken,
+  extendDesktopDeviceToken,
   listDesktopDevices,
   listDesktopProvisionTokens,
   listPairedDevicesWithRole,
@@ -84,6 +87,7 @@ function DesktopDevicesView() {
   const [revokingDevice, setRevokingDevice] = useState<Record<string, boolean>>({});
   const [revokingToken, setRevokingToken] = useState<Record<string, boolean>>({});
   const [updatingRole, setUpdatingRole] = useState<Record<string, boolean>>({});
+  const [extendingToken, setExtendingToken] = useState<Record<string, boolean>>({});
 
   const nowMs = useNowMs(60_000);
 
@@ -174,6 +178,40 @@ function DesktopDevicesView() {
       }
     },
     [reload, t],
+  );
+
+  const submitExtendToken = useCallback(
+    async (deviceId: string, deviceName: string, extraMonths: number) => {
+      if (
+        !window.confirm(
+          t('desktopDevices.devices.extendConfirm', { name: deviceName, months: extraMonths }),
+        )
+      ) {
+        return;
+      }
+      setExtendingToken((m) => ({ ...m, [deviceId]: true }));
+      try {
+        const res = await extendDesktopDeviceToken({ deviceId, extraMonths });
+        const newExp = new Date(res.pair_token_expires_at).toLocaleDateString(locale);
+        window.alert(
+          t('desktopDevices.devices.extendSuccess', {
+            name: deviceName,
+            until: newExp,
+            days: res.pair_token_expires_in_days,
+          }),
+        );
+        void reload();
+      } catch (err) {
+        window.alert(`${t('common.error')}: ${err instanceof Error ? err.message : err}`);
+      } finally {
+        setExtendingToken((m) => {
+          const next = { ...m };
+          delete next[deviceId];
+          return next;
+        });
+      }
+    },
+    [locale, reload, t],
   );
 
   const submitRevokeToken = useCallback(
@@ -286,7 +324,11 @@ function DesktopDevicesView() {
                 locale={locale}
                 nowMs={nowMs}
                 revoking={Boolean(revokingDevice[d.id])}
+                extending={Boolean(extendingToken[d.id])}
                 onRevoke={() => void submitRevokeDevice(d.id)}
+                onExtendToken={(extraMonths) =>
+                  void submitExtendToken(d.id, d.device_name, extraMonths)
+                }
               />
             ))}
           </ul>
@@ -454,13 +496,17 @@ function DesktopDeviceRow({
   locale,
   nowMs,
   revoking,
+  extending,
   onRevoke,
+  onExtendToken,
 }: {
   device: DesktopDevice;
   locale: string;
   nowMs: number;
   revoking: boolean;
+  extending: boolean;
   onRevoke: () => void;
+  onExtendToken: (extraMonths: number) => void;
 }) {
   const { t } = useTranslation();
 
@@ -480,6 +526,27 @@ function DesktopDeviceRow({
       ),
     [device.registered_at, locale],
   );
+
+  const tokenExpiryFmt = useMemo(
+    () =>
+      device.pair_token_expires_at
+        ? new Intl.DateTimeFormat(locale, { dateStyle: 'short' }).format(
+          new Date(device.pair_token_expires_at),
+        )
+        : '',
+    [device.pair_token_expires_at, locale],
+  );
+
+  const tokenStatus = useMemo(
+    () => classifyDesktopTokenExpiry(device, nowMs),
+    [device, nowMs],
+  );
+
+  const tokenDaysLeft = useMemo(() => {
+    if (!device.pair_token_expires_at) return null;
+    const ms = new Date(device.pair_token_expires_at).getTime() - nowMs;
+    return Math.floor(ms / (1000 * 60 * 60 * 24));
+  }, [device.pair_token_expires_at, nowMs]);
 
   const isOnline = useMemo(() => {
     if (device.status !== 'active') return false;
@@ -501,6 +568,19 @@ function DesktopDeviceRow({
         ? t('desktopDevices.devices.statusOnline')
         : t('desktopDevices.devices.statusOffline');
 
+  const tokenBadgeClass =
+    tokenStatus === 'expired'
+      ? 'bg-sc-danger/15 text-sc-danger'
+      : tokenStatus === 'expiring_soon'
+        ? 'bg-sc-warning/15 text-sc-warning'
+        : 'bg-sc-primary/10 text-sc-text-muted';
+  const tokenBadgeLabel =
+    tokenStatus === 'expired'
+      ? t('desktopDevices.devices.tokenExpiredBadge')
+      : tokenStatus === 'expiring_soon'
+        ? t('desktopDevices.devices.tokenExpiringBadge', { days: Math.max(0, tokenDaysLeft ?? 0) })
+        : t('desktopDevices.devices.tokenOkBadge');
+
   return (
     <li className="flex items-center justify-between gap-3 py-3">
       <div className="min-w-0 flex-1">
@@ -509,10 +589,22 @@ function DesktopDeviceRow({
             {badgeLabel}
           </span>
           <span className="truncate text-sm font-medium text-sc-text">{device.device_name}</span>
+          {device.status === 'active' && tokenStatus !== 'na' ? (
+            <span
+              className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${tokenBadgeClass}`}
+              title={t('desktopDevices.devices.tokenExpiryTooltip', { when: tokenExpiryFmt })}
+            >
+              <CalendarClock className="size-3" aria-hidden />
+              {tokenBadgeLabel}
+            </span>
+          ) : null}
         </div>
         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-sc-text-dim">
           <span>{t('desktopDevices.devices.lastSeen', { when: lastSeenFmt })}</span>
           <span>{t('desktopDevices.devices.registered', { when: registeredFmt })}</span>
+          {device.status === 'active' && tokenExpiryFmt ? (
+            <span>{t('desktopDevices.devices.tokenExpiresAt', { when: tokenExpiryFmt })}</span>
+          ) : null}
           {device.app_version ? (
             <span>{t('desktopDevices.devices.appVersion', { v: device.app_version })}</span>
           ) : null}
@@ -522,16 +614,33 @@ function DesktopDeviceRow({
         </div>
       </div>
       {device.status === 'active' ? (
-        <button
-          type="button"
-          disabled={revoking}
-          onClick={onRevoke}
-          aria-label={t('desktopDevices.devices.revokeBtn')}
-          title={t('desktopDevices.devices.revokeBtn')}
-          className="shrink-0 rounded-md p-1.5 text-sc-text-muted hover:bg-sc-danger/10 hover:text-sc-danger disabled:opacity-50"
-        >
-          {revoking ? <Loader2 className="size-3.5 animate-spin" /> : <Power className="size-3.5" />}
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            disabled={extending}
+            onClick={() => onExtendToken(12)}
+            aria-label={t('desktopDevices.devices.extendBtnAria')}
+            title={t('desktopDevices.devices.extendBtnTitle')}
+            className="inline-flex items-center gap-1 rounded-md border border-sc-primary/20 px-2 py-1 text-[11px] font-medium text-sc-text hover:bg-sc-accent/10 hover:text-sc-accent disabled:opacity-50"
+          >
+            {extending ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : (
+              <CalendarClock className="size-3" />
+            )}
+            {t('desktopDevices.devices.extendBtnLabel')}
+          </button>
+          <button
+            type="button"
+            disabled={revoking}
+            onClick={onRevoke}
+            aria-label={t('desktopDevices.devices.revokeBtn')}
+            title={t('desktopDevices.devices.revokeBtn')}
+            className="rounded-md p-1.5 text-sc-text-muted hover:bg-sc-danger/10 hover:text-sc-danger disabled:opacity-50"
+          >
+            {revoking ? <Loader2 className="size-3.5 animate-spin" /> : <Power className="size-3.5" />}
+          </button>
+        </div>
       ) : null}
     </li>
   );
@@ -656,11 +765,10 @@ function PairedDeviceRoleRow({
         type="button"
         disabled={updating}
         onClick={onToggle}
-        className={`shrink-0 rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50 ${
-          isCenter
+        className={`shrink-0 rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50 ${isCenter
             ? 'border-sc-text-dim/30 text-sc-text-secondary hover:bg-sc-primary/10'
             : 'border-sc-accent/40 text-sc-accent hover:bg-sc-accent/10'
-        }`}
+          }`}
       >
         {updating ? <Loader2 className="inline size-3 animate-spin" /> : ctaLabel}
       </button>

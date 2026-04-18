@@ -179,6 +179,10 @@ export async function createTenantWithInvite(
       ? `${window.location.protocol}//${window.location.host}`
       : '';
 
+  // I parametri `p_expires_at` e `p_license_key` accettano NULL runtime
+  // (la RPC SQL ha branch `IF ... IS NULL`), ma il type generator Supabase
+  // li riflette come `string` non-nullable perche' la signature SQL non ha
+  // DEFAULT. Cast esplicito per allinearci al runtime senza alterare la API.
   const { data, error } = await supabase.rpc('admin_create_tenant_with_invite', {
     p_name: input.name,
     p_slug: input.slug,
@@ -187,8 +191,8 @@ export async function createTenantWithInvite(
     p_max_events_per_month: input.maxEventsPerMonth,
     p_max_rooms_per_event: input.maxRoomsPerEvent,
     p_max_devices_per_room: input.maxDevicesPerRoom,
-    p_expires_at: input.expiresAt,
-    p_license_key: input.licenseKey,
+    p_expires_at: input.expiresAt as unknown as string,
+    p_license_key: input.licenseKey as unknown as string,
     p_admin_email: input.adminEmail,
     p_app_url: appUrl,
   });

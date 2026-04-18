@@ -128,9 +128,11 @@ export async function movePresentationsToFolder(
   folderId: string | null,
 ): Promise<number> {
   if (presentationIds.length === 0) return 0;
+  // `p_folder_id` accetta NULL runtime (= sposta in root), ma il type
+  // generator lo riflette come `string` non-nullable. Cast intenzionale.
   const { data, error } = await client().rpc('move_presentations_to_folder', {
     p_presentation_ids: presentationIds,
-    p_folder_id: folderId,
+    p_folder_id: folderId as unknown as string,
   });
   if (error) throw new Error(error.message);
   return data ?? 0;

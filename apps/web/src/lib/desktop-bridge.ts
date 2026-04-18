@@ -681,25 +681,42 @@ export async function installUpdateAndRestart(): Promise<{ ok: boolean; error?: 
 export type DesktopLicenseStatus =
   | { kind: 'notBound' }
   | {
-      kind: 'active';
-      tenantName?: string | null;
-      plan?: string | null;
-      expiresAt?: string | null;
-      lastVerifiedAt: string;
-    }
+    kind: 'active';
+    tenantName?: string | null;
+    plan?: string | null;
+    expiresAt?: string | null;
+    lastVerifiedAt: string;
+  }
   | {
-      kind: 'gracePeriod';
-      tenantName?: string | null;
-      plan?: string | null;
-      lastVerifiedAt: string;
-      graceUntil: string;
-      daysRemaining: number;
-    }
+    /** Sprint SR — pair_token in scadenza (≤ 7gg). App attiva, banner giallo. */
+    kind: 'pairTokenExpiring';
+    tenantName?: string | null;
+    plan?: string | null;
+    expiresAt?: string | null;
+    lastVerifiedAt: string;
+    pairTokenExpiresAt: string;
+    pairTokenDaysRemaining: number;
+  }
   | {
-      kind: 'graceExpired';
-      tenantName?: string | null;
-      lastVerifiedAt: string;
-    }
+    /** Sprint SR — pair_token scaduto: serve re-bind admin. */
+    kind: 'pairTokenExpired';
+    tenantName?: string | null;
+    lastVerifiedAt: string;
+    pairTokenExpiresAt: string;
+  }
+  | {
+    kind: 'gracePeriod';
+    tenantName?: string | null;
+    plan?: string | null;
+    lastVerifiedAt: string;
+    graceUntil: string;
+    daysRemaining: number;
+  }
+  | {
+    kind: 'graceExpired';
+    tenantName?: string | null;
+    lastVerifiedAt: string;
+  }
   | { kind: 'revoked' }
   | { kind: 'tenantSuspended'; tenantName?: string | null }
   | { kind: 'error'; message: string };
@@ -745,6 +762,34 @@ export async function verifyDesktopLicenseNow(): Promise<{
   }
 }
 
+/**
+ * Sprint SR — rotazione manuale del pair_token.
+ *
+ * Da chiamare dal banner "Rinnova ora" quando lo stato è `pairTokenExpiring`.
+ * Genera un nuovo pair_token random lato Tauri, lo registra atomicamente
+ * server-side (`desktop-license-renew`) e aggiorna `license.enc`.
+ *
+ * Errori comuni:
+ *   - `pair_token_expired`: chiamata troppo tardi → serve re-bind admin
+ *   - `device_revoked`: admin ha revocato il device → re-bind o nuovo PC
+ *   - `network_error`: offline → riprova quando torna la connessione
+ */
+export async function renewDesktopLicenseNow(): Promise<{
+  ok: boolean;
+  status?: DesktopLicenseStatus;
+  error?: string;
+}> {
+  if (!isRunningInTauri()) return { ok: false, error: 'not_desktop' };
+  try {
+    const r = await tauriInvoke<{ ok: boolean; status?: DesktopLicenseStatus }>(
+      'cmd_license_renew_now',
+    );
+    return { ok: !!r?.ok, status: r?.status };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'renew_failed' };
+  }
+}
+
 export async function resetDesktopLicense(): Promise<{ ok: boolean; error?: string }> {
   if (!isRunningInTauri()) return { ok: false, error: 'not_desktop' };
   try {
@@ -752,5 +797,60 @@ export async function resetDesktopLicense(): Promise<{ ok: boolean; error?: stri
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'reset_failed' };
+  }
+}
+
+// ── Sprint Z (post-field-test) Gap C — last session persistente PC sala ──
+//
+// La SPA in modalita Tauri (PC sala desktop) salva qui lo stato runtime
+// "ultima session/presentation/slide proiettata" nel filesystem locale.
+// Al prossimo boot il modulo `useLastSession` legge questo blob e fa il
+// restore puntuale, evitando il "buco nero" in caso di crash/blackout
+// durante l'evento.
+//
+// In modalita cloud (browser puro) i due wrapper sono no-op:
+//   - `getLastSession()` ritorna sempre `null`
+//   - `saveLastSession()` ritorna sempre `{ ok: false, error: 'not_desktop' }`
+//
+// Schema versione 1: aggiornare in tandem con `session_store.rs` se cambia.
+
+export interface LastSession {
+  /** Schema version (1 al momento). Mismatch → restore skippato lato Rust. */
+  schema: number;
+  device_token: string;
+  event_id: string;
+  room_id: string | null;
+  current_presentation_id: string | null;
+  current_session_id: string | null;
+  current_slide_index: number | null;
+  current_slide_total: number | null;
+  /** ISO 8601 dell'ultimo save. */
+  saved_at: string;
+}
+
+interface LastSessionResponse {
+  ok: boolean;
+  session: LastSession | null;
+}
+
+/** Tauri-only. In cloud ritorna `null`. */
+export async function getLastSession(): Promise<LastSession | null> {
+  if (!isRunningInTauri()) return null;
+  try {
+    const r = await tauriInvoke<LastSessionResponse>('cmd_get_last_session');
+    return r.session ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Tauri-only. In cloud ritorna `{ ok: false, error: 'not_desktop' }`. */
+export async function saveLastSession(payload: LastSession): Promise<{ ok: boolean; error?: string }> {
+  if (!isRunningInTauri()) return { ok: false, error: 'not_desktop' };
+  try {
+    await tauriInvoke<unknown>('cmd_save_last_session', { payload });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'save_failed' };
   }
 }
