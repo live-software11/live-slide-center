@@ -93,14 +93,32 @@ function newJobId(): string {
   return `job_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+export interface UploadJobDoneInfo {
+  /** ID della presentation creata dall'init (sempre presente quando done). */
+  presentationId: string;
+  /** ID della version creata. */
+  versionId: string;
+  /** Nome file caricato (post sanitize browser, NON dopo SQL sanitize storage_key). */
+  fileName: string;
+  /** Sessione di destinazione usata per l'upload. */
+  sessionId: string;
+}
+
 export interface UseUploadQueueOptions {
   sessionId: string;
   supabaseUrl: string;
   anonKey: string;
   /** Chiamato dopo che TUTTI i job in coda sono terminati (anche con error). */
   onAllDone?: () => void;
-  /** Chiamato dopo OGNI job done (per ricaricare la lista file in tempo reale). */
-  onJobDone?: () => void;
+  /**
+   * Chiamato dopo OGNI job done. Riceve i metadati del file appena finalizzato
+   * (Sprint U-3: serve a `FileExplorerView` per spostare la presentation in
+   * folder corrente DOPO la creazione, dato che `init_upload_version_for_session`
+   * non accetta ancora `p_folder_id`). Rimane retro-compatibile: il chiamante
+   * puo' ignorare l'argomento e usarlo come `() => void` (es. `SessionFilesPanel`
+   * che fa solo refetch).
+   */
+  onJobDone?: (info: UploadJobDoneInfo) => void;
 }
 
 export interface UseUploadQueueResult {
@@ -386,9 +404,15 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
         return;
       }
 
+      const finalizedInfo: UploadJobDoneInfo = {
+        presentationId: init.presentation_id,
+        versionId: init.version_id,
+        fileName: job.file.name,
+        sessionId,
+      };
       job.versionId = null;
       update({ status: 'done', progress: 1, uploaded: job.fileSize });
-      onJobDoneRef.current?.();
+      onJobDoneRef.current?.(finalizedInfo);
     }
   }, [tick, sessionId, supabaseUrl, anonKey, bumpTick, syncPublic]);
 

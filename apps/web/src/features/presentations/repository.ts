@@ -187,6 +187,42 @@ export async function deletePresentationAdmin(presentationId: string): Promise<v
 }
 
 // ────────────────────────────────────────────────────────────────────
+// Sprint U-3 (File Explorer V2): rinomina display name di una version
+// ────────────────────────────────────────────────────────────────────
+
+/**
+ * Rinomina il `file_name` (display) di una version. Lo `storage_key` resta
+ * IMMUTATO (non muoviamo l'oggetto storage). RPC tenant-scoped, admin/tech.
+ *
+ * No-op + `changed: false` se il nome non cambia.
+ */
+export interface RenameVersionFileNameResult {
+  ok: boolean;
+  version_id: string;
+  file_name: string;
+  changed: boolean;
+}
+
+export async function renameVersionFileName(
+  versionId: string,
+  newName: string,
+): Promise<RenameVersionFileNameResult> {
+  const supabase = getSupabaseBrowserClient();
+  // RPC introdotta in migration 20260420060000 — i types generati non la includono
+  // ancora (rigenerare con `pnpm db:gen-types` post-deploy). Cast minimo locale.
+  const rpc = supabase.rpc as unknown as (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await rpc('rename_presentation_version_file_name', {
+    p_version_id: versionId,
+    p_new_name: newName,
+  });
+  if (error || !data) throw error ?? new Error('rename_version_file_name_failed');
+  return data as RenameVersionFileNameResult;
+}
+
+// ────────────────────────────────────────────────────────────────────
 // Spostamento presentation tra speaker (stesso evento/tenant)
 // ────────────────────────────────────────────────────────────────────
 

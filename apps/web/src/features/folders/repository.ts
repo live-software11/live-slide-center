@@ -137,3 +137,64 @@ export async function movePresentationsToFolder(
   if (error) throw new Error(error.message);
   return data ?? 0;
 }
+
+/**
+ * Sprint U-3 (File Explorer V2): garantisce che esista una catena di
+ * sotto-cartelle a partire da `parentId`, creando solo le mancanti.
+ *
+ * USE CASE: l'utente droppa "ConferenzaABC/SalaPlenaria/SessioneMattina/file.pptx"
+ * dal SO. Vogliamo ricreare quella struttura come folders + caricare il file
+ * nella folder finale. `segments = ["ConferenzaABC", "SalaPlenaria", "SessioneMattina"]`.
+ *
+ * STRATEGIA:
+ *  1. Per ogni segmento, cerca una folder con (event_id, parent_id, name).
+ *  2. Se esiste, riusa il suo id come parent del segmento successivo.
+ *  3. Se non esiste, la crea via `createEventFolder`.
+ *
+ * Non e' atomica: se la creazione fallisce a meta', le folders gia' create
+ * restano (che e' OK — l'utente le vede nel tree e puo' riprovare l'upload).
+ *
+ * Ritorna l'ID della folder finale (deepest).
+ */
+export interface EnsureFolderPathInput {
+  tenantId: string;
+  eventId: string;
+  parentId: string | null;
+  segments: string[];
+}
+
+export async function ensureFolderPath(input: EnsureFolderPathInput): Promise<string | null> {
+  const segments = input.segments
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0 && s.length <= 200);
+  if (segments.length === 0) return input.parentId;
+
+  // Pre-fetch tutte le folders dell'evento (un solo round-trip).
+  // Per eventi tipici (10-100 folders) il payload e' piccolo.
+  const allFolders = await listEventFolders(input.eventId);
+  const byParentName = new Map<string, EventFolderRow>();
+  for (const f of allFolders) {
+    const k = `${f.parent_id ?? 'root'}::${f.name.toLowerCase()}`;
+    byParentName.set(k, f);
+  }
+
+  let currentParent: string | null = input.parentId;
+  for (const seg of segments) {
+    const k = `${currentParent ?? 'root'}::${seg.toLowerCase()}`;
+    const existing = byParentName.get(k);
+    if (existing) {
+      currentParent = existing.id;
+      continue;
+    }
+    const created = await createEventFolder({
+      tenantId: input.tenantId,
+      eventId: input.eventId,
+      parentId: currentParent,
+      name: seg,
+    });
+    const newKey = `${currentParent ?? 'root'}::${seg.toLowerCase()}`;
+    byParentName.set(newKey, created);
+    currentParent = created.id;
+  }
+  return currentParent;
+}

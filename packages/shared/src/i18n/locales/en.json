@@ -124,6 +124,80 @@
     "emptyFolderDesc": "Drag a file here from the left column or use \"Move to...\" after selecting one or more files from root.",
     "errorMissingEvent": "Missing event id in URL."
   },
+  "explorer": {
+    "kicker": "File manager / Explorer",
+    "allFiles": "All files",
+    "leftPaneTitle": "Folders",
+    "detailPaneTitle": "Details",
+    "noSelection": "Select a file to see its details.",
+    "multiSelected": "{{count}} files selected",
+    "confirmDeleteFile": "Delete this file? This action cannot be undone.",
+    "confirmDeleteFilesBulk": "Delete {{count}} selected files? This action cannot be undone.",
+    "emptyAllTitle": "No files in this event yet",
+    "emptyAllDesc": "Drag files here from your PC, or use \"Upload files\" / \"Upload folder\" in the toolbar above.",
+    "emptyFolderTitle": "Empty folder",
+    "emptyFolderDesc": "Drag files here from your PC, or move them from another folder.",
+    "toolbar": {
+      "navigateUp": "Up",
+      "newFolder": "New folder",
+      "uploadFiles": "Upload files",
+      "uploadFolder": "Upload folder",
+      "noSessionsHint": "Create a session first to be able to upload files.",
+      "uploadInto": "Target session:",
+      "pickSession": "Pick session...",
+      "searchPlaceholder": "Search files...",
+      "sortAria": "Sort by",
+      "viewGrid": "Grid view",
+      "viewList": "List view"
+    },
+    "sort": {
+      "name": "Name",
+      "date": "Date modified",
+      "size": "Size",
+      "type": "Type"
+    },
+    "col": {
+      "name": "Name",
+      "size": "Size",
+      "modified": "Modified",
+      "speaker": "Speaker"
+    },
+    "context": {
+      "open": "Open / preview",
+      "download": "Download",
+      "rename": "Rename (F2)",
+      "delete": "Delete"
+    },
+    "action": {
+      "preview": "Preview",
+      "download": "Download",
+      "rename": "Rename",
+      "delete": "Delete"
+    },
+    "detail": {
+      "size": "Size",
+      "type": "MIME type",
+      "status": "Status",
+      "session": "Session",
+      "speaker": "Speaker",
+      "folder": "Folder",
+      "modified": "Modified",
+      "created": "Created"
+    },
+    "dropOverlay": {
+      "pcCenter": "Drop here to upload to the current folder"
+    },
+    "upload": {
+      "dockTitle": "Uploads in progress ({{done}}/{{total}})",
+      "clearFinished": "Clear finished"
+    },
+    "uploadFeedback": {
+      "duplicates": "{{count}} duplicate files skipped",
+      "emptyFiles": "{{count}} empty files skipped",
+      "filenameTooLong": "{{count}} filenames too long skipped",
+      "truncated": "Selection too large: only the first batch was uploaded."
+    }
+  },
   "appShell": {
     "brandSubtitle": "Production Suite",
     "searchHint": "Search events, rooms, PCs...",

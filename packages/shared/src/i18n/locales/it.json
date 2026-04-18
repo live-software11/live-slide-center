@@ -124,6 +124,80 @@
     "emptyFolderDesc": "Trascina i file dalla colonna a sinistra o usa \"Sposta in...\" dopo averne selezionati uno o più dalla root.",
     "errorMissingEvent": "ID evento mancante nell'URL."
   },
+  "explorer": {
+    "kicker": "Gestione file / Esplora Risorse",
+    "allFiles": "Tutti i file",
+    "leftPaneTitle": "Cartelle",
+    "detailPaneTitle": "Dettagli",
+    "noSelection": "Seleziona un file per vederne i dettagli.",
+    "multiSelected": "{{count}} file selezionati",
+    "confirmDeleteFile": "Eliminare questo file? L'operazione e' irreversibile.",
+    "confirmDeleteFilesBulk": "Eliminare {{count}} file selezionati? L'operazione e' irreversibile.",
+    "emptyAllTitle": "Nessun file in questo evento",
+    "emptyAllDesc": "Trascina i file qui dal tuo PC oppure usa \"Carica file\" / \"Carica cartella\" nella barra in alto.",
+    "emptyFolderTitle": "Cartella vuota",
+    "emptyFolderDesc": "Trascina i file qui dal tuo PC oppure spostali da un'altra cartella.",
+    "toolbar": {
+      "navigateUp": "Su",
+      "newFolder": "Nuova cartella",
+      "uploadFiles": "Carica file",
+      "uploadFolder": "Carica cartella",
+      "noSessionsHint": "Crea prima una sessione per poter caricare i file.",
+      "uploadInto": "Sessione di destinazione:",
+      "pickSession": "Scegli sessione...",
+      "searchPlaceholder": "Cerca file...",
+      "sortAria": "Ordina per",
+      "viewGrid": "Vista a griglia",
+      "viewList": "Vista a elenco"
+    },
+    "sort": {
+      "name": "Nome",
+      "date": "Data modifica",
+      "size": "Dimensione",
+      "type": "Tipo"
+    },
+    "col": {
+      "name": "Nome",
+      "size": "Dimensione",
+      "modified": "Modificato",
+      "speaker": "Relatore"
+    },
+    "context": {
+      "open": "Apri / anteprima",
+      "download": "Scarica",
+      "rename": "Rinomina (F2)",
+      "delete": "Elimina"
+    },
+    "action": {
+      "preview": "Anteprima",
+      "download": "Scarica",
+      "rename": "Rinomina",
+      "delete": "Elimina"
+    },
+    "detail": {
+      "size": "Dimensione",
+      "type": "Tipo MIME",
+      "status": "Stato",
+      "session": "Sessione",
+      "speaker": "Relatore",
+      "folder": "Cartella",
+      "modified": "Modificato",
+      "created": "Creato"
+    },
+    "dropOverlay": {
+      "pcCenter": "Rilascia qui per caricare nella cartella corrente"
+    },
+    "upload": {
+      "dockTitle": "Upload in corso ({{done}}/{{total}})",
+      "clearFinished": "Pulisci completati"
+    },
+    "uploadFeedback": {
+      "duplicates": "{{count}} file duplicati ignorati",
+      "emptyFiles": "{{count}} file vuoti ignorati",
+      "filenameTooLong": "{{count}} nomi file troppo lunghi ignorati",
+      "truncated": "Selezione troppo grande: caricati solo i primi file."
+    }
+  },
   "appShell": {
     "brandSubtitle": "Production Suite",
     "searchHint": "Cerca eventi, sale, PC...",
