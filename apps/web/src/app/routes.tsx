@@ -6,10 +6,17 @@ import { RootLayout } from './root-layout';
 import { RequireAuth } from './require-auth';
 import { RequireSuperAdmin } from './require-super-admin';
 import { RequireTenantAdmin } from './require-tenant-admin';
+import { RouteErrorView } from './route-error';
 
 export const router = createBrowserRouter([
   {
     HydrateFallback,
+    // Sprint U-7 — `errorElement` al root del router cattura ogni throw nei
+    // Component/loader/action delle route figlie e mostra una UI brand-coerente
+    // ("RouteErrorView") al posto del banner default di React Router
+    // ("Hey developer 👋"). Cura anche il caso "PWA cache vecchia che non
+    // conosce route nuove": il bottone "Ricarica" forza l'aggiornamento.
+    errorElement: <RouteErrorView />,
     // Sprint L1: in modalita Tauri, intercetta la SPA per chiedere il ruolo
     // (admin | sala) UNA volta sola e ridirigere i PC sala su /pair. In
     // modalita cloud (browser) e' un no-op che monta direttamente <Outlet/>.
@@ -197,6 +204,14 @@ export const router = createBrowserRouter([
             ],
           },
         ],
+      },
+      // Sprint U-7 — Catch-all route. Sta DOPO tutte le altre per evitare di
+      // shadoware i path validi. Mostra `RouteErrorView` per qualsiasi URL non
+      // riconosciuto (typo, magic-link rotti, link condivisi a route rimosse,
+      // PWA cache vecchia che apre URL di route nuove non ancora bundled).
+      {
+        path: '*',
+        element: <RouteErrorView />,
       },
     ],
   },

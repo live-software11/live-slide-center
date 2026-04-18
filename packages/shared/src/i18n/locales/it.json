@@ -1993,5 +1993,13 @@
       "network_error": "Errore di rete. Verifica la connessione internet.",
       "unknown": "Errore sconosciuto. Riprova o controlla la pagina licenza."
     }
+  },
+  "routeError": {
+    "title": "Si è verificato un errore",
+    "description": "Qualcosa è andato storto durante il caricamento. Ricarica la pagina; se il problema persiste contatta il supporto.",
+    "notFoundTitle": "Pagina non trovata",
+    "notFoundDesc": "La pagina richiesta non esiste o è stata rimossa. Se hai aperto un magic link vecchio, chiedi all'admin di generarne uno nuovo. Se l'app sembra disallineata dopo un aggiornamento, prova a ricaricare la pagina.",
+    "reload": "Ricarica",
+    "home": "Vai alla home"
   }
 }

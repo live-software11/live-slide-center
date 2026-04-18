@@ -1993,5 +1993,13 @@
       "network_error": "Network error. Check the internet connection.",
       "unknown": "Unknown error. Retry or check the license page."
     }
+  },
+  "routeError": {
+    "title": "Something went wrong",
+    "description": "Something went wrong while loading. Reload the page; if the issue persists contact support.",
+    "notFoundTitle": "Page not found",
+    "notFoundDesc": "The requested page does not exist or has been removed. If you opened an old magic link, ask the admin to generate a new one. If the app seems out of sync after an update, try reloading the page.",
+    "reload": "Reload",
+    "home": "Go to home"
   }
 }

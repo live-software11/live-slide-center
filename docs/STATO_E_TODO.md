@@ -3,7 +3,7 @@
 > **Documento operativo gemello di `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare, in ordine di priorita. Per "cosa fa il prodotto" e "come e fatto" → architettura.
 >
-> **Versione:** 2.18 — 18 aprile 2026 sera tardi (post fix definitivo 404 SPA Vercel + SW hardening §0.27)
+> **Versione:** 2.19 — 18 aprile 2026 notte (post Sprint U-7: errorElement + catch-all SPA, §0.28)
 > **Owner:** Andrea Rizzari
 > **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**. **Sprint T-1 (G8, badge versione "in onda" sempre visibile in sala + toast cambio versione, §0.16) DONE**. **Sprint T-2 (G9, telemetria perf live PC sala — CPU/RAM/heap/disco/FPS/battery, §0.17) DONE**. **Audit completo + bugfix Q+1.5 (§0.18) DONE — semaforo VERDE su tutto**. **Sprint T-3 (G10) COMPLETO: T-3-A (file validator warn-only, §0.20) DONE → T-3-E (Next-Up file preview, §0.21) DONE → T-3-G (remote control tablet, §0.22) DONE — TUTTE E TRE LE FEATURE COMPETITOR VERDE.**
 >
@@ -2333,15 +2333,15 @@ L'evoluzione "next/prev SLIDE reale" rimane **fattibile in futuro** come Sprint 
 
 **Verifica live (chunk presenti dopo il deploy).**
 
-| Chunk emesso da Vite                       | Sprint di provenienza |
-| ------------------------------------------ | --------------------- |
-| `index-BbTBYiPX.js` (era `CaPy7X91.js`)    | entry refactor V2.0   |
-| `DesktopDevicesView-gkjHK3os.js` (22.3 KB) | Sprint D5             |
-| `DesktopBindAutoView-rGEmlxHa.js` (4.85 KB)| Sprint D5/D6          |
-| `DesktopLicenseView-CYciIfAk.js` (10.8 KB) | Sprint D2             |
-| `OnAirView-CAqJsGN2.js` (15.7 KB)          | Sprint U-3            |
-| `ProductionView-BXn85x7K.js` (18.0 KB)     | Sprint U-2            |
-| `EventDetailView-Cb-e03iC.js` (221 KB)     | refactor U-2 tabs     |
+| Chunk emesso da Vite                        | Sprint di provenienza |
+| ------------------------------------------- | --------------------- |
+| `index-BbTBYiPX.js` (era `CaPy7X91.js`)     | entry refactor V2.0   |
+| `DesktopDevicesView-gkjHK3os.js` (22.3 KB)  | Sprint D5             |
+| `DesktopBindAutoView-rGEmlxHa.js` (4.85 KB) | Sprint D5/D6          |
+| `DesktopLicenseView-CYciIfAk.js` (10.8 KB)  | Sprint D2             |
+| `OnAirView-CAqJsGN2.js` (15.7 KB)           | Sprint U-3            |
+| `ProductionView-BXn85x7K.js` (18.0 KB)      | Sprint U-2            |
+| `EventDetailView-Cb-e03iC.js` (221 KB)      | refactor U-2 tabs     |
 
 **Onboarding MCP Vercel ufficiale (per il futuro).**
 
@@ -2397,12 +2397,12 @@ Procedura attivazione: dopo riavvio Cursor → Settings → Tools & MCP → clic
 
 Sequenza chiamate MCP `web_fetch_vercel_url`:
 
-| Path                       | Status                       | x-vercel-id                                 |
-| -------------------------- | ---------------------------- | ------------------------------------------- |
-| `/`                        | 200 OK (HTML)                | `cdg1:iad1::98t4k-...`                      |
-| `/centri-slide`            | **404 NOT_FOUND**            | `cdg1:iad1::bskz7-...` ← stesso pattern     |
-| `/centro-slide/bind`       | **404 NOT_FOUND**            | `cdg1:iad1::7865x-...` ← stesso pattern     |
-| `/admin/tenants`           | **404 NOT_FOUND**            | `cdg1:iad1::...`                            |
+| Path                 | Status            | x-vercel-id                             |
+| -------------------- | ----------------- | --------------------------------------- |
+| `/`                  | 200 OK (HTML)     | `cdg1:iad1::98t4k-...`                  |
+| `/centri-slide`      | **404 NOT_FOUND** | `cdg1:iad1::bskz7-...` ← stesso pattern |
+| `/centro-slide/bind` | **404 NOT_FOUND** | `cdg1:iad1::7865x-...` ← stesso pattern |
+| `/admin/tenants`     | **404 NOT_FOUND** | `cdg1:iad1::...`                        |
 
 Header `x-vercel-error: NOT_FOUND` su tutte le route SPA → fallback `/index.html` non si attivava lato Vercel.
 
@@ -2415,6 +2415,7 @@ Header `x-vercel-error: NOT_FOUND` su tutte le route SPA → fallback `/index.ht
 ```
 
 `cleanUrls: true` + `framework: null` fa eseguire al pipeline Vercel:
+
 1. URL request `/centri-slide` → Vercel cerca `/centri-slide.html` (cleanUrls).
 2. Non trovato → ritorna **404 immediatamente**, senza valutare `rewrites`.
 3. Il rewrite catch-all `/(.*) → /index.html` non si attiva mai per route non corrispondenti a file `.html`.
@@ -2447,12 +2448,12 @@ Combinato con lo `STALE_CHUNK_RELOAD_KEY` esistente (one-shot reload su `Failed 
 
 **Verifica post-deploy (CLI `vercel --prod --yes --archive=tgz`).**
 
-| Path                       | Status (prima) | Status (dopo) | x-vercel-cache | Bundle servito        |
-| -------------------------- | -------------- | ------------- | -------------- | --------------------- |
-| `/`                        | 200 OK         | 200 OK        | -              | `index-DSuzouWT.js`   |
-| `/centri-slide`            | **404**        | **200 OK**    | HIT            | `index-DSuzouWT.js`   |
-| `/centro-slide/bind`       | **404**        | **200 OK**    | HIT            | `index-DSuzouWT.js`   |
-| `/admin/tenants`           | **404**        | **200 OK**    | HIT            | `index-DSuzouWT.js`   |
+| Path                 | Status (prima) | Status (dopo) | x-vercel-cache | Bundle servito      |
+| -------------------- | -------------- | ------------- | -------------- | ------------------- |
+| `/`                  | 200 OK         | 200 OK        | -              | `index-DSuzouWT.js` |
+| `/centri-slide`      | **404**        | **200 OK**    | HIT            | `index-DSuzouWT.js` |
+| `/centro-slide/bind` | **404**        | **200 OK**    | HIT            | `index-DSuzouWT.js` |
+| `/admin/tenants`     | **404**        | **200 OK**    | HIT            | `index-DSuzouWT.js` |
 
 Build remoto Vercel: 47s (130 PWA precache entries, 4174 KiB). Deploy `READY` su `https://live-slide-center.vercel.app/`.
 
@@ -2474,6 +2475,46 @@ Build remoto Vercel: 47s (130 PWA precache entries, 4174 KiB). Deploy `READY` su
 > Su Vercel con SPA + monorepo: **NON** combinare `framework: null` + `cleanUrls: true` + rewrite catch-all. Sempre usare `framework: "vite"` (o equivalente) che gestisce internamente il fallback SPA, oppure se serve `framework: null` allora rewrite con esclusioni esplicite degli asset statici. La regola `/(.*) → /index.html` da sola non basta perche' `cleanUrls` la bypassa.
 >
 > **Diagnosi rapida via MCP Vercel:** `web_fetch_vercel_url("/route-sospetta")` → se ritorna `x-vercel-error: NOT_FOUND` allora il rewrite SPA non si attiva → controllare `vercel.json` per conflitto `cleanUrls`/`framework`/rewrites.
+
+---
+
+### 0.28 Sprint U-7 — `errorElement` + catch-all SPA route (DONE — 18/04/2026 notte)
+
+**Contesto.** Andrea apre un magic-link sul PC e vede il banner di default di React Router:
+
+> Unexpected Application Error! 404 Not Found
+> Hey developer 👋 You can provide a way better UX than this when your app throws errors by providing your own ErrorBoundary or errorElement prop on your route.
+
+Questo è il fallback nudo di React Router v7 quando: (a) un `Component`/`loader` di una rotta lancia un `Response 404` o un'eccezione, oppure (b) il path navigato non matcha NESSUNA rotta definita. Tipico dopo un deploy: utente con PWA cache vecchia apre URL di una rotta nuova non ancora bundled lato suo → mismatch routing → banner brutto.
+
+**Causa root.** Nel router (`apps/web/src/app/routes.tsx`) mancavano due cose:
+
+1. **`errorElement`** al root level → niente UI custom per errori router.
+2. **Catch-all `path: '*'`** → niente fallback per URL sconosciuti.
+
+Il fix `<ErrorBoundary>` di React (in `main.tsx`) NON copre gli errori del router: React Router ha la sua catena separata di error handling (`errorElement` / `useRouteError`).
+
+**Fix applicato.**
+
+- **NEW** `apps/web/src/app/route-error.tsx` → `RouteErrorView` componente fallback brand-coerente (icona + titolo + descrizione + bottone "Ricarica" + link "Vai alla home"). Usa `useRouteError()` + `isRouteErrorResponse()` per distinguere 404 da altri errori e mostrare copy diverso. In modalità DEV mostra anche il messaggio tecnico per debug.
+- **`apps/web/src/app/routes.tsx`** → aggiunto `errorElement: <RouteErrorView />` al root level (cattura ogni throw nelle rotte figlie) + catch-all `{ path: '*', element: <RouteErrorView /> }` come ultima rotta del root (matcha qualsiasi URL non riconosciuto senza shadoware le altre).
+- **i18n keys nuove** (IT/EN): `routeError.title`, `routeError.description`, `routeError.notFoundTitle`, `routeError.notFoundDesc`, `routeError.reload`, `routeError.home`.
+
+**File toccati.**
+
+- `apps/web/src/app/route-error.tsx` (NEW, ~100 righe).
+- `apps/web/src/app/routes.tsx` → import + `errorElement` root + catch-all.
+- `packages/shared/src/i18n/locales/it.json` → 6 chiavi nuove `routeError.*`.
+- `packages/shared/src/i18n/locales/en.json` → 6 chiavi nuove `routeError.*`.
+- `docs/STATO_E_TODO.md` v2.18 → v2.19 (questa sezione §0.28).
+
+**Verifica.** Quality gate: `pnpm --filter web typecheck` verde, `pnpm --filter web lint` verde, `pnpm run build` produce nuovo bundle `index-CqIVPCxu.js` con PWA precache 131 entries (4163 KiB). Deploy Vercel CLI: nuovo deploy production verificato via MCP `list_deployments`.
+
+**Lesson learned.**
+
+> Su React Router v7 con `createBrowserRouter`, definire SEMPRE `errorElement` al root level + catch-all `path: '*'`. Senza questi, qualsiasi 404/throw mostra il banner default "Hey developer 👋" al cliente finale → UX da prototipo. Il `<ErrorBoundary>` di React copre solo errori di rendering dei Component, NON errori di routing.
+>
+> Quando il deploy frontend cambia rotte (aggiunte/rimosse) e il client ha PWA cache vecchia: lo SW intercetta la navigation e serve `index.html` cached → router vecchio in memoria → 404 client-side. Il bottone "Ricarica" del nuovo `RouteErrorView` forza il bypass del cache (oltre al meccanismo `controllerchange` già presente in `main.tsx` da §0.27).
 
 ---
 
