@@ -1,0 +1,11 @@
+node_modules
+src-tauri/target
+src-tauri/gen/schemas
+*.log
+
+# Sprint P (GUIDA_OPERATIVA_v3 §4.H) — release artifacts e config sensibili.
+release-output.json
+release/
+src-tauri/tauri.signing.json
+*.key
+*.key.pub

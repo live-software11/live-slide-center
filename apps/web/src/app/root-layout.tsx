@@ -3,7 +3,10 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import { Suspense } from 'react';
 import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { getBackendMode } from '@/lib/backend-mode';
 import { AppBrandLogo } from '@/components/AppBrandLogo';
+import { BackendModeBadge } from '@/components/BackendModeBadge';
+import { DesktopUpdateBanner } from '@/components/DesktopUpdateBanner';
 import { OnboardingGate } from '@/features/onboarding/OnboardingGate';
 import { TenantWarningBanners } from '@/features/notifications/components/TenantWarningBanners';
 
@@ -15,7 +18,14 @@ export function RootLayout() {
   const role = session?.user?.app_metadata?.role;
   const isSuperAdmin = role === 'super_admin';
   const isTenantAdmin = role === 'admin';
+  const isDesktop = getBackendMode() === 'desktop';
 
+  // Sprint O2: in desktop il backend Rust locale non ha Auth, quindi
+  // `supabase.auth.signOut()` chiamerebbe POST /auth/v1/logout → 404.
+  // Soluzione: in desktop il bottone "Logout" non viene renderizzato
+  // (single-user locale, non c'e' niente da disconnettere). Per cambiare
+  // ruolo l'utente deve riavviare l'app dal launcher: questo riapre la
+  // RoleSelectionView via DesktopRoleGate.
   async function handleLogout() {
     await getSupabaseBrowserClient().auth.signOut();
     navigate('/login', { replace: true });
@@ -81,18 +91,22 @@ export function RootLayout() {
             </Link>
           ) : null}
         </nav>
-        <div className="border-t border-sc-primary/10 p-3">
-          <button
-            type="button"
-            onClick={() => void handleLogout()}
-            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-sc-text-dim transition-colors hover:bg-sc-primary/8 hover:text-sc-text-muted"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-            {t('auth.logout')}
-          </button>
+        <div className="flex flex-col gap-2 border-t border-sc-primary/10 p-3">
+          <BackendModeBadge />
+          {!isDesktop ? (
+            <button
+              type="button"
+              onClick={() => void handleLogout()}
+              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-sc-text-dim transition-colors hover:bg-sc-primary/8 hover:text-sc-text-muted"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+              {t('auth.logout')}
+            </button>
+          ) : null}
         </div>
       </aside>
       <main className="flex-1 overflow-auto">
+        <DesktopUpdateBanner />
         <TenantWarningBanners />
         <Suspense
           fallback={

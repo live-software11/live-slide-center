@@ -1,6 +1,6 @@
-import { Outlet } from 'react-router';
 import { createBrowserRouter } from 'react-router';
 import { AdminRootLayout } from './admin-root-layout';
+import { DesktopRoleGate } from './desktop-role-gate';
 import { HydrateFallback } from './hydrate-fallback';
 import { RootLayout } from './root-layout';
 import { RequireAuth } from './require-auth';
@@ -10,7 +10,10 @@ import { RequireTenantAdmin } from './require-tenant-admin';
 export const router = createBrowserRouter([
   {
     HydrateFallback,
-    Component: Outlet,
+    // Sprint L1: in modalita Tauri, intercetta la SPA per chiedere il ruolo
+    // (admin | sala) UNA volta sola e ridirigere i PC sala su /pair. In
+    // modalita cloud (browser) e' un no-op che monta direttamente <Outlet/>.
+    Component: DesktopRoleGate,
     children: [
       {
         path: '/u/:token',

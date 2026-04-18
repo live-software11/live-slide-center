@@ -1,5 +1,6 @@
 import type { Database } from '@slidecenter/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { fetchWithRetry } from '@/lib/fetch-with-retry';
 
 export type PairedDevice = Database['public']['Tables']['paired_devices']['Row'];
 
@@ -23,6 +24,15 @@ export interface PairClaimResponse {
 
 export type RoomPlayerNetworkMode = Database['public']['Enums']['network_mode'];
 
+/**
+ * Sprint A (GUIDA_OPERATIVA_v3 §2.A) — modalita di playback dichiarata dal PC sala.
+ * - `auto`: default. Polling 12s, download a banda piena, priority `auto`.
+ * - `live`: durante una proiezione. Polling 60s, throttle download (50ms ogni 4MB),
+ *           `fetch` priority `low`. Garantisce che video 4K non subisca stuttering.
+ * - `turbo`: setup pre-evento. Polling 5s, concurrency 3, `fetch` priority `high`.
+ */
+export type PlaybackMode = Database['public']['Enums']['playback_mode'];
+
 export interface RoomPlayerBootstrapSession {
   id: string;
   title: string;
@@ -42,6 +52,13 @@ export interface RoomPlayerBootstrapFileRow {
   fileSizeBytes: number;
   mimeType: string;
   createdAt: string;
+  /**
+   * Sprint C2 (GUIDA_OPERATIVA_v3 §2.C): hash SHA-256 calcolato lato upload e
+   * salvato in `presentation_versions.file_hash_sha256`. `null` per upload
+   * legacy senza hash (es. Phase 1) — in quel caso il PC sala non puo'
+   * verificare l'integrita' e segna `verified: 'skipped'`.
+   */
+  fileHashSha256: string | null;
 }
 
 export interface RoomPlayerBootstrapResponse {
@@ -54,6 +71,8 @@ export interface RoomPlayerBootstrapResponse {
   room_state: {
     sync_status: Database['public']['Tables']['room_state']['Row']['sync_status'];
     current_session: RoomPlayerBootstrapSession | null;
+    /** Sprint A6: modalita playback corrente in DB (eco lato server). */
+    playback_mode: PlaybackMode;
   };
   files: RoomPlayerBootstrapFileRow[];
   warning?: string;
@@ -159,21 +178,37 @@ export async function invokePairClaim(
   );
 }
 
-/** Contesto sala + `network_mode` + lista file (Fase 9) — validazione `device_token` lato Edge Function. */
+/**
+ * Contesto sala + `network_mode` + lista file (Fase 9) — validazione
+ * `device_token` lato Edge Function.
+ *
+ * Sprint A6: il PC sala puo' dichiarare la propria modalita di playback
+ * (`playback_mode`) per renderla visibile alla dashboard admin.
+ */
 export async function invokeRoomPlayerBootstrap(
   deviceToken: string,
   includeVersions = true,
+  playbackMode?: PlaybackMode,
 ): Promise<RoomPlayerBootstrapResponse> {
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/room-player-bootstrap`;
-  const res = await fetch(url, {
+  // Sprint E1 (GUIDA_OPERATIVA_v3 §2.E1): retry automatico con backoff su
+  // 5xx/429/network. Bootstrap viene chiamato a ogni tick di polling
+  // (12s/60s/5s) — basta un blip di rete per perdere un tick e generare un
+  // falso "POLLING" sulla UI. Backoff [500, 2000, 8000] = max 10.5s prima
+  // di considerare la chiamata fallita.
+  const res = await fetchWithRetry(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${anonKey}`,
       apikey: anonKey,
     },
-    body: JSON.stringify({ device_token: deviceToken, include_versions: includeVersions }),
+    body: JSON.stringify({
+      device_token: deviceToken,
+      include_versions: includeVersions,
+      ...(playbackMode ? { playback_mode: playbackMode } : {}),
+    }),
   });
   const json = (await res.json().catch(() => ({}))) as { error?: string } & Partial<RoomPlayerBootstrapResponse>;
   if (!res.ok) {
@@ -217,10 +252,133 @@ export async function renameDevice(deviceId: string, deviceName: string): Promis
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Sprint M3 — mappa locale `deviceId → lanBaseUrl` per il pair-revoke.
+ *
+ * Strategia: per evitare di toccare lo schema cloud Supabase (la colonna
+ * `lan_base_url` esiste solo nel SQLite locale dell'admin desktop, vedi
+ * migration 0002) e mantenere il typing del Database type pulito, salviamo
+ * la mappa in `localStorage` quando l'admin pairizza via LAN. La rilegge
+ * `revokeDevice()` solo se siamo in modalita desktop (Tauri).
+ *
+ * Trade-off accettato: se l'utente admin reinstalla l'app o pulisce il
+ * localStorage, il pair-revoke remoto non funziona piu' per i device gia'
+ * pairati, e lui dovra' usare il menu "Esci dall'evento" sul sala. Casi
+ * edge nel field-test: documentati in §4.E della guida operativa.
+ */
+const LAN_BASE_URL_MAP_KEY = 'sc:devices:lanBaseUrlByDeviceId';
+
+function loadLanBaseUrlMap(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(LAN_BASE_URL_MAP_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveLanBaseUrlMap(map: Record<string, string>): void {
+  try {
+    localStorage.setItem(LAN_BASE_URL_MAP_KEY, JSON.stringify(map));
+  } catch {
+    /* storage bloccato: non blocchiamo il pair (tradeoff accettato sopra) */
+  }
+}
+
+/**
+ * Sprint M3 — registra il `lanBaseUrl` di un PC sala paired direttamente
+ * via LAN. Chiamata da `AddLanPcDialog` dopo pair-direct success.
+ */
+export function rememberPairedDeviceLanUrl(deviceId: string, lanBaseUrl: string): void {
+  const map = loadLanBaseUrlMap();
+  map[deviceId] = lanBaseUrl;
+  saveLanBaseUrlMap(map);
+}
+
+function forgetPairedDeviceLanUrl(deviceId: string): void {
+  const map = loadLanBaseUrlMap();
+  if (deviceId in map) {
+    delete map[deviceId];
+    saveLanBaseUrlMap(map);
+  }
+}
+
 export async function revokeDevice(deviceId: string): Promise<void> {
   const supabase = getSupabaseBrowserClient();
+  // Sprint M3: in modalita desktop tentiamo prima il pair-revoke LAN sul PC
+  // sala (cosi' il sala cancella device.json + paired_devices SQLite e libera
+  // mDNS). Best-effort: se la chiamata fallisce (sala spento/LAN giu'),
+  // procediamo comunque con la cancellazione del record sul DB locale
+  // dell'admin — l'utente sa che il sala potrebbe ricomparire al prossimo
+  // boot, ma puo' rifare unpair quando torna online.
+  const lanBaseUrl = loadLanBaseUrlMap()[deviceId] ?? null;
+  if (lanBaseUrl) {
+    try {
+      const { pairRevokeLan } = await import('@/lib/desktop-bridge');
+      await pairRevokeLan({ targetBaseUrl: lanBaseUrl, device_id: deviceId });
+    } catch {
+      /* Non bloccante: procediamo con il delete locale anche se il sala e' down. */
+    }
+  }
+
   const { error } = await supabase.from('paired_devices').delete().eq('id', deviceId);
   if (error) throw new Error(error.message);
+
+  // Pulisci la mappa locale anche se il pair-revoke remoto fallisce: se il
+  // sala torna online dopo, ricomparira' nella discovery mDNS e l'admin potra'
+  // farne il re-pair (che e' la UX corretta).
+  forgetPairedDeviceLanUrl(deviceId);
+}
+
+/**
+ * Sprint D1 (GUIDA_OPERATIVA_v3 §2.D1) — pulsante "Forza refresh" lato admin.
+ *
+ * Pubblica un broadcast Realtime sul topic `room:<roomId>` con event
+ * `force_refresh`. Il PC sala (in `useFileSync`) ha un handler dedicato che
+ * azzera la cache locale (`syncedVersionIds`, `verifiedStatusRef`) e fa un
+ * `refreshNow()` immediato, ridownloadando e ri-verificando tutti i file.
+ *
+ * Niente Edge Function: l'admin e' autenticato e il topic e' un UUID v4
+ * (non enumerable, comunicato solo agli autorizzati). La finestra d'attacco
+ * e' equivalente a quella del topic principale Sprint B.
+ *
+ * Implementazione: apre un canale ad-hoc, attende `SUBSCRIBED`, invia il
+ * broadcast e si stacca. Timeout 5s per non bloccare l'UI se Realtime e' giu'.
+ */
+export async function broadcastForceRefresh(roomId: string): Promise<void> {
+  if (!roomId) throw new Error('roomId required');
+  const supabase = getSupabaseBrowserClient();
+  const channel = supabase.channel(`admin_force:${roomId}:${Date.now()}`, {
+    config: { broadcast: { self: false } },
+  });
+  await new Promise<void>((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      void supabase.removeChannel(channel);
+      reject(new Error('realtime_timeout'));
+    }, 5000);
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        channel
+          .send({ type: 'broadcast', event: 'force_refresh', payload: { room_id: roomId, at: new Date().toISOString() } })
+          .then(() => {
+            window.clearTimeout(timeoutId);
+            void supabase.removeChannel(channel);
+            resolve();
+          })
+          .catch((err) => {
+            window.clearTimeout(timeoutId);
+            void supabase.removeChannel(channel);
+            reject(err instanceof Error ? err : new Error(String(err)));
+          });
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        window.clearTimeout(timeoutId);
+        void supabase.removeChannel(channel);
+        reject(new Error(`realtime_${status.toLowerCase()}`));
+      }
+    });
+  });
 }
 
 export async function getDeviceByToken(token: string): Promise<PairedDevice | null> {
@@ -236,6 +394,56 @@ export async function getDeviceByToken(token: string): Promise<PairedDevice | nu
   return data;
 }
 
+/**
+ * Sprint I (GUIDA_OPERATIVA_v3 §3.E E3) — segnala "ora in onda" / "stop".
+ *
+ * `presentationId === null` → ferma la trasmissione (clear `current_presentation_id`).
+ * `presentationId === string` → segnala il file aperto. La RPC verifica che
+ * la presentation appartenga a una sessione DELLA STESSA sala (no cross-room).
+ *
+ * Side effect: il trigger broadcast Sprint B propaga `room_state_changed`
+ * sul topic `room:<roomId>` → admin (che e' subscribed in `useRoomStates`)
+ * vede il nuovo `current_presentation_id` in <1s.
+ *
+ * Best-effort: il chiamante (RoomPlayerView) NON deve bloccare la UX di
+ * apertura file se questa Edge Function fallisce. Logghiamo l'errore e
+ * basta — il file si apre comunque (l'esperienza sala vince sull'audit).
+ */
+export async function invokeRoomPlayerSetCurrent(
+  deviceToken: string,
+  presentationId: string | null,
+): Promise<{ ok: boolean; room_id: string; presentation_id: string | null; started_at: string | null }> {
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/room-player-set-current`;
+  // No retry: e' un setter idempotente (un RT update poi e' meglio retry
+  // con un altro file aperto piuttosto che riprovare quello vecchio).
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${anonKey}`,
+      apikey: anonKey,
+    },
+    body: JSON.stringify({ device_token: deviceToken, presentation_id: presentationId }),
+  });
+  const json = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    room_id?: string;
+    presentation_id?: string | null;
+    started_at?: string | null;
+    error?: string;
+  };
+  if (!res.ok || !json.ok) {
+    throw new Error(json.error ?? `room_player_set_current_${res.status}`);
+  }
+  return {
+    ok: true,
+    room_id: json.room_id!,
+    presentation_id: json.presentation_id ?? null,
+    started_at: json.started_at ?? null,
+  };
+}
+
 /** Rinomina chiamata dal PC sala (autenticazione via device_token, no JWT). */
 export async function invokeRoomPlayerRename(
   deviceToken: string,
@@ -243,7 +451,8 @@ export async function invokeRoomPlayerRename(
 ): Promise<{ ok: boolean; device_id: string; device_name: string }> {
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/room-player-rename`;
-  const res = await fetch(url, {
+  // Sprint E1: rename invocato dal PC sala — retry trasparente.
+  const res = await fetchWithRetry(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

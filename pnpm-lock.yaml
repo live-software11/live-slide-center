@@ -26,6 +26,8 @@ importers:
 
   apps/agent: {}
 
+  apps/desktop: {}
+
   apps/room-agent: {}
 
   apps/web:

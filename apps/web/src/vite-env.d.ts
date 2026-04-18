@@ -15,6 +15,10 @@ interface ImportMetaEnv {
   readonly VITE_LIVE_WORKS_APP_URL?: string;
   /** Sentry browser SDK — opzionale, Fase 14 */
   readonly VITE_SENTRY_DSN?: string;
+  /** Sprint J5 — backend mode: 'cloud' (default Vercel) o 'desktop' (Tauri 2 + server Rust locale, Sprint K) */
+  readonly VITE_BACKEND_MODE?: 'cloud' | 'desktop';
+  /** Sprint J5 — override URL backend desktop (default `http://127.0.0.1:7300`); usato in dev su porte alternative */
+  readonly VITE_DESKTOP_BACKEND_URL?: string;
 }
 
 interface ImportMeta {

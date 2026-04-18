@@ -1,12 +1,34 @@
-import { AlertCircle, Calendar, CheckCircle2, Download, FolderOpen, RotateCcw, User } from 'lucide-react';
+import {
+  AlertCircle,
+  Calendar,
+  CheckCircle2,
+  Download,
+  FolderOpen,
+  Lock,
+  LockOpen,
+  Monitor,
+  Radio,
+  RotateCcw,
+  ShieldAlert,
+  User,
+} from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { FileSyncItem } from '../hooks/useFileSync';
+import type { FileSyncItem, FileVerifyStatus } from '../hooks/useFileSync';
 
 interface FileSyncStatusProps {
   items: FileSyncItem[];
   onRetry: (versionId: string) => void;
   locale?: string;
+  /**
+   * Sprint I (§3.E E1) — apre il file LOCALE (preview blob URL) sul PC sala.
+   * Solo per item `synced`. Se omesso, il bottone non viene mostrato (ad
+   * esempio in admin dashboard se in futuro riusiamo questo componente lato
+   * regia).
+   */
+  onOpen?: (item: FileSyncItem) => void;
+  /** Sprint I (§3.E E4) — id presentation del file attualmente "in onda". */
+  nowPlayingPresentationId?: string | null;
 }
 
 interface SessionGroup {
@@ -94,24 +116,102 @@ function StatusIcon({ status }: { status: FileSyncItem['status'] }) {
   }
 }
 
+/**
+ * Sprint C3 (GUIDA_OPERATIVA_v3 §2.C3) — badge integrita' SHA256.
+ *
+ * - `verified`: lucchetto verde, file sicuramente integro byte-per-byte.
+ * - `mismatch`: scudo rosso, hash diverso da quello dell'admin (file corrotto
+ *   o pacchetto compromesso): NON usare per la proiezione.
+ * - `skipped`: lucchetto aperto grigio, verifica non eseguita (file >512MB
+ *   oppure upload legacy senza hash). Il file e' stato scaricato ma non
+ *   confrontato — usalo se serve, ma valuta visivamente.
+ * - `pending`: nessuna icona (durante il download).
+ */
+function VerifiedBadge({ verified }: { verified: FileVerifyStatus }) {
+  const { t } = useTranslation();
+  if (verified === 'pending') return null;
+  if (verified === 'verified') {
+    return (
+      <span
+        title={t('roomPlayer.verify.hint.verified')}
+        aria-label={t('roomPlayer.verify.verified')}
+        className="inline-flex items-center gap-0.5 text-sc-success"
+      >
+        <Lock className="h-3 w-3" aria-hidden="true" />
+        <span className="text-[10px] font-medium uppercase tracking-wide">
+          {t('roomPlayer.verify.verified')}
+        </span>
+      </span>
+    );
+  }
+  if (verified === 'mismatch') {
+    return (
+      <span
+        title={t('roomPlayer.verify.hint.mismatch')}
+        aria-label={t('roomPlayer.verify.mismatch')}
+        className="inline-flex items-center gap-0.5 text-sc-danger"
+      >
+        <ShieldAlert className="h-3 w-3" aria-hidden="true" />
+        <span className="text-[10px] font-medium uppercase tracking-wide">
+          {t('roomPlayer.verify.mismatch')}
+        </span>
+      </span>
+    );
+  }
+  return (
+    <span
+      title={t('roomPlayer.verify.hint.skipped')}
+      aria-label={t('roomPlayer.verify.skipped')}
+      className="inline-flex items-center gap-0.5 text-sc-text-dim"
+    >
+      <LockOpen className="h-3 w-3" aria-hidden="true" />
+      <span className="text-[10px] font-medium uppercase tracking-wide">
+        {t('roomPlayer.verify.skipped')}
+      </span>
+    </span>
+  );
+}
+
 function FileRow({
   item,
   onRetry,
+  onOpen,
+  isNowPlaying,
   locale,
 }: {
   item: FileSyncItem;
   onRetry: (id: string) => void;
+  onOpen?: (item: FileSyncItem) => void;
+  isNowPlaying: boolean;
   locale: string;
 }) {
   const { t } = useTranslation();
   const showProgress = item.status === 'downloading';
+  // Sprint I (§3.E E1): il bottone "Apri sul PC" e' attivo SOLO se il file
+  // e' completamente synced. Per i file in download mostriamo il %; per
+  // quelli in errore il bottone "Riprova" (logica esistente).
+  const canOpen = Boolean(onOpen) && item.status === 'synced';
   return (
-    <li className="flex items-start gap-3 rounded-xl border border-sc-primary/12 bg-sc-surface px-3 py-2.5">
+    <li
+      className={`flex items-start gap-3 rounded-xl border px-3 py-2.5 ${
+        isNowPlaying
+          ? 'border-sc-success/40 bg-sc-success/10 ring-1 ring-sc-success/20'
+          : 'border-sc-primary/12 bg-sc-surface'
+      }`}
+    >
       <StatusIcon status={item.status} />
       <div className="min-w-0 flex-1 space-y-1">
-        <p className="break-all text-sm font-medium text-sc-text" title={item.filename}>
-          {item.filename}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="min-w-0 flex-1 break-all text-sm font-medium text-sc-text" title={item.filename}>
+            {item.filename}
+          </p>
+          {isNowPlaying && (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-sc-success/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sc-success">
+              <Radio className="h-3 w-3 animate-pulse" aria-hidden="true" />
+              {t('roomPlayer.fileSync.nowPlaying')}
+            </span>
+          )}
+        </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-sc-text-dim">
           <span className="inline-flex items-center gap-1">
             <Calendar className="h-3 w-3" aria-hidden="true" />
@@ -126,6 +226,12 @@ function FileRow({
                 <User className="h-3 w-3" aria-hidden="true" />
                 {item.speakerName}
               </span>
+            </>
+          )}
+          {item.status === 'synced' && item.verified !== 'pending' && (
+            <>
+              <span>·</span>
+              <VerifiedBadge verified={item.verified} />
             </>
           )}
         </div>
@@ -143,30 +249,52 @@ function FileRow({
           </p>
         )}
       </div>
-      <span className="shrink-0 text-right text-xs text-sc-text-dim">
-        {showProgress ? (
-          `${item.progress}%`
-        ) : item.status === 'synced' ? (
-          t('roomPlayer.fileSync.statusSynced')
-        ) : item.status === 'error' ? (
+      <div className="flex shrink-0 flex-col items-end gap-1.5 text-right">
+        {/* Sprint I (§3.E E1): "Apri sul PC" SOLO per file synced. Triggera
+            <FilePreviewDialog> con sorgente locale (FSA blob URL) e segnala a
+            Supabase il "now playing" (best-effort). */}
+        {canOpen && (
           <button
             type="button"
-            onClick={() => onRetry(item.versionId)}
-            className="inline-flex items-center gap-1 text-sc-warning hover:text-sc-warning/80"
-            aria-label={t('roomPlayer.fileSync.retry')}
+            onClick={() => onOpen?.(item)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-sc-primary/30 bg-sc-primary/10 px-2.5 py-1 text-xs font-medium text-sc-primary hover:bg-sc-primary/20"
+            aria-label={t('roomPlayer.fileSync.openAria', { name: item.filename })}
           >
-            <RotateCcw className="h-3 w-3" />
-            {t('roomPlayer.fileSync.retry')}
+            <Monitor className="h-3.5 w-3.5" />
+            {t('roomPlayer.fileSync.open')}
           </button>
-        ) : (
-          t('roomPlayer.fileSync.statusPending')
         )}
-      </span>
+        <span className="text-xs text-sc-text-dim">
+          {showProgress ? (
+            `${item.progress}%`
+          ) : item.status === 'synced' ? (
+            t('roomPlayer.fileSync.statusSynced')
+          ) : item.status === 'error' ? (
+            <button
+              type="button"
+              onClick={() => onRetry(item.versionId)}
+              className="inline-flex items-center gap-1 text-sc-warning hover:text-sc-warning/80"
+              aria-label={t('roomPlayer.fileSync.retry')}
+            >
+              <RotateCcw className="h-3 w-3" />
+              {t('roomPlayer.fileSync.retry')}
+            </button>
+          ) : (
+            t('roomPlayer.fileSync.statusPending')
+          )}
+        </span>
+      </div>
     </li>
   );
 }
 
-export function FileSyncStatus({ items, onRetry, locale = 'it' }: FileSyncStatusProps) {
+export function FileSyncStatus({
+  items,
+  onRetry,
+  onOpen,
+  nowPlayingPresentationId,
+  locale = 'it',
+}: FileSyncStatusProps) {
   const { t } = useTranslation();
   const groups = useMemo(() => groupBySession(items), [items]);
 
@@ -191,7 +319,17 @@ export function FileSyncStatus({ items, onRetry, locale = 'it' }: FileSyncStatus
             </header>
             <ul className="space-y-1.5">
               {group.files.map((item) => (
-                <FileRow key={item.versionId} item={item} onRetry={onRetry} locale={locale} />
+                <FileRow
+                  key={item.versionId}
+                  item={item}
+                  onRetry={onRetry}
+                  onOpen={onOpen}
+                  isNowPlaying={
+                    Boolean(nowPlayingPresentationId) &&
+                    item.presentationId === nowPlayingPresentationId
+                  }
+                  locale={locale}
+                />
               ))}
             </ul>
           </section>

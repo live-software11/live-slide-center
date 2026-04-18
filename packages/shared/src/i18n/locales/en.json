@@ -409,13 +409,98 @@
     "toggleHide": "Hide session files",
     "dropTitle": "Drop files here for \"{{name}}\"",
     "dropHint": ".pptx, .pdf, video and other formats accepted. Max 5 GB per file.",
+    "dropHintMulti": "Drop multiple files at once: they'll be queued for upload. Max 5 GB per file.",
     "pickFile": "Choose file",
     "uploadDone": "File uploaded successfully.",
     "listTitle": "Uploaded files ({{count}})",
     "empty": "No files uploaded for this session yet.",
     "download": "Download",
     "deleteAria": "Delete file {{name}}",
-    "bySpeaker": "Uploaded by {{name}}"
+    "previewHint": "Open «{{name}}» preview",
+    "bySpeaker": "Uploaded by {{name}}",
+    "dragMove": {
+      "rowHint": "Drag this file onto another open session to move it",
+      "dropHere": "Release here to move into \"{{name}}\"",
+      "hint": "The linked speaker will be removed (the presentation stays).",
+      "movedOk": "\"{{name}}\" moved into this session.",
+      "errorCrossEvent": "You cannot move \"{{name}}\" to another event.",
+      "errorEventClosed": "Event closed or archived: \"{{name}}\" was not moved.",
+      "errorForbidden": "Insufficient permissions to move \"{{name}}\".",
+      "errorGeneric": "Failed to move \"{{name}}\"."
+    }
+  },
+  "queueUpload": {
+    "title": "Upload queue · {{active}}/{{total}}",
+    "clearFinished": "Clear finished",
+    "statusPending": "Queued",
+    "statusUploading": "Upload {{pct}}%",
+    "statusHashing": "Hashing…",
+    "statusFinalizing": "Finalizing…",
+    "statusDone": "Done",
+    "statusCancelled": "Cancelled",
+    "statusError": "Error",
+    "cancelAria": "Cancel upload of {{name}}",
+    "removeAria": "Remove {{name}} from list"
+  },
+  "filePreview": {
+    "aria": "File preview {{name}}",
+    "close": "Close preview",
+    "loading": "Preparing preview…",
+    "download": "Download",
+    "unsupported": {
+      "description": "This format has no in-browser preview. Download it to open with the right app.",
+      "download": "Download file"
+    },
+    "errors": {
+      "generic": "Cannot open preview.",
+      "remoteFailed": "Cloud preview unavailable (network or permissions). Try again.",
+      "remoteMissingArgs": "Source file missing.",
+      "localNotFound": "File not yet downloaded on the room PC. Wait for the download to finish.",
+      "localPermissionDenied": "Folder permission revoked: re-pick the sync folder.",
+      "localGeneric": "Cannot read file from the local folder.",
+      "localMissingArgs": "Folder or file name missing."
+    }
+  },
+  "eventSearch": {
+    "placeholder": "Search files across the whole event (rooms, sessions, speakers)",
+    "clear": "Clear search",
+    "loading": "Searching…",
+    "error": "Search unavailable, please retry.",
+    "noResults": "No file found for \"{{query}}\"",
+    "belowMinLength": "Type at least 2 characters.",
+    "truncated": "Showing the first 50 results. Refine your search to see more.",
+    "current": "Active"
+  },
+  "bulkActions": {
+    "selectAll": "Select all",
+    "selectAllAria": "Select or deselect all files",
+    "selectFileAria": "Select file {{name}}",
+    "clearSelectionAria": "Clear selection",
+    "selectedCount": "{{count}} files selected · {{size}}",
+    "selectedCount_one": "{{count}} file selected · {{size}}",
+    "downloadZip": "Download ZIP",
+    "moveToSession": "Move to another session",
+    "delete": "Delete",
+    "confirmDelete": "Confirm delete ({{count}})",
+    "progressZip": "ZIP {{current}}/{{total}}",
+    "progressMove": "Moving {{current}}/{{total}}",
+    "progressDelete": "Deleting {{current}}/{{total}}",
+    "progressGeneric": "{{current}}/{{total}}",
+    "summary": "{{ok}} succeeded · {{failed}} failed · {{skipped}} skipped",
+    "summaryAndMore": "…and {{count}} more",
+    "moveDialog": {
+      "title": "Move {{count}} files to another session",
+      "title_one": "Move {{count}} file to another session",
+      "noTargets": "No other session available in this event.",
+      "confirm": "Move"
+    },
+    "errors": {
+      "zipTooLarge": "Selection too large for browser ZIP (>2 GB). Download fewer files at a time.",
+      "zipFailed": "ZIP failed. Retry or download files individually.",
+      "aborted": "Operation cancelled.",
+      "moveFailed": "Move failed for some files.",
+      "deleteFailed": "Delete failed for some files."
+    }
   },
   "speakersAdvanced": {
     "toggleShow": "Show external speaker management (upload links)",
@@ -713,6 +798,35 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu"
   },
+  "backendMode": {
+    "short": {
+      "cloud": "Cloud",
+      "cloudOffline": "Offline",
+      "desktop": "Desktop",
+      "lan": "LAN",
+      "standalone": "Standalone",
+      "loading": "..."
+    },
+    "hint": {
+      "cloud": "Supabase cloud backend online: all data and files travel over the Internet. Suitable for events with reliable connectivity.",
+      "cloudOffline": "Supabase cloud backend unreachable: SPA running in degraded mode, only cached data is visible.",
+      "desktop": "Local desktop backend: data and files stay on the event LAN, no Internet traffic required.",
+      "lan": "Admin LAN server reachable: data and files synced in real time from the admin PC on the event local network.",
+      "standalone": "Admin LAN server unreachable: the room PC is using only files already downloaded. Make sure the admin PC is powered on and on the same network.",
+      "loading": "Checking backend status..."
+    }
+  },
+  "desktopUpdater": {
+    "available": "Update available",
+    "newVersion": "New version: {{version}}",
+    "currentVersion": "Current version: {{version}}",
+    "installNow": "Install and restart",
+    "later": "Later",
+    "installing": "Installing...",
+    "installFailed": "Install failed: {{error}}",
+    "checkFailed": "Update check failed",
+    "notes": "Release notes"
+  },
   "devices": {
     "panel": {
       "title": "Room PCs",
@@ -747,6 +861,52 @@
       "errorAuthHint": "Please sign in again from /login and reopen this dialog. If it persists, hard reload the page (CTRL+F5) to refresh the token.",
       "errorFunctionMissing": "The `pair-init` Edge Function is not available on the server.",
       "errorFunctionMissingHint": "Edge Functions must be deployed to the remote Supabase project. From CLI: `supabase functions deploy pair-init pair-poll pair-claim`."
+    },
+    "addLanPc": {
+      "buttonLabel": "Add LAN PC",
+      "title": "Add LAN PC",
+      "subtitle": "Search for room PCs powered on in the same Wi-Fi/wired network and pair them to a room of this event.",
+      "scanning": "Searching for room PCs…",
+      "rescan": "Search again",
+      "noResults": "No room PCs found on the LAN. Make sure the room PC is on, has chosen the \"Room PC\" role and is on the same network.",
+      "noLanIp": "Could not detect a LAN IP on this PC: pair-direct cannot work. Connect this PC to the network and restart the app.",
+      "notDesktop": "Feature available only in the Live SLIDE CENTER desktop app.",
+      "notAdmin": "Only PCs with the \"Control center\" role can pair room PCs over the LAN.",
+      "discoveryError": "Discovery error: {{message}}",
+      "discoveredCount_one": "{{count}} room PC found",
+      "discoveredCount_other": "{{count}} room PCs found",
+      "alreadyPaired": "Already paired (event_id {{eventId}})",
+      "selectRoom": "Target room",
+      "noRoomOption": "No room — pair without assigning",
+      "deviceNameLabel": "Room PC name (optional)",
+      "deviceNamePlaceholder": "E.g. Plenary Room PC",
+      "pair": "Pair",
+      "pairing": "Pairing…",
+      "pairedSuccess": "PC paired: {{name}} → {{room}}",
+      "pairedSuccessNoRoom": "PC paired: {{name}} (no room)",
+      "pairError": "Pairing failed: {{message}}",
+      "pairConflict": "This room PC is already paired to another event. Unblock it (restart + delete device.json) and try again.",
+      "rolesNotSala": "Only room PCs can receive pair-direct.",
+      "close": "Close"
+    }
+  },
+  "desktopRole": {
+    "title": "Choose this PC role",
+    "subtitle": "Choose only once: this decision defines what Live SLIDE CENTER does on this computer.",
+    "admin": {
+      "title": "Control center",
+      "body": "This PC is the admin node: full dashboard, local database, event/room management and pairing of room PCs over the LAN."
+    },
+    "sala": {
+      "title": "Room PC",
+      "body": "This PC stays in the meeting/lecture room and projects the files: it receives files from the admin via LAN. UI reduced to pairing and player."
+    },
+    "changeLater": "You can change this choice later from Settings or by deleting the file ~/SlideCenter/role.json.",
+    "restart": {
+      "title": "Restart the app to complete the configuration",
+      "adminBody": "You chose Control center. Close and reopen Live SLIDE CENTER to enable the admin dashboard.",
+      "salaBody": "You chose Room PC. Close and reopen Live SLIDE CENTER to enable player mode.",
+      "hint": "The role is read only at process start (local server + mDNS)."
     }
   },
   "pair": {
@@ -791,6 +951,33 @@
     },
     "networkMode": {
       "hint": "Network mode configured for this room: {{mode}}."
+    }
+  },
+  "roomDevices": {
+    "empty": "No room PC paired with this room.",
+    "lastSeen": "seen {{value}} ago",
+    "actionsMenuLabel": "Actions for {{name}}",
+    "confirmRemove": "Remove?",
+    "status": {
+      "online": "Online (connected within last 30 seconds)",
+      "warning": "Warning (silent for 30s to 3 minutes)",
+      "offline": "Offline (silent for over 3 minutes or never connected)"
+    },
+    "actions": {
+      "forceRefresh": "Force refresh",
+      "rename": "Rename",
+      "move": "Move to another room",
+      "remove": "Remove PC"
+    },
+    "move": {
+      "placeholder": "Choose room…",
+      "noOtherRooms": "No other rooms available."
+    },
+    "errors": {
+      "force_failed": "Could not send refresh: Realtime connection unavailable.",
+      "rename_failed": "Rename failed.",
+      "move_failed": "Move failed.",
+      "remove_failed": "Removal failed."
     }
   },
   "roomPlayer": {
@@ -853,12 +1040,30 @@
       "statusPending": "Pending",
       "statusSynced": "On disk",
       "retry": "Retry",
+      "open": "Open on PC",
+      "openAria": "Open «{{name}}» local preview",
+      "nowPlaying": "Live",
       "errors": {
         "offline_cloud": "No internet: cloud download unavailable. Restore connectivity or use LAN with the Local Agent.",
         "no_lan_agent": "Intranet mode: no online Local Agent registered for this event. Start the agent on the control PC or switch the event to cloud/hybrid.",
         "permission_denied": "Write permission to the folder was denied.",
-        "download_failed": "Download failed. Please retry."
+        "download_failed": "Download failed. Please retry.",
+        "verify_mismatch": "SHA-256 hash differs from the expected one after 3 download attempts. The file may be corrupted upstream: contact the admin to re-upload it.",
+        "storage_full": "Not enough disk space to download the file. Clean up orphan files or free space on the disk."
       }
+    },
+    "storage": {
+      "title": "Disk space",
+      "usage": "{{used}} used / {{quota}} ({{pct}}%)",
+      "warn": {
+        "warn": "Running low on space: only {{available}} available. Consider cleaning up orphan files.",
+        "crit": "Almost out of space: only {{available}} available. Next downloads will fail."
+      },
+      "cleanupButton": "Clean up orphan files",
+      "confirmCleanup": "This will remove files on disk that are no longer in the current list (e.g. presentations from finished or replaced sessions). Proceed?",
+      "confirmCleanupAction": "Yes, clean up",
+      "cleanupResult": "Removed {{files}} files, freed {{size}}.",
+      "cleanupErrors": "{{count}} file(s) could not be removed (in use?)"
     },
     "connectivity": {
       "offlineBanner": "No internet connection detected. If LAN and the Local Agent are up, room downloads may still work (intranet/hybrid)."
@@ -876,6 +1081,52 @@
       "hintHybrid": "LAN when available; otherwise automatic fallback to cloud.",
       "hintHybridCloudOnly": "No LAN agent registered: cloud download only.",
       "hintNoAgent": "Intranet without an online agent: connect the Local Agent or change the event network mode."
+    },
+    "playbackMode": {
+      "label": "Sync mode",
+      "short": {
+        "auto": "Auto",
+        "live": "Live",
+        "turbo": "Turbo"
+      },
+      "hint": {
+        "auto": "Auto: standard behavior. 12s polling, full-bandwidth downloads. Good for pre-event setup and breaks.",
+        "live": "Live: presentation in progress. Polling slowed to 60s and downloads throttled so they don't disturb the live show.",
+        "turbo": "Turbo: pre-event setup. 5s polling and up to 3 parallel downloads to finish faster."
+      }
+    },
+    "realtime": {
+      "label": "Push sync",
+      "subscribed": "LIVE SYNC",
+      "connecting": "Connecting…",
+      "polling": "POLLING",
+      "hint": {
+        "subscribed": "Push active: changes uploaded by the admin appear here in under 1 second. Polling only runs as a safety-net (60s).",
+        "connecting": "Establishing the push channel with the cloud…",
+        "error": "Push unavailable. Falling back to polling: changes appear within a few seconds.",
+        "idle": "Push not active. Polling only, according to the selected mode."
+      }
+    },
+    "verify": {
+      "verified": "Verified",
+      "mismatch": "Hash mismatch",
+      "skipped": "Not verified",
+      "hint": {
+        "verified": "SHA-256 integrity confirmed: the file on disk is byte-for-byte identical to the one uploaded by the admin.",
+        "mismatch": "SHA-256 hash differs from the expected one: the downloaded file is corrupted or has been tampered with. Tried full re-download 3 times without success. Do NOT use it for the projection.",
+        "skipped": "Verification skipped: the file is too large for in-browser hashing (>512 MB) or the admin did not record a hash. The download is complete but was not compared byte-for-byte."
+      }
+    },
+    "nowPlaying": {
+      "label": "Live",
+      "aria": "Now playing in the room: {{name}}",
+      "timeJust": "now",
+      "timeSeconds_one": "{{count}}s ago",
+      "timeSeconds_other": "{{count}}s ago",
+      "timeMinutes_one": "{{count}}m ago",
+      "timeMinutes_other": "{{count}}m ago",
+      "timeHours_one": "{{count}}h ago",
+      "timeHours_other": "{{count}}h ago"
     },
     "error": {
       "invalidToken": "Invalid token. Please pair this PC again.",

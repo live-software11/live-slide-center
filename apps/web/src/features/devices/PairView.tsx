@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Delete, Loader2 } from 'lucide-react';
 import { invokePairClaim, invokeRoomPlayerBootstrap } from './repository';
+import { isRunningInTauri } from '@/lib/backend-mode';
+import { clearDevicePairing, getDesktopRole } from '@/lib/desktop-bridge';
 
 const DIGITS = 6;
 const STORED_TOKEN_KEY = 'device_token';
@@ -56,13 +58,26 @@ export default function PairView() {
         if (cancelled) return;
         // Token invalidato (revocato dall'admin o scaduto): pulisci localStorage
         // cosi' al prossimo render la UI mostra il keypad e l'utente puo' ripairare.
+        // Sprint M3: se siamo in modalita desktop role=sala, cancella anche
+        // device.json per evitare che `DesktopRoleGate` lo ripopoli al prossimo
+        // refresh (loop infinito di redirect a /sala/:token con token revocato).
         try {
           localStorage.removeItem(STORED_TOKEN_KEY);
           localStorage.removeItem(STORED_DEVICE_ID_KEY);
         } catch {
           /* noop */
         }
-        setReconnecting(false);
+        if (isRunningInTauri()) {
+          try {
+            const role = await getDesktopRole();
+            if (role === 'sala') {
+              await clearDevicePairing();
+            }
+          } catch {
+            /* best-effort: clearDevicePairing e' comunque idempotente */
+          }
+        }
+        if (!cancelled) setReconnecting(false);
       }
     }
     void tryAutoRejoin();

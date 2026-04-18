@@ -1,0 +1,26 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+
+  "//comment": "Sprint P4 (GUIDA_OPERATIVA_v3 §4.H) — Override config attivabile via `cargo tauri build --config tauri.signing.json` per produrre un installer NSIS firmato + bundle updater signed in un solo passaggio. Questo file e' un TEMPLATE: copialo in `tauri.signing.json` (gitignored), personalizza i placeholder e poi: `pnpm release:nsis -- --signing-config src-tauri/tauri.signing.json`. Il merge segue JSON Merge Patch RFC 7396: i campi qui sotto SOSTITUISCONO i corrispondenti in `tauri.conf.json` solo per quella build, lasciando il base config pulito. Vedi `apps/desktop/CODE_SIGNING.md` per le 3 strategie supportate (Cert EV thumbprint, Azure Key Vault custom signCommand, HSM via osslsigncode).",
+
+  "bundle": {
+    "createUpdaterArtifacts": true,
+    "windows": {
+      "//strategy_a_thumbprint": "Strategia A — certificato EV nel Windows Cert Store (locale o smart card USB). signtool.exe lo trova via thumbprint SHA-1.",
+      "certificateThumbprint": "REPLACE_WITH_YOUR_CERT_SHA1_THUMBPRINT_40_HEX_CHARS",
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "http://timestamp.digicert.com",
+      "tsp": false,
+
+      "//strategy_b_signcommand": "Strategia B — signCommand custom (Tauri 2.0.1+, Azure Key Vault o HSM cloud). Mutualmente esclusivo con `certificateThumbprint`. Esempio: `azuresigntool sign -kvu \"https://kv.vault.azure.net\" -kvi $AZ_CLIENT_ID -kvs $AZ_CLIENT_SECRET -kvc $CERT_NAME -kvt $AZ_TENANT_ID -tr http://timestamp.digicert.com -td sha256 -fd sha256 %1`. La string `%1` viene rimpiazzata con il path del file da firmare.",
+      "signCommand": null
+    }
+  },
+
+  "plugins": {
+    "updater": {
+      "//pubkey_required": "Generare con `cargo tauri signer generate -w ~/.tauri/slidecenter-desktop.key`. Il contenuto qui sotto e' SOLO la public key (file *.key.pub o riga `untrusted comment...` + chiave). La chiave PRIVATA va in env var `TAURI_SIGNING_PRIVATE_KEY` durante la build. Se la pubkey resta placeholder, la build fallira' con errore esplicito.",
+      "pubkey": "REPLACE_WITH_CONTENT_OF_YOUR_TAURI_KEY_PUB_FILE"
+    }
+  }
+}

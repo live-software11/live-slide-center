@@ -7,6 +7,8 @@ import { initSentry } from '@/lib/init-sentry';
 import { router } from '@/app/routes';
 import { Providers } from '@/app/providers';
 import { ErrorBoundary } from '@/app/error-boundary';
+import { ensureDesktopBackendReady } from '@/lib/desktop-backend-init';
+import { getBackendMode } from '@/lib/backend-mode';
 
 void initSentry();
 
@@ -69,12 +71,38 @@ window.addEventListener('error', (event) => {
   }
 });
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <Providers>
-        <RouterProvider router={router} />
-      </Providers>
-    </ErrorBoundary>
-  </StrictMode>,
-);
+// Sprint O2 (GUIDA_OPERATIVA_v3 §4.G): in modalita desktop il client Supabase JS
+// e' configurato per parlare al backend Rust locale. Il `base_url` + `admin_token`
+// arrivano da `cmd_backend_info` (async). Aspettiamo l'init prima di renderizzare
+// cosi' il primo `getSupabaseBrowserClient()` da qualsiasi feature trova il cache
+// gia' popolato. In cloud questa funzione e' un no-op immediato.
+async function bootstrap() {
+  if (getBackendMode() === 'desktop') {
+    try {
+      await ensureDesktopBackendReady();
+    } catch (err) {
+      // Backend Rust non risponde / non bootato: mostra errore esplicito invece
+      // di crashare con stack trace incomprensibile. L'utente puo' riavviare l'app.
+      const message = err instanceof Error ? err.message : String(err);
+      const root = document.getElementById('root')!;
+      root.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0e1a;color:#e2e8f0;font-family:system-ui;padding:2rem;text-align:center;flex-direction:column;gap:1rem;">
+        <h1 style="font-size:1.5rem;margin:0;">Backend desktop non disponibile</h1>
+        <p style="opacity:0.7;max-width:480px;">Il server locale Slide Center non risponde. Riavvia l'applicazione. Se il problema persiste, controlla i log in <code>~/SlideCenter/</code>.</p>
+        <code style="opacity:0.5;font-size:0.75rem;background:#1e293b;padding:0.5rem 1rem;border-radius:6px;">${message}</code>
+      </div>`;
+      return;
+    }
+  }
+
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <Providers>
+          <RouterProvider router={router} />
+        </Providers>
+      </ErrorBoundary>
+    </StrictMode>,
+  );
+}
+
+void bootstrap();

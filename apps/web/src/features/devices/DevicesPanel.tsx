@@ -1,24 +1,67 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Monitor, Plus } from 'lucide-react';
+import { Monitor, Plus, Wifi } from 'lucide-react';
 import { usePairedDevices } from './hooks/usePairedDevices';
 import { PairingModal } from './components/PairingModal';
 import { DeviceList } from './components/DeviceList';
+import { AddLanPcDialog } from './components/AddLanPcDialog';
 import type { RoomRow } from '@/features/rooms/repository';
+import { getDesktopBackendInfo } from '@/lib/desktop-bridge';
+import { isRunningInTauri } from '@/lib/backend-mode';
 
 interface DevicesPanelProps {
   eventId: string;
   rooms: RoomRow[];
+  /**
+   * Sprint L3/L5: necessario per il pair-direct LAN — il PC sala salva
+   * `event_name` nel device.json e nella tabella `events` mirror locale.
+   * Se non viene passato, il bottone "Aggiungi PC LAN" usa stringa vuota
+   * (fallback safe: il sala mostrera' l'event_id).
+   */
+  eventName?: string;
 }
 
-export function DevicesPanel({ eventId, rooms }: DevicesPanelProps) {
+/**
+ * Sprint L3 (GUIDA_OPERATIVA_v3 §4.D L3): in modalita desktop+admin con backend
+ * pronto e mDNS attivo, il pannello aggiunge il bottone "Aggiungi PC LAN" che
+ * apre `AddLanPcDialog` per il pair-direct senza codice 6 cifre.
+ *
+ * Pre-condizioni per mostrare il bottone LAN:
+ *   • SPA dentro Tauri (`window.__TAURI__` esposto via `withGlobalTauri`),
+ *   • backend Rust avviato (`cmd_backend_info().ready === true`),
+ *   • ruolo nodo = `admin` (il PC sala non puo' "aggiungere altri PC sala").
+ *
+ * In tutti gli altri scenari (browser/cloud, primo render prima del boot,
+ * ruolo sala) mostriamo solo il bottone classico "+ Aggiungi PC" che apre il
+ * `PairingModal` con codice 6 cifre tramite Edge Function Supabase.
+ */
+export function DevicesPanel({ eventId, rooms, eventName }: DevicesPanelProps) {
   const { t } = useTranslation();
   const { devices, loading, error, refresh } = usePairedDevices(eventId);
   const [showModal, setShowModal] = useState(false);
+  const [showLanDialog, setShowLanDialog] = useState(false);
+  const [showLanButton, setShowLanButton] = useState(false);
+
+  useEffect(() => {
+    if (!isRunningInTauri()) return;
+    let cancelled = false;
+    void (async () => {
+      const info = await getDesktopBackendInfo();
+      if (cancelled) return;
+      setShowLanButton(info.ready === true && info.role === 'admin');
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handlePaired = async (_deviceId: string) => {
     await refresh();
     setTimeout(() => setShowModal(false), 1500);
+  };
+
+  const handleLanPaired = async (_deviceId: string) => {
+    await refresh();
   };
 
   return (
@@ -39,14 +82,26 @@ export function DevicesPanel({ eventId, rooms }: DevicesPanelProps) {
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowModal(true)}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-sc-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-sc-primary/80"
-        >
-          <Plus className="h-4 w-4" />
-          {t('devices.panel.addDevice')}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {showLanButton ? (
+            <button
+              type="button"
+              onClick={() => setShowLanDialog(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-sc-success/30 bg-sc-success/10 px-3 py-1.5 text-sm font-medium text-sc-success hover:bg-sc-success/15"
+            >
+              <Wifi className="h-4 w-4" />
+              {t('devices.addLanPc.buttonLabel')}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-sc-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-sc-primary/80"
+          >
+            <Plus className="h-4 w-4" />
+            {t('devices.panel.addDevice')}
+          </button>
+        </div>
       </div>
 
       {loading && (
@@ -64,6 +119,16 @@ export function DevicesPanel({ eventId, rooms }: DevicesPanelProps) {
           eventId={eventId}
           onClose={() => setShowModal(false)}
           onPaired={(id) => void handlePaired(id)}
+        />
+      )}
+
+      {showLanDialog && (
+        <AddLanPcDialog
+          eventId={eventId}
+          eventName={eventName ?? ''}
+          rooms={rooms}
+          onClose={() => setShowLanDialog(false)}
+          onPaired={(id) => void handleLanPaired(id)}
         />
       )}
     </section>

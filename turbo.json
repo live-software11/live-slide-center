@@ -6,12 +6,18 @@
     "VITE_SUPABASE_ANON_KEY",
     "VITE_APP_NAME",
     "VITE_APP_VERSION",
-    "VITE_SENTRY_DSN"
+    "VITE_SENTRY_DSN",
+    "VITE_BACKEND_MODE",
+    "VITE_DESKTOP_BACKEND_URL"
   ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
+    },
+    "build:desktop": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist-desktop/**"]
     },
     "dev": {
       "dependsOn": ["^build"],

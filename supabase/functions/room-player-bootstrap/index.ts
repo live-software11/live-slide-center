@@ -21,6 +21,9 @@ interface FileRow {
   fileSizeBytes: number;
   mimeType: string;
   createdAt: string;
+  // Sprint C2 (GUIDA_OPERATIVA_v3 §2.C): hash SHA-256 calcolato lato upload.
+  // Se null, il PC sala non verifica e segna `verified: 'skipped'`.
+  fileHashSha256: string | null;
 }
 
 Deno.serve(async (req: Request) => {
@@ -35,10 +38,18 @@ Deno.serve(async (req: Request) => {
     const body = (await req.json()) as {
       device_token?: string;
       include_versions?: boolean;
+      // Sprint A (GUIDA_OPERATIVA_v3 §2.A6): il PC sala dichiara la propria
+      // modalita di playback ad ogni bootstrap (polling 5/12/60s a seconda
+      // del mode). Validato qui e UPSERT su room_state per la dashboard admin.
+      playback_mode?: string;
     };
 
     const deviceToken = typeof body.device_token === 'string' ? body.device_token.trim() : '';
     const includeVersions = body.include_versions !== false;
+    const requestedPlaybackMode =
+      body.playback_mode === 'auto' || body.playback_mode === 'live' || body.playback_mode === 'turbo'
+        ? body.playback_mode
+        : null;
 
     if (!deviceToken) {
       return jsonRes({ error: 'missing_device_token' }, 400);
@@ -60,10 +71,13 @@ Deno.serve(async (req: Request) => {
     if (deviceError) return jsonRes({ error: deviceError.message }, 500);
     if (!device) return jsonRes({ error: 'invalid_token' }, 404);
 
-    // Aggiorniamo last_seen_at in best-effort (ignoriamo errori).
+    // Sprint D2 (GUIDA_OPERATIVA_v3 §2.D2): aggiorniamo `last_seen_at` e
+    // marchiamo `status='online'`. Best-effort: se la scrittura fallisce
+    // (es. RLS lato realtime broadcast giu') NON blocchiamo il bootstrap,
+    // perche' il PC sala deve poter caricare comunque la lista files.
     await supabaseAdmin
       .from('paired_devices')
-      .update({ last_seen_at: new Date().toISOString() })
+      .update({ last_seen_at: new Date().toISOString(), status: 'online' })
       .eq('id', device.id);
 
     const { data: tenant, error: tenantError } = await supabaseAdmin
@@ -85,7 +99,11 @@ Deno.serve(async (req: Request) => {
           event_id: device.event_id,
           network_mode: null,
           agent: null,
-          room_state: { sync_status: 'offline', current_session: null },
+          room_state: {
+            sync_status: 'offline',
+            current_session: null,
+            playback_mode: requestedPlaybackMode ?? 'auto',
+          },
           files: [],
           warning: 'no_room_assigned',
         },
@@ -113,9 +131,19 @@ Deno.serve(async (req: Request) => {
       return jsonRes({ error: eventError?.message ?? 'event_not_found' }, 404);
     }
 
+    // Sprint A6: persistiamo la modalita di playback dichiarata dal PC sala
+    // PRIMA di leggere lo stato, cosi' la response include sempre il valore
+    // piu' fresco (utile alla dashboard admin che osserva room_state).
+    if (requestedPlaybackMode) {
+      await supabaseAdmin
+        .from('room_state')
+        .update({ playback_mode: requestedPlaybackMode })
+        .eq('room_id', room.id);
+    }
+
     const { data: roomState } = await supabaseAdmin
       .from('room_state')
-      .select('sync_status, current_session_id')
+      .select('sync_status, current_session_id, playback_mode')
       .eq('room_id', room.id)
       .maybeSingle();
 
@@ -177,7 +205,9 @@ Deno.serve(async (req: Request) => {
         if (versionIds.length > 0) {
           const { data: versions } = await supabaseAdmin
             .from('presentation_versions')
-            .select('id, storage_key, file_name, file_size_bytes, mime_type, created_at')
+            .select(
+              'id, storage_key, file_name, file_size_bytes, file_hash_sha256, mime_type, created_at',
+            )
             .in('id', versionIds)
             .eq('status', 'ready');
 
@@ -207,6 +237,7 @@ Deno.serve(async (req: Request) => {
               fileSizeBytes: Number(version.file_size_bytes ?? 0),
               mimeType: version.mime_type ?? 'application/octet-stream',
               createdAt: version.created_at as string,
+              fileHashSha256: (version.file_hash_sha256 as string | null) ?? null,
             });
           }
         }
@@ -232,6 +263,7 @@ Deno.serve(async (req: Request) => {
         room_state: {
           sync_status: roomState?.sync_status ?? 'offline',
           current_session: currentSession,
+          playback_mode: roomState?.playback_mode ?? 'auto',
         },
         files,
       },

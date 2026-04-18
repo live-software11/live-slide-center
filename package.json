@@ -4,7 +4,9 @@
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "turbo run dev",
+    "dev:desktop": "pnpm --filter @slidecenter/desktop dev",
     "build": "turbo run build",
+    "build:desktop": "pnpm --filter @slidecenter/web build:desktop && pnpm --filter @slidecenter/desktop build:tauri",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint:fix",
     "typecheck": "turbo run typecheck",

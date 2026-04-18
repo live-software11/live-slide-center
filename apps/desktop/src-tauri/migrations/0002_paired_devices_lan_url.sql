@@ -1,0 +1,21 @@
+-- Sprint M3 (GUIDA_OPERATIVA_v3 §4.E M3) — pair-revoke via LAN.
+--
+-- Aggiunge `lan_base_url` su `paired_devices` cosi' l'admin (PC desktop role=admin)
+-- puo' ricontattare il PC sala via HTTP quando rimuove il pairing dalla UI.
+-- Senza questa info, "Rimuovi PC" cancellerebbe solo il record sul SUO DB locale,
+-- e il PC sala continuerebbe a credere di essere paired (rejoin loop) finche'
+-- l'utente non lo disconnette manualmente dal menu della sala.
+--
+-- Ciclo previsto:
+--   1. admin SPA chiama POST /functions/v1/pair-direct sul sala (Sprint L4),
+--      riceve `{device_id}` e fa subito PATCH paired_devices.lan_base_url=<targetBaseUrl>
+--      sul proprio server locale, persistendo l'URL del sala (es. http://192.168.1.42:7300).
+--   2. al "Rimuovi PC" admin: revokeDevice() legge `lan_base_url` e chiama
+--      POST <lan_base_url>/functions/v1/pair-revoke prima di cancellare il record locale.
+--   3. il PC sala riceve, valida `device_token` contro `device.json`, cancella
+--      device.json + paired_devices + resetta mDNS TXT event_id (lo libera).
+--
+-- L'`ALTER TABLE` non e' supportato da `IF NOT EXISTS` su SQLite, quindi
+-- la migration e' lanciata da `db.rs::run_migrations` con tolleranza
+-- "duplicate column name: lan_base_url" (idempotenza).
+ALTER TABLE paired_devices ADD COLUMN lan_base_url TEXT;

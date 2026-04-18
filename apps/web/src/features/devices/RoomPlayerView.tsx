@@ -10,30 +10,65 @@ import {
   CloudOff,
   Folder,
   FolderOpen,
+  Gauge,
   Loader2,
   LogOut,
   Menu,
   Network,
   Pencil,
+  Radio,
   RefreshCw,
+  Tv2,
   WifiOff,
   X,
+  Zap,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import {
   invokeRoomPlayerBootstrap,
   invokeRoomPlayerRename,
+  invokeRoomPlayerSetCurrent,
+  type PlaybackMode,
   type RoomPlayerBootstrapSession,
   type RoomPlayerNetworkMode,
 } from './repository';
-import { useFileSync } from './hooks/useFileSync';
+import {
+  clearDevicePairing,
+  getDesktopBackendInfo,
+  getDesktopRole,
+  getPersistedDevice,
+  type DesktopBackendInfo,
+  type PersistedDevice,
+} from '@/lib/desktop-bridge';
+import { isRunningInTauri } from '@/lib/backend-mode';
+import { useFileSync, type FileSyncItem, type RealtimeChannelStatus } from './hooks/useFileSync';
 import { useConnectivityMode, type ConnectivityMode } from './hooks/useConnectivityMode';
 import { FileSyncStatus } from './components/FileSyncStatus';
+import { StorageUsagePanel } from './components/StorageUsagePanel';
+import { FilePreviewDialog } from '@/features/presentations/components/FilePreviewDialog';
+import { useFilePreviewSource } from '@/features/presentations/hooks/useFilePreviewSource';
 import type { Database } from '@slidecenter/shared';
 
 type SyncStatus = Database['public']['Enums']['sync_status'];
 
 const STORED_TOKEN_KEY = 'device_token';
 const STORED_DEVICE_ID_KEY = 'device_id';
+/**
+ * Sprint A1 (GUIDA_OPERATIVA_v3 §2.A1) — modalita di playback persistita
+ * localmente. Cosi' un PC sala riavviato a meta' evento ricorda di essere in
+ * `live` e non ricomincia a martellare il polling con frequenza `auto`.
+ */
+const STORED_PLAYBACK_MODE_KEY = 'sc:rp:playbackMode';
+
+function loadStoredPlaybackMode(): PlaybackMode {
+  try {
+    const raw = localStorage.getItem(STORED_PLAYBACK_MODE_KEY);
+    if (raw === 'auto' || raw === 'live' || raw === 'turbo') return raw;
+  } catch {
+    /* ignore */
+  }
+  return 'auto';
+}
 
 interface RoomData {
   id: string;
@@ -169,6 +204,123 @@ function NetworkModeChip({
     >
       <Icon className="h-3 w-3 shrink-0 text-sc-primary" />
       <span className="truncate">{t(`roomPlayer.route.mode.${networkMode}`)}</span>
+    </span>
+  );
+}
+
+/**
+ * Sprint A2 (GUIDA_OPERATIVA_v3 §2.A2) — selettore modalita playback (radio
+ * group orizzontale a 3 chip). Fonte di verita locale (UI) → propagata al hook
+ * `useFileSync` e all'Edge Function `room-player-bootstrap` ad ogni polling.
+ */
+const PLAYBACK_MODE_STYLES: Record<PlaybackMode, { active: string; Icon: LucideIcon }> = {
+  auto: {
+    active: 'border-sc-primary/40 bg-sc-primary/15 text-sc-primary',
+    Icon: Gauge,
+  },
+  live: {
+    active: 'border-sc-success/40 bg-sc-success/15 text-sc-success',
+    Icon: Tv2,
+  },
+  turbo: {
+    active: 'border-sc-accent/40 bg-sc-accent/15 text-sc-accent',
+    Icon: Zap,
+  },
+};
+
+const PLAYBACK_MODE_ORDER: PlaybackMode[] = ['auto', 'live', 'turbo'];
+
+function PlaybackModeChip({
+  mode,
+  onChange,
+}: {
+  mode: PlaybackMode;
+  onChange: (next: PlaybackMode) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div
+      role="radiogroup"
+      aria-label={t('roomPlayer.playbackMode.label')}
+      className="inline-flex items-center gap-0.5 rounded-full border border-sc-primary/12 bg-sc-surface p-0.5"
+    >
+      {PLAYBACK_MODE_ORDER.map((m) => {
+        const cfg = PLAYBACK_MODE_STYLES[m];
+        const Icon = cfg.Icon;
+        const active = m === mode;
+        return (
+          <button
+            key={m}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(m)}
+            title={t(`roomPlayer.playbackMode.hint.${m}`)}
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors ${active
+              ? cfg.active
+              : 'border-transparent text-sc-text-muted hover:bg-sc-elevated'
+              }`}
+          >
+            <Icon className="h-3 w-3" />
+            <span>{t(`roomPlayer.playbackMode.short.${m}`)}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Sprint B4 (GUIDA_OPERATIVA_v3 §2.B4) — chip stato Realtime.
+ *
+ * Indica al tecnico in sala se le notifiche push dal cloud stanno arrivando
+ * (LIVE SYNC, verde, icona pulsante) oppure se siamo solo in polling
+ * (POLLING, grigio). Quando subscribed, le modifiche dall'admin appaiono
+ * in <1s senza aspettare il prossimo tick di polling.
+ */
+function RealtimeChip({ status }: { status: RealtimeChannelStatus }) {
+  const { t } = useTranslation();
+  const cfg = (() => {
+    switch (status) {
+      case 'subscribed':
+        return {
+          label: t('roomPlayer.realtime.subscribed'),
+          className: 'border-sc-success/30 bg-sc-success/10 text-sc-success',
+          pulse: true,
+          hint: t('roomPlayer.realtime.hint.subscribed'),
+        };
+      case 'connecting':
+        return {
+          label: t('roomPlayer.realtime.connecting'),
+          className: 'border-sc-warning/30 bg-sc-warning/10 text-sc-warning',
+          pulse: false,
+          hint: t('roomPlayer.realtime.hint.connecting'),
+        };
+      case 'error':
+        return {
+          label: t('roomPlayer.realtime.polling'),
+          className: 'border-sc-text-muted/20 bg-sc-elevated text-sc-text-muted',
+          pulse: false,
+          hint: t('roomPlayer.realtime.hint.error'),
+        };
+      case 'idle':
+      default:
+        return {
+          label: t('roomPlayer.realtime.polling'),
+          className: 'border-sc-text-muted/20 bg-sc-elevated text-sc-text-muted',
+          pulse: false,
+          hint: t('roomPlayer.realtime.hint.idle'),
+        };
+    }
+  })();
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${cfg.className}`}
+      title={cfg.hint}
+      aria-label={`${t('roomPlayer.realtime.label')}: ${cfg.label}`}
+    >
+      <Radio className={`h-3 w-3 ${cfg.pulse ? 'animate-pulse' : ''}`} aria-hidden="true" />
+      <span>{cfg.label}</span>
     </span>
   );
 }
@@ -350,6 +502,49 @@ export default function RoomPlayerView() {
   const [navigatorOnline, setNavigatorOnline] = useState(
     typeof navigator !== 'undefined' ? navigator.onLine : true,
   );
+  // Sprint A1: stato playback mode persistito in localStorage. Lazy init per
+  // evitare race condition al primo render.
+  const [playbackMode, setPlaybackMode] = useState<PlaybackMode>(() => loadStoredPlaybackMode());
+  // Sprint N2-N3: in modalita desktop (Tauri) leggiamo `device.json` per
+  // ottenere l'URL del PC admin (download via lan-sign-url) e backend info
+  // per il base URL del proprio Axum locale (long-poll eventi LAN).
+  // In modalita cloud restano `null` e useFileSync funziona come oggi.
+  const [persistedDevice, setPersistedDevice] = useState<PersistedDevice | null>(null);
+  const [desktopInfo, setDesktopInfo] = useState<DesktopBackendInfo | null>(null);
+  useEffect(() => {
+    if (!isRunningInTauri()) return;
+    let cancelled = false;
+    void Promise.all([getPersistedDevice(), getDesktopBackendInfo()]).then(([dev, info]) => {
+      if (cancelled) return;
+      setPersistedDevice(dev);
+      setDesktopInfo(info);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const lanAdminBaseUrl = useMemo(
+    () => persistedDevice?.admin_server?.base_url ?? null,
+    [persistedDevice],
+  );
+  const localBackendBaseUrl = useMemo(
+    () => (desktopInfo?.ready ? desktopInfo.base_url ?? null : null),
+    [desktopInfo],
+  );
+  // Sprint I (§3.D + §3.E): file aperto in anteprima sul PC sala. Quando
+  // settato, render `<FilePreviewDialog>` con sorgente locale (FSA blob URL).
+  const [previewItem, setPreviewItem] = useState<FileSyncItem | null>(null);
+  // Sprint I (§3.E E4): id presentation segnalata come "ora in onda". Snapshot
+  // ottimistico locale (l'admin lo riceve via room_state.current_presentation_id).
+  const [nowPlayingPresentationId, setNowPlayingPresentationId] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORED_PLAYBACK_MODE_KEY, playbackMode);
+    } catch {
+      /* ignore */
+    }
+  }, [playbackMode]);
 
   useEffect(() => {
     const on = () => setNavigatorOnline(true);
@@ -362,17 +557,30 @@ export default function RoomPlayerView() {
     };
   }, []);
 
-  const { supported, dirHandle, items, pickFolder, clearFolder, retryItem, refreshNow } =
-    useFileSync({
-      roomId: roomData?.id ?? '',
-      roomName: roomData?.name ?? 'sala',
-      eventId: roomData?.eventId ?? '',
-      deviceToken: token ?? '',
-      networkMode: roomData?.networkMode ?? 'cloud',
-      agentLan: roomData?.agentLan ?? null,
-      navigatorOnline,
-      enabled: Boolean(roomData && token),
-    });
+  const {
+    supported,
+    dirHandle,
+    items,
+    pickFolder,
+    clearFolder,
+    retryItem,
+    refreshNow,
+    realtimeStatus,
+    storage,
+    cleanupOrphanFiles,
+  } = useFileSync({
+    roomId: roomData?.id ?? '',
+    roomName: roomData?.name ?? 'sala',
+    eventId: roomData?.eventId ?? '',
+    deviceToken: token ?? '',
+    networkMode: roomData?.networkMode ?? 'cloud',
+    agentLan: roomData?.agentLan ?? null,
+    navigatorOnline,
+    enabled: Boolean(roomData && token),
+    playbackMode,
+    lanAdminBaseUrl,
+    localBackendBaseUrl,
+  });
 
   const { mode: connectivityMode, lanHealthy } = useConnectivityMode({
     agentLan: roomData?.agentLan ?? null,
@@ -426,11 +634,13 @@ export default function RoomPlayerView() {
 
   // Polling continuo ogni 12s anche quando in attesa di sala: appena admin
   // assegna la sala, l'UI del PC sala si aggiorna automaticamente.
+  // Sprint A6: ad ogni tick dichiariamo la modalita di playback al server cosi'
+  // la dashboard admin (sezione Sala dell'evento) la veda sempre fresca.
   useEffect(() => {
     if (!token) return;
     const pollToken = token;
     const id = window.setInterval(() => {
-      void invokeRoomPlayerBootstrap(pollToken, false)
+      void invokeRoomPlayerBootstrap(pollToken, false, playbackMode)
         .then((d) => {
           setDevice((prev) => (prev?.name === d.device.name && prev?.id === d.device.id ? prev : { id: d.device.id, name: d.device.name }));
           if (!d.room) {
@@ -466,7 +676,7 @@ export default function RoomPlayerView() {
         .catch(() => { });
     }, 12_000);
     return () => window.clearInterval(id);
-  }, [token, roomId]);
+  }, [token, roomId, playbackMode]);
 
   const handleDisconnect = () => {
     try {
@@ -474,6 +684,28 @@ export default function RoomPlayerView() {
       localStorage.removeItem(STORED_DEVICE_ID_KEY);
     } catch {
       /* ignore */
+    }
+    // Sprint M3 (GUIDA_OPERATIVA_v3 §4.E M3): in modalita desktop role=sala
+    // l'utente che fa "Esci dall'evento" deve smontare il pairing in modo
+    // coordinato: cancella `device.json` + riga `paired_devices` SQLite +
+    // reset TXT mDNS event_id. Senza questo, `DesktopRoleGate` ripopolerebbe
+    // localStorage al prossimo refresh e re-redirecterebbe a /sala/:token
+    // (loop infinito perche' il token in localStorage e' stato pulito ma
+    // device.json ce l'ha ancora).
+    //
+    // Fire-and-forget: non blocchiamo la nav. Se Tauri non e' disponibile
+    // (cloud) il bridge ritorna noop in 0 ms.
+    if (isRunningInTauri()) {
+      void (async () => {
+        try {
+          const role = await getDesktopRole();
+          if (role === 'sala') {
+            await clearDevicePairing();
+          }
+        } catch {
+          /* best-effort */
+        }
+      })();
     }
     navigate('/pair', { replace: true });
   };
@@ -610,6 +842,8 @@ export default function RoomPlayerView() {
           />
           <NetworkModeChip networkMode={roomData.networkMode} />
           <SyncBadge status={roomData.syncStatus} />
+          <PlaybackModeChip mode={playbackMode} onChange={setPlaybackMode} />
+          <RealtimeChip status={realtimeStatus} />
         </div>
       </header>
 
@@ -709,8 +943,30 @@ export default function RoomPlayerView() {
           </div>
         )}
 
+        {dirHandle && storage && (
+          <StorageUsagePanel storage={storage} onCleanup={cleanupOrphanFiles} />
+        )}
+
         {sortedItems.length > 0 ? (
-          <FileSyncStatus items={sortedItems} onRetry={retryItem} locale={i18n.language} />
+          <FileSyncStatus
+            items={sortedItems}
+            onRetry={retryItem}
+            onOpen={(item) => {
+              // Sprint I (§3.E E1+E3): apre l'anteprima locale e segnala
+              // "now playing" all'admin (best-effort, no blocco UI).
+              setPreviewItem(item);
+              setNowPlayingPresentationId(item.presentationId);
+              if (token) {
+                void invokeRoomPlayerSetCurrent(token, item.presentationId).catch((err) => {
+                  // Logghiamo solo: l'esperienza sala vince sull'audit. Se la
+                  // Edge Function e' giu', il file si apre lo stesso.
+                  console.warn('[room-player] set_current failed', err);
+                });
+              }
+            }}
+            nowPlayingPresentationId={nowPlayingPresentationId}
+            locale={i18n.language}
+          />
         ) : (
           <div className="rounded-xl border border-dashed border-sc-primary/15 bg-sc-surface/40 px-4 py-8 text-center">
             <p className="text-sm text-sc-text-dim">{t('roomPlayer.noFilesYet')}</p>
@@ -723,7 +979,71 @@ export default function RoomPlayerView() {
         onCancel={() => setConfirmDisconnect(false)}
         onConfirm={handleDisconnect}
       />
+
+      {/* Sprint I (§3.D + §3.E): anteprima inline file LOCALE (PDF/img/video).
+          Per file non-anteprimabili (pptx/keynote/...) il dialog mostra
+          fallback con bottone "Scarica" (apre il blob in nuova tab). Il vero
+          launcher con app esterna arriva con SLIDE CENTER Desktop (Sprint J). */}
+      {previewItem && dirHandle && (
+        <RoomPreviewDialogContainer
+          item={previewItem}
+          dirHandle={dirHandle}
+          roomName={roomData?.name ?? 'sala'}
+          onClose={() => setPreviewItem(null)}
+        />
+      )}
     </div>
+  );
+}
+
+/**
+ * Sprint I — wrapper PC sala per `<FilePreviewDialog>`. Sorgente sempre
+ * `local` (regola sovrana §1: la sala usa SOLO i file in cartella).
+ *
+ * Path FSA: `[roomName, sessionTitle, filename]` — combaciante con quello
+ * scritto dal downloader in `useFileSync` (sanitizeFsSegment applicato in
+ * `readLocalFile` per la lettura, quindi e' OK passare i nomi originali).
+ */
+function RoomPreviewDialogContainer({
+  item,
+  dirHandle,
+  roomName,
+  onClose,
+}: {
+  item: FileSyncItem;
+  dirHandle: FileSystemDirectoryHandle;
+  roomName: string;
+  onClose: () => void;
+}) {
+  const { url, loading, error } = useFilePreviewSource({
+    enabled: true,
+    mode: 'local',
+    dirHandle,
+    segments: [roomName || 'sala', item.sessionTitle || 'sessione'],
+    filename: item.filename,
+  });
+
+  // Sul PC sala "scarica" significa: apri il blob URL in una nuova tab. Il
+  // browser:
+  // - per video/audio/img/pdf: lo riproduce/visualizza (anteprima nativa);
+  // - per pptx/keynote/altri: lo SCARICA nella cartella Download di sistema,
+  //   e l'utente puo' aprirlo manualmente con PowerPoint/Keynote.
+  //
+  // Limitazione spiegata in §3.E E2 della guida: il vero "Apri con app
+  // esterna" richiede SLIDE CENTER Desktop (Tauri shell.open) — Sprint J.
+  const onDownload = url ? () => window.open(url, '_blank', 'noopener,noreferrer') : undefined;
+
+  return (
+    <FilePreviewDialog
+      open
+      onClose={onClose}
+      fileName={item.filename}
+      mime={item.mimeType}
+      sourceUrl={url}
+      sourceLoading={loading}
+      sourceError={error}
+      onDownload={onDownload}
+    />
   );
 }
 

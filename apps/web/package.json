@@ -10,6 +10,8 @@
     "predev": "node ./scripts/generate-brand-icons.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:desktop": "tsc -b && vite build --mode desktop",
+    "preview:desktop": "vite preview --mode desktop --outDir dist-desktop",
     "postbuild": "node ./scripts/upload-sourcemaps.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

@@ -15,7 +15,7 @@ type State =
  * - isOnboarded === false: wizard da mostrare (admin)
  */
 export function useTenantOnboardingStatus(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient | null,
   tenantId: string | null,
 ): {
   state: State;
@@ -26,7 +26,7 @@ export function useTenantOnboardingStatus(
   const [state, setState] = useState<State>({ status: 'loading' });
 
   const refresh = useCallback(async () => {
-    if (!tenantId) {
+    if (!tenantId || !supabase) {
       setState({ status: 'error', message: 'missing_tenant' });
       return;
     }
@@ -41,7 +41,7 @@ export function useTenantOnboardingStatus(
   }, [supabase, tenantId]);
 
   useEffect(() => {
-    if (!tenantId) {
+    if (!tenantId || !supabase) {
       // Stato iniziale 'loading' va lasciato com'e': nessun setState sync nel body dell'effect.
       return;
     }

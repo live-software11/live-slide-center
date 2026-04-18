@@ -49,6 +49,29 @@ export async function createVersionDownloadUrl(storageKey: string): Promise<stri
   return createVersionDownloadUrlWithClient(getSupabaseBrowserClient(), storageKey);
 }
 
+/**
+ * Sprint I (GUIDA_OPERATIVA_v3 §3.D D2-D3) — signed URL per ANTEPRIMA inline
+ * (PDF in <iframe>, image in <img>, video in <video>).
+ *
+ * Differenza vs `createVersionDownloadUrl`: NON setta `download: true`, quindi
+ * il browser NON forza `Content-Disposition: attachment` e mostra il file nel
+ * tag invece di scaricarlo.
+ *
+ * Stessa durata 5 minuti (storage RLS valida solo al primo HIT, l'URL e' un
+ * JWT firmato dal lato server). Sufficiente per aprire il dialog, leggere il
+ * PDF/video e tornare alla lista — nessun rischio di link "leakato" persistente.
+ */
+export async function createVersionPreviewUrl(storageKey: string): Promise<string> {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.storage
+    .from('presentations')
+    .createSignedUrl(storageKey, 300);
+  if (error || !data?.signedUrl) {
+    throw error ?? new Error('signed_url_failed');
+  }
+  return data.signedUrl;
+}
+
 export async function setCurrentVersion(presentationId: string, versionId: string): Promise<void> {
   const supabase = getSupabaseBrowserClient();
   const { error } = await supabase.rpc('rpc_set_current_version', {
@@ -180,4 +203,35 @@ export async function movePresentation(
   });
   if (error || !data) throw error ?? new Error('move_presentation_failed');
   return data as unknown as MovePresentationResult;
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Sprint G B3: spostamento presentation tra sessioni (stesso evento)
+// ────────────────────────────────────────────────────────────────────
+
+export interface MovePresentationToSessionResult {
+  ok: boolean;
+  /** True se la presentation era gia' nella sessione target (no-op). */
+  skipped: boolean;
+  reason?: string;
+  presentation_id: string;
+  session_id: string;
+}
+
+/**
+ * Sposta una presentation in altra sessione dello stesso evento.
+ * Lato DB: `rpc_move_presentation_to_session` resetta `speaker_id = NULL`
+ * (lo speaker e' legato alla vecchia sessione e non puo' seguire).
+ */
+export async function movePresentationToSession(
+  presentationId: string,
+  targetSessionId: string,
+): Promise<MovePresentationToSessionResult> {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.rpc('rpc_move_presentation_to_session', {
+    p_presentation_id: presentationId,
+    p_target_session_id: targetSessionId,
+  });
+  if (error || !data) throw error ?? new Error('move_presentation_to_session_failed');
+  return data as unknown as MovePresentationToSessionResult;
 }

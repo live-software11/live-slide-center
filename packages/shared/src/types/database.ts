@@ -453,10 +453,13 @@ export type Database = {
           current_session_id: string | null;
           current_presentation_id: string | null;
           current_version_id: string | null;
+          /** Sprint I (now-playing): quando il PC sala ha aperto il file in onda. */
+          last_play_started_at: string | null;
           sync_status: Database['public']['Enums']['sync_status'];
           agent_connection: Database['public']['Enums']['connection_status'];
           last_sync_at: string | null;
           assigned_agent_id: string | null;
+          playback_mode: Database['public']['Enums']['playback_mode'];
           updated_at: string;
         };
         Insert: {
@@ -465,10 +468,12 @@ export type Database = {
           current_session_id?: string | null;
           current_presentation_id?: string | null;
           current_version_id?: string | null;
+          last_play_started_at?: string | null;
           sync_status?: Database['public']['Enums']['sync_status'];
           agent_connection?: Database['public']['Enums']['connection_status'];
           last_sync_at?: string | null;
           assigned_agent_id?: string | null;
+          playback_mode?: Database['public']['Enums']['playback_mode'];
           updated_at?: string;
         };
         Update: {
@@ -477,10 +482,12 @@ export type Database = {
           current_session_id?: string | null;
           current_presentation_id?: string | null;
           current_version_id?: string | null;
+          last_play_started_at?: string | null;
           sync_status?: Database['public']['Enums']['sync_status'];
           agent_connection?: Database['public']['Enums']['connection_status'];
           last_sync_at?: string | null;
           assigned_agent_id?: string | null;
+          playback_mode?: Database['public']['Enums']['playback_mode'];
           updated_at?: string;
         };
         Relationships: [];
@@ -825,6 +832,14 @@ export type Database = {
         Args: { p_presentation_id: string; p_target_speaker_id: string };
         Returns: Json;
       };
+      rpc_move_presentation_to_session: {
+        Args: { p_presentation_id: string; p_target_session_id: string };
+        Returns: Json;
+      };
+      rpc_room_player_set_current: {
+        Args: { p_token: string; p_presentation_id: string | null };
+        Returns: Json;
+      };
       init_upload_version_for_session: {
         Args: { p_session_id: string; p_filename: string; p_size: number; p_mime: string };
         Returns: Json;
@@ -903,6 +918,7 @@ export type Database = {
       connection_status: 'online' | 'offline' | 'degraded';
       event_status: 'draft' | 'setup' | 'active' | 'closed' | 'archived';
       network_mode: 'cloud' | 'intranet' | 'hybrid';
+      playback_mode: 'auto' | 'live' | 'turbo';
       presentation_status: 'pending' | 'uploaded' | 'reviewed' | 'approved' | 'rejected';
       room_type: 'main' | 'breakout' | 'preview' | 'poster';
       session_type: 'talk' | 'panel' | 'workshop' | 'break' | 'ceremony';

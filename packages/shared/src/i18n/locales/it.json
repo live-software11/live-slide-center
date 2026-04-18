@@ -409,13 +409,98 @@
     "toggleHide": "Nascondi file della sessione",
     "dropTitle": "Trascina qui i file per «{{name}}»",
     "dropHint": "Sono accettati .pptx, .pdf, video e altri formati. Limite 5 GB per file.",
+    "dropHintMulti": "Trascina più file insieme: verranno caricati in coda. Limite 5 GB per file.",
     "pickFile": "Scegli file",
     "uploadDone": "File caricato con successo.",
     "listTitle": "File caricati ({{count}})",
     "empty": "Nessun file caricato per questa sessione.",
     "download": "Scarica",
     "deleteAria": "Elimina file {{name}}",
-    "bySpeaker": "Caricato da {{name}}"
+    "previewHint": "Apri «{{name}}» in anteprima",
+    "bySpeaker": "Caricato da {{name}}",
+    "dragMove": {
+      "rowHint": "Trascina questo file su un'altra sessione aperta per spostarlo",
+      "dropHere": "Rilascia qui per spostare in «{{name}}»",
+      "hint": "Lo speaker collegato verrà rimosso (la presentazione resta).",
+      "movedOk": "«{{name}}» spostato in questa sessione.",
+      "errorCrossEvent": "Non puoi spostare «{{name}}» in un altro evento.",
+      "errorEventClosed": "Evento chiuso o archiviato: «{{name}}» non è stato spostato.",
+      "errorForbidden": "Permessi insufficienti per spostare «{{name}}».",
+      "errorGeneric": "Spostamento di «{{name}}» non riuscito."
+    }
+  },
+  "queueUpload": {
+    "title": "Coda upload · {{active}}/{{total}}",
+    "clearFinished": "Pulisci completati",
+    "statusPending": "In attesa",
+    "statusUploading": "Upload {{pct}}%",
+    "statusHashing": "Verifica hash…",
+    "statusFinalizing": "Finalizzazione…",
+    "statusDone": "Completato",
+    "statusCancelled": "Annullato",
+    "statusError": "Errore",
+    "cancelAria": "Annulla upload di {{name}}",
+    "removeAria": "Rimuovi {{name}} dalla lista"
+  },
+  "filePreview": {
+    "aria": "Anteprima file {{name}}",
+    "close": "Chiudi anteprima",
+    "loading": "Preparazione anteprima in corso…",
+    "download": "Scarica",
+    "unsupported": {
+      "description": "Questo formato non ha un'anteprima nel browser. Scaricalo per aprirlo con l'app più adatta.",
+      "download": "Scarica file"
+    },
+    "errors": {
+      "generic": "Impossibile aprire l'anteprima.",
+      "remoteFailed": "Anteprima cloud non disponibile (rete o permessi). Riprova.",
+      "remoteMissingArgs": "Sorgente del file mancante.",
+      "localNotFound": "File non ancora scaricato sul PC sala. Aspetta il completamento del download.",
+      "localPermissionDenied": "Permessi cartella revocati: ri-seleziona la cartella di sincronizzazione.",
+      "localGeneric": "Impossibile leggere il file dalla cartella locale.",
+      "localMissingArgs": "Cartella o nome file mancanti."
+    }
+  },
+  "eventSearch": {
+    "placeholder": "Cerca file in tutto l'evento (sale, sessioni, relatori)",
+    "clear": "Cancella ricerca",
+    "loading": "Ricerca in corso…",
+    "error": "Ricerca non disponibile, riprova.",
+    "noResults": "Nessun file trovato per «{{query}}»",
+    "belowMinLength": "Digita almeno 2 caratteri.",
+    "truncated": "Mostrati i primi 50 risultati. Affina la ricerca per vederne altri.",
+    "current": "Attiva"
+  },
+  "bulkActions": {
+    "selectAll": "Seleziona tutti",
+    "selectAllAria": "Seleziona o deseleziona tutti i file",
+    "selectFileAria": "Seleziona file {{name}}",
+    "clearSelectionAria": "Annulla selezione",
+    "selectedCount": "{{count}} file selezionati · {{size}}",
+    "selectedCount_one": "{{count}} file selezionato · {{size}}",
+    "downloadZip": "Scarica ZIP",
+    "moveToSession": "Sposta in altra sessione",
+    "delete": "Elimina",
+    "confirmDelete": "Conferma elimina ({{count}})",
+    "progressZip": "ZIP {{current}}/{{total}}",
+    "progressMove": "Sposto {{current}}/{{total}}",
+    "progressDelete": "Elimino {{current}}/{{total}}",
+    "progressGeneric": "{{current}}/{{total}}",
+    "summary": "{{ok}} riusciti · {{failed}} falliti · {{skipped}} saltati",
+    "summaryAndMore": "…e altri {{count}}",
+    "moveDialog": {
+      "title": "Sposta {{count}} file in un'altra sessione",
+      "title_one": "Sposta {{count}} file in un'altra sessione",
+      "noTargets": "Nessun'altra sessione disponibile in questo evento.",
+      "confirm": "Sposta"
+    },
+    "errors": {
+      "zipTooLarge": "Selezione troppo grande per ZIP browser (>2 GB). Scarica meno file alla volta.",
+      "zipFailed": "ZIP non riuscito. Riprova oppure scarica i file singolarmente.",
+      "aborted": "Operazione annullata.",
+      "moveFailed": "Spostamento non riuscito per alcuni file.",
+      "deleteFailed": "Eliminazione non riuscita per alcuni file."
+    }
   },
   "speakersAdvanced": {
     "toggleShow": "Mostra gestione relatori esterni (link upload)",
@@ -713,6 +798,35 @@
     "openMenu": "Apri menu",
     "closeMenu": "Chiudi menu"
   },
+  "backendMode": {
+    "short": {
+      "cloud": "Cloud",
+      "cloudOffline": "Offline",
+      "desktop": "Desktop",
+      "lan": "LAN",
+      "standalone": "Standalone",
+      "loading": "..."
+    },
+    "hint": {
+      "cloud": "Backend cloud Supabase online: tutti i dati e i file passano da Internet. Adatto a eventi con connessione affidabile.",
+      "cloudOffline": "Backend cloud Supabase non raggiungibile: SPA in modalita degradata, sono visibili solo i dati gia' caricati in cache.",
+      "desktop": "Backend desktop locale: i dati e i file restano sulla LAN dell'evento, nessun traffico Internet richiesto.",
+      "lan": "Server admin LAN raggiungibile: dati e file sincronizzati in tempo reale dal PC admin sulla rete locale dell'evento.",
+      "standalone": "Server admin LAN irraggiungibile: il PC sala usa solo i file gia' scaricati. Verifica che il PC admin sia acceso e sulla stessa rete.",
+      "loading": "Verifica stato backend in corso..."
+    }
+  },
+  "desktopUpdater": {
+    "available": "Aggiornamento disponibile",
+    "newVersion": "Nuova versione: {{version}}",
+    "currentVersion": "Versione corrente: {{version}}",
+    "installNow": "Installa e riavvia",
+    "later": "Piu' tardi",
+    "installing": "Installazione in corso...",
+    "installFailed": "Installazione fallita: {{error}}",
+    "checkFailed": "Verifica aggiornamenti fallita",
+    "notes": "Note di rilascio"
+  },
   "devices": {
     "panel": {
       "title": "PC Sala",
@@ -747,6 +861,52 @@
       "errorAuthHint": "Esegui di nuovo il login dalla pagina /login e riapri questa schermata. Se persiste, ricarica la pagina (CTRL+F5) per rinfrescare il token.",
       "errorFunctionMissing": "Funzione `pair-init` non disponibile sul server.",
       "errorFunctionMissingHint": "Le Edge Function devono essere deployate sul progetto Supabase remoto. Da CLI: `supabase functions deploy pair-init pair-poll pair-claim`."
+    },
+    "addLanPc": {
+      "buttonLabel": "Aggiungi PC LAN",
+      "title": "Aggiungi PC LAN",
+      "subtitle": "Cerca i PC sala accesi nella stessa rete Wi-Fi/cavo e abbinali a una sala di questo evento.",
+      "scanning": "Ricerca PC sala in corso…",
+      "rescan": "Cerca di nuovo",
+      "noResults": "Nessun PC sala trovato sulla LAN. Verifica che il PC sala sia acceso, abbia scelto il ruolo \"PC sala\" e sia sulla stessa rete.",
+      "noLanIp": "Impossibile rilevare un IP LAN su questo PC: il pair-direct non puo' funzionare. Connetti il PC alla rete e riavvia l'app.",
+      "notDesktop": "Funzione disponibile solo nell'app desktop Live SLIDE CENTER.",
+      "notAdmin": "Solo i PC con ruolo \"Centro di controllo\" possono abbinare PC sala via LAN.",
+      "discoveryError": "Errore durante la discovery: {{message}}",
+      "discoveredCount_one": "{{count}} PC sala trovato",
+      "discoveredCount_other": "{{count}} PC sala trovati",
+      "alreadyPaired": "Già abbinato (event_id {{eventId}})",
+      "selectRoom": "Sala di destinazione",
+      "noRoomOption": "Nessuna sala — abbina senza assegnare",
+      "deviceNameLabel": "Nome del PC sala (opzionale)",
+      "deviceNamePlaceholder": "Es. PC Sala Plenaria",
+      "pair": "Abbina",
+      "pairing": "Abbinamento in corso…",
+      "pairedSuccess": "PC abbinato: {{name}} → {{room}}",
+      "pairedSuccessNoRoom": "PC abbinato: {{name}} (nessuna sala)",
+      "pairError": "Abbinamento fallito: {{message}}",
+      "pairConflict": "Questo PC sala è già abbinato a un altro evento. Sblocca il PC sala (riavvio + cancellazione device.json) e riprova.",
+      "rolesNotSala": "Solo i PC sala possono ricevere il pair-direct.",
+      "close": "Chiudi"
+    }
+  },
+  "desktopRole": {
+    "title": "Scegli il ruolo di questo PC",
+    "subtitle": "Scegli una sola volta: questa decisione definisce cosa fa Live SLIDE CENTER su questo computer.",
+    "admin": {
+      "title": "Centro di controllo",
+      "body": "Questo PC è il nodo amministrativo: dashboard completa, database locale, gestione eventi/sale e pairing dei PC sala via LAN."
+    },
+    "sala": {
+      "title": "PC sala",
+      "body": "Questo PC sta in sala riunioni / aula e proietta i file: riceve i file dall'admin tramite LAN. UI ridotta a pairing e player."
+    },
+    "changeLater": "Potrai cambiare questa scelta in seguito dalle Impostazioni o cancellando il file ~/SlideCenter/role.json.",
+    "restart": {
+      "title": "Riavvia l'app per completare la configurazione",
+      "adminBody": "Hai scelto Centro di controllo. Chiudi e riapri Live SLIDE CENTER per attivare la dashboard amministrativa.",
+      "salaBody": "Hai scelto PC sala. Chiudi e riapri Live SLIDE CENTER per attivare la modalità player.",
+      "hint": "Il ruolo viene letto solo all'avvio del processo (server locale + mDNS)."
     }
   },
   "pair": {
@@ -791,6 +951,33 @@
     },
     "networkMode": {
       "hint": "Modalità rete configurata per questa sala: {{mode}}."
+    }
+  },
+  "roomDevices": {
+    "empty": "Nessun PC sala collegato a questa sala.",
+    "lastSeen": "visto {{value}} fa",
+    "actionsMenuLabel": "Azioni per {{name}}",
+    "confirmRemove": "Rimuovere?",
+    "status": {
+      "online": "Online (connesso negli ultimi 30 secondi)",
+      "warning": "Attenzione (silenzio da 30s a 3 minuti)",
+      "offline": "Offline (silenzio da oltre 3 minuti o mai connesso)"
+    },
+    "actions": {
+      "forceRefresh": "Forza refresh",
+      "rename": "Rinomina",
+      "move": "Sposta in altra sala",
+      "remove": "Rimuovi PC"
+    },
+    "move": {
+      "placeholder": "Scegli sala…",
+      "noOtherRooms": "Nessun'altra sala disponibile."
+    },
+    "errors": {
+      "force_failed": "Impossibile inviare il refresh: connessione Realtime non disponibile.",
+      "rename_failed": "Rinomina fallita.",
+      "move_failed": "Spostamento fallito.",
+      "remove_failed": "Rimozione fallita."
     }
   },
   "roomPlayer": {
@@ -853,12 +1040,30 @@
       "statusPending": "In attesa",
       "statusSynced": "Sul disco",
       "retry": "Riprova",
+      "open": "Apri sul PC",
+      "openAria": "Apri «{{name}}» in anteprima locale",
+      "nowPlaying": "In onda",
       "errors": {
         "offline_cloud": "Internet assente: download da cloud non disponibile. Ripristina la connessione o usa la LAN con Local Agent.",
         "no_lan_agent": "Modalità intranet: nessun Local Agent online registrato per questo evento. Avvia l’agent sulla regia o passa a cloud/hybrid.",
         "permission_denied": "Permesso di scrittura sulla cartella negato.",
-        "download_failed": "Download non riuscito. Riprova."
+        "download_failed": "Download non riuscito. Riprova.",
+        "verify_mismatch": "Hash SHA-256 diverso da quello atteso dopo 3 tentativi di download. Il file potrebbe essere corrotto a monte: contatta l'admin per ricaricarlo.",
+        "storage_full": "Spazio disco insufficiente per scaricare il file. Pulisci file orfani o libera spazio sul disco."
       }
+    },
+    "storage": {
+      "title": "Spazio disco",
+      "usage": "{{used}} usati / {{quota}} ({{pct}}%)",
+      "warn": {
+        "warn": "Spazio in esaurimento: solo {{available}} disponibili. Considera di pulire i file orfani.",
+        "crit": "Spazio quasi esaurito: solo {{available}} disponibili. I prossimi download falliranno."
+      },
+      "cleanupButton": "Pulisci file orfani",
+      "confirmCleanup": "Saranno rimossi i file presenti sul disco ma non più nella lista corrente (es. presentazioni di sessioni concluse o sostituite). Procedere?",
+      "confirmCleanupAction": "Sì, pulisci",
+      "cleanupResult": "Rimossi {{files}} file, liberati {{size}}.",
+      "cleanupErrors": "{{count}} file non rimossi (in uso?)"
     },
     "connectivity": {
       "offlineBanner": "Connessione internet assente. Se la LAN e il Local Agent sono attivi, il download via sala può comunque funzionare (modalità intranet/hybrid)."
@@ -876,6 +1081,52 @@
       "hintHybrid": "LAN se disponibile, altrimenti fallback automatico su cloud.",
       "hintHybridCloudOnly": "Nessun agent LAN registrato: download solo da cloud.",
       "hintNoAgent": "Intranet senza agent online: collega il Local Agent o cambia modalità rete dell’evento."
+    },
+    "playbackMode": {
+      "label": "Modalità di sync",
+      "short": {
+        "auto": "Auto",
+        "live": "Live",
+        "turbo": "Turbo"
+      },
+      "hint": {
+        "auto": "Auto: comportamento standard. Polling 12s, download a piena banda. Adatto al pre-evento e alle pause.",
+        "live": "Live: stiamo proiettando. Polling rallentato a 60s e download throttled per non disturbare la proiezione.",
+        "turbo": "Turbo: setup pre-evento. Polling 5s e fino a 3 download in parallelo per finire in fretta."
+      }
+    },
+    "realtime": {
+      "label": "Sync push",
+      "subscribed": "LIVE SYNC",
+      "connecting": "Connessione…",
+      "polling": "POLLING",
+      "hint": {
+        "subscribed": "Push attivo: le modifiche caricate dall'admin appaiono qui in meno di 1 secondo. Polling solo come safety-net (60s).",
+        "connecting": "Sto stabilendo il canale push col cloud…",
+        "error": "Push non disponibile. Sto usando solo il polling: le novità appaiono entro pochi secondi.",
+        "idle": "Push non attivo. Sto usando solo il polling secondo la modalità impostata."
+      }
+    },
+    "verify": {
+      "verified": "Verificato",
+      "mismatch": "Hash diverso",
+      "skipped": "Non verificato",
+      "hint": {
+        "verified": "Integrità SHA-256 confermata: il file sul disco è identico byte-per-byte a quello caricato dall'admin.",
+        "mismatch": "Hash SHA-256 diverso da quello atteso: il file scaricato è corrotto o è stato modificato. Provato il ridownload completo 3 volte senza successo. NON usare per la proiezione.",
+        "skipped": "Verifica saltata: il file è troppo grande per il calcolo hash nel browser (>512 MB) oppure l'admin non ha registrato un hash. Il download è completo ma non è stato confrontato byte-per-byte."
+      }
+    },
+    "nowPlaying": {
+      "label": "In onda",
+      "aria": "In onda nella sala: {{name}}",
+      "timeJust": "ora",
+      "timeSeconds_one": "{{count}} sec fa",
+      "timeSeconds_other": "{{count}} sec fa",
+      "timeMinutes_one": "{{count}} min fa",
+      "timeMinutes_other": "{{count}} min fa",
+      "timeHours_one": "{{count}} ora fa",
+      "timeHours_other": "{{count}} ore fa"
     },
     "error": {
       "invalidToken": "Token non valido. Abbina nuovamente questo PC.",

@@ -1,0 +1,31 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability di default per la finestra principale Live SLIDE CENTER Desktop. Sprint J: bootstrap minimo (shell.open per `apri sul PC`, fs in scrittura, http verso localhost server Rust e Supabase Storage, notifiche). Vincoli aggiuntivi (es. fs limit a una root specifica) verranno aggiunti in Sprint M (persistenza configurazione) e Sprint N (sync file LAN). Sprint P3: aggiunti permessi updater (check/download/install) + process (relaunch dopo update).",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:allow-open",
+    "fs:default",
+    "fs:allow-read-text-file",
+    "fs:allow-write-text-file",
+    "fs:allow-mkdir",
+    "fs:allow-exists",
+    "http:default",
+    {
+      "identifier": "http:allow-fetch",
+      "allow": [
+        { "url": "http://127.0.0.1:7300/*" },
+        { "url": "http://localhost:7300/*" },
+        { "url": "https://*.supabase.co/*" }
+      ]
+    },
+    "notification:default",
+    "notification:allow-notify",
+    "dialog:default",
+    "dialog:allow-open",
+    "updater:default",
+    "process:default",
+    "process:allow-restart"
+  ]
+}

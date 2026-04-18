@@ -1,0 +1,139 @@
+[package]
+name = "slide-center-desktop"
+version = "0.1.0"
+edition = "2021"
+description = "Live SLIDE CENTER Desktop — wrapper Tauri 2 + server Rust locale (Sprint J + K)"
+
+# ── Sprint K (GUIDA_OPERATIVA_v3 §4.C) ──────────────────────────────────────
+# Build target: solo binary. Il server Axum + storage + mDNS sono moduli interni
+# (`src/server/...`) chiamati dal main; non serve esporre lib pubblica perche' non
+# ci sono integration test cargo crate-external. Se in Sprint Q servira' riusare
+# il server da un altro binary (es. CLI di backup), rifattorizziamo allora.
+
+[[bin]]
+name = "slide-center-desktop"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# ── Sprint J1: Tauri 2 + plugin minimi richiesti dalla guida operativa ─────
+#   • shell  → "Apri sul PC" con app esterna nativa (PowerPoint, Keynote, ...).
+#   • fs     → lettura/scrittura file locali (root cartelle scaricate).
+#   • http   → fetch verso il futuro server Rust locale (Sprint K) e Supabase Storage in modalita hybrid.
+#   • notification → popup di sistema su sync completato / errore.
+#   • dialog → showOpenDirectoryPicker nativo (alternative a FSA quando il PC sala non e' un browser puro).
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-http = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-dialog = "2"
+
+# ── Sprint P3 (GUIDA_OPERATIVA_v3 §4.H): auto-update Tauri ──────────────────
+# `tauri-plugin-updater` (MSRV 1.77.2) e `tauri-plugin-process` (per il
+# relaunch dopo install). Entrambi target-gated su desktop perche' l'updater
+# non supporta Android/iOS. Il blocco `[target.cfg(...)]` evita di provare a
+# compilarli per future build mobile.
+#
+# Attivazione end-to-end (vedi `apps/desktop/UPDATER_SETUP.md`):
+#   1. `cargo tauri signer generate -w ~/.tauri/slidecenter-desktop.key`
+#   2. Copia il contenuto `~/.tauri/slidecenter-desktop.key.pub` dentro
+#      `tauri.conf.json` -> `plugins.updater.pubkey`.
+#   3. Imposta `bundle.createUpdaterArtifacts: true`.
+#   4. Esporta `TAURI_SIGNING_PRIVATE_KEY` (e password se settata) prima di
+#      `cargo tauri build`.
+# Senza questi step la build NSIS funziona comunque (solo l'auto-check
+# remoto resta disattivato e la SPA mostra "updater_not_configured").
+[target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+
+# ── Sprint K1-K5: server Rust embeddato ────────────────────────────────────
+# Tokio: runtime asincrono. Tauri 2 espone `tauri::async_runtime` che e' tokio
+# multi-thread, ma per il server vogliamo un runtime "completo" anche per
+# `spawn_blocking` (chiamate rusqlite sincrone) e `signal` (graceful shutdown
+# in futuro).
+tokio = { version = "1", features = ["full"] }
+
+# Axum 0.7 = release stabile, API matura. Non saltiamo a 0.8 perche' `mdns-sd`
+# e altri crate del ecosistema sono ancora allineati a 0.7.
+axum = { version = "0.7", features = ["macros", "multipart", "tokio"] }
+tower = { version = "0.4", features = ["util"] }
+tower-http = { version = "0.5", features = ["cors", "fs", "trace", "limit"] }
+
+# DB: rusqlite (sincrono, bundled). Scelta vs `sqlx` deliberata:
+#   1. nessun build-time SQL check necessario (single-user desktop, no team)
+#   2. `bundled` evita di dipendere da SQLite di sistema (Win/macOS/Linux uniformi)
+#   3. niente macro proc, build piu' rapido
+#   4. r2d2 pool +Mutex<Connection> per il single-writer pattern di SQLite con WAL
+# Le query rusqlite sono sincrone → wrappate in `tokio::task::spawn_blocking`.
+rusqlite = { version = "0.31", features = ["bundled", "chrono", "serde_json"] }
+r2d2 = "0.8"
+r2d2_sqlite = "0.24"
+
+# mDNS: pure-rust, niente bind a Bonjour/Avahi → portabile Win/Mac/Linux.
+mdns-sd = "0.11"
+
+# Hashing + auth + signed URL.
+sha2 = "0.10"
+hmac = "0.12"
+hex = "0.4"
+base64 = "0.22"
+
+# Serializzazione (serde gia' transitive da axum, dichiarata esplicita per chiarezza).
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Error handling.
+anyhow = "1"
+thiserror = "1"
+
+# Path data dir cross-platform (Win: %APPDATA%, Mac: ~/Library/Application Support, Linux: ~/.config).
+# Per Live SLIDE CENTER usiamo ~/SlideCenter (sezione 13 della guida) come root data,
+# ma dirs serve come fallback se HOME non e' espandibile.
+dirs = "5"
+
+# UUID v4 per ID locali (compat con Postgres `gen_random_uuid()`).
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# RNG per generare codici pairing 6 cifre (Sprint K5 — pair-init).
+rand = "0.8"
+
+# Timestamps ISO-8601 in UTC (compat con Postgres `timestamptz` come stringa).
+chrono = { version = "0.4", features = ["serde"] }
+
+# Streaming bytes (per upload/download chunked grandi file).
+bytes = "1"
+futures = "0.3"
+tokio-util = { version = "0.7", features = ["io"] }
+
+# Sprint N1: client HTTP per fan-out push admin → PC sala paired (notifica
+# `file_added` dopo `finalize_upload_version_admin`). Usiamo `rustls-tls`
+# invece di `native-tls`/OpenSSL: zero dipendenze C su Win/macOS/Linux,
+# build piu' rapido, niente CRT mismatch su Windows. Fan-out e' fire-and-forget
+# best-effort con timeout corto, quindi anche se reqwest ha overhead allo
+# startup va bene.
+reqwest = { version = "0.12", default-features = false, features = [
+  "json",
+  "rustls-tls",
+] }
+
+# Range request: parsing del header `Range: bytes=START-END` → Sprint K4.
+# `headers` espone tipi tipizzati per Range.
+headers = "0.4"
+
+# MIME guessing (per Content-Type del file servito).
+mime = "0.3"
+mime_guess = "2"
+
+# Logging strutturato (per debugging field test).
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[profile.release]
+strip = true
+opt-level = 3
+lto = true
+codegen-units = 1
