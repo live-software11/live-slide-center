@@ -1,10 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@slidecenter/shared';
+import type { Database, ValidationWarning } from '@slidecenter/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { invokeEdgeFunction } from '@/lib/edge-functions';
 
 export type Presentation = Database['public']['Tables']['presentations']['Row'];
 export type PresentationVersion = Database['public']['Tables']['presentation_versions']['Row'];
 export type PresentationStatus = Database['public']['Enums']['presentation_status'];
+
+export type { ValidationWarning };
 
 export interface PresentationBundle {
   presentation: Presentation | null;
@@ -234,4 +237,75 @@ export async function movePresentationToSession(
   });
   if (error || !data) throw error ?? new Error('move_presentation_to_session_failed');
   return data as unknown as MovePresentationToSessionResult;
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Sprint T-3-A (G10): file validator warn-only
+// ────────────────────────────────────────────────────────────────────
+
+export interface UnvalidatedVersion {
+  versionId: string;
+  presentationId: string;
+  fileName: string;
+  storageKey: string;
+}
+
+export interface SlideValidatorResult {
+  ok: boolean;
+  processed: number;
+  results: Array<{
+    version_id: string;
+    ok: boolean;
+    warnings_count?: number;
+    skipped?: boolean;
+    reason?: string;
+  }>;
+}
+
+/**
+ * Sprint T-3-A: ritorna fino a `limit` versions ready non ancora validate
+ * per la sessione. Usa RPC `list_unvalidated_versions_for_session` (RLS-isolata).
+ *
+ * Il chiamante (hook `useValidationTrigger`) invoca poi `invokeSlideValidator`
+ * con le `versionId` ricevute.
+ */
+export async function listUnvalidatedVersionsForSession(
+  sessionId: string,
+  limit = 10,
+): Promise<UnvalidatedVersion[]> {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.rpc('list_unvalidated_versions_for_session', {
+    p_session_id: sessionId,
+    p_limit: limit,
+  });
+  if (error) throw error;
+  const rows = (data ?? []) as Array<{
+    version_id: string;
+    presentation_id: string;
+    file_name: string;
+    storage_key: string;
+  }>;
+  return rows.map((r) => ({
+    versionId: r.version_id,
+    presentationId: r.presentation_id,
+    fileName: r.file_name,
+    storageKey: r.storage_key,
+  }));
+}
+
+/**
+ * Sprint T-3-A: invoca l Edge Function `slide-validator` con i version_id da
+ * processare (max 5 lato server). Best-effort: i fallimenti per singola
+ * version non bloccano la response complessiva.
+ *
+ * NB: l Edge function ha rate-limit naturale (gira solo se `validated_at IS NULL`),
+ * quindi piu' tab che la triggherano per gli stessi id non duplicano lavoro.
+ */
+export async function invokeSlideValidator(versionIds: string[]): Promise<SlideValidatorResult> {
+  if (versionIds.length === 0) {
+    return { ok: true, processed: 0, results: [] };
+  }
+  return invokeEdgeFunction<SlideValidatorResult>('slide-validator', {
+    version_ids: versionIds,
+  });
 }

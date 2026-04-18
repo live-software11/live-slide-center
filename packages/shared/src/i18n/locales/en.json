@@ -626,6 +626,38 @@
       "errorGeneric": "Move failed. Retry."
     }
   },
+  "presentations": {
+    "validation": {
+      "pending": "Checking…",
+      "pendingTooltip": "Automatic file check in progress (max 2 min).",
+      "issuesCount_one": "{{count}} issue",
+      "issuesCount_other": "{{count}} issues",
+      "issuesAria_one": "{{count}} validation issue on {{name}}",
+      "issuesAria_other": "{{count}} validation issues on {{name}}",
+      "moreIssues_one": "…and {{count}} more",
+      "moreIssues_other": "…and {{count}} more",
+      "detailsTitle": "File validation",
+      "codes": {
+        "file_too_large_to_validate": "File is too large for automatic validation ({{size_bytes}} bytes). Please check it manually.",
+        "file_size_large": "File is very large — download to room PCs may be slow.",
+        "storage_unreachable": "Cannot read the file from Storage — the underlying object may be missing.",
+        "fetch_timeout": "Download timed out: validation incomplete. Will retry on next access.",
+        "mime_type_mismatch": "Declared type is \"{{declared}}\" but content looks like \"{{sniffed}}\". File may not open correctly on the room PC.",
+        "pptx_corrupted": "PPTX file cannot be opened: archive is damaged.",
+        "pptx_missing_core": "PPTX is missing the core entry (ppt/presentation.xml). It may be a renamed ZIP file.",
+        "pptx_aspect_4_3": "Slides are 4:3. Most projectors are 16:9 — slides may show black bars on the sides.",
+        "pptx_aspect_custom": "Non-standard slide aspect ratio ({{ratio}}:1). Verify it matches the projector.",
+        "pptx_fonts_not_embedded": "Found {{count}} non-standard font(s) not embedded in the file: {{fonts}}. Room PCs may substitute them automatically.",
+        "pptx_fonts_partially_embedded": "Some fonts may not be fully embedded: {{suspicious}}.",
+        "pptx_external_media_links": "Found {{count}} external video/audio link(s) (HTTP). Room PC needs internet to play them — consider embedding the media in the file.",
+        "pdf_too_small": "PDF file is too small to be valid.",
+        "pdf_missing_magic": "File does not start with %PDF- — it looks corrupted or it isn't a PDF.",
+        "pdf_missing_eof": "PDF file is missing the %%EOF marker — file may be truncated or corrupted.",
+        "pdf_no_pages_detected": "Could not detect any pages in this PDF (may be password-protected or use an unusual structure).",
+        "validator_internal_error": "Validation failed: {{message}}. Please check the file manually."
+      }
+    }
+  },
   "sync": {
     "status": "Sync status",
     "synced": "Synced",

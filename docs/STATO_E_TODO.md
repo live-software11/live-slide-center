@@ -5,7 +5,7 @@
 >
 > **Versione:** 2.11 — 18 aprile 2026 (post-Audit Q+1.5)
 > **Owner:** Andrea Rizzari
-> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**. **Sprint T-1 (G8, badge versione "in onda" sempre visibile in sala + toast cambio versione, §0.16) DONE**. **Sprint T-2 (G9, telemetria perf live PC sala — CPU/RAM/heap/disco/FPS/battery, §0.17) DONE**. **Audit completo + bugfix Q+1.5 (§0.18) DONE — semaforo VERDE su tutto**. **Sprint T-3 (G10) PIANO §0.19 → in esecuzione: T-3-A (file validator warn-only) IN CORSO, T-3-E + T-3-G a seguire dopo semaforo verde Andrea**.
+> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**. **Sprint T-1 (G8, badge versione "in onda" sempre visibile in sala + toast cambio versione, §0.16) DONE**. **Sprint T-2 (G9, telemetria perf live PC sala — CPU/RAM/heap/disco/FPS/battery, §0.17) DONE**. **Audit completo + bugfix Q+1.5 (§0.18) DONE — semaforo VERDE su tutto**. **Sprint T-3 (G10) PIANO §0.19 → T-3-A (file validator warn-only, §0.20) DONE — semaforo VERDE. T-3-E + T-3-G in coda dopo conferma Andrea**.
 >
 > **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 9/10 chiusi (G1 in R-1, G2 in R-2, G3 in R-3, G4 in S-1, G5 in S-2, G6 in S-3, G7 in S-4, G8 in T-1, G9 in T-2) → completata FAMIGLIA R + completata FAMIGLIA S → famiglia T 2/3 (resta G10 features competitor).**
 >
@@ -46,6 +46,7 @@
    - 0.17 [Sprint T-2 — Telemetria perf live PC sala (DONE)](#017-sprint-t-2--telemetria-perf-live-pc-sala-done-18042026)
    - 0.18 [Audit completo + Bugfix Q+1.5 (DONE)](#018-audit-completo--bugfix-q15-done-18042026)
    - 0.19 [Sprint T-3 (G10) — Piano implementazione](#019-sprint-t-3-g10--piano-implementazione-decisione-18042026)
+   - 0.20 [Sprint T-3-A — File error checking automatico (DONE)](#020-sprint-t-3-a--file-error-checking-automatico-done-18042026)
 1. [Stato attuale (tutto DONE)](#1-stato-attuale-tutto-done)
 2. [Cose da fare ORA (azioni esterne Andrea, NON automatizzabili)](#2-cose-da-fare-ora-azioni-esterne-andrea-non-automatizzabili)
 3. [Field test desktop (quando vorrai farlo)](#3-field-test-desktop-quando-vorrai-farlo)
@@ -1635,6 +1636,110 @@ Architettura provvisoria: pdf.js Worker render thumbnail page+1 con cache LRU. S
 #### 0.19.3 T-3-G — Remote slide control da tablet (PENDING, parte dopo semaforo verde T-3-E)
 
 Architettura provvisoria: PWA route `/remote/<token>` + pairing 6-digit + Realtime broadcast `room:<id>:remote` con eventi `next/prev/goto/blank`. PC sala traduce in keydown via Tauri global keybind (desktop) o DOM event (web).
+
+---
+
+### 0.20 Sprint T-3-A — File error checking automatico (DONE 18/04/2026)
+
+**Implementato:** validazione automatica warn-only dei file caricati (PPTX + PDF + sniff MIME generico). Nessun blocco upload, badge giallo `⚠ N avvisi` accanto al filename con popover di dettaglio.
+
+#### 0.20.1 Architettura scelta (pull-based on-demand)
+
+Decisione architetturale: **NO pg_cron + pg_net**, ma **invocazione lazy lato client**.
+
+**Motivazione:**
+- pg_net non e' ancora abilitato sull'istanza Supabase del progetto.
+- pull-based = paghiamo Edge function solo quando l'admin guarda davvero la sessione.
+- Idempotente: la RPC `record_validation_warnings` ha guard su `validated_at IS NULL`, due tab che triggherano in parallelo non causano doppi-write.
+- Latenza accettabile (max 1-2 min tra upload e badge visibile, l'admin sta gia' visionando i file).
+
+**Flow:**
+```
+[admin apre sessione]
+   → SessionFilesPanel monta useValidationTrigger
+   → RPC list_unvalidated_versions_for_session(session_id, 10)  (RLS-isolata)
+   → se versions != 0 → Edge Function slide-validator(version_ids[])
+      → per ogni version: signedUrl 120s + fetch + parse (JSZip per pptx)
+      → record_validation_warnings(version_id, warnings[])  (idempotente)
+   → onValidated → loadFiles() → badge appaiono
+```
+
+Throttle hook 60s per sessione (evita hammer su panel collapse/expand).
+
+#### 0.20.2 Validazioni implementate
+
+| Tipo file | Check | Severity | Note |
+|-----------|-------|----------|------|
+| `.pptx` | Archivio corrotto (JSZip apertura) | error | "PPTX cannot be opened" |
+| `.pptx` | Manca `ppt/presentation.xml` | error | File ZIP rinominato |
+| `.pptx` | Aspect ratio 4:3 | info | Solo segnalazione (proiettori 16:9) |
+| `.pptx` | Aspect ratio custom (≠16:9, ≠4:3, ≠16:10) | info | "Verify projector format" |
+| `.pptx` | Font non in safe-list e non embedded | warning | safe-list 28+ font Windows out-of-box (Calibri, Arial, Wingdings, ecc.) |
+| `.pptx` | Font parzialmente embedded | warning | match name prefix nei file `ppt/fonts/*` |
+| `.pptx` | Video/audio link HTTP esterno | warning | Scan `slide*.xml.rels` per `TargetMode="External"` |
+| `.pdf` | Magic bytes mancanti `%PDF-` | error | File corrotto o non PDF |
+| `.pdf` | EOF marker `%%EOF` mancante | error | File troncato |
+| `.pdf` | 0 pagine rilevate | warning | Approssimato via scan ultimi 64 KB per `/Type /Page` |
+| `.pdf` | File <5 byte | error | Quasi-vuoto |
+| tutti | Size >50 MB | info | Validation skipped (limite parser) |
+| tutti | Size >500 MB | warning | Possibile lag download PC sala |
+| tutti | MIME dichiarato vs sniffed mismatch | warning | Catch upload PDF rinominati `.pptx` ecc. |
+| tutti | Storage unreachable (signed URL fail) | error | Object missing |
+| tutti | Fetch timeout >30s | warning | Validation incompleta, retry al prossimo tick |
+| tutti | Validator internal error | warning | Cattura tutti gli errori del parser stesso |
+
+Totale: **17 codici** stable in i18n IT/EN sotto `presentations.validation.codes.*`.
+
+#### 0.20.3 File creati/modificati
+
+**Migration:**
+- `supabase/migrations/20260418200000_validation_warnings.sql` — colonne `validation_warnings` (JSONB) + `validated_at` (TIMESTAMPTZ), indice partial `idx_pv_unvalidated_ready`, RPC `record_validation_warnings` (SECURITY DEFINER, GRANT solo service_role) e `list_unvalidated_versions_for_session` (SECURITY INVOKER, GRANT authenticated).
+
+**Edge Function:**
+- `supabase/functions/slide-validator/index.ts` — JWT auth, cross-tenant guard, signedUrl Storage, parser JSZip per pptx + parser custom per pdf, dispatcher RPC. Limiti: max 5 version per call, max 50 MB per file, fetch timeout 30s.
+
+**Web client:**
+- `apps/web/src/lib/edge-functions.ts` (NEW) — modulo condiviso `invokeEdgeFunction`, `EdgeFunctionAuthError`, `EdgeFunctionMissingError`, `ensureFreshAccessToken`. Refactor estratto da `features/devices/repository.ts` per dedup tra features (zero comportamento cambiato, re-export per backward-compat).
+- `apps/web/src/features/devices/repository.ts` — re-export errors + import dell helper dal nuovo modulo (zero diff comportamentale).
+- `apps/web/src/features/presentations/repository.ts` — `listUnvalidatedVersionsForSession()`, `invokeSlideValidator()`, re-export `ValidationWarning`.
+- `apps/web/src/features/presentations/hooks/useValidationTrigger.ts` (NEW) — kick lazy Edge function, throttle 60s, idempotente, best-effort.
+- `apps/web/src/features/presentations/components/ValidationIssuesBadge.tsx` (NEW) — badge tre stati (validating / clean / N issues), popover dettaglio, traduzione i18n con fallback al `message` inglese.
+- `apps/web/src/features/presentations/components/SessionFilesPanel.tsx` — propaga `validation_warnings` dalla query, integra hook + badge accanto al filename.
+
+**Types:**
+- `packages/shared/src/types/database.ts` — type `ValidationWarning`, colonne nuove su `presentation_versions.Row/Insert/Update`, signature delle 2 RPC nuove.
+- `packages/shared/src/index.ts` — export `ValidationWarning`.
+
+**i18n:**
+- `packages/shared/src/i18n/locales/it.json` + `en.json` — namespace `presentations.validation.*` con 26 chiavi (badge labels + 17 codici warning + plurali). Parita' confermata 1338/1338.
+
+#### 0.20.4 Quality gates
+
+- typecheck: VERDE (5 successful, 5 total).
+- lint: VERDE (1 errore rules-of-hooks corretto: useMemo spostato prima degli early return).
+- build: VERDE (2549 modules transformed, bundle `edge-functions-*.js` 1.41 KB gzip 0.85 KB, `jszip.min-*.js` gia' presente per altre feature, no bloat).
+- i18n parity: 1338/1338 chiavi entrambe lingue.
+- ReadLints: 0 errori sui file modificati.
+
+#### 0.20.5 Deploy operativo richiesto
+
+Dopo merge:
+1. **DB migration**: `supabase db push` (o manuale via Studio per istanza prod).
+2. **Edge Function**: `supabase functions deploy slide-validator` (dipendenza npm:jszip risolta automaticamente da Deno runtime).
+3. **Verifica**: aprire una sessione esistente con file gia' caricati. Dopo ~30s i badge `⚠ N avvisi` (o assenti = clean) compaiono.
+
+Nessun secret nuovo richiesto, nessuna config Lemon Squeezy / Resend toccata.
+
+#### 0.20.6 Test funzionali consigliati
+
+- Caricare un `.pptx` con font Wingdings 4 non embedded → badge giallo `1 avviso` con tooltip "font non incorporato".
+- Caricare un `.pdf` valido → nessun badge (validato senza issue).
+- Rinominare `.docx` in `.pptx` → badge rosso `1 avviso` con tooltip MIME mismatch.
+- Caricare file da 100 MB → badge grigio `1 avviso info` "file troppo grande per validazione automatica".
+
+#### 0.20.7 Conclusione T-3-A
+
+**SEMAFORO VERDE su T-3-A.** Pronto a partire con T-3-E (Preview slide successiva) appena Andrea conferma.
 
 ---
 

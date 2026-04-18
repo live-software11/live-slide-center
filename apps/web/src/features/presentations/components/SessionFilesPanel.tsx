@@ -31,7 +31,10 @@ import {
   type UploadJob,
 } from '@/features/presentations/hooks/useUploadQueue';
 import { useFilePreviewSource } from '@/features/presentations/hooks/useFilePreviewSource';
+import { useValidationTrigger } from '@/features/presentations/hooks/useValidationTrigger';
 import { FilePreviewDialog } from '@/features/presentations/components/FilePreviewDialog';
+import { ValidationIssuesBadge } from '@/features/presentations/components/ValidationIssuesBadge';
+import type { ValidationWarning } from '@slidecenter/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 
 /**
@@ -88,6 +91,13 @@ interface FileRow {
   status: PresentationVersion['status'];
   /** Sprint I (anteprima): MIME ufficiale lato server (può essere `application/octet-stream` per upload legacy). */
   mimeType: string;
+  /**
+   * Sprint T-3-A (G10): warnings dal validator.
+   *  - `null` = non ancora validato (l hook `useValidationTrigger` partira')
+   *  - `[]`   = validato senza issue
+   *  - `[...]` = N issue da mostrare nel badge
+   */
+  validationWarnings: ValidationWarning[] | null;
 }
 
 type BulkAction = 'idle' | 'zip' | 'move' | 'delete';
@@ -203,7 +213,9 @@ export function SessionFilesPanel({
       const [{ data: versions, error: vErr }, { data: speakers, error: sErr }] = await Promise.all([
         supabase
           .from('presentation_versions')
-          .select('id, presentation_id, file_name, file_size_bytes, mime_type, created_at, storage_key, status')
+          .select(
+            'id, presentation_id, file_name, file_size_bytes, mime_type, created_at, storage_key, status, validation_warnings',
+          )
           .in('presentation_id', presIds)
           .order('created_at', { ascending: false }),
         speakerIds.length > 0
@@ -226,6 +238,7 @@ export function SessionFilesPanel({
         created_at: string;
         storage_key: string;
         status: PresentationVersion['status'];
+        validation_warnings: ValidationWarning[] | null;
       }>;
 
       const presentationById = new Map(presList.map((p) => [p.id, p]));
@@ -247,6 +260,7 @@ export function SessionFilesPanel({
             speakerName,
             status: v.status,
             mimeType: v.mime_type ?? 'application/octet-stream',
+            validationWarnings: v.validation_warnings,
           };
         })
         .filter((r): r is FileRow => r !== null)
@@ -278,6 +292,17 @@ export function SessionFilesPanel({
     supabaseUrl,
     anonKey,
     onJobDone: () => void loadFiles(),
+  });
+
+  // Sprint T-3-A (G10): trigger validator warn-only.
+  // Al cambio della lista file (`files.length` come trigger) o al primo open
+  // del pannello, kick l Edge function `slide-validator`. Throttle 60s.
+  // Quando finisce, refresha la lista per mostrare i badge.
+  useValidationTrigger({
+    sessionId,
+    enabled,
+    versionsTrigger: files.length,
+    onValidated: () => void loadFiles(),
   });
 
   // Sprint G: purga selezione su cambio file (vedi rationale Sprint G).
@@ -1038,14 +1063,20 @@ export function SessionFilesPanel({
                       />
                     )}
                     <div className="min-w-0 flex-1">
-                      <button
-                        type="button"
-                        onClick={() => setPreviewFile(f)}
-                        className="block w-full break-all text-left text-sm text-sc-text transition hover:text-sc-primary hover:underline"
-                        title={t('sessionFiles.previewHint', { name: f.fileName })}
-                      >
-                        {f.fileName}
-                      </button>
+                      <div className="flex flex-wrap items-start gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewFile(f)}
+                          className="break-all text-left text-sm text-sc-text transition hover:text-sc-primary hover:underline"
+                          title={t('sessionFiles.previewHint', { name: f.fileName })}
+                        >
+                          {f.fileName}
+                        </button>
+                        <ValidationIssuesBadge
+                          warnings={f.validationWarnings}
+                          fileName={f.fileName}
+                        />
+                      </div>
                       <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-sc-text-dim">
                         <span>{dateTimeFmt.format(new Date(f.createdAt))}</span>
                         <span>·</span>

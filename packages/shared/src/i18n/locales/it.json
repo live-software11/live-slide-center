@@ -626,6 +626,38 @@
       "errorGeneric": "Spostamento non riuscito. Riprova."
     }
   },
+  "presentations": {
+    "validation": {
+      "pending": "Verifica…",
+      "pendingTooltip": "Controllo automatico del file in corso (max 2 min).",
+      "issuesCount_one": "{{count}} avviso",
+      "issuesCount_other": "{{count}} avvisi",
+      "issuesAria_one": "{{count}} avviso di validazione su {{name}}",
+      "issuesAria_other": "{{count}} avvisi di validazione su {{name}}",
+      "moreIssues_one": "…e altri {{count}}",
+      "moreIssues_other": "…e altri {{count}}",
+      "detailsTitle": "Validazione file",
+      "codes": {
+        "file_too_large_to_validate": "File troppo grande per la validazione automatica ({{size_bytes}} byte). Verifica manualmente.",
+        "file_size_large": "File molto grande: il download sui PC sala potrebbe essere lento.",
+        "storage_unreachable": "Impossibile leggere il file dallo Storage — l'oggetto potrebbe essere mancante.",
+        "fetch_timeout": "Download del file scaduto: validazione incompleta. Riprovera' al prossimo accesso.",
+        "mime_type_mismatch": "Il tipo dichiarato e' \"{{declared}}\" ma il contenuto sembra \"{{sniffed}}\". Il file potrebbe non aprirsi correttamente sul PC sala.",
+        "pptx_corrupted": "Il file .pptx non puo' essere aperto: archivio danneggiato.",
+        "pptx_missing_core": "Manca la parte essenziale del .pptx (ppt/presentation.xml). Potrebbe essere un file ZIP rinominato.",
+        "pptx_aspect_4_3": "Slide in formato 4:3. La maggioranza dei proiettori e' 16:9 — potresti vedere bande nere ai lati.",
+        "pptx_aspect_custom": "Aspect ratio slide non standard ({{ratio}}:1). Verifica che corrisponda al proiettore.",
+        "pptx_fonts_not_embedded": "Trovati {{count}} font non standard non incorporati nel file: {{fonts}}. Sui PC sala potrebbero essere sostituiti automaticamente.",
+        "pptx_fonts_partially_embedded": "Alcuni font potrebbero non essere incorporati completamente: {{suspicious}}.",
+        "pptx_external_media_links": "Trovati {{count}} link a video/audio esterni (HTTP). Il PC sala deve avere internet per riprodurli — meglio incorporare i media nel file.",
+        "pdf_too_small": "File PDF troppo piccolo per essere valido.",
+        "pdf_missing_magic": "Il file non inizia con %PDF- — sembra corrotto o non e' un PDF.",
+        "pdf_missing_eof": "Il file PDF non ha il marker finale %%EOF — potrebbe essere troncato o corrotto.",
+        "pdf_no_pages_detected": "Non e' stato possibile rilevare pagine in questo PDF (potrebbe essere protetto da password o usare una struttura insolita).",
+        "validator_internal_error": "Validazione non riuscita: {{message}}. Verifica il file manualmente."
+      }
+    }
+  },
   "sync": {
     "status": "Stato sincronizzazione",
     "synced": "Sincronizzato",

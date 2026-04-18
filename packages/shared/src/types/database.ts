@@ -6,6 +6,18 @@
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
+/**
+ * Sprint T-3-A (G10): schema warning emesso dall'Edge Function `slide-validator`.
+ * `code` e' la chiave i18n stable (es. 'pptx_fonts_not_embedded'), `message`
+ * e' la fallback in inglese, `details` payload diagnostico libero.
+ */
+export interface ValidationWarning {
+  code: string;
+  severity: 'info' | 'warning' | 'error';
+  message: string;
+  details?: Record<string, unknown>;
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -408,6 +420,8 @@ export type Database = {
           status: Database['public']['Enums']['version_status'];
           notes: string | null;
           created_at: string;
+          validation_warnings: ValidationWarning[] | null;
+          validated_at: string | null;
         };
         Insert: {
           id?: string;
@@ -425,6 +439,8 @@ export type Database = {
           status?: Database['public']['Enums']['version_status'];
           notes?: string | null;
           created_at?: string;
+          validation_warnings?: ValidationWarning[] | null;
+          validated_at?: string | null;
         };
         Update: {
           id?: string;
@@ -442,6 +458,8 @@ export type Database = {
           status?: Database['public']['Enums']['version_status'];
           notes?: string | null;
           created_at?: string;
+          validation_warnings?: ValidationWarning[] | null;
+          validated_at?: string | null;
         };
         Relationships: [];
       };
@@ -1188,6 +1206,27 @@ export type Database = {
       cleanup_device_metric_pings: {
         Args: Record<string, never>;
         Returns: number;
+      };
+      /**
+       * Sprint T-3-A (G10) — scrittura idempotente warnings da Edge Function
+       * `slide-validator`. SECURITY DEFINER + GRANT solo service_role.
+       */
+      record_validation_warnings: {
+        Args: { p_version_id: string; p_warnings: ValidationWarning[] };
+        Returns: { ok: boolean; skipped: boolean; reason?: string; warnings_count?: number };
+      };
+      /**
+       * Sprint T-3-A (G10) — lista versions ready ancora non validate per una
+       * sessione, usata dal hook `useValidationTrigger` per kick dell Edge.
+       */
+      list_unvalidated_versions_for_session: {
+        Args: { p_session_id: string; p_limit?: number };
+        Returns: Array<{
+          version_id: string;
+          presentation_id: string;
+          file_name: string;
+          storage_key: string;
+        }>;
       };
     };
     Enums: {
