@@ -306,21 +306,21 @@ export function SessionFilesPanel({
   });
 
   // Sprint G: purga selezione su cambio file (vedi rationale Sprint G).
-  const [trackedFileIds, setTrackedFileIds] = useState<string>('');
+  // Audit-fix 2026-04-18: spostato da render -> useEffect per evitare setState
+  // durante il render (anti-pattern React).
   const fileIdsKey = useMemo(() => files.map((f) => f.presentationId).join(','), [files]);
-  if (trackedFileIds !== fileIdsKey) {
-    setTrackedFileIds(fileIdsKey);
-    if (selected.size > 0) {
-      const validIds = new Set(files.map((f) => f.presentationId));
-      let changed = false;
-      const next = new Set<string>();
-      for (const id of selected) {
-        if (validIds.has(id)) next.add(id);
-        else changed = true;
-      }
-      if (changed) setSelected(next);
+  useEffect(() => {
+    if (selected.size === 0) return;
+    const validIds = new Set(files.map((f) => f.presentationId));
+    let changed = false;
+    const next = new Set<string>();
+    for (const id of selected) {
+      if (validIds.has(id)) next.add(id);
+      else changed = true;
     }
-  }
+    if (changed) setSelected(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- voluto: solo su cambio fileIdsKey
+  }, [fileIdsKey]);
 
   // Sprint H C3: feedback transient drop "muovi qui".
   useEffect(() => {

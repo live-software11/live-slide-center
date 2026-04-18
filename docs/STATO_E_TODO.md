@@ -3,7 +3,7 @@
 > **Documento operativo gemello di `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare, in ordine di priorita. Per "cosa fa il prodotto" e "come e fatto" → architettura.
 >
-> **Versione:** 2.12 — 18 aprile 2026 (post-Sprint T-3 completo)
+> **Versione:** 2.13 — 18 aprile 2026 (post-deploy Vercel + Supabase + audit chirurgico §0.23)
 > **Owner:** Andrea Rizzari
 > **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**. **Sprint T-1 (G8, badge versione "in onda" sempre visibile in sala + toast cambio versione, §0.16) DONE**. **Sprint T-2 (G9, telemetria perf live PC sala — CPU/RAM/heap/disco/FPS/battery, §0.17) DONE**. **Audit completo + bugfix Q+1.5 (§0.18) DONE — semaforo VERDE su tutto**. **Sprint T-3 (G10) COMPLETO: T-3-A (file validator warn-only, §0.20) DONE → T-3-E (Next-Up file preview, §0.21) DONE → T-3-G (remote control tablet, §0.22) DONE — TUTTE E TRE LE FEATURE COMPETITOR VERDE.**
 >
@@ -28,6 +28,8 @@
 > **Sprint T-1 (§ 0.16):** versione "in onda" ora visibile **a colpo d'occhio** in sala. Badge `vN/M` con color coding sovrano: **verde** se la corrente e' anche la piu' recente, **giallo** se l'admin ha riportato indietro la corrente (esiste una versione piu' nuova). Badge `inline` sempre visibile accanto al filename in `FileSyncStatus`; badge `overlay` top-right durante l'anteprima fullscreen di `FilePreviewDialog` (auto-fade 5s, ricompare on mouse/touch/key — UX standard player video). Toast notify automatico su cambio versione (`info` se nuova, `warning` se rollback admin) con titolo + descrizione i18n IT/EN. Edge Function `room-player-bootstrap` arricchita con `versionNumber` + `versionTotal` (MAX su `presentation_versions` per `presentation_id` filtrato `status IN ('ready','superseded')`). Zero modifiche schema DB.
 >
 > **Sprint T-2 (§ 0.17):** telemetria perf live PC sala (CPU/RAM/heap/storage/FPS/battery/network) ora disponibile come widget admin **`LivePerfTelemetryPanel`** in `EventDetailView`. Il PC sala collector (`useDevicePerformanceCollector`) raccoglie ad ogni tick di polling (5/12/60s a seconda del playback mode) un payload metrics — heap JS%, storage quota%, FPS via rAF EMA, network type+downlink, battery%+charging, visibility tab — e lo iniettia nel bootstrap. L'Edge Function lo persiste nella nuova tabella append-only `device_metric_pings` (RLS chiusa, INSERT solo via SECURITY DEFINER `record_device_metric_ping` con rate-limit 3s, retention 24h via `cleanup_device_metric_pings` schedulato pg_cron daily 03:00 UTC). L'admin polla ogni 8s la RPC `fetch_device_metrics_for_event` (auth `app_tenant_id()` + ruolo admin/tech) e vede una griglia card per device con header health-dot (verde/giallo/rosso/grigio), badge battery, status offline/network/source, e per ogni metrica numero big colorato + sparkline SVG inline (zero deps, ~200 byte) ultimi 30 min. **Soglie sovrane** (heap>=85% warning/95% critical, storage>=90/95, FPS<30/15, battery<20/10 e !charging, CPU/RAM solo per source=desktop>=85/95). Toast alert debounced **30s** quando un device entra in critical/warning, toast `success` "recovered" al rientro. Pannello collassabile (default chiuso, summary header "X sani | Y attenzione | Z critici" sempre visibile), persistito localStorage. Auto-hidden quando 0 device pairati (no rumore UI in tenant nuovo). Verde per Sprint T-3 (G10, features competitor: file checking, ePoster, mobile speaker ready room) quando vuoi.
+>
+> **Audit chirurgico post-deploy 18/04/2026 (§ 0.23):** dopo deploy Vercel + Supabase chiuso con commit `pre-field-test`, audit completo su 100% migrations + Edge Functions + critical paths frontend. Identificate **8 issue HIGH/CRITICAL fixate immediatamente** (`activity_log` colonne errate in `rpc_move_presentation_to_session`, TOCTOU race su `pair-claim`, idempotency race su Lemon Squeezy webhook, cross-room finalize forbidden, info disclosure su 4 Edge Functions, `setState` in render in `SessionFilesPanel`, UI stuck in `EventDetailView`, hang `fetch` senza timeout in export ZIP) — tutti gia' in produzione tramite migration `20260418220000_audit_fixes_post_deploy.sql` + redeploy 4 Edge Functions. **9 issue MEDIUM** documentate in §0.23.2 come backlog per sessioni dedicate (retention DB, CORS hardening, rate limit esteso, performance Realtime e bundle, outbox queue offline Tauri, test E2E mancanti). Quality gate post-fix verde.
 
 ---
 
@@ -49,6 +51,7 @@
    - 0.20 [Sprint T-3-A — File error checking automatico (DONE)](#020-sprint-t-3-a--file-error-checking-automatico-done-18042026)
    - 0.21 [Sprint T-3-E — Preview "Prossimo file" su PC tecnico (DONE)](#021-sprint-t-3-e--preview-prossimo-file-su-pc-tecnico-done-18042026)
    - 0.22 [Sprint T-3-G — Remote slide control da tablet (DONE)](#022-sprint-t-3-g--remote-slide-control-da-tablet-done-18042026)
+   - 0.23 [Audit chirurgico post-deploy 18/04/2026 (DONE + sessioni dedicate)](#023-audit-chirurgico-post-deploy-18042026-done--sessioni-dedicate)
 1. [Stato attuale (tutto DONE)](#1-stato-attuale-tutto-done)
 2. [Cose da fare ORA (azioni esterne Andrea, NON automatizzabili)](#2-cose-da-fare-ora-azioni-esterne-andrea-non-automatizzabili)
 3. [Field test desktop (quando vorrai farlo)](#3-field-test-desktop-quando-vorrai-farlo)
@@ -2050,6 +2053,63 @@ L'evoluzione "next/prev SLIDE reale" rimane **fattibile in futuro** come Sprint 
 | T-3-G | Remote slide control da tablet                     | DONE  | T-3-G   |
 
 **Prossimo sprint candidato:** Q (sync hybrid cloud↔desktop) quando un cliente lo richiede esplicitamente, oppure attivita' commerciali (Sprint R/S/T sono completi end-to-end per la vendita esterna).
+
+---
+
+### 0.23 Audit chirurgico post-deploy 18/04/2026 (DONE + sessioni dedicate)
+
+> Audit completo e chirurgico richiesto da Andrea **dopo il deploy** Vercel + Supabase del 18/04/2026 (commit `pre-field-test` su `main`). Scopo: identificare bug residui, vulnerabilita, problemi di performance e stabilita prima dei test sul campo.
+>
+> Coperture: 100% migrations Sprint Q+1/R/S/T (`supabase/migrations/20260418*.sql`), 100% Edge Functions (`supabase/functions/*`), critical paths frontend (`apps/web/src/features/{devices,events,presentations,remote-control,billing,admin}/`).
+>
+> **Esito:** identificate **8 issue HIGH/CRITICAL fixate immediatamente** + **9 issue MEDIUM** documentate sotto come backlog per sessioni dedicate (non bloccanti per field test). Tutti i fix sono gia' in produzione (Supabase migration `20260418220000_audit_fixes_post_deploy.sql` applicata, Edge Functions `pair-claim` / `remote-control-dispatch` / `lemon-squeezy-webhook` / `room-device-upload-finalize` ridistribuite). Quality gate post-fix verde (`pnpm typecheck` + `pnpm lint`).
+
+#### 0.23.1 Fix immediati applicati (8/8 — gia' live)
+
+| #   | Severita     | Area                  | File                                                                | Problema                                                                                                                       | Fix                                                                                                                                 |
+| --- | ------------ | --------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **CRITICAL** | DB / RPC              | `supabase/migrations/20260418220000_audit_fixes_post_deploy.sql`    | `rpc_move_presentation_to_session` `INSERT INTO activity_log` usava colonne inesistenti (`actor_kind`/`target_kind`/`details`) → la prima invocazione runtime causava 500 sull'admin che sposta presentations tra sessioni | `CREATE OR REPLACE FUNCTION` con nomi colonne reali (`actor`/`entity_type`/`entity_id`/`metadata`)                                  |
+| 2   | **CRITICAL** | Edge Function (auth)  | `supabase/functions/pair-claim/index.ts` + nuova RPC `claim_pairing_code_atomic` | TOCTOU race: `SELECT pairing_codes` + `INSERT paired_devices` + `UPDATE pairing_codes` in 3 step → 2 device potevano consumare lo stesso codice 6-cifre | Nuova RPC `SECURITY DEFINER` `claim_pairing_code_atomic` con `UPDATE ... WHERE consumed_at IS NULL RETURNING` (un solo vincitore) + `INSERT paired_devices` nella stessa tx; Edge Function migrata |
+| 3   | **HIGH**     | Edge Function (race)  | `supabase/migrations/20260418220000_audit_fixes_post_deploy.sql`    | `record_lemon_squeezy_event` "select then insert" non atomico → 2 webhook paralleli con stesso `event_id` causavano UNIQUE violation → 500 → Lemon Squeezy retrya aggressivo | `INSERT ... ON CONFLICT (event_id) DO NOTHING RETURNING` + fallback `SELECT` per branch idempotente                                |
+| 4   | **HIGH**     | Auth cross-room       | `supabase/migrations/20260418220000_audit_fixes_post_deploy.sql`    | `finalize_upload_version_for_room_device` validava solo `tenant_id`: device Sala A poteva finalizzare upload Sala B (stesso tenant) se conosceva il `version_id` | Aggiunto join `presentations → sessions` con confronto `device.room_id = session.room_id`; nuovo errore `cross_room_finalize_forbidden` (403) |
+| 5   | **HIGH**     | Info disclosure       | `supabase/functions/remote-control-dispatch/index.ts`, `pair-claim/index.ts`, `lemon-squeezy-webhook/index.ts`, `room-device-upload-finalize/index.ts` | Risposte 500 leakavano `err.message` interno al client (es. `column "x" does not exist`, schema names) | `console.error()` interno + risposta sanitizzata `{ error: 'internal_error' }` (o codice business specifico tipo `unknown_variant_id`) |
+| 6   | **HIGH**     | React anti-pattern    | `apps/web/src/features/presentations/components/SessionFilesPanel.tsx` | `setState` chiamato direttamente nel render body durante prune di `selected: Set<string>` → warning React "Cannot update a component while rendering a different component" + potenziali render loop | Pruning spostato in `useEffect([fileIdsKey])`; `useMemo` per fingerprint stabile su `files.map(presentationId).join(',')`             |
+| 7   | **HIGH**     | UI stuck state        | `apps/web/src/features/events/EventDetailView.tsx`                  | `regenerateSpeakerUpload(sp.id)` con `setRegenerateBusyId(null)` fuori dal `try` → eccezione lasciava il bottone "in elaborazione" per sempre | `try/catch/finally` con `finally { setRegenerateBusyId(null); }` per garantire reset stato anche su errore                          |
+| 8   | **HIGH**     | Stabilita / hang      | `apps/web/src/features/events/lib/event-export.ts`                  | `fetch(slideUrl)` durante export ZIP fine evento senza `AbortController` → un singolo file lento (5GB su connessione 4G WiFi sala) bloccava l'intero export indefinitamente | `AbortController` con timeout 90s per ogni `fetch`; errore `fetch_timeout_<storageKey>` distinto da `fetch_failed_<status>`         |
+
+**Fix collaterale (medio):**
+
+- `apps/web/src/features/devices/RoomPlayerView.tsx`: `Promise.all([getPersistedDevice(), getDesktopBackendInfo()])` privo di `.catch` → unhandled promise rejection in dev tools se Tauri APIs falliscono (es. su Tauri v1 vs v2 mismatch). Aggiunto `.catch((err) => console.error(...))`.
+- `supabase/functions/room-device-upload-finalize/index.ts`: il `setTimeout(2000)` per Realtime broadcast poteva risolvere senza chiamare `removeChannel` → canale sospeso su Edge runtime. Refactor con `cleanupAndResolve` idempotente che chiama sempre `clearTimeout` + `removeChannel`.
+
+**Verifica post-deploy:**
+
+- Migration applicata via MCP `apply_migration` (project `cdjxxxkrhgdkcpkkozdl`, name `audit_fixes_post_deploy_20260418`).
+- 4 Edge Functions ridistribuite (versione 2): `pair-claim`, `remote-control-dispatch`, `lemon-squeezy-webhook`, `room-device-upload-finalize` — tutte con `verify_jwt: false` confermato.
+- `pnpm --filter @slidecenter/web typecheck` + `pnpm --filter @slidecenter/web lint` → 0 errori.
+
+#### 0.23.2 Backlog sessioni dedicate (9 issue MEDIUM, non bloccanti)
+
+> Le seguenti issue richiedono **sessioni dedicate** (1-3 ore ciascuna) perche' toccano architettura, multi-progetto, oppure servono prove di carico/test E2E. Nessuna e' bloccante per il field test.
+
+| ID    | Severita | Area              | Effort | Descrizione + impatto                                                                                                                                                                                                                                       |
+| ----- | -------- | ----------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AU-01 | MEDIUM   | DB retention      | 1h     | `lemon_squeezy_event_log` cresce senza limiti → 200k+ righe in 1 anno per SaaS attivo. Aggiungere pg_cron schedule daily 04:00 UTC che cancella eventi `processing_status='processed'` e `created_at < now() - interval '90 days'`.                          |
+| AU-02 | MEDIUM   | DB retention      | 30min  | Verificare che `cleanup_pair_claim_rate_events` (cancella eventi >2x window) sia effettivamente schedulata in pg_cron (oggi pulito on-demand al primo claim, ok ma fragile). Idem `cleanup_device_metric_pings` (Sprint T-2, retention 24h).                |
+| AU-03 | MEDIUM   | DB observability  | 2h     | Audit `SET search_path` su tutte le `SECURITY DEFINER` functions (~40 funzioni). Pattern `SET search_path = public` puo' essere bypassato se schema hijacking (es. utente crea schema con stesso nome). Standardizzare a `SET search_path = pg_catalog, public, pg_temp` ovunque. Tool: `pgaudit`. |
+| AU-04 | MEDIUM   | Edge Function CORS | 1h    | Tutte le Edge Functions usano `Access-Control-Allow-Origin: *` da `_shared/cors.ts`. OK per webhook esterni (Lemon Squeezy) e device anonimi (room-*, remote-control), ma admin Edge Functions (es. `email-send`, `gdpr-export`) dovrebbero whitelist `app.liveslidecenter.com` e `liveworksapp.com` solo. |
+| AU-05 | MEDIUM   | Rate limit        | 1.5h   | Solo `pair-claim` ha rate limit (5/15min/IP). Brute-force possibile su `room-device-upload-init` (token enumeration) e `remote-control-dispatch` (token enumeration tablet). Aggiungere rate limit per IP per device-token sui 3 endpoint device-anonimi (riusare tabella `pair_claim_rate_events` o creare `device_request_rate_events`). |
+| AU-06 | MEDIUM   | Realtime scale    | 3h     | `LiveRegiaView` apre 1 canale Realtime per ogni sala (anche 10+ sale = 10 canali concorrenti per admin). Su Supabase Realtime Pro plan il limite e' 100 canali concorrenti per progetto. Refactor: 1 canale `event:<id>` con filter su `room_id` lato client. Misura attuale: monitorare via Supabase dashboard quando event reale > 5 sale. |
+| AU-07 | MEDIUM   | Bundle size       | 2h     | `apps/web` chunk principale > 800kB (target Vercel CLS): `pdf.js` worker e `jszip` caricati subito. Code-split: `import('jszip')` lazy in `event-export.ts` (gia' parziale, ma tree-shaking non perfetto), `pdf.js` worker via `import.meta.url` solo quando `FilePreviewDialog` apre. Misura attuale: `vite-bundle-visualizer`.            |
+| AU-08 | MEDIUM   | Tauri offline    | 2.5h   | `RoomPlayerView` non ha **outbox queue** per `room-player-set-current` quando la rete cade durante un cambio file: la chiamata fallisce e l'admin non vede il file in onda corretto. Aggiungere coda in IndexedDB con retry exponential backoff (1s/5s/30s/5min) finche' la chiamata va a buon fine. Stessa cosa per `device_metric_pings` (oggi best-effort, perdita silente metriche se rete instabile). |
+| AU-09 | MEDIUM   | Test E2E         | 4h     | Mancano test Playwright per i flussi Sprint R-3 (PC sala upload), S-1 (folder drop), T-3-G (remote control tablet). Aggiungere 3 fixture in `apps/web/tests/e2e/`: (a) device pairing happy-path + 2 device che competono sullo stesso codice (verifica fix CRITICAL #2), (b) admin moves presentation → activity_log popolato (verifica fix CRITICAL #1), (c) tablet remote control sync con room player. |
+
+**Quando affrontarli:**
+
+- **AU-01, AU-02, AU-08**: pre-vendita esterna primo cliente (3-4h totali in una sessione).
+- **AU-03, AU-04, AU-05**: hardening security pre-evento >100 device (4h in sessione dedicata "Sprint H-1 — security hardening").
+- **AU-06, AU-07**: ottimizzazione performance pre-evento >5 sale (2-5h in sessione dedicata "Sprint P-1 — performance live").
+- **AU-09**: prima campagna marketing pubblica (4h in sessione "Sprint Q-test — E2E coverage").
 
 ---
 

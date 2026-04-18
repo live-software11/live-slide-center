@@ -92,7 +92,12 @@ Deno.serve(async (req: Request) => {
         return jsonRes({ error: 'object_missing' }, 409);
       }
       if (msg.includes('invalid_sha256')) return jsonRes({ error: 'invalid_sha256' }, 400);
-      return jsonRes({ error: msg }, 400);
+      if (msg.includes('cross_room_finalize_forbidden')) {
+        return jsonRes({ error: 'cross_room_finalize_forbidden' }, 403);
+      }
+      // Audit-fix 2026-04-18: log only, no leak generic msg al client.
+      console.error('[room-device-upload-finalize] rpc error', msg);
+      return jsonRes({ error: 'finalize_failed' }, 400);
     }
 
     const result = rpcData as FinalizeRpcResult;
@@ -106,8 +111,19 @@ Deno.serve(async (req: Request) => {
         config: { broadcast: { self: false } },
       });
       // Subscribe + send + unsubscribe inline per evitare canale sospeso.
+      // Audit-fix 2026-04-18: cleanup garantito anche nel ramo timeout
+      // (prima il setTimeout chiamava solo resolve(): canale e callback potevano
+      // restare agganciati ed eseguire dopo il response HTTP).
       await new Promise<void>((resolve) => {
-        const timer = setTimeout(() => resolve(), 2000); // max 2s
+        let settled = false;
+        const cleanupAndResolve = async () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          try { await supabaseAdmin.removeChannel(channel); } catch { /* ignore */ }
+          resolve();
+        };
+        const timer = setTimeout(() => { void cleanupAndResolve(); }, 2000);
         channel.subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
             try {
@@ -126,18 +142,14 @@ Deno.serve(async (req: Request) => {
             } catch {
               /* best-effort */
             } finally {
-              clearTimeout(timer);
-              await supabaseAdmin.removeChannel(channel);
-              resolve();
+              await cleanupAndResolve();
             }
           } else if (
             status === 'CHANNEL_ERROR' ||
             status === 'TIMED_OUT' ||
             status === 'CLOSED'
           ) {
-            clearTimeout(timer);
-            await supabaseAdmin.removeChannel(channel);
-            resolve();
+            await cleanupAndResolve();
           }
         });
       });
@@ -158,7 +170,9 @@ Deno.serve(async (req: Request) => {
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal error';
-    return jsonRes({ error: message }, 500);
+    // Audit-fix 2026-04-18: log only, no leak to client.
+    console.error('[room-device-upload-finalize] unhandled', message);
+    return jsonRes({ error: 'internal_error' }, 500);
   }
 });
 

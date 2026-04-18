@@ -531,11 +531,15 @@ export default function RoomPlayerView() {
   useEffect(() => {
     if (!isRunningInTauri()) return;
     let cancelled = false;
-    void Promise.all([getPersistedDevice(), getDesktopBackendInfo()]).then(([dev, info]) => {
-      if (cancelled) return;
-      setPersistedDevice(dev);
-      setDesktopInfo(info);
-    });
+    void Promise.all([getPersistedDevice(), getDesktopBackendInfo()])
+      .then(([dev, info]) => {
+        if (cancelled) return;
+        setPersistedDevice(dev);
+        setDesktopInfo(info);
+      })
+      .catch((err) => {
+        console.error('[RoomPlayerView] failed to load Tauri device/backend info', err);
+      });
     return () => {
       cancelled = true;
     };

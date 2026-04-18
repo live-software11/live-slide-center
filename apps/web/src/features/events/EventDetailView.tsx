@@ -1947,14 +1947,19 @@ export default function EventDetailView() {
                               onClick={async () => {
                                 setSpeakerAuxError(null);
                                 setRegenerateBusyId(sp.id);
-                                const res = await regenerateSpeakerUpload(sp.id);
-                                setRegenerateBusyId(null);
-                                if (res.errorMessage) {
-                                  setSpeakerAuxError(
-                                    res.errorMessage === 'missing_context'
-                                      ? t('speaker.errors.missingContext')
-                                      : res.errorMessage,
-                                  );
+                                try {
+                                  const res = await regenerateSpeakerUpload(sp.id);
+                                  if (res.errorMessage) {
+                                    setSpeakerAuxError(
+                                      res.errorMessage === 'missing_context'
+                                        ? t('speaker.errors.missingContext')
+                                        : res.errorMessage,
+                                    );
+                                  }
+                                } catch (err) {
+                                  setSpeakerAuxError(err instanceof Error ? err.message : 'unknown');
+                                } finally {
+                                  setRegenerateBusyId(null);
                                 }
                               }}
                             >

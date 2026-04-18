@@ -119,7 +119,8 @@ Deno.serve(async (req: Request) => {
     return jsonRes(data, 200);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'internal_error';
+    // Audit-fix 2026-04-18: NO leak `detail` al client (info disclosure). Log only.
     console.error('[remote-control-dispatch] unhandled', message);
-    return jsonRes({ error: 'internal_error', detail: message }, 500);
+    return jsonRes({ error: 'internal_error' }, 500);
   }
 });

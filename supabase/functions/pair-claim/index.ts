@@ -78,80 +78,76 @@ Deno.serve(async (req: Request) => {
       .insert({ ip_hash: ipHash });
 
     if (rateInsertError) {
-      return new Response(JSON.stringify({ error: rateInsertError.message }), {
+      // Audit-fix 2026-04-18: no leak DB error to client.
+      console.error('[pair-claim] rate insert error', rateInsertError.message);
+      return new Response(JSON.stringify({ error: 'rate_limit_check_failed' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const now = new Date().toISOString();
-
-    const { data: pairingCode } = await supabaseAdmin
-      .from('pairing_codes')
-      .select('*')
-      .eq('code', code)
-      .is('consumed_at', null)
-      .gt('expires_at', now)
-      .maybeSingle();
-
-    if (!pairingCode) {
-      return new Response(
-        JSON.stringify({ error: 'code_invalid_or_expired' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
-
+    // Audit-fix 2026-04-18: claim atomico via RPC SECURITY DEFINER per
+    // chiudere la race TOCTOU (prima: SELECT + INSERT + UPDATE in 3 step
+    // permetteva due richieste parallele di consumare lo stesso codice).
     const deviceToken = crypto.randomUUID();
     const tokenHash = await sha256Hex(deviceToken);
-
     const resolvedDeviceName = device_name?.trim() || `PC-${code}`;
 
-    const { data: device, error: deviceError } = await supabaseAdmin
-      .from('paired_devices')
-      .insert({
-        tenant_id: pairingCode.tenant_id,
-        event_id: pairingCode.event_id,
-        room_id: pairingCode.room_id ?? null,
-        device_name: resolvedDeviceName,
-        device_type: device_type ?? null,
-        browser: browser ?? null,
-        user_agent: user_agent ?? null,
-        pair_token_hash: tokenHash,
-        last_ip: rawClientIp,
-        last_seen_at: now,
-        status: 'online',
-        paired_by_user_id: pairingCode.generated_by_user_id ?? null,
-      })
-      .select('id, event_id, room_id')
-      .single();
+    const { data: claimData, error: claimError } = await supabaseAdmin.rpc(
+      'claim_pairing_code_atomic',
+      {
+        p_code: code,
+        p_token_hash: tokenHash,
+        p_device_name: resolvedDeviceName,
+        p_device_type: device_type ?? null,
+        p_browser: browser ?? null,
+        p_user_agent: user_agent ?? null,
+        p_last_ip: rawClientIp,
+      },
+    );
 
-    if (deviceError || !device) {
-      return new Response(JSON.stringify({ error: deviceError?.message ?? 'device_insert_failed' }), {
+    if (claimError) {
+      const msg = claimError.message ?? '';
+      console.error('[pair-claim] claim error', msg);
+      if (msg.includes('code_invalid_or_expired')) {
+        return new Response(JSON.stringify({ error: 'code_invalid_or_expired' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (msg.includes('invalid_code_format') || msg.includes('invalid_token_hash')) {
+        return new Response(JSON.stringify({ error: 'invalid_input' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({ error: 'pair_claim_failed' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    await supabaseAdmin
-      .from('pairing_codes')
-      .update({
-        consumed_at: now,
-        consumed_by_device_id: device.id,
-      })
-      .eq('code', code);
+    const claim = claimData as {
+      device_id: string;
+      tenant_id: string;
+      event_id: string;
+      room_id: string | null;
+    };
 
     return new Response(
       JSON.stringify({
         device_token: deviceToken,
-        device_id: device.id,
-        event_id: device.event_id,
-        room_id: device.room_id,
+        device_id: claim.device_id,
+        event_id: claim.event_id,
+        room_id: claim.room_id,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal error';
-    return new Response(JSON.stringify({ error: message }), {
+    // Audit-fix 2026-04-18: log only, no leak to client.
+    console.error('[pair-claim] unhandled', message);
+    return new Response(JSON.stringify({ error: 'internal_error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

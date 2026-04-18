@@ -529,12 +529,25 @@ export async function buildEventSlidesZip(
   let i = 0;
   for (const row of slides) {
     const url = await createVersionDownloadUrlWithClient(supabase, row.storageKey);
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`fetch_failed_${res.status}`);
-    const buf = await res.arrayBuffer();
-    const seg = buildSlidePathSegments(row);
-    const path = `${seg.roomFolder}/${seg.sessionFolder}/${seg.fileName}`;
-    zip.file(path, buf);
+    const ac = new AbortController();
+    const timeoutId = window.setTimeout(() => ac.abort(), 90_000);
+    try {
+      const res = await fetch(url, { signal: ac.signal });
+      if (!res.ok) throw new Error(`fetch_failed_${res.status}`);
+      const buf = await res.arrayBuffer();
+      const seg = buildSlidePathSegments(row);
+      const path = `${seg.roomFolder}/${seg.sessionFolder}/${seg.fileName}`;
+      zip.file(path, buf);
+    } catch (err) {
+      const isAbort = err instanceof DOMException && err.name === 'AbortError';
+      throw new Error(
+        isAbort
+          ? `fetch_timeout_${row.storageKey}`
+          : err instanceof Error ? err.message : 'fetch_unknown_error',
+      );
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
     i += 1;
     onProgress?.(i, slides.length);
   }

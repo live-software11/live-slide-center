@@ -310,10 +310,14 @@ Deno.serve(async (req: Request) => {
       p_error_message: msg.slice(0, 500),
     });
     console.error('[lemon-squeezy-webhook] apply error', msg);
-    // Mappa errori noti a status HTTP appropriati
-    const httpStatus = msg.includes('unknown_variant_id') || msg.includes('subscription_id_required')
-      || msg.includes('invalid_email') ? 400 : 500;
-    return jsonResponse(httpStatus, { error: msg });
+    // Audit-fix 2026-04-18: sanitizza errore al client (info disclosure).
+    // Mappa errori noti a codici stabili; tutto il resto -> internal_error.
+    const isClientError = msg.includes('unknown_variant_id') || msg.includes('subscription_id_required')
+      || msg.includes('invalid_email');
+    const safeError = msg.includes('unknown_variant_id') ? 'unknown_variant_id'
+      : msg.includes('subscription_id_required') ? 'subscription_id_required'
+      : msg.includes('invalid_email') ? 'invalid_email' : 'internal_error';
+    return jsonResponse(isClientError ? 400 : 500, { error: safeError });
   }
 
   const result = applyData as {
