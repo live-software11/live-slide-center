@@ -59,10 +59,31 @@ export interface RoomPlayerBootstrapFileRow {
    * verificare l'integrita' e segna `verified: 'skipped'`.
    */
   fileHashSha256: string | null;
+  /**
+   * Sprint S-4 (G7) — id sala di appartenenza del file (via session→room).
+   * Per device 'room': uguale per tutti i file (la sala assegnata al device).
+   * Per device 'control_center': varia per file (1 device = N sale).
+   * Stringa vuota se la sessione e' orfana (caso edge).
+   */
+  roomId: string;
+  /**
+   * Sprint S-4 (G7) — nome sala leggibile per UI e per il path locale del file
+   * (`<roomName>/<sessionTitle>/<filename>` su disco). Stringa vuota se la
+   * sessione e' orfana (fallback al roomName del device).
+   */
+  roomName: string;
 }
 
+/**
+ * Sprint S-4 (G7) — ruolo del device pairato.
+ * - `'room'` (default): 1 device = 1 sala (comportamento storico).
+ * - `'control_center'`: 1 device = N sale, riceve i file di tutte le sale
+ *   dell'evento per backup/export. Vedi migration 20260418090000_*.
+ */
+export type DeviceRole = 'room' | 'control_center';
+
 export interface RoomPlayerBootstrapResponse {
-  device: { id: string; name: string };
+  device: { id: string; name: string; role?: DeviceRole };
   room: { id: string; name: string } | null;
   event_id: string;
   event_name?: string;
@@ -76,6 +97,18 @@ export interface RoomPlayerBootstrapResponse {
   };
   files: RoomPlayerBootstrapFileRow[];
   warning?: string;
+  /**
+   * Sprint S-4 (G7) — flag esplicito presente solo per device
+   * `role='control_center'`. Permette al client di branchare UI senza dover
+   * controllare `device.role` (che e' opzionale per backward-compat).
+   */
+  control_center?: true;
+  /**
+   * Sprint S-4 (G7) — lista delle sale dell'evento (presente solo per device
+   * `control_center`). Usata da `CenterPlayerView` per pre-popolare il tree
+   * sala/sessione anche quando non ci sono ancora file.
+   */
+  rooms?: Array<{ id: string; name: string }>;
 }
 
 // Errori funzionali: il client UI distingue 'auth_session_expired' (utente)
@@ -240,6 +273,33 @@ export async function updateDeviceRoom(
     .eq('id', deviceId);
 
   if (error) throw new Error(error.message);
+}
+
+/**
+ * Sprint S-4 (G7) — promuove/demuove un device tra ruolo "room" e
+ * "control_center". Wrapper sulla RPC `update_device_role` SECURITY INVOKER
+ * (rispetta RLS tenant_isolation).
+ *
+ * Side effect:
+ * - Quando `newRole = 'control_center'`, la RPC forza `room_id = NULL` lato
+ *   server (un Centro Slide non e' assegnato a una singola sala).
+ * - Bumpa `updated_at` cosi' la subscription Realtime postgres_changes su
+ *   `paired_devices` (in `usePairedDevices`) propaga la modifica agli altri
+ *   admin in <1s.
+ */
+export async function updateDeviceRole(
+  deviceId: string,
+  newRole: DeviceRole,
+): Promise<{ id: string; role: DeviceRole; room_id: string | null }> {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.rpc('update_device_role', {
+    p_device_id: deviceId,
+    p_new_role: newRole,
+  });
+  if (error) throw new Error(error.message);
+  const row = Array.isArray(data) ? data[0] : null;
+  if (!row) throw new Error('update_device_role_no_row');
+  return { id: row.id, role: row.role as DeviceRole, room_id: row.room_id ?? null };
 }
 
 export async function renameDevice(deviceId: string, deviceName: string): Promise<void> {

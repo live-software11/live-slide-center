@@ -1,8 +1,19 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Monitor, MoreVertical, Pencil, LayoutGrid, Trash2, Wifi, WifiOff } from 'lucide-react';
+import {
+  Building2,
+  LayoutGrid,
+  Monitor,
+  MoreVertical,
+  Pencil,
+  Star,
+  Trash2,
+  Undo2,
+  Wifi,
+  WifiOff,
+} from 'lucide-react';
 import type { PairedDevice } from '../repository';
-import { renameDevice, revokeDevice, updateDeviceRoom } from '../repository';
+import { renameDevice, revokeDevice, updateDeviceRole, updateDeviceRoom } from '../repository';
 import type { RoomRow } from '@/features/rooms/repository';
 
 interface DeviceListProps {
@@ -21,6 +32,7 @@ function DeviceMenu({ device, rooms, onDone }: DeviceMenuProps) {
   const { t } = useTranslation();
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState(device.device_name);
+  const isControlCenter = device.role === 'control_center';
 
   const handleRename = async () => {
     if (newName.trim() && newName.trim() !== device.device_name) {
@@ -32,6 +44,27 @@ function DeviceMenu({ device, rooms, onDone }: DeviceMenuProps) {
 
   const handleRoomChange = async (roomId: string | null) => {
     await updateDeviceRoom(device.id, roomId);
+    onDone();
+  };
+
+  // Sprint S-4 (G7): promuove/demuove un device tra ruolo "room" e
+  // "control_center". Quando role='control_center', la RPC forza
+  // room_id=NULL lato server (un Centro Slide non e' assegnato a una sala).
+  const handleRoleChange = async (newRole: 'room' | 'control_center') => {
+    const confirmKey =
+      newRole === 'control_center'
+        ? 'devices.list.promoteToCenterConfirm'
+        : 'devices.list.demoteToRoomConfirm';
+    if (!confirm(t(confirmKey, { name: device.device_name }))) {
+      onDone();
+      return;
+    }
+    try {
+      await updateDeviceRole(device.id, newRole);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'unknown';
+      alert(t('devices.list.roleChangeError', { error: msg }));
+    }
     onDone();
   };
 
@@ -76,30 +109,60 @@ function DeviceMenu({ device, rooms, onDone }: DeviceMenuProps) {
               {t('devices.list.rename')}
             </button>
 
-            <div className="mt-1">
-              <p className="px-2 py-1 text-xs font-medium uppercase tracking-wide text-sc-text-dim">
-                {t('devices.list.assignRoom')}
-              </p>
+            {/* Sprint S-4 (G7): l'opzione "Assegna sala" non ha senso per
+                un Centro Slide (per design ha room_id=NULL). La nascondiamo
+                e mostriamo invece una nota informativa. */}
+            {!isControlCenter && (
+              <div className="mt-1">
+                <p className="px-2 py-1 text-xs font-medium uppercase tracking-wide text-sc-text-dim">
+                  {t('devices.list.assignRoom')}
+                </p>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-sc-text-secondary hover:bg-sc-elevated"
+                  onClick={() => void handleRoomChange(null)}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  {t('devices.list.noRoom')}
+                </button>
+                {rooms.map((room) => (
+                  <button
+                    key={room.id}
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-sc-text-secondary hover:bg-sc-elevated"
+                    onClick={() => void handleRoomChange(room.id)}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                    {room.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Sprint S-4 (G7): toggle ruolo device. Promuovere a Centro Slide
+                forza room_id=NULL e fa scaricare i file di TUTTE le sale
+                dell'evento. Demote ripristina il comportamento "1 device =
+                1 sala" (l'admin dovra' poi assegnare una sala). */}
+            <div className="my-1 border-t border-sc-primary/20" />
+            {isControlCenter ? (
               <button
                 type="button"
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-sc-text-secondary hover:bg-sc-elevated"
-                onClick={() => void handleRoomChange(null)}
+                onClick={() => void handleRoleChange('room')}
               >
-                <LayoutGrid className="h-4 w-4" />
-                {t('devices.list.noRoom')}
+                <Undo2 className="h-4 w-4" />
+                {t('devices.list.demoteToRoom')}
               </button>
-              {rooms.map((room) => (
-                <button
-                  key={room.id}
-                  type="button"
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-sc-text-secondary hover:bg-sc-elevated"
-                  onClick={() => void handleRoomChange(room.id)}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                  {room.name}
-                </button>
-              ))}
-            </div>
+            ) : (
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-sc-primary hover:bg-sc-elevated"
+                onClick={() => void handleRoleChange('control_center')}
+              >
+                <Star className="h-4 w-4" />
+                {t('devices.list.promoteToCenter')}
+              </button>
+            )}
 
             <div className="my-1 border-t border-sc-primary/20" />
             <button
@@ -132,17 +195,37 @@ export function DeviceList({ devices, rooms, onRefresh }: DeviceListProps) {
       {devices.map((device) => {
         const assignedRoom = rooms.find((r) => r.id === device.room_id);
         const isOnline = device.status === 'online';
+        const isControlCenter = device.role === 'control_center';
 
         return (
           <li key={device.id} className="flex items-center gap-3 py-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sc-elevated">
-              <Monitor className="h-5 w-5 text-sc-text-muted" />
+            <div
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                isControlCenter
+                  ? 'bg-sc-primary/15 text-sc-primary'
+                  : 'bg-sc-elevated text-sc-text-muted'
+              }`}
+            >
+              {isControlCenter ? (
+                <Building2 className="h-5 w-5" />
+              ) : (
+                <Monitor className="h-5 w-5" />
+              )}
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-sc-text">{device.device_name}</p>
+              <p className="flex items-center gap-2 truncate text-sm font-medium text-sc-text">
+                <span className="truncate">{device.device_name}</span>
+                {isControlCenter && (
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-sc-primary/30 bg-sc-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-sc-primary">
+                    {t('devices.list.roleBadgeCenter')}
+                  </span>
+                )}
+              </p>
               <p className="truncate text-xs text-sc-text-dim">
-                {assignedRoom?.name ?? t('devices.list.noRoomAssigned')}
+                {isControlCenter
+                  ? t('devices.list.centerHint')
+                  : assignedRoom?.name ?? t('devices.list.noRoomAssigned')}
               </p>
             </div>
 

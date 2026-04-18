@@ -28,6 +28,7 @@ import {
   invokeRoomPlayerBootstrap,
   invokeRoomPlayerRename,
   invokeRoomPlayerSetCurrent,
+  type DeviceRole,
   type PlaybackMode,
   type RoomPlayerBootstrapSession,
   type RoomPlayerNetworkMode,
@@ -80,6 +81,19 @@ interface RoomData {
   eventName: string | null;
   networkMode: RoomPlayerNetworkMode;
   agentLan: { lan_ip: string; lan_port: number } | null;
+  /**
+   * Sprint S-4 (G7) — ruolo del device. `'room'` = comportamento storico
+   * (1 device = 1 sala). `'control_center'` = device "Centro Slide": riceve
+   * i file di tutte le sale dell'evento, mostra header diverso, NON
+   * proietta (no PlaybackModeChip live, no upload room device).
+   */
+  role: DeviceRole;
+  /**
+   * Sprint S-4 (G7) — lista delle sale dell'evento (presente solo per
+   * `role='control_center'`). Usata per mostrare quante sale stanno venendo
+   * sincronizzate anche prima che arrivino i primi file.
+   */
+  rooms?: Array<{ id: string; name: string }>;
 }
 
 interface DeviceData {
@@ -581,6 +595,11 @@ export default function RoomPlayerView() {
     playbackMode,
     lanAdminBaseUrl,
     localBackendBaseUrl,
+    // Sprint S-4 (G7): un Centro Slide non puo' sottoscrivere `room:<roomId>`
+    // (riceverebbe solo dalla "sala" del proprio device.id, vuota by design).
+    // Per MVP usiamo solo polling regolare. Push realtime cross-room sara'
+    // affrontato in S-4.b deferred (canale `event:<eventId>` nuovo).
+    disableRealtime: roomData?.role === 'control_center',
   });
 
   const { mode: connectivityMode, lanHealthy } = useConnectivityMode({
@@ -602,7 +621,25 @@ export default function RoomPlayerView() {
       try {
         const data = await invokeRoomPlayerBootstrap(deviceToken);
         setDevice({ id: data.device.id, name: data.device.name });
-        if (!data.room) {
+        const deviceRole: DeviceRole = data.device.role ?? 'room';
+        if (deviceRole === 'control_center') {
+          // Sprint S-4 (G7): per il Centro Slide il bootstrap restituisce
+          // `room: null` + `control_center: true` + `rooms: [...]`. Non e'
+          // un "no_room_assigned" da risolvere: e' la modalita corretta.
+          setRoomData({
+            id: data.device.id, // pseudonimo per useFileSync (manifest key separato)
+            name: data.event_name ?? '',
+            syncStatus: data.room_state.sync_status,
+            currentSession: data.room_state.current_session,
+            eventId: data.event_id,
+            eventName: data.event_name ?? null,
+            networkMode: data.network_mode ?? 'cloud',
+            agentLan: data.agent,
+            role: 'control_center',
+            rooms: data.rooms ?? [],
+          });
+          setWaitingRoom(false);
+        } else if (!data.room) {
           setRoomData(null);
           setWaitingRoom(true);
         } else {
@@ -615,6 +652,7 @@ export default function RoomPlayerView() {
             eventName: data.event_name ?? null,
             networkMode: data.network_mode ?? 'cloud',
             agentLan: data.agent,
+            role: 'room',
           });
           setWaitingRoom(false);
         }
@@ -644,6 +682,39 @@ export default function RoomPlayerView() {
       void invokeRoomPlayerBootstrap(pollToken, false, playbackMode)
         .then((d) => {
           setDevice((prev) => (prev?.name === d.device.name && prev?.id === d.device.id ? prev : { id: d.device.id, name: d.device.name }));
+          const role: DeviceRole = d.device.role ?? 'room';
+          if (role === 'control_center') {
+            // Sprint S-4 (G7): un Centro Slide non e' mai "in attesa di sala".
+            setWaitingRoom(false);
+            setRoomData((prev) =>
+              prev
+                ? {
+                  ...prev,
+                  id: d.device.id,
+                  name: d.event_name ?? prev.name,
+                  syncStatus: d.room_state.sync_status,
+                  currentSession: d.room_state.current_session,
+                  networkMode: d.network_mode ?? 'cloud',
+                  agentLan: d.agent,
+                  eventName: d.event_name ?? prev.eventName,
+                  role: 'control_center',
+                  rooms: d.rooms ?? prev.rooms ?? [],
+                }
+                : {
+                  id: d.device.id,
+                  name: d.event_name ?? '',
+                  syncStatus: d.room_state.sync_status,
+                  currentSession: d.room_state.current_session,
+                  eventId: d.event_id,
+                  eventName: d.event_name ?? null,
+                  networkMode: d.network_mode ?? 'cloud',
+                  agentLan: d.agent,
+                  role: 'control_center',
+                  rooms: d.rooms ?? [],
+                },
+            );
+            return;
+          }
           if (!d.room) {
             setWaitingRoom(true);
             setRoomData(null);
@@ -661,6 +732,7 @@ export default function RoomPlayerView() {
                 networkMode: d.network_mode ?? 'cloud',
                 agentLan: d.agent,
                 eventName: d.event_name ?? prev.eventName,
+                role: 'room',
               }
               : {
                 id: d.room!.id,
@@ -671,6 +743,7 @@ export default function RoomPlayerView() {
                 eventName: d.event_name ?? null,
                 networkMode: d.network_mode ?? 'cloud',
                 agentLan: d.agent,
+                role: 'room',
               },
           );
         })
@@ -795,20 +868,46 @@ export default function RoomPlayerView() {
     );
   }
 
+  // Sprint S-4 (G7): branch UI per i device 'control_center'. Titolo,
+  // sotto-titolo e azioni cambiano: il CC NON proietta (no PlaybackModeChip
+  // live, no upload room device) ma fa solo backup multi-room.
+  const isControlCenter = roomData.role === 'control_center';
+  const headerTitle = isControlCenter
+    ? t('roomPlayer.center.headerTitle')
+    : roomData.name;
+  const headerSubtitle = isControlCenter
+    ? roomData.eventName ?? t('roomPlayer.center.headerSubtitleFallback')
+    : roomData.eventName ?? null;
+  const centerRoomCount = isControlCenter ? roomData.rooms?.length ?? 0 : 0;
+
   return (
     <div className="flex min-h-screen flex-col bg-sc-bg text-sc-text">
       <header className="border-b border-sc-primary/12 px-4 py-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-center gap-3">
-            <Folder className="h-5 w-5 shrink-0 text-sc-text-muted" />
+            {isControlCenter ? (
+              <Building2 className="h-5 w-5 shrink-0 text-sc-primary" aria-hidden="true" />
+            ) : (
+              <Folder className="h-5 w-5 shrink-0 text-sc-text-muted" />
+            )}
             <div className="min-w-0 flex-1">
-              <h1 className="text-base font-semibold text-sc-text truncate">
-                {roomData.name}
+              <h1 className="flex items-center gap-2 text-base font-semibold text-sc-text">
+                <span className="truncate">{headerTitle}</span>
+                {isControlCenter && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-sc-primary/30 bg-sc-primary/10 px-2 py-0.5 text-[10px] font-medium text-sc-primary">
+                    {t('roomPlayer.center.badge')}
+                  </span>
+                )}
               </h1>
-              {roomData.eventName && (
-                <p className="truncate text-xs text-sc-text-muted">{roomData.eventName}</p>
+              {headerSubtitle && (
+                <p className="truncate text-xs text-sc-text-muted">{headerSubtitle}</p>
               )}
-              {roomData.currentSession && (
+              {isControlCenter && centerRoomCount > 0 && (
+                <p className="mt-0.5 truncate text-xs text-sc-text-dim">
+                  {t('roomPlayer.center.roomsCount', { count: centerRoomCount })}
+                </p>
+              )}
+              {!isControlCenter && roomData.currentSession && (
                 <p className="mt-0.5 truncate text-xs text-sc-primary">
                   ▶ {roomData.currentSession.title}
                 </p>
@@ -843,8 +942,11 @@ export default function RoomPlayerView() {
           />
           <NetworkModeChip networkMode={roomData.networkMode} />
           <SyncBadge status={roomData.syncStatus} />
+          {/* Sprint S-4 (G7): un Centro Slide non proietta (no LIVE), ma il
+              polling rate resta utile (turbo per setup veloce, auto/live per
+              ridurre carico) → chip resta visibile anche per CC. */}
           <PlaybackModeChip mode={playbackMode} onChange={setPlaybackMode} />
-          <RealtimeChip status={realtimeStatus} />
+          {!isControlCenter && <RealtimeChip status={realtimeStatus} />}
         </div>
       </header>
 
@@ -950,8 +1052,10 @@ export default function RoomPlayerView() {
 
         {/* Sprint R-3 (G3) — Upload dal PC sala (relatore last-minute).
             La dropzone e' visibile sempre quando c'e' una sessione corrente.
-            Senza sessione corrente mostra hint informativo (no nuovi upload). */}
-        {token && (
+            Senza sessione corrente mostra hint informativo (no nuovi upload).
+            Sprint S-4 (G7): un Centro Slide e' read-only (no upload in sala),
+            quindi nascondiamo la dropzone per role='control_center'. */}
+        {token && !isControlCenter && (
           <RoomDeviceUploadDropzone
             deviceToken={token}
             currentSessionId={roomData.currentSession?.id ?? null}

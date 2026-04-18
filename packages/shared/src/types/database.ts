@@ -252,6 +252,14 @@ export type Database = {
           paired_by_user_id: string | null;
           notes: string | null;
           updated_at: string;
+          /**
+           * Sprint S-4 (G7) — ruolo del device:
+           * - `'room'` (default): 1 device assegnato a 1 sala specifica.
+           * - `'control_center'`: device "Centro Slide" (room_id NULL),
+           *   riceve i file di TUTTE le sale dell'evento per backup/export.
+           * Vedi migration 20260418090000_paired_devices_role.sql.
+           */
+          role: 'room' | 'control_center';
         };
         Insert: {
           id?: string;
@@ -270,6 +278,7 @@ export type Database = {
           paired_by_user_id?: string | null;
           notes?: string | null;
           updated_at?: string;
+          role?: 'room' | 'control_center';
         };
         Update: {
           id?: string;
@@ -288,6 +297,7 @@ export type Database = {
           paired_by_user_id?: string | null;
           notes?: string | null;
           updated_at?: string;
+          role?: 'room' | 'control_center';
         };
         Relationships: [];
       };
@@ -1086,6 +1096,12 @@ export type Database = {
       abort_upload_version_for_room_device: {
         Args: { p_token: string; p_version_id: string };
         Returns: Json;
+      };
+      // Sprint S-4 (G7): promuove/demuove un device tra ruolo "room" e
+      // "control_center". SECURITY INVOKER: rispetta RLS tenant_isolation.
+      update_device_role: {
+        Args: { p_device_id: string; p_new_role: 'room' | 'control_center' };
+        Returns: { id: string; role: 'room' | 'control_center'; room_id: string | null }[];
       };
     };
     Enums: {

@@ -922,7 +922,14 @@
       "revokeConfirm": "Rimuovere il dispositivo {{name}}? Questa azione è irreversibile.",
       "actions": "Azioni dispositivo",
       "online": "Online",
-      "offline": "Offline"
+      "offline": "Offline",
+      "promoteToCenter": "Promuovi a Centro Slide",
+      "promoteToCenterConfirm": "Promuovere {{name}} a Centro Slide? Riceverà i file di TUTTE le sale dell'evento e non sarà più assegnato a una sala specifica.",
+      "demoteToRoom": "Riporta a sala normale",
+      "demoteToRoomConfirm": "Riportare {{name}} a PC sala normale? Dovrai riassegnarlo a una sala specifica dopo questa azione.",
+      "roleBadgeCenter": "CENTRO",
+      "centerHint": "Centro Slide · sincronizza tutte le sale dell'evento",
+      "roleChangeError": "Errore cambio ruolo: {{error}}"
     },
     "board": {
       "label": "Lavagna assegnazione PC alle sale",
@@ -937,7 +944,12 @@
       },
       "errors": {
         "move_failed": "Impossibile spostare il PC. Verifica la connessione e riprova."
-      }
+      },
+      "centersTitle": "Centri Slide",
+      "centersLabel": "Centri Slide ({{count}})",
+      "centersHint": "I Centri Slide ricevono i file di tutte le sale dell'evento. Per riportare un Centro a PC sala normale, usa il menu kebab → \"Riporta a sala normale\".",
+      "centerCardTitle": "Centro Slide (assegnato a tutte le sale)",
+      "allCentersHint": "Solo Centri Slide pairati: nessun PC sala specifico da assegnare per ora."
     },
     "pairing": {
       "title": "Abbina PC Sala",
@@ -1100,6 +1112,13 @@
       "body": "Il regista deve assegnare questo PC a una sala dal pannello di gestione dispositivi. La pagina si aggiornerà da sola appena fatto.",
       "deviceNameHint": "Nome di questo PC: {{name}}",
       "wait": "In attesa…"
+    },
+    "center": {
+      "headerTitle": "Centro Slide",
+      "headerSubtitleFallback": "Sincronizzazione multi-sala",
+      "badge": "CENTRO",
+      "roomsCount_one": "{{count}} sala sincronizzata",
+      "roomsCount_other": "{{count}} sale sincronizzate"
     },
     "actions": {
       "refresh": "Aggiorna ora",

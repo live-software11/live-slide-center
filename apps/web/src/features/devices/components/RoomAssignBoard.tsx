@@ -1,6 +1,15 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { GripVertical, Inbox, LayoutGrid, Loader2, Monitor, Wifi, WifiOff } from 'lucide-react';
+import {
+  Building2,
+  GripVertical,
+  Inbox,
+  LayoutGrid,
+  Loader2,
+  Monitor,
+  Wifi,
+  WifiOff,
+} from 'lucide-react';
 import type { PairedDevice } from '../repository';
 import { updateDeviceRoom } from '../repository';
 import type { RoomRow } from '@/features/rooms/repository';
@@ -92,6 +101,13 @@ export function RoomAssignBoard({ devices, rooms, onRefresh }: RoomAssignBoardPr
     [optimisticRoom],
   );
 
+  // Sprint S-4 (G7): i device 'control_center' NON entrano nella Kanban
+  // sale (sono assegnati a "tutte" le sale dell'evento, non a una specifica)
+  // e vengono mostrati in una fascia separata in alto, NON drag&droppabili.
+  // Per riportare un CC a 'room' usare il kebab → "Riporta a sala normale".
+  const regularDevices = useMemo(() => devices.filter((d) => d.role !== 'control_center'), [devices]);
+  const centerDevices = useMemo(() => devices.filter((d) => d.role === 'control_center'), [devices]);
+
   const columns = useMemo<ColumnDef[]>(() => {
     const unassigned: ColumnDef = {
       id: null,
@@ -102,7 +118,7 @@ export function RoomAssignBoard({ devices, rooms, onRefresh }: RoomAssignBoardPr
     for (const room of rooms) {
       byRoom.set(room.id, { id: room.id, name: room.name, devices: [] });
     }
-    for (const device of devices) {
+    for (const device of regularDevices) {
       const target = effectiveRoomId(device);
       if (target && byRoom.has(target)) {
         byRoom.get(target)!.devices.push(device);
@@ -111,7 +127,7 @@ export function RoomAssignBoard({ devices, rooms, onRefresh }: RoomAssignBoardPr
       }
     }
     return [unassigned, ...rooms.map((r) => byRoom.get(r.id)!)];
-  }, [devices, rooms, effectiveRoomId, t]);
+  }, [regularDevices, rooms, effectiveRoomId, t]);
 
   const showError = useCallback((key: string) => {
     setErrorMessage(t(key));
@@ -209,6 +225,77 @@ export function RoomAssignBoard({ devices, rooms, onRefresh }: RoomAssignBoardPr
           className="mb-3 rounded-lg border border-sc-danger/30 bg-sc-danger/10 px-3 py-2 text-xs text-sc-danger"
         >
           {errorMessage}
+        </div>
+      )}
+
+      {/* Sprint S-4 (G7): fascia "Centri Slide" — device promossi a Centro
+          Slide. Read-only nella lavagna (non hanno una sala specifica): per
+          riportarli a 'room' usare il kebab → "Riporta a sala normale". */}
+      {centerDevices.length > 0 && (
+        <div
+          className="mb-3 rounded-xl border border-sc-primary/25 bg-sc-primary/5 p-2"
+          role="region"
+          aria-label={t('devices.board.centersLabel', { count: centerDevices.length })}
+        >
+          <div className="mb-2 flex items-center justify-between gap-2 px-1">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <Building2
+                className="h-3.5 w-3.5 shrink-0 text-sc-primary"
+                aria-hidden="true"
+              />
+              <h4 className="truncate text-xs font-semibold uppercase tracking-wide text-sc-primary">
+                {t('devices.board.centersTitle')}
+              </h4>
+            </div>
+            <span className="rounded-full bg-sc-surface px-1.5 py-0.5 text-[10px] text-sc-text-dim">
+              {centerDevices.length}
+            </span>
+          </div>
+          <p className="mb-2 px-1 text-[11px] text-sc-text-dim">
+            {t('devices.board.centersHint')}
+          </p>
+          <ul className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+            {centerDevices.map((device) => {
+              const connectivity = computeConnectivity(device.last_seen_at, device.status);
+              const dot =
+                connectivity === 'online'
+                  ? 'bg-sc-success'
+                  : connectivity === 'warning'
+                    ? 'bg-sc-warning'
+                    : 'bg-sc-danger';
+              return (
+                <li
+                  key={device.id}
+                  className="flex items-center gap-2 rounded-lg border border-sc-primary/20 bg-sc-elevated/50 px-2 py-1.5 text-xs"
+                  title={t('devices.board.centerCardTitle')}
+                >
+                  <Building2
+                    className="h-3.5 w-3.5 shrink-0 text-sc-primary"
+                    aria-hidden="true"
+                  />
+                  <span
+                    aria-hidden="true"
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`}
+                    title={t(`devices.board.status.${connectivity}`)}
+                  />
+                  <span className="min-w-0 flex-1 truncate font-medium text-sc-text">
+                    {device.device_name}
+                  </span>
+                  {connectivity === 'online' ? (
+                    <Wifi
+                      className="h-3 w-3 shrink-0 text-sc-success"
+                      aria-label={t('devices.list.online')}
+                    />
+                  ) : (
+                    <WifiOff
+                      className="h-3 w-3 shrink-0 text-sc-text-dim"
+                      aria-label={t('devices.list.offline')}
+                    />
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 
@@ -322,6 +409,14 @@ export function RoomAssignBoard({ devices, rooms, onRefresh }: RoomAssignBoardPr
           {t('devices.list.empty')}
         </p>
       ) : null}
+      {/* Sprint S-4 (G7): se l'evento ha SOLO Centri Slide e nessun PC sala
+          ancora pairato, evidenziamo che la Kanban e' vuota by design (non
+          serve assegnare nulla, i CC ricevono tutto). */}
+      {regularDevices.length === 0 && centerDevices.length > 0 && (
+        <p className="mt-3 text-center text-xs italic text-sc-text-dim">
+          {t('devices.board.allCentersHint')}
+        </p>
+      )}
     </div>
   );
 }

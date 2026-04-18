@@ -922,7 +922,14 @@
       "revokeConfirm": "Remove device {{name}}? This action cannot be undone.",
       "actions": "Device actions",
       "online": "Online",
-      "offline": "Offline"
+      "offline": "Offline",
+      "promoteToCenter": "Promote to Slide Center",
+      "promoteToCenterConfirm": "Promote {{name}} to Slide Center? It will receive files from ALL rooms of the event and will no longer be assigned to a specific room.",
+      "demoteToRoom": "Revert to room PC",
+      "demoteToRoomConfirm": "Revert {{name}} to a regular room PC? You will need to reassign it to a specific room after this action.",
+      "roleBadgeCenter": "CENTER",
+      "centerHint": "Slide Center · syncs all rooms of the event",
+      "roleChangeError": "Role change error: {{error}}"
     },
     "board": {
       "label": "PC-to-room assignment board",
@@ -937,7 +944,12 @@
       },
       "errors": {
         "move_failed": "Could not move the PC. Check your connection and retry."
-      }
+      },
+      "centersTitle": "Slide Centers",
+      "centersLabel": "Slide Centers ({{count}})",
+      "centersHint": "Slide Centers receive files from all rooms of the event. To revert a Center to a regular room PC, use the kebab menu → \"Revert to room PC\".",
+      "centerCardTitle": "Slide Center (assigned to all rooms)",
+      "allCentersHint": "Only Slide Centers paired: no specific room PC to assign for now."
     },
     "pairing": {
       "title": "Pair Room PC",
@@ -1100,6 +1112,13 @@
       "body": "The producer must assign this PC to a room from the device management panel. This page will refresh automatically once that is done.",
       "deviceNameHint": "Name of this PC: {{name}}",
       "wait": "Waiting…"
+    },
+    "center": {
+      "headerTitle": "Slide Center",
+      "headerSubtitleFallback": "Multi-room synchronization",
+      "badge": "CENTER",
+      "roomsCount_one": "{{count}} room synced",
+      "roomsCount_other": "{{count}} rooms synced"
     },
     "actions": {
       "refresh": "Refresh now",

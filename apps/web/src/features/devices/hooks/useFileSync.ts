@@ -123,6 +123,19 @@ export interface FileSyncItem {
   errorMessage: string | null;
   /** Sprint C2-C3: esito ultima verifica integrita'. */
   verified: FileVerifyStatus;
+  /**
+   * Sprint S-4 (G7) — id sala di appartenenza del file. Per device 'room' e'
+   * uguale al `roomId` props del hook. Per device 'control_center' varia per
+   * file (1 device = N sale). Stringa vuota se sessione orfana.
+   */
+  roomId: string;
+  /**
+   * Sprint S-4 (G7) — nome sala leggibile, usato come primo segmento path
+   * locale (`<roomName>/<sessionTitle>/<filename>`). Per device 'room' e'
+   * di solito uguale al `roomName` props. Per 'control_center' varia per
+   * file. Fallback al `roomName` props se vuoto.
+   */
+  roomName: string;
 }
 
 interface UseFileSyncParams {
@@ -156,6 +169,14 @@ interface UseFileSyncParams {
    * regolare (12s/60s/5s) gia' presente.
    */
   localBackendBaseUrl?: string | null;
+  /**
+   * Sprint S-4 (G7) — disabilita la subscription Realtime al topic
+   * `room:<roomId>`. Usato dai device 'control_center' che ricevono file
+   * da N sale: il topic `room:<deviceId>` non riceve broadcast (i trigger
+   * Postgres pubblicano su `room:<roomId>` per ogni sala specifica). Per
+   * MVP S-4 il CC fa solo polling (niente push realtime).
+   */
+  disableRealtime?: boolean;
 }
 
 interface UseFileSyncResult {
@@ -230,6 +251,12 @@ function rowToItem(
     progress: wasSynced ? 100 : 0,
     errorMessage: null,
     verified: verifiedMap.get(row.versionId) ?? 'pending',
+    // Sprint S-4 (G7): roomId/roomName arrivano dal bootstrap. Sono opzionali
+    // a livello di tipo (per backward-compat con bootstrap pre-S-4 che li
+    // omettono) ma quando presenti permettono di scrivere ogni file nel
+    // path corretto anche per device 'control_center' che hanno N sale.
+    roomId: row.roomId ?? '',
+    roomName: row.roomName ?? '',
   };
 }
 
@@ -245,6 +272,7 @@ export function useFileSync({
   playbackMode = 'auto',
   lanAdminBaseUrl = null,
   localBackendBaseUrl = null,
+  disableRealtime = false,
 }: UseFileSyncParams): UseFileSyncResult {
   const supported = isFsAccessSupported();
   const [dirHandle, setDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
@@ -302,7 +330,11 @@ export function useFileSync({
         ),
       );
 
-      const segments = [roomName || 'sala', sessionTitle || 'sessione'];
+      // Sprint S-4 (G7): per device 'control_center' ogni file ha la SUA
+      // roomName (1 device = N sale), quindi usiamo quella se presente.
+      // Per device 'room' fallback al `roomName` props (comportamento storico).
+      // `'sala'` resta fallback estremo per upload orfani / sessioni senza sala.
+      const segments = [item.roomName || roomName || 'sala', sessionTitle || 'sessione'];
 
       // Sprint C: il download viene tentato fino a MAX_VERIFY_RETRIES volte se
       // la verifica SHA256 post-download fallisce. Dal 2° tentativo in poi
@@ -727,7 +759,7 @@ export function useFileSync({
   // `private=false`, quindi la subscription da utente anon riceve i payload.
   const refreshNowRef = useRef<() => Promise<void>>(async () => { });
   useEffect(() => {
-    if (!roomId || !enabled) {
+    if (!roomId || !enabled || disableRealtime) {
       setRealtimeStatus('idle');
       return;
     }
@@ -771,7 +803,7 @@ export function useFileSync({
       void supabase.removeChannel(channel);
       setRealtimeStatus('idle');
     };
-  }, [roomId, enabled]);
+  }, [roomId, enabled, disableRealtime]);
 
   // ── Sprint N3 — long-poll eventi LAN dal proprio backend (push admin → sala)
   //
@@ -941,10 +973,12 @@ export function useFileSync({
     // Costruiamo le `expectedKeys` con la STESSA logica di `downloadFileToPath`
     // (sanitizeFsSegment su ogni componente). Se non match perfetto il file
     // viene erroneamente cancellato — documentato in `purgeOrphanFiles`.
+    // Sprint S-4 (G7): primo segmento = `item.roomName` (per control_center
+    // varia per file) con fallback al `roomName` props per device 'room'.
     const expectedKeys = new Set<string>();
     for (const it of items) {
       const segs = [
-        sanitizeFsSegment(roomName || 'sala'),
+        sanitizeFsSegment(it.roomName || roomName || 'sala'),
         sanitizeFsSegment(it.sessionTitle || 'sessione'),
       ];
       const safeName = sanitizeFsSegment(it.filename, 'file');

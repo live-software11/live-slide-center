@@ -177,7 +177,7 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 
 ### Audit chirurgico 18/04/2026 (Sprint R / S / T pianificati)
 
-**Stato:** **audit completato, famiglia Sprint R DONE + S-1 + S-2 + S-3 DONE (6/10 GAP chiusi: G1+G2+G3+G4+G5+G6), S-4 next.**
+**Stato:** **audit completato, famiglia Sprint R DONE + famiglia Sprint S DONE (7/10 GAP chiusi: G1+G2+G3+G4+G5+G6+G7), famiglia T (G8+G9+G10) next.**
 
 **Sintesi 10 GAP rilevati** rispetto agli obiettivi prodotto sovrani (parita cloud/desktop, file da locale, versioning chiaro, perf zero impatto, super-admin licenze, OneDrive-style, drag PC, upload da sala, export ordinato, competitor parity):
 
@@ -189,7 +189,7 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 | **S-1** | Drag&drop folder admin OneDrive-style  | G4             | 1g        | **DONE 18/04/2026 (vedi §0.12)**           |
 | **S-2** | Drag&drop visivo PC ↔ sale             | G5             | 1g        | **DONE 18/04/2026 (vedi §0.13)**           |
 | **S-3** | Export ZIP ordinato per sala/sessione  | G6             | 0.5g      | **DONE 18/04/2026 (vedi §0.14)**           |
-| **S-4** | Ruolo device "Centro Slide" multi-room | G7             | 1.5g      | next                                       |
+| **S-4** | Ruolo device "Centro Slide" multi-room | G7             | 1.5g      | **DONE 18/04/2026 (vedi §0.15)**           |
 | **T**   | Performance + competitor parity        | G8 + G9 + G10  | 4g        | pending (match feature PreSeria/Slidecrew) |
 
 **Dettaglio dei 10 GAP, file coinvolti, soluzione tecnica, decisioni richieste ad Andrea:** `docs/STATO_E_TODO.md` § 0.
@@ -343,13 +343,13 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 
 **Stato:** **completato e verde.** Lo ZIP fine evento (download admin da `EventExportPanel`) e' ora **nested per Sala/Sessione** con `info.txt` UTF-8 in root contenente metadata evento, sostituendo il vecchio formato piatto `slides/Speaker_vN_file.ext`. Andrea ha richiesto esplicitamente "in modo ordinato" → niente toggle UI, default unico.
 
-| Area              | Cosa                                                                                                                                                                                                                                                                                                                                                                                                          |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Refactor          | `apps/web/src/features/events/lib/event-export.ts` — `CurrentSlideExportRow` esteso con `roomId/roomName/sessionId`. `listCurrentReadySlidesForExport` ora richiede `rooms: RoomRow[]`. `buildEventSlidesZip` accetta `EventSlidesZipOptions` (event, rooms, sessions, t, locale, generatedAtIso, onProgress, includeReadme). 2 nuove pure-function: `buildSlidePathSegments`, `buildEventInfoReadme`.       |
-| UI integrazione   | `apps/web/src/features/events/components/EventExportPanel.tsx` — passa `rooms` (gia' disponibile come prop) e i nuovi parametri al refactor. Nessun cambiamento UI visibile (Andrea ha chiesto "in modo ordinato" → semplifichiamo, no toggle).                                                                                                                                                                  |
-| Output ZIP        | `<evento>_slides.zip / Sala/Sessione/Speaker_vN_filename.ext` + `info.txt` (UTF-8 BOM) con header, metadata evento, conteggio file per sala, totale bytes, ora generazione, footer support. Slide orfane → `_senza-sala_/_senza-sessione_/...` (cartelle marker visibili).                                                                                                                                       |
-| Schema DB         | **Invariato.** Refactor pure-function client-side, zero migrations.                                                                                                                                                                                                                                                                                                                                            |
-| i18n              | 14 nuove chiavi sotto `event.export.zip.*` (readmeTitle, readmeEvent, readmeDateRange, readmeStatus, readmeNetworkMode, readmeRoomsCount, readmeSessionsCount, readmeSlidesCount, readmeTotalBytes, readmeStructureHint, readmeBreakdownTitle, readmeNoRoom, readmeGeneratedAt, readmeFooter). Parity 1243/1243.                                                                                            |
+| Area            | Cosa                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Refactor        | `apps/web/src/features/events/lib/event-export.ts` — `CurrentSlideExportRow` esteso con `roomId/roomName/sessionId`. `listCurrentReadySlidesForExport` ora richiede `rooms: RoomRow[]`. `buildEventSlidesZip` accetta `EventSlidesZipOptions` (event, rooms, sessions, t, locale, generatedAtIso, onProgress, includeReadme). 2 nuove pure-function: `buildSlidePathSegments`, `buildEventInfoReadme`. |
+| UI integrazione | `apps/web/src/features/events/components/EventExportPanel.tsx` — passa `rooms` (gia' disponibile come prop) e i nuovi parametri al refactor. Nessun cambiamento UI visibile (Andrea ha chiesto "in modo ordinato" → semplifichiamo, no toggle).                                                                                                                                                        |
+| Output ZIP      | `<evento>_slides.zip / Sala/Sessione/Speaker_vN_filename.ext` + `info.txt` (UTF-8 BOM) con header, metadata evento, conteggio file per sala, totale bytes, ora generazione, footer support. Slide orfane → `_senza-sala_/_senza-sessione_/...` (cartelle marker visibili).                                                                                                                             |
+| Schema DB       | **Invariato.** Refactor pure-function client-side, zero migrations.                                                                                                                                                                                                                                                                                                                                    |
+| i18n            | 14 nuove chiavi sotto `event.export.zip.*` (readmeTitle, readmeEvent, readmeDateRange, readmeStatus, readmeNetworkMode, readmeRoomsCount, readmeSessionsCount, readmeSlidesCount, readmeTotalBytes, readmeStructureHint, readmeBreakdownTitle, readmeNoRoom, readmeGeneratedAt, readmeFooter). Parity 1243/1243.                                                                                       |
 
 **Quality gates verdi:** `pnpm --filter @slidecenter/web typecheck` (0 err), `lint` (0 err), `build` (1.3s, EventExportPanel 412KB → 412KB +1KB ininfluente). i18n parity script Node PASS.
 
@@ -367,6 +367,46 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 - Toggle UI "ordinato | piatto" → omesso (richiesta esplicita Andrea: "in modo ordinato").
 - README localizzato per nomi cartella (sale/sessioni dal DB) → solo le label di `info.txt` sono i18n IT/EN (in base alla lingua dell'admin che esporta).
 - Streaming server-side (Edge Function ZIP builder) per eventi >500MB → S-3.b deferred (+1g + 1 nuova Edge Function).
+
+### Sprint S-4 (G7) — Ruolo device "Centro Slide" multi-room (DONE 18/04/2026)
+
+**Stato:** **completato e verde.** Aggiunto ruolo `paired_devices.role` (`'room'` default | `'control_center'`). Un PC promosso a "Centro Slide" riceve i file di **TUTTE** le sale dell'evento (manifest multi-room dal `room-player-bootstrap`), filesystem locale `Sala/Sessione/file`, header dedicato con badge `CENTRO`, dropzone upload nascosto (read-only). Promote/demote da kebab in `DeviceList`; sezione fixed "Centri Slide" sopra la lavagna in `RoomAssignBoard` (non draggable).
+
+| Area              | Cosa                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| DB migration      | `supabase/migrations/20260418090000_paired_devices_role.sql` — `paired_devices.role TEXT NOT NULL DEFAULT 'room' CHECK (role IN ('room','control_center'))` + indice `idx_devices_event_centers` + RPC `update_device_role(p_device_id, p_new_role) SECURITY INVOKER` (rispetta RLS tenant_isolation, super-admin escape, force `room_id=NULL` su promote, bumpa `updated_at` per realtime). Scelto `TEXT+CHECK` invece di `ENUM` per evitare problemi `ALTER TYPE ADD VALUE` in transazione (vedi R-3). |
+| Edge Function     | `supabase/functions/room-player-bootstrap/index.ts` — branch `deviceRole === 'control_center'`: query `presentations` su **tutte** le sale dell'evento, `FileRow` arricchito con `roomId/roomName`, sort multi-room (`roomName → sessionScheduledStart → filename`), payload include `control_center: true` + `rooms[]`. Skip `playback_mode` update per centri.                                                                                                                                          |
+| Hook              | `apps/web/src/features/devices/hooks/useFileSync.ts` — `FileSyncItem` con `roomId/roomName`. `downloadVersion` e `cleanupOrphanFiles` usano `item.roomName` come **primo segmento** del path locale. Nuovo flag `disableRealtime` (centri = polling-only, no per-room subscription, sufficiente per use-case backup).                                                                                                                                                                                    |
+| Repository        | `apps/web/src/features/devices/repository.ts` — `RoomPlayerBootstrapResponse` esteso (`device.role?`, `control_center?`, `rooms?`). Nuova `updateDeviceRole(deviceId, newRole)` wrapper RPC.                                                                                                                                                                                                                                                                                                            |
+| UI RoomPlayerView | `apps/web/src/features/devices/RoomPlayerView.tsx` — branch dedicato per centri: title=event-name, badge `CENTRO`, sub `roomsCount` plural, icona `Building2`. `RealtimeChip` nascosto. `RoomDeviceUploadDropzone` nascosto (read-only).                                                                                                                                                                                                                                                                |
+| UI DeviceList     | `apps/web/src/features/devices/components/DeviceList.tsx` — kebab "Promuovi a Centro Slide" / "Riporta a sala normale" con `window.confirm`. Card differenziata: bg `sc-primary/15`, icona `Building2`, badge "CENTRO" inline, hint "Centro Slide · sincronizza tutte le sale dell'evento". Sezione "Assegna sala" nascosta per centri.                                                                                                                                                                  |
+| UI RoomAssignBoard| `apps/web/src/features/devices/components/RoomAssignBoard.tsx` — split `regularDevices` (board drag&drop) vs `centerDevices` (sezione fixed in cima, non draggable). Card centro con icona + status realtime + hint "assegnato a tutte le sale". Empty state distingue "no device" vs "solo centri pairati".                                                                                                                                                                                            |
+| i18n              | 18 nuove chiavi: `devices.list.{promoteToCenter,promoteToCenterConfirm,demoteToRoom,demoteToRoomConfirm,roleBadgeCenter,centerHint,roleChangeError}` + `devices.board.{centersTitle,centersLabel,centersHint,centerCardTitle,allCentersHint}` + `roomPlayer.center.{headerTitle,headerSubtitleFallback,badge,roomsCount_one,roomsCount_other}`. Parita perfetta IT/EN 1260/1260.                                                                                                                       |
+
+**Quality gates verdi:** `pnpm --filter @slidecenter/shared build` (rigenera `dist/types/database.d.ts`), `shared typecheck` (0 err), `web typecheck` (0 err), `web lint` (0 warning), `web build` (13.79s, 99 entries PWA). i18n parity Node script PASS.
+
+**Sicurezza/Performance:**
+
+- RPC `SECURITY INVOKER` rispetta RLS `tenant_isolation_paired_devices` (no privilege escalation).
+- Cross-tenant explicit reject con `ERRCODE=42501`.
+- Super-admin escape hatch (per troubleshooting da `/admin/tenants`).
+- Backward compat 100%: tutti i device esistenti hanno `role='room'` di default, branch `else` originale invariato.
+- Centri = no Realtime per-room subscription (evita saturazione quota Supabase Realtime). Polling 30s del bootstrap sufficiente per backup use-case.
+- Centri = read-only (no upload dropzone): un centro non sa "in che sala" sta ora il relatore, abilitare upload creerebbe ambiguita su `presentations.room_id`.
+
+**Setup manuale Andrea (~5 minuti):**
+
+1. `pnpm supabase db push --include-all` — applica migration `20260418090000_paired_devices_role.sql`.
+2. `pnpm supabase functions deploy room-player-bootstrap` — re-deploy Edge Function.
+3. `pnpm gen:db-types` — rigenera tipi DB per CI types-drift check (verifica che `database.generated.ts` non abbia diff vs `database.ts`).
+4. Test smoke: pair 1 PC, kebab → "Promuovi a Centro Slide" → verifica appare in sezione "Centri Slide" sopra la lavagna + badge "CENTRO" su `RoomPlayerView` + filesystem locale `Sala/Sessione/file`.
+
+**Cosa NON e' incluso (deferred):**
+
+- CenterPlayerView con tree-view "Sala → Sessione → File" → S-4.b deferred (oggi usa stesso layout di RoomPlayerView).
+- Sort custom dei file in centri → S-4.c deferred (oggi hardcoded `roomName ASC → sessionScheduledStart ASC → filename ASC`).
+- Metric "X file mancano vs admin" (QA pre-evento) → S-4.d deferred (oggi mostra solo file presenti su Storage).
+- Centri con Realtime per-room subscription → riconsiderare se Andrea pairera' >5 Centri simultaneamente.
 
 ### Hardening Supabase + Vercel (Sprint Q+1) — DONE 18/04/2026
 

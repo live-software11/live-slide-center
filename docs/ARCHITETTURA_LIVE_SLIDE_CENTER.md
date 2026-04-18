@@ -126,6 +126,8 @@ Il Centro Slide viene venduto in **tre forme** che condividono il 100% della SPA
 > **Sprint S-2 chiuso (DONE 18/04/2026):** drag&drop visivo PC ↔ sale. Nuovo componente `apps/web/src/features/devices/components/RoomAssignBoard.tsx` — lavagna Kanban-style (colonna "Non assegnati" + N colonne sala) con HTML5 drag&drop nativo (`dataTransfer` MIME custom `application/x-sc-device-id`), aggiornamento ottimistico locale + rollback su errore, busy-state per device durante mutation. `DevicesPanel` aggiunge un toggle persistente in localStorage "Lista | Lavagna" (default: list per retro-compatibilita, vista Lista resta invariata come fallback per touch/keyboard). Mutation tramite `updateDeviceRoom(deviceId, roomId)` esistente, RLS `tenant_isolation` invariata. Realtime listener `paired_devices` postgres_changes gia' attivo allinea altri admin connessi in <1s senza broadcast custom. Zero modifiche schema DB. i18n IT/EN +12 chiavi (parita 1229/1229). **Gap G5 chiuso → famiglia S avanza (5/10, 2/4 sprint S).** Vedi `docs/STATO_E_TODO.md` §0.13.
 >
 > **Sprint S-3 chiuso (DONE 18/04/2026):** export ZIP fine evento ordinato per sala/sessione. Refactor pure-function `apps/web/src/features/events/lib/event-export.ts`: `buildEventSlidesZip` ora accetta `EventSlidesZipOptions` (event, rooms, sessions, t, locale, generatedAtIso, onProgress, includeReadme) e produce uno ZIP **nested** `Sala/Sessione/Speaker_vN_filename.ext` con `info.txt` UTF-8 in root (metadata: nome evento, date, sale/sessioni totali, conteggio file per sala, totale bytes, ora generazione). `CurrentSlideExportRow` esteso con `roomId/roomName/sessionId`. Sostituisce il vecchio ZIP piatto `slides/Speaker_vN_file.ext`. Nessun toggle UI (Andrea ha richiesto esplicitamente "in modo ordinato" → semplificato). Zero modifiche schema DB, zero env vars, zero deploy. i18n IT/EN +14 chiavi `event.export.zip.*` (parita 1243/1243). **Gap G6 chiuso → famiglia S 3/4 (6/10 totali).** Vedi `docs/STATO_E_TODO.md` §0.14.
+>
+> **Sprint S-4 chiuso (DONE 18/04/2026):** ruolo device "Centro Slide" multi-room. Migration `20260418090000_paired_devices_role.sql` aggiunge `paired_devices.role TEXT NOT NULL DEFAULT 'room' CHECK (role IN ('room','control_center'))` + RPC `update_device_role(device_id, new_role) SECURITY INVOKER` (rispetta RLS `tenant_isolation_paired_devices`, super-admin escape hatch, force `room_id=NULL` su promote). Edge Function `room-player-bootstrap` esteso con branch `deviceRole === 'control_center'` → query `presentations` su **tutte** le sale dell'evento, `FileRow` arricchito con `roomId/roomName`, sort multi-room (`roomName → sessionScheduledStart → filename`), payload include `control_center: true` + `rooms[]`. `useFileSync` con `FileSyncItem.{roomId,roomName}` + flag `disableRealtime` (centri = polling-only, no per-room subscription) + path locale `Sala/Sessione/file`. UI: branch dedicato in `RoomPlayerView.tsx` (icona `Building2`, badge `CENTRO`, count sale, `RoomDeviceUploadDropzone` nascosto perche' centro = read-only); kebab promote/demote in `DeviceList.tsx`; sezione fixed "Centri Slide" sopra la lavagna in `RoomAssignBoard.tsx` (non draggable). 18 nuove chiavi i18n IT/EN sotto `devices.list.*`, `devices.board.*`, `roomPlayer.center.*` (parita 1260/1260). **Gap G7 chiuso → famiglia S COMPLETA (4/4) → 7/10 totali.** Vedi `docs/STATO_E_TODO.md` §0.15.
 
 | Area                                                       | Cloud (web)                               | Desktop offline (Tauri 2)                    |
 | ---------------------------------------------------------- | ----------------------------------------- | -------------------------------------------- |
@@ -425,7 +427,7 @@ WHERE email = 'live.software11@gmail.com';
 | `room_state`             | Stato realtime sala (sessione, sync status, agent connection, `current_presentation_id`)                                     |
 | `local_agents`           | Agent registrati con IP LAN + heartbeat                                                                                      |
 | `activity_log`           | Audit trail completo (Realtime disabilitato, polling 10s)                                                                    |
-| `paired_devices`         | PC sala paired con `pair_token_hash` + status realtime                                                                       |
+| `paired_devices`         | PC sala paired con `pair_token_hash` + status realtime + `role` ('room' default \| 'control_center') — Sprint S-4            |
 | `pairing_codes`          | Codici 6 cifre TTL 10min, single-use                                                                                         |
 | `pair_claim_rate_events` | Rate-limit anti-bruteforce su `pair-claim` (5/15min per IP hash, accesso solo `service_role`) — Fase 14                      |
 | `team_invitations`       | Inviti email per nuovi membri tenant; token 7gg — Sprint 1 / Fase 14                                                         |
@@ -453,6 +455,9 @@ WHERE email = 'live.software11@gmail.com';
 | `20260417140000_sprint7_operations.sql`                  | `email_log` + `tenant_data_exports` + 8 RPC GDPR/email/storage                          |
 | `20260417150000_sprint8_tenant_audit.sql`                | `list_tenant_activity` RPC + 2 indici composti (Sprint 8)                               |
 | `20250417090000_phase4_versioning.sql`                   | `rpc_set_current_version`, `rpc_update_presentation_status`, `guard_versions_immutable` |
+| `20260418080000_room_device_upload_enum.sql`             | Enum `upload_source += 'room_device'` + `actor_type += 'device'` (Sprint R-3)           |
+| `20260418080100_room_device_upload_rpcs.sql`             | 3 RPC `init/finalize/abort_upload_version_for_room_device` (Sprint R-3)                 |
+| `20260418090000_paired_devices_role.sql`                 | `paired_devices.role TEXT CHECK ('room','control_center')` + RPC `update_device_role` (Sprint S-4) |
 
 ### 7.3 RPC SECURITY DEFINER notevoli
 
@@ -477,6 +482,7 @@ WHERE email = 'live.software11@gmail.com';
 | `init_upload_version_for_room_device(p_token, p_session_id, ...)`                            | service_role          | PC sala: apre version 'uploading', validazione cross-room (Sprint R-3) |
 | `finalize_upload_version_for_room_device(p_token, p_version_id, p_sha256)`                   | service_role          | PC sala: promuove a 'ready' + supersedes altre versions (Sprint R-3)   |
 | `abort_upload_version_for_room_device(p_token, p_version_id)`                                | service_role          | PC sala: marca version 'failed' su cancel/error client (Sprint R-3)    |
+| `update_device_role(p_device_id, p_new_role)`                                                | authenticated         | Promuove/demuove device tra 'room' / 'control_center', RLS tenant-scoped (Sprint S-4) |
 | `seed_demo_data()` / `clear_demo_data()`                                                     | authenticated         | Onboarding demo (Sprint 6)                                             |
 | `mark_tenant_onboarded()` / `reset_tenant_onboarding()`                                      | authenticated         | Wizard onboarding (Sprint 6)                                           |
 | `tenant_health()`                                                                            | super_admin           | Counter aggregati globali (Sprint 6)                                   |
@@ -1308,12 +1314,12 @@ Famiglia R chiusa: Slide Center e' ora **commercial-ready end-to-end** (purchase
 
 #### File management OneDrive-style (Sprint S) — IN PROGRESS
 
-| Sprint | Gap | Nome                                                                                        | Stato   |
-| ------ | --- | ------------------------------------------------------------------------------------------- | ------- |
-| S-1    | G4  | Drag&drop folder intera in upload admin (`folder-traversal.ts` + `<input webkitdirectory>`)            | DONE    |
-| S-2    | G5  | Drag&drop visivo PC ↔ sale (`RoomAssignBoard` Kanban + toggle Lista/Lavagna)                           | DONE    |
-| S-3    | G6  | Export ZIP fine evento ordinato per sala/sessione (`buildEventSlidesZip` v2 nested + `info.txt`)       | DONE    |
-| S-4    | G7  | Ruolo device "Centro Slide" multi-room (oggi: 1 device = 1 sala)                                       | pending |
+| Sprint | Gap | Nome                                                                                             | Stato   |
+| ------ | --- | ------------------------------------------------------------------------------------------------ | ------- |
+| S-1    | G4  | Drag&drop folder intera in upload admin (`folder-traversal.ts` + `<input webkitdirectory>`)      | DONE    |
+| S-2    | G5  | Drag&drop visivo PC ↔ sale (`RoomAssignBoard` Kanban + toggle Lista/Lavagna)                     | DONE    |
+| S-3    | G6  | Export ZIP fine evento ordinato per sala/sessione (`buildEventSlidesZip` v2 nested + `info.txt`) | DONE    |
+| S-4    | G7  | Ruolo device "Centro Slide" multi-room (oggi: 1 device = 1 sala)                                 | **DONE** ✅ (vedi `docs/STATO_E_TODO.md` §0.15) |
 
 Sprint T (perf + competitor parity, G8-G10) resta in pianificazione. Vedi `docs/STATO_E_TODO.md` §0.4 per il dettaglio dei 10 GAP e la roadmap.
 

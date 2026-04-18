@@ -3,11 +3,11 @@
 > **Documento operativo gemello di `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare, in ordine di priorita. Per "cosa fa il prodotto" e "come e fatto" → architettura.
 >
-> **Versione:** 2.7 — 18 aprile 2026 (post-Sprint S-3)
+> **Versione:** 2.8 — 18 aprile 2026 (post-Sprint S-4)
 > **Owner:** Andrea Rizzari
-> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**.
+> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**.
 >
-> **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 6/10 chiusi (G1 in R-1, G2 in R-2, G3 in R-3, G4 in S-1, G5 in S-2, G6 in S-3) → completata FAMIGLIA R + avanzata FAMIGLIA S (3/4).**
+> **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 7/10 chiusi (G1 in R-1, G2 in R-2, G3 in R-3, G4 in S-1, G5 in S-2, G6 in S-3, G7 in S-4) → completata FAMIGLIA R + completata FAMIGLIA S (4/4) → restano 3 GAP famiglia T (G8/G9/G10).**
 >
 > **Hardening Sprint Q+1 (§ 0.8):** completato hardening backend (Supabase RLS least-privilege + 7 indici hot-path + PKCE + CSP + CI types drift + auto-deploy Edge Functions).
 >
@@ -21,7 +21,9 @@
 >
 > **Sprint S-2 (§ 0.13):** admin puo' assegnare PC alle sale tramite **lavagna drag&drop visiva** (Kanban-style con colonne sala + "Non assegnati"). Toggle persistente "Lista | Lavagna" in `DevicesPanel`. HTML5 DnD nativo, aggiornamento ottimistico, realtime listener `paired_devices` gia' attivo allinea altri admin in <1s. Zero modifiche schema DB.
 >
-> **Sprint S-3 (§ 0.14):** export ZIP fine evento ora **ordinato** in struttura nested `Sala/Sessione/Speaker_vN_filename.ext` (prima era piatto `slides/...`) + README `info.txt` UTF-8 in root con metadata evento (nome, date, sale, sessioni, conteggio per sala, totale bytes, generato_a). Zero modifiche schema DB, refactor pure-function `event-export.ts`. Verde per Sprint S-4 (Centro Slide multi-room device role, G7) quando vuoi.
+> **Sprint S-3 (§ 0.14):** export ZIP fine evento ora **ordinato** in struttura nested `Sala/Sessione/Speaker_vN_filename.ext` (prima era piatto `slides/...`) + README `info.txt` UTF-8 in root con metadata evento (nome, date, sale, sessioni, conteggio per sala, totale bytes, generato_a). Zero modifiche schema DB, refactor pure-function `event-export.ts`.
+>
+> **Sprint S-4 (§ 0.15):** introdotto ruolo `paired_devices.role` (`'room'` default | `'control_center'`). Un PC promosso a "Centro Slide" riceve i file di **TUTTE** le sale dell'evento (manifest multi-room dal `room-player-bootstrap`), filesystem locale strutturato `Sala/Sessione/file`, niente `RoomDeviceUploadDropzone` (read-only), header dedicato con badge `CENTRO`. Promote/demote da kebab in `DeviceList`; sezione speciale "Centri Slide" sopra la lavagna in `RoomAssignBoard`. Migration `20260418090000_paired_devices_role.sql` + RPC `update_device_role`. Verde per Sprint T-1 (G8, badge "version live" big screen) quando vuoi.
 
 ---
 
@@ -35,6 +37,7 @@
    - 0.12 [Sprint S-1 — Drag&drop folder intera in upload admin (DONE)](#012-sprint-s-1--dragdrop-folder-intera-in-upload-admin-done-18042026)
    - 0.13 [Sprint S-2 — Drag&drop visivo PC ↔ sale (DONE)](#013-sprint-s-2--dragdrop-visivo-pc--sale-done-18042026)
    - 0.14 [Sprint S-3 — Export ZIP fine evento ordinato sala/sessione (DONE)](#014-sprint-s-3--export-zip-fine-evento-ordinato-salasessione-done-18042026)
+   - 0.15 [Sprint S-4 — Ruolo device "Centro Slide" multi-room (DONE)](#015-sprint-s-4--ruolo-device-centro-slide-multi-room-done-18042026)
 1. [Stato attuale (tutto DONE)](#1-stato-attuale-tutto-done)
 2. [Cose da fare ORA (azioni esterne Andrea, NON automatizzabili)](#2-cose-da-fare-ora-azioni-esterne-andrea-non-automatizzabili)
 3. [Field test desktop (quando vorrai farlo)](#3-field-test-desktop-quando-vorrai-farlo)
@@ -71,7 +74,7 @@
 | G4  | Drag&drop di **folder intera** in upload admin assente            | **MEDIUM** | `apps/web/src/features/presentations/components/SessionFilesPanel.tsx`              | **S-1** | **DONE** ✅ |
 | G5  | Drag&drop visivo PC ↔ sale assente (solo dropdown)                | **MEDIUM** | `apps/web/src/features/devices/components/DeviceList.tsx` + nuova `RoomAssignBoard` | **S-2** | **DONE** ✅ |
 | G6  | Export ZIP fine evento piatto (no struttura sala/sessione)        | **MEDIUM** | `apps/web/src/features/events/lib/event-export.ts` `buildEventSlidesZip`            | **S-3** | **DONE** ✅ |
-| G7  | "Centro Slide" multi-room = ruolo device assente                  | **MEDIUM** | DB schema `paired_devices.role` + `useFileSync` multi-room manifest                 | **S-4** | pending     |
+| G7  | "Centro Slide" multi-room = ruolo device assente                  | **MEDIUM** | DB schema `paired_devices.role` + `useFileSync` multi-room manifest                 | **S-4** | **DONE** ✅ |
 | G8  | Versione "in onda" non visibile a colpo d'occhio in sala          | **LOW**    | `apps/web/src/features/devices/RoomPlayerView.tsx` overlay badge `vN/M`             | **T-1** | pending     |
 | G9  | Telemetria perf live PC sala (CPU/RAM/disco) non aggregata        | **LOW**    | `room_state` schema + `<RoomCard>` overlay realtime                                 | **T-2** | pending     |
 | G10 | Features competitor mancanti (file checking, ePoster, mobile SRR) | **LOW**    | Vari (vedi §0.4)                                                                    | **T-3** | pending     |
@@ -224,22 +227,23 @@
 
 **Tempo stima:** 1 giorno dev + 0.5 test.
 
-#### G7 — "Centro Slide" multi-room = ruolo device assente
+#### G7 — "Centro Slide" multi-room = ruolo device assente ✅ CHIUSO IN SPRINT S-4 (§ 0.15)
 
-**Evidenza codice:**
+**Evidenza codice (pre-S-4):**
 
 - `paired_devices.room_id` UNICO → 1 device = 1 sala.
 - Andrea: "i pc assegnati al centro slide devono avere i dati di tutte le sale".
 
-**Soluzione tecnica:**
+**Soluzione applicata (Sprint S-4):**
 
-- DB migration: aggiungere `paired_devices.role text not null default 'room_player' check (role in ('room_player', 'control_center'))`.
-- Quando `role = 'control_center'`, `room_id` puo' essere NULL.
-- Nuovo Edge Function / RPC `control_center_bootstrap`: ritorna manifest di TUTTE le sale dell'evento (no filtro `room_id`).
-- `useFileSync` esteso con param `multiRoom: boolean`: se true, scarica file di tutte le sale e li deposita in subfolder `<sala>/<sessione>/<file>`.
-- UI: vista `apps/web/src/features/devices/ControlCenterView.tsx` con tab per sala + filtro globale.
+- DB migration `20260418090000_paired_devices_role.sql`: aggiunta colonna `paired_devices.role TEXT NOT NULL DEFAULT 'room' CHECK (role IN ('room', 'control_center'))` (NB: scelto `TEXT+CHECK` invece di `ENUM` per evitare i problemi `ALTER TYPE ADD VALUE` in transazione gia' incontrati in R-3).
+- Quando `role = 'control_center'`, `room_id` viene forzato a NULL dalla RPC `update_device_role`.
+- Edge Function esistente `room-player-bootstrap` esteso con branch `deviceRole === 'control_center'`: query `presentations` filtrata su **tutte** le sale dell'evento; ogni `FileRow` arricchito con `roomId/roomName`; sort multi-room; payload include `control_center: true` + `rooms[]`.
+- `useFileSync` esteso con `FileSyncItem.{roomId,roomName}` + flag `disableRealtime`. Path locale ora `Sala/Sessione/file` (primo segmento = `roomName` per centri).
+- UI: branch dedicato in `RoomPlayerView` (icona `Building2`, badge `CENTRO`, count sale, dropzone upload nascosto), kebab promote/demote in `DeviceList`, sezione fixed "Centri Slide" sopra la lavagna in `RoomAssignBoard` (non draggable).
+- 18 nuove chiavi i18n IT/EN sotto `devices.list.*`, `devices.board.*`, `roomPlayer.center.*`.
 
-**Tempo stima:** 2 giorni dev + 1 test.
+**Outcome:** un PC promosso a "Centro Slide" sincronizza in background tutti i file di tutte le sale dell'evento, zero impatto sui PC sala (che continuano col loro flusso single-room realtime). Vedi §0.15 per dettagli completi.
 
 #### G8 — Versione "in onda" non visibile a colpo d'occhio in sala
 
@@ -344,10 +348,10 @@
 
 | Sprint  | Gap | Obiettivo                                        | Tempo dev | Tempo test | Output                                         |
 | ------- | --- | ------------------------------------------------ | --------- | ---------- | ---------------------------------------------- |
-| **S-1** | G4  | Drag&drop folder intera in upload admin          | 1.5 g     | 0.5 g      | `useUploadQueue` esteso con `webkitGetAsEntry` |
-| **S-2** | G5  | Drag&drop visivo PC ↔ sale (board)               | 1.5 g     | 0.5 g      | `RoomAssignBoardView` + DnD HTML5 nativo       |
-| **S-3** | G6  | Export ZIP fine evento strutturato sala/sessione | 1 g       | 0.5 g      | `buildEventSlidesZip` v2 con tree              |
-| **S-4** | G7  | "Centro Slide" multi-room device role            | 2 g       | 1 g        | `paired_devices.role` + `ControlCenterView`    |
+| **S-1** ✅ DONE | G4 | Drag&drop folder intera in upload admin          | 1.5 g     | 0.5 g      | `useUploadQueue` esteso con `webkitGetAsEntry` (vedi §0.12) |
+| **S-2** ✅ DONE | G5 | Drag&drop visivo PC ↔ sale (board)               | 1.5 g     | 0.5 g      | `RoomAssignBoardView` + DnD HTML5 nativo (vedi §0.13)        |
+| **S-3** ✅ DONE | G6 | Export ZIP fine evento strutturato sala/sessione | 1 g       | 0.5 g      | `buildEventSlidesZip` v2 con tree (vedi §0.14)               |
+| **S-4** ✅ DONE | G7 | "Centro Slide" multi-room device role            | 2 g       | 1 g        | `paired_devices.role` + branch RoomPlayerView (vedi §0.15)   |
 
 **GO/NO-GO criteri:**
 
@@ -1011,19 +1015,19 @@ S-1 obiettivo: l'admin puo' droppare in `SessionFilesPanel` una **cartella inter
 
 #### 0.14.1 Cosa cambia per l'admin
 
-| Prima (≤ Sprint S-2)                                                | Dopo (Sprint S-3 DONE)                                                                                              |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| ZIP piatto: `<evento>_slides.zip / slides/Mario_Rossi_v3_intro.pptx` | ZIP nested: `<evento>_slides.zip / Sala-Plenaria/Apertura/Mario_Rossi_v3_intro.pptx`                                |
-| Nessun README                                                       | `info.txt` UTF-8 in root con metadata evento (nome, date, sale, sessioni, conteggio per sala, totale bytes, ora generazione) |
-| Difficile capire quale file appartiene a quale sala in sfoglia      | Apri lo ZIP → vedi cartelle per sala → drill-down sessione → file con relatore_vN_originale                         |
+| Prima (≤ Sprint S-2)                                                 | Dopo (Sprint S-3 DONE)                                                                                                       |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| ZIP piatto: `<evento>_slides.zip / slides/Mario_Rossi_v3_intro.pptx` | ZIP nested: `<evento>_slides.zip / Sala-Plenaria/Apertura/Mario_Rossi_v3_intro.pptx`                                         |
+| Nessun README                                                        | `info.txt` UTF-8 in root con metadata evento (nome, date, sale, sessioni, conteggio per sala, totale bytes, ora generazione) |
+| Difficile capire quale file appartiene a quale sala in sfoglia       | Apri lo ZIP → vedi cartelle per sala → drill-down sessione → file con relatore_vN_originale                                  |
 
 #### 0.14.2 File modificati (commit unico, NO breaking changes esterni)
 
-| File                                                                                          | Cambio                                                                                                                                                  |
-| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/web/src/features/events/lib/event-export.ts`                                            | `CurrentSlideExportRow` esteso con `roomId`, `roomName`, `sessionId`. `listCurrentReadySlidesForExport` ora richiede `rooms: RoomRow[]`. `buildEventSlidesZip` refactor con `EventSlidesZipOptions` (event, rooms, sessions, t, locale, generatedAtIso, onProgress, includeReadme). Nuove pure-function `buildSlidePathSegments` e `buildEventInfoReadme`. |
-| `apps/web/src/features/events/components/EventExportPanel.tsx`                                | Passa `rooms` a `listCurrentReadySlidesForExport` (sia in `runZip` sia in `runPdf`) e `event/rooms/sessions/t/locale/generatedAtIso` al nuovo `buildEventSlidesZip`. Zero modifiche UI visibili.                                                                                              |
-| `packages/shared/src/i18n/locales/it.json` + `en.json`                                        | +14 chiavi sotto `event.export.zip.*` (readmeTitle, readmeEvent, readmeDateRange, readmeStatus, readmeNetworkMode, readmeRoomsCount, readmeSessionsCount, readmeSlidesCount, readmeTotalBytes, readmeStructureHint, readmeBreakdownTitle, readmeNoRoom, readmeGeneratedAt, readmeFooter). Parity 1243/1243.                                              |
+| File                                                           | Cambio                                                                                                                                                                                                                                                                                                                                                     |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/src/features/events/lib/event-export.ts`             | `CurrentSlideExportRow` esteso con `roomId`, `roomName`, `sessionId`. `listCurrentReadySlidesForExport` ora richiede `rooms: RoomRow[]`. `buildEventSlidesZip` refactor con `EventSlidesZipOptions` (event, rooms, sessions, t, locale, generatedAtIso, onProgress, includeReadme). Nuove pure-function `buildSlidePathSegments` e `buildEventInfoReadme`. |
+| `apps/web/src/features/events/components/EventExportPanel.tsx` | Passa `rooms` a `listCurrentReadySlidesForExport` (sia in `runZip` sia in `runPdf`) e `event/rooms/sessions/t/locale/generatedAtIso` al nuovo `buildEventSlidesZip`. Zero modifiche UI visibili.                                                                                                                                                           |
+| `packages/shared/src/i18n/locales/it.json` + `en.json`         | +14 chiavi sotto `event.export.zip.*` (readmeTitle, readmeEvent, readmeDateRange, readmeStatus, readmeNetworkMode, readmeRoomsCount, readmeSessionsCount, readmeSlidesCount, readmeTotalBytes, readmeStructureHint, readmeBreakdownTitle, readmeNoRoom, readmeGeneratedAt, readmeFooter). Parity 1243/1243.                                                |
 
 #### 0.14.3 Esempio output ZIP
 
@@ -1089,6 +1093,113 @@ Generato automaticamente da Live SLIDE CENTER. Per assistenza: support@liveworks
 #### 0.14.6 Setup manuale richiesto
 
 **Nessuno**. Refactor pure-function client-side. Niente migrations DB, niente env vars, niente deploy Edge Functions. Al primo nuovo export ZIP da `EventDetailView → EventExportPanel`, Andrea trovera' lo ZIP nella nuova struttura.
+
+---
+
+### 0.15 Sprint S-4 — Ruolo device "Centro Slide" multi-room (DONE 18/04/2026)
+
+**Obiettivo**: chiudere il **GAP G7** dell'audit. Prima di S-4: 1 device pairato = 1 sala specifica (`paired_devices.room_id` NOT NULL). Andrea ha richiesto esplicitamente che "i pc assegnati al centro slide devono avere i dati di tutte le sale e a fine evento devo poter scaricare tutto in modo ordinato". Adesso un PC puo' essere promosso a **"Centro Slide"** e ricevere i file di **tutte** le sale dell'evento (read-only sync, ottimo per backup, monitor centrale, export rapido).
+
+#### 0.15.1 Cosa cambia per Andrea
+
+| Prima (≤ Sprint S-3)                                                          | Dopo (Sprint S-4 DONE)                                                                                                                                                            |
+|-------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1 device pairato = 1 sala (es. "Sala A → PC `1234`").                          | 2 ruoli: **`room`** (default, 1 device = 1 sala specifica) + **`control_center`** (1 device = N sale dell'evento, `room_id NULL`).                                                |
+| Per backup multi-sala dovevi fisicamente copiare i file da ogni PC sala.       | 1 PC promosso a "Centro Slide" sincronizza in background **tutte** le cartelle `Sala/Sessione/file` di tutte le sale dell'evento, senza impattare le performance dei PC sala.        |
+| Nessun modo di distinguere visualmente PC sala vs PC backup/centro.            | UI dedicata: icona `Building2`, badge `CENTRO`, sezione "Centri Slide" sopra la lavagna in `RoomAssignBoard`, branch dedicato in `RoomPlayerView` (header con event-name + `count` sale). |
+| Cambio ruolo non possibile.                                                    | Da kebab in `DeviceList`: **"Promuovi a Centro Slide"** o **"Riporta a sala normale"** (con conferma esplicita; demote: `role_id` resta NULL → admin riassegna a una sala).         |
+
+#### 0.15.2 File creati/modificati (commit unico, NO breaking changes esterni)
+
+| File                                                              | Tipo      | Cosa fa                                                                                                                                                          |
+|-------------------------------------------------------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `supabase/migrations/20260418090000_paired_devices_role.sql`       | NUOVO     | Aggiunge `paired_devices.role TEXT NOT NULL DEFAULT 'room' CHECK (role IN ('room','control_center'))`. Indice `idx_devices_event_centers` per query rapide. RPC `update_device_role(p_device_id UUID, p_new_role TEXT) SECURITY INVOKER` rispetta RLS tenant-scoped, permission gate `app_tenant_id() OR is_super_admin()`, blocca cross-tenant, forza `room_id=NULL` se promote a `control_center`. |
+| `packages/shared/src/types/database.ts`                            | MODIFICATO| Aggiunto `role: 'room' \| 'control_center'` su Row/Insert/Update di `paired_devices`. Aggiunta firma `update_device_role` su `Functions`.                          |
+| `supabase/functions/room-player-bootstrap/index.ts`                | MODIFICATO| Branch `deviceRole === 'control_center'`: query `presentations` filtrata su **tutte** le sale dell'evento (non solo `room_id` del device), `FileRow` arricchito con `roomId/roomName`, sort multi-room (`roomName → sessionScheduledStart → filename`). Response payload include `control_center: true` + `rooms[]`. Skip `playback_mode` update per centri.   |
+| `apps/web/src/features/devices/repository.ts`                      | MODIFICATO| `RoomPlayerBootstrapFileRow` esteso con `roomId/roomName`. `RoomPlayerBootstrapResponse.device.role?` + `control_center?` + `rooms?`. Nuova fn `updateDeviceRole(deviceId, newRole)` wrapper RPC con error handling. |
+| `apps/web/src/features/devices/hooks/useFileSync.ts`               | MODIFICATO| `FileSyncItem` con `roomId/roomName`. `downloadVersion` usa `item.roomName` come **primo segmento** path locale (`Sala/Sessione/file`). `cleanupOrphanFiles` allineato. Nuovo flag `disableRealtime` (Centri non subscribe a topic per-room → MVP polling-only, sufficiente perche' gia' polling 30s). |
+| `apps/web/src/features/devices/RoomPlayerView.tsx`                 | MODIFICATO| Branch `deviceRole === 'control_center'`: `roomData.id` = `device.id` (pseudo-room per useFileSync), title = event-name, sub = `roomsCount` i18n plural. Header con icona `Building2` + badge `CENTRO`. `RealtimeChip` nascosto. `RoomDeviceUploadDropzone` nascosto (centro = read-only). |
+| `apps/web/src/features/devices/components/DeviceList.tsx`          | MODIFICATO| Kebab azione "Promuovi a Centro Slide" / "Riporta a sala normale" con conferma `window.confirm`. Card differenziata: bg `sc-primary/15`, icona `Building2`, badge "CENTRO" inline col nome, hint "Centro Slide · sincronizza tutte le sale dell'evento". Sezione "Assegna sala" nascosta per centri. |
+| `apps/web/src/features/devices/components/RoomAssignBoard.tsx`     | MODIFICATO| Split `regularDevices` (board drag&drop) vs `centerDevices` (sezione fixed in cima, non draggable). Card centro con icona + status realtime + hint "assegnato a tutte le sale". Empty state distingue "no device" vs "solo centri pairati". |
+| `packages/shared/src/i18n/locales/it.json` + `en.json`             | MODIFICATO| 18 nuove chiavi: `devices.list.{promoteToCenter,promoteToCenterConfirm,demoteToRoom,demoteToRoomConfirm,roleBadgeCenter,centerHint,roleChangeError}` + `devices.board.{centersTitle,centersLabel,centersHint,centerCardTitle,allCentersHint}` + `roomPlayer.center.{headerTitle,headerSubtitleFallback,badge,roomsCount_one,roomsCount_other}`. Parita perfetta IT/EN. |
+
+#### 0.15.3 Quality gates
+
+- ✅ `pnpm --filter @slidecenter/shared build` (rigenera `dist/types/database.d.ts`)
+- ✅ `pnpm --filter @slidecenter/shared typecheck` (0 errori)
+- ✅ `pnpm --filter @slidecenter/web typecheck` (0 errori)
+- ✅ `pnpm --filter @slidecenter/web lint` (0 warning)
+- ✅ `pnpm --filter @slidecenter/web build` (verde, 13.79s, 99 entries PWA, RoomPlayerView 53.57 kB gz 14.16 kB ⤴ accettabile per branch multi-role)
+- ✅ Parita i18n IT/EN: **1260 ↔ 1260 chiavi**, zero diff (verificata con script Node `flat()` ricorsivo)
+
+#### 0.15.4 Flusso end-to-end (admin promuove PC backup a Centro Slide)
+
+1. Admin apre `/event/<id>` → tab "PC sala" → vede device "PC backup studio" (default `role='room'`, `room_id=NULL` perche' non ancora assegnato a sala).
+2. Click kebab → "**Promuovi a Centro Slide**" → conferma "Promuovere PC backup studio a Centro Slide? Riceverà i file di TUTTE le sale dell'evento e non sarà più assegnato a una sala specifica."
+3. Web client chiama RPC `update_device_role(device_id, 'control_center')`. RPC:
+   - verifica `app_tenant_id()` o `is_super_admin()`
+   - verifica `paired_devices.tenant_id == app_tenant_id()` (no cross-tenant)
+   - `UPDATE paired_devices SET role='control_center', room_id=NULL, updated_at=now()`
+4. Realtime listener `paired_devices` (gia' attivo da Sprint S-2) propaga a **tutti** gli admin del tenant in <1s + al device stesso (polling `room-player-bootstrap` ogni 30s).
+5. PC sala riceve nuovo bootstrap: branch `control_center` → `useFileSync` riceve manifest multi-room (es. 4 sale × 8 sessioni × 12 file = 384 file totali) → inizia download di tutto il filesystem strutturato `Sala-Plenaria/Sessione_09-30/Mario_Rossi_v3_intro.pptx`, `Sala-A/Sessione_14-00/Anna_Bianchi_v1_chiusura.mp4`, ...
+6. Admin in `RoomAssignBoard` vede "PC backup studio" spostato dalla colonna "Non assegnati" alla nuova sezione fixed in cima "Centri Slide (1)".
+7. A fine evento, Andrea raccoglie il PC Centro Slide (HDD interno o NAS pairato): ha gia' tutto in struttura ordinata, **zero overhead** sui PC sala (i loro download non sono cambiati, leggono solo la loro sala).
+
+#### 0.15.5 Sicurezza & invarianti
+
+- ✅ **Tenant isolation**: RPC `SECURITY INVOKER` rispetta RLS `tenant_isolation_paired_devices`. Cross-tenant explicit reject con `ERRCODE=42501`.
+- ✅ **Super-admin escape hatch**: `is_super_admin()` puo' modificare role anche cross-tenant (per troubleshooting da `/admin/tenants`).
+- ✅ **Backward compat**: tutti i device esistenti hanno `role='room'` (default). Zero migrazione dati. RoomPlayerView per `role='room'` non e' cambiata (branch `else` originale).
+- ✅ **Centri = read-only**: il dropzone upload e' nascosto perche' un centro non sa "in che sala sta ora il relatore" → consenitire upload da centro creerebbe ambiguita su `presentations.room_id`. Restera' read-only finche' Andrea non ne fara' richiesta esplicita (non e' nei 12 obiettivi sovrani).
+- ✅ **Centri = no Realtime per-room subscription**: `useFileSync({ disableRealtime: true })` per centri perche' subscribe a 1 topic Realtime per sala (4-10 sale) potrebbe saturare i quota Supabase Realtime (200 connessioni concurrent simultanee). Il polling `room-player-bootstrap` ogni 30s e' largamente sufficiente per il use-case "backup" (i file caricati ora sono visti dal Centro entro 30s, accettabile vs realtime <1s del PC sala).
+- ✅ **`room_id = NULL` su promote**: la RPC forza `room_id = NULL` quando `role='control_center'`. Demote → `room_id` resta NULL → admin DEVE riassegnare il device a una sala specifica via lavagna o kebab (la conferma demote dice esplicitamente "Dovrai riassegnarlo a una sala specifica dopo questa azione").
+
+#### 0.15.6 Limiti dichiarati e roadmap
+
+- **MVP polling-only sui Centri (no Realtime)**: scelta consapevole per non saturare quota Supabase Realtime. Se in futuro Andrea pairera' >5 Centri Slide simultaneamente per evento, riconsiderare introducendo un singolo topic Realtime `event:<id>:files` (broadcast cross-room). **NON urgente**.
+- **CenterPlayerView identica a RoomPlayerView ma multi-room**: il branch usa lo stesso layout (cards per sessione). Una futura tree-view "Sala → Sessione → File" con espansione/collasso sarebbe piu' ergonomica per centri con 100+ sessioni. **Backlog S-4.b**.
+- **No sort custom dei file in centri**: oggi sort hardcoded `roomName ASC → sessionScheduledStart ASC → filename ASC`. Per controllo manuale, vedere backlog S-4.c.
+- **No metric "X file mancano vs admin"**: oggi il centro mostra solo i file di Storage. Non c'e' confronto "file dichiarati su `presentations` vs file effettivamente presenti". **Backlog S-4.d** (utile per QA pre-evento).
+
+#### 0.15.7 Setup manuale richiesto ad Andrea
+
+1. **Apply migration su Supabase remoto**:
+   ```bash
+   pnpm supabase db push --include-all
+   # oppure: npx supabase db push
+   # verifica: SELECT column_name, data_type FROM information_schema.columns
+   #          WHERE table_name='paired_devices' AND column_name='role';
+   # devi vedere: role | text
+   ```
+
+2. **Re-deploy Edge Function `room-player-bootstrap`**:
+   ```bash
+   pnpm supabase functions deploy room-player-bootstrap
+   # output atteso: "Deployed Function: room-player-bootstrap"
+   ```
+
+3. **Genera nuovi tipi DB** (per CI types-drift check):
+   ```bash
+   pnpm gen:db-types
+   git diff packages/shared/src/types/database.generated.ts
+   # se nessuna diff: i tipi manuali sono allineati col DB
+   ```
+
+4. **Test smoke** (5 minuti):
+   - Pair 1 PC backup, verifica appare in lista come `role='room'`.
+   - Promuovi a Centro Slide via kebab → conferma → vedi appare in sezione "Centri Slide" sopra la lavagna.
+   - Apri il PC sala promosso: vedi badge "CENTRO" + sub "X sale sincronizzate".
+   - Carica un file dall'admin in 1 sala dell'evento → entro 30s appare nel filesystem locale del Centro Slide come `Nome-Sala/Nome-Sessione/Speaker_v1_filename.ext`.
+   - Demote → conferma → riassegna a una sala dalla lavagna → torna a `role='room'`.
+
+#### 0.15.8 Semaforo VERDE per Sprint T-1
+
+✅ Sprint S-4 chiude il GAP G7 e completa la **FAMIGLIA S** (4/4 sprint chiusi). Restano **3 GAP famiglia T**:
+- **G8** (Sprint T-1): badge "version live" big screen visibile a colpo d'occhio in sala (ora versione mostrata in card piccola `text-xs`).
+- **G9** (Sprint T-2): telemetria perf live PC sala (CPU/RAM/disco) aggregata cross-evento.
+- **G10** (Sprint T-3): features competitor mancanti (file checking pre-evento, ePoster, mobile SRR).
+
+Pronto a partire con **Sprint T-1** appena Andrea da' il via.
 
 ---
 

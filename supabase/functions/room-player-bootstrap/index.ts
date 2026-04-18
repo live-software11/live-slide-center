@@ -24,6 +24,11 @@ interface FileRow {
   // Sprint C2 (GUIDA_OPERATIVA_v3 §2.C): hash SHA-256 calcolato lato upload.
   // Se null, il PC sala non verifica e segna `verified: 'skipped'`.
   fileHashSha256: string | null;
+  // Sprint S-4 (G7): id e nome della sala di appartenenza del file. Per i
+  // device 'room' (default) corrispondono alla sala assegnata. Per i device
+  // 'control_center' variano per file (1 device = N sale).
+  roomId: string;
+  roomName: string;
 }
 
 Deno.serve(async (req: Request) => {
@@ -64,12 +69,19 @@ Deno.serve(async (req: Request) => {
 
     const { data: device, error: deviceError } = await supabaseAdmin
       .from('paired_devices')
-      .select('id, tenant_id, event_id, room_id, status, device_name')
+      .select('id, tenant_id, event_id, room_id, status, device_name, role')
       .eq('pair_token_hash', tokenHash)
       .maybeSingle();
 
     if (deviceError) return jsonRes({ error: deviceError.message }, 500);
     if (!device) return jsonRes({ error: 'invalid_token' }, 404);
+
+    // Sprint S-4 (G7): un device 'control_center' ignora room_id (sempre NULL
+    // by design) e riceve i file di TUTTE le sale dell'evento. Tutto il resto
+    // del flow (bootstrap event, network_mode, agent LAN, files) e' branchato
+    // su `deviceRole` piu' giu'.
+    const deviceRole: 'room' | 'control_center' =
+      (device.role as 'room' | 'control_center' | undefined) ?? 'room';
 
     // Sprint D2 (GUIDA_OPERATIVA_v3 §2.D2): aggiorniamo `last_seen_at` e
     // marchiamo `status='online'`. Best-effort: se la scrittura fallisce
@@ -89,12 +101,12 @@ Deno.serve(async (req: Request) => {
     if (tenantError) return jsonRes({ error: tenantError.message }, 500);
     if (tenant?.suspended) return jsonRes({ error: 'tenant_suspended' }, 403);
 
-    if (!device.room_id) {
+    if (deviceRole !== 'control_center' && !device.room_id) {
       // Device pairato ma senza sala assegnata: rispondiamo 200 con `room: null`
       // cosi' il client puo' mostrare un placeholder utile e non si rompe il flusso.
       return jsonRes(
         {
-          device: { id: device.id, name: device.device_name },
+          device: { id: device.id, name: device.device_name, role: deviceRole },
           room: null,
           event_id: device.event_id,
           network_mode: null,
@@ -111,16 +123,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: room, error: roomError } = await supabaseAdmin
-      .from('rooms')
-      .select('id, name')
-      .eq('id', device.room_id)
-      .maybeSingle();
-
-    if (roomError || !room) {
-      return jsonRes({ error: roomError?.message ?? 'room_not_found' }, 404);
-    }
-
     const { data: event, error: eventError } = await supabaseAdmin
       .from('events')
       .select('network_mode, name')
@@ -131,22 +133,48 @@ Deno.serve(async (req: Request) => {
       return jsonRes({ error: eventError?.message ?? 'event_not_found' }, 404);
     }
 
+    // Sprint S-4 (G7): per device 'control_center' carichiamo TUTTE le sale
+    // dell'evento (cosi' possiamo arricchire ogni file con roomName e
+    // determinare quali sessioni includere). Per device 'room' carichiamo
+    // solo la sala assegnata, comportamento invariato.
+    let roomsList: Array<{ id: string; name: string }> = [];
+    let primaryRoom: { id: string; name: string } | null = null;
+    if (deviceRole === 'control_center') {
+      const { data: rooms, error: roomsError } = await supabaseAdmin
+        .from('rooms')
+        .select('id, name')
+        .eq('event_id', device.event_id);
+      if (roomsError) {
+        return jsonRes({ error: roomsError.message }, 500);
+      }
+      roomsList = rooms ?? [];
+    } else {
+      const { data: room, error: roomError } = await supabaseAdmin
+        .from('rooms')
+        .select('id, name')
+        .eq('id', device.room_id!)
+        .maybeSingle();
+      if (roomError || !room) {
+        return jsonRes({ error: roomError?.message ?? 'room_not_found' }, 404);
+      }
+      roomsList = [room];
+      primaryRoom = room;
+    }
+
     // Sprint A6: persistiamo la modalita di playback dichiarata dal PC sala
     // PRIMA di leggere lo stato, cosi' la response include sempre il valore
     // piu' fresco (utile alla dashboard admin che osserva room_state).
-    if (requestedPlaybackMode) {
+    // Per device 'control_center' lo skippiamo: non c'e' una single room_state
+    // a cui scriverlo (ne avrebbe N, e il control_center NON proietta).
+    if (requestedPlaybackMode && deviceRole === 'room' && primaryRoom) {
       await supabaseAdmin
         .from('room_state')
         .update({ playback_mode: requestedPlaybackMode })
-        .eq('room_id', room.id);
+        .eq('room_id', primaryRoom.id);
     }
 
-    const { data: roomState } = await supabaseAdmin
-      .from('room_state')
-      .select('sync_status, current_session_id, playback_mode')
-      .eq('room_id', room.id)
-      .maybeSingle();
-
+    let roomStatePlaybackMode: 'auto' | 'live' | 'turbo' = 'auto';
+    let roomStateSyncStatus: 'synced' | 'syncing' | 'outdated' | 'offline' = 'offline';
     let currentSession: {
       id: string;
       title: string;
@@ -154,13 +182,35 @@ Deno.serve(async (req: Request) => {
       scheduled_end: string;
     } | null = null;
 
-    if (roomState?.current_session_id) {
-      const { data: session } = await supabaseAdmin
-        .from('sessions')
-        .select('id, title, scheduled_start, scheduled_end')
-        .eq('id', roomState.current_session_id)
+    if (deviceRole === 'room' && primaryRoom) {
+      const { data: roomState } = await supabaseAdmin
+        .from('room_state')
+        .select('sync_status, current_session_id, playback_mode')
+        .eq('room_id', primaryRoom.id)
         .maybeSingle();
-      if (session) currentSession = session;
+      roomStatePlaybackMode =
+        (roomState?.playback_mode as 'auto' | 'live' | 'turbo' | undefined) ?? 'auto';
+      roomStateSyncStatus =
+        (roomState?.sync_status as
+          | 'synced'
+          | 'syncing'
+          | 'outdated'
+          | 'offline'
+          | undefined) ?? 'offline';
+      if (roomState?.current_session_id) {
+        const { data: session } = await supabaseAdmin
+          .from('sessions')
+          .select('id, title, scheduled_start, scheduled_end')
+          .eq('id', roomState.current_session_id)
+          .maybeSingle();
+        if (session) currentSession = session;
+      }
+    } else {
+      // Per control_center il playback_mode dichiarato e' eco-only
+      // (non viene scritto da nessuna parte, ma lo restituiamo cosi' la UI
+      // mantiene il comportamento atteso).
+      roomStatePlaybackMode = requestedPlaybackMode ?? 'auto';
+      roomStateSyncStatus = 'synced'; // un Centro Slide non "proietta", quindi non e' mai outdated.
     }
 
     const { data: agentRow } = await supabaseAdmin
@@ -179,11 +229,13 @@ Deno.serve(async (req: Request) => {
 
     let files: FileRow[] = [];
 
-    if (includeVersions) {
+    if (includeVersions && roomsList.length > 0) {
+      const roomIds = roomsList.map((r) => r.id);
+      const roomNameById = new Map(roomsList.map((r) => [r.id, r.name]));
       const { data: sessions } = await supabaseAdmin
         .from('sessions')
-        .select('id, title, scheduled_start')
-        .eq('room_id', room.id)
+        .select('id, title, scheduled_start, room_id')
+        .in('room_id', roomIds)
         .eq('event_id', device.event_id);
 
       const sessionList = sessions ?? [];
@@ -224,6 +276,8 @@ Deno.serve(async (req: Request) => {
               : ((sp as { full_name?: string } | null)?.full_name ?? null);
 
             const session = sessionMap.get(pres.session_id as string);
+            const sessionRoomId = (session?.room_id as string | undefined) ?? '';
+            const sessionRoomName = roomNameById.get(sessionRoomId) ?? '';
 
             files.push({
               versionId: version.id,
@@ -238,13 +292,19 @@ Deno.serve(async (req: Request) => {
               mimeType: version.mime_type ?? 'application/octet-stream',
               createdAt: version.created_at as string,
               fileHashSha256: (version.file_hash_sha256 as string | null) ?? null,
+              roomId: sessionRoomId,
+              roomName: sessionRoomName,
             });
           }
         }
       }
 
-      // Ordinamento: per orario sessione, poi per nome file. UI affidabile.
+      // Sprint S-4: ordinamento per (roomName, sessionScheduledStart, filename).
+      // Per device 'room' c'e' una sola roomName, quindi e' equivalente al
+      // vecchio ordinamento per (sessionScheduledStart, filename). Per
+      // device 'control_center' raggruppa visivamente per sala in dashboard.
       files.sort((a, b) => {
+        if (a.roomName !== b.roomName) return a.roomName.localeCompare(b.roomName);
         const ta = a.sessionScheduledStart ?? '';
         const tb = b.sessionScheduledStart ?? '';
         if (ta !== tb) return ta < tb ? -1 : 1;
@@ -254,18 +314,21 @@ Deno.serve(async (req: Request) => {
 
     return jsonRes(
       {
-        device: { id: device.id, name: device.device_name },
-        room: { id: room.id, name: room.name },
+        device: { id: device.id, name: device.device_name, role: deviceRole },
+        room: deviceRole === 'control_center' ? null : primaryRoom,
         event_id: device.event_id,
         event_name: event.name,
         network_mode: event.network_mode,
         agent,
         room_state: {
-          sync_status: roomState?.sync_status ?? 'offline',
+          sync_status: roomStateSyncStatus,
           current_session: currentSession,
-          playback_mode: roomState?.playback_mode ?? 'auto',
+          playback_mode: roomStatePlaybackMode,
         },
         files,
+        ...(deviceRole === 'control_center'
+          ? { rooms: roomsList, control_center: true as const }
+          : {}),
       },
       200,
     );
