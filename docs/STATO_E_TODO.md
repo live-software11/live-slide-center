@@ -3,7 +3,7 @@
 > **Documento operativo gemello di `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare, in ordine di priorita. Per "cosa fa il prodotto" e "come e fatto" → architettura.
 >
-> **Versione:** 2.15 — 18 aprile 2026 sera (post UX Redesign V2.0 Sprint U-1 — Foundation §0.24)
+> **Versione:** 2.16 — 18 aprile 2026 sera (post Sprint D1 → D8 parita cloud/desktop §0.25)
 > **Owner:** Andrea Rizzari
 > **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**. **Sprint T-1 (G8, badge versione "in onda" sempre visibile in sala + toast cambio versione, §0.16) DONE**. **Sprint T-2 (G9, telemetria perf live PC sala — CPU/RAM/heap/disco/FPS/battery, §0.17) DONE**. **Audit completo + bugfix Q+1.5 (§0.18) DONE — semaforo VERDE su tutto**. **Sprint T-3 (G10) COMPLETO: T-3-A (file validator warn-only, §0.20) DONE → T-3-E (Next-Up file preview, §0.21) DONE → T-3-G (remote control tablet, §0.22) DONE — TUTTE E TRE LE FEATURE COMPETITOR VERDE.**
 >
@@ -34,6 +34,8 @@
 > **UX Redesign V2.0 Sprint U-1 — Foundation (§ 0.24 — DONE 18/04/2026 sera):** redesign completo dell'app shell. Andrea ha esplicitato la nuova UI: sidebar permanente Notion/Linear-style con sezioni espandibili Eventi e PC sala, due modalita' Production/On Air per ogni evento, zero-friction per il PC sala (admin pre-configura, magic link auto-detect). Implementata foundation: shadcn/ui in `packages/ui` (20 componenti base + custom `Sidebar` con desktop sticky + mobile `Sheet` drawer + auto-close on route change), token mapping `sc-*` ↔ shadcn (palette dark invariata), nuovo `AppShell` shell component a 2 varianti (`tenant` | `admin`) che sostituisce `RootLayout`/`AdminRootLayout` come thin wrappers, sidebar a 2 livelli (Eventi expandable → Production/On Air, PC sala con health-dot, Strumenti), top bar con search-hint trigger + ⌘K Command palette globale (`cmdk` based, jump-to dashboard/events/settings + recenti). Quality gate verde: typecheck monorepo (5/5), lint monorepo (5/5), build production OK, i18n parity 1416/1416 (18 nuove keys `appShell.*`). Zero breaking change su URL, zero modifiche schema DB, zero modifiche logica auth/realtime — solo skin + IA. Successivi: U-2 (ProductionView con tree+grid+drop globale, split EventDetail in 4 tab), U-3 (rinomina LiveRegia → OnAir + preview slide N/Tot grosso), U-4 (zero-friction provision via QR), U-5 (re-skin pannelli minori + E2E + tag v2.0).
 >
 > **Chiusura backlog AU-01 → AU-09 (§ 0.23.3 — DONE 18/04/2026):** 9/9 issue MEDIUM risolte in sessione singola. **DB:** migration `20260418230000_audit_medium_fixes.sql` applicata in produzione → `pg_cron` abilitato, 4 job schedulati (`cleanup_lemon_squeezy_event_log` daily 04:00 UTC retention 90gg, `cleanup_device_metric_pings` daily 03:00 UTC retention 24h, `cleanup_pair_claim_rate_events` ogni 30min, `cleanup_edge_function_rate_events` ogni 30min retention 1h), nuova tabella `edge_function_rate_events` + RPC `check_and_record_edge_rate` per rate-limit generico, `search_path` hardening su tutte le `SECURITY DEFINER` (~40 funzioni standardizzate a `pg_catalog, public, pg_temp, extensions, realtime, auth`). **Edge Functions:** nuovi shared `_shared/cors.ts` (whitelist admin con regex Vercel preview) + `_shared/rate-limit.ts` (`checkAndRecordEdgeRate` + `clientIpFromRequest` + `hashIp` salt-aware), applicati a `room-device-upload-init` (30 req/5min/IP) e `remote-control-dispatch` (120 req/min/IP), entrambi ridistribuiti. **Frontend:** `useEventLiveData` debounce reload 200ms (no reload-storm su burst Realtime), `event-export.ts` + `thumbnail-pptx.ts` lazy-import jszip (chunk separato `jszip.min` ~28KB gzip), nuovo `apps/web/src/lib/outbox-queue.ts` IndexedDB con retry exponential backoff integrato in `RoomPlayerView` per `room-player-set-current` (retry 15s + on `online` event, max 8 tentativi). **E2E:** 3 nuove fixture Playwright in `apps/web/e2e/`: `pairing-race.spec.ts` (verifica race TOCTOU `claim_pairing_code_atomic`), `move-presentation.spec.ts` (verifica `activity_log` post-fix), `remote-control.spec.ts` (verifica dispatch + rate limit). Quality gate verde: typecheck + lint + build + i18n parity 1398/1398.
+>
+> **Sprint D1 → D8 — Parita cloud/desktop + licensing unificato (§ 0.25 — DONE 18/04/2026 sera):** chiusa parita totale tra cloud SaaS e PC desktop offline. **D1:** sistema licenze unificato (Supabase tabelle `desktop_devices` + `desktop_provision_tokens`, 3 Edge Functions `desktop-provision-create`/`-bind`/`-verify`, Rust crate `license/{manager,storage,client,heartbeat}` con AES-256-GCM `~/.slidecenter/license.enc`, Tauri commands, RPC `update_device_role`, UI cloud `DesktopLicenseView` + banner sticky). **D2:** installer NSIS vendor-grade (lingua IT/EN, EULA, hooks pre/post install + uninstall, firewall + Defender exclusion automatici, profilo rete forzato a Privato, prompt "conservare dati evento" in disinstallazione). **D3:** Tauri updater Ed25519 + GitHub Actions `desktop-release.yml` (trigger tag `desktop-v*` + `workflow_dispatch` manuale, upsert release `--clobber`). **D4:** port Sprint S-4 ruolo `control_center` su SQLite locale (filesystem `~/SlideCenter/<event>/<sala>/<sessione>/<file>`). **D5:** pannello admin `/centri-slide` (3 sezioni: PC server collegati con badge online + magic-link attivi con QR/stampa + toggle ruolo PC sala), rotta deep-link `/centro-slide/bind?t=...` con auto-detect cloud/desktop, 53 nuove i18n keys IT/EN. **D6:** heartbeat automatico licenza desktop (background `tokio` loop, 6h release / 60s debug, refresh `last_seen_at` + grace offline 30gg). **D7:** scripts PowerShell `setup-signing-keys.ps1` (gen Ed25519 + GH secrets) + `tag-release.ps1` (bump version + tag + push trigger). **D8:** `docs/Setup_PC_Centro_Slide.md` (guida operativa IT non-tech 10 sezioni) + `docs/Smoke_Test_Centro_Slide.md` (checklist QA 12 sezioni / 120 checkbox). Quality gate verde: typecheck/lint/cargo check/cargo test, migration applicata in prod, 3 Edge Functions deployate, i18n parity, 0 nuovi advisor.
 
 ---
 
@@ -58,6 +60,7 @@
    - 0.23 [Audit chirurgico post-deploy 18/04/2026 (DONE + sessioni dedicate)](#023-audit-chirurgico-post-deploy-18042026-done--sessioni-dedicate)
    - 0.23.3 [Chiusura backlog AU-01 → AU-09 (DONE — 18/04/2026 sera)](#0233-chiusura-backlog-au-01--au-09-done--18042026-sera)
    - 0.24 [UX Redesign V2.0 — Sprint U-1 Foundation (DONE — 18/04/2026 sera)](#024-ux-redesign-v20--sprint-u-1-foundation-done--18042026-sera)
+   - 0.25 [Sprint D1 → D8 — Parita cloud/desktop + licensing unificato (DONE — 18/04/2026 sera)](#025-sprint-d1--d8--parita-clouddesktop--licensing-unificato-done--18042026-sera)
 1. [Stato attuale (tutto DONE)](#1-stato-attuale-tutto-done)
 2. [Cose da fare ORA (azioni esterne Andrea, NON automatizzabili)](#2-cose-da-fare-ora-azioni-esterne-andrea-non-automatizzabili)
 3. [Field test desktop (quando vorrai farlo)](#3-field-test-desktop-quando-vorrai-farlo)
@@ -2218,6 +2221,92 @@ L'evoluzione "next/prev SLIDE reale" rimane **fattibile in futuro** come Sprint 
 - **U-3:** rinomina `LiveRegiaView` → `OnAirView` con split layout (lista sale | preview slide N/Tot grosso | ActivityFeed) + estensione `room-player-set-current` con `current_slide_index` + thumbnail slide in onda.
 - **U-4:** `provision_room_device` RPC + route `/sala-magic/:token` + QR stampabile admin + refresh visivo `RoomPlayerView` (layout broadcasting nero/minimal) + `PairView` keypad come fallback.
 - **U-5:** re-skin shadcn dei pannelli minori (Settings/Team/Billing/Privacy/Audit/Auth/Onboarding/RemoteControl) + responsive 360px + i18n parity + 3-4 E2E Playwright nuovi flussi + tag `v2.0-redesign`.
+
+---
+
+### 0.25 Sprint D1 → D8 — Parita cloud/desktop + licensing unificato (DONE — 18/04/2026 sera)
+
+> **Contesto:** Andrea ha richiesto la **parita totale** tra l'app cloud e il PC desktop offline (Centro Slide). Il PC server e' un Tauri 2 che fa da "NAS" raccolta/distribuzione contributi in LAN evento. Sistema licenze deve usare gli **stessi account cloud**, installer/uninstaller modern + auto-update.
+>
+> **Risposta:** 8 sprint sequenziali D1-D8 che chiudono il gap completo. Tutti DONE.
+
+**D1 — Sistema licenze unificato (DONE):**
+
+- Schema Supabase dedicato: tabelle `desktop_devices` (PK uuid, FK `tenant_id`, `installation_id` univoco, `display_name`, `os`, `app_version`, `paired_at`, `last_seen_at`, `revoked_at`) + `desktop_provision_tokens` (token plaintext, `expires_at`, `max_uses`, `uses`, `revoked_at`, `created_by`).
+- 3 Edge Functions: `desktop-provision-create` (admin genera token, RLS check `is_tenant_admin`), `desktop-license-bind` (PC chiama con magic-link → consuma token + emette `device_token` AES-256-GCM crittato + ritorna `tenant_id`/`plan`), `desktop-license-verify` (heartbeat 6h con grace offline 30gg).
+- Rust crate licensing locale: `apps/desktop/src-tauri/src/license/{mod.rs,manager.rs,storage.rs,client.rs,heartbeat.rs}`. Storage encrypted in `~/.slidecenter/license.enc` (AES-GCM con chiave derivata da `installation_id` UUID v4 + machine fingerprint hostname).
+- Tauri commands: `cmd_license_status`, `cmd_license_bind`, `cmd_license_verify_now`, `cmd_license_revoke`. RLS multi-tenant rigorosa, RPC `update_device_role` per promozione `room → control_center`.
+- UI cloud: `DesktopLicenseView` (banner status + form bind manuale per smoke test), `DesktopLicenseBanner` sticky in `AppShell` se non collegato.
+
+**D2 — Installer NSIS vendor-grade (DONE):**
+
+- `apps/desktop/src-tauri/tauri.conf.json` con sezione `bundle.windows.nsis`: lingua IT/EN, `installMode: perUser`, `displayLanguageSelector: true`, `EULA.txt` come `bundle.licenseFile`.
+- 4 hook NSIS (`installer-header.nsh`, `installer-pre.nsh`, `installer-post.nsh`, `uninstaller.nsh`):
+  - **Pre-install:** chiede conferma, kill istanze precedenti via `Process::Find`.
+  - **Post-install:** crea regola firewall Windows (`netsh advfirewall firewall add rule`) per porta 7300 profilo Privato, aggiunge esclusione Windows Defender (`Add-MpPreference -ExclusionPath`), forza profilo rete su `Private` (`Set-NetConnectionProfile`).
+  - **Uninstall:** prompt "conservare dati evento" (Sì/No), rimuove firewall + Defender exclusion + Start Menu + desktop shortcut, **NON** tocca `~/.slidecenter/license.enc` (così reinstallando ritrovo licenza).
+- Script PS1 di build firmata: `apps/desktop/scripts/release.ps1 -Signed` → genera installer, `.sig`, `latest.json` in `apps/desktop/release/`.
+
+**D3 — Tauri updater + GitHub Actions release (DONE):**
+
+- Plugin Tauri `tauri-plugin-updater` v2 con verifica firme Ed25519. Endpoint `https://github.com/live-software11/live-slide-center/releases/latest/download/latest.json`.
+- `apps/desktop/src-tauri/src/main.rs` integrato il check al boot + ogni 30 min via `cron` interno.
+- Workflow `.github/workflows/desktop-release.yml`: trigger su tag `desktop-v*` (oppure `workflow_dispatch` manuale), runner Windows latest, build firmata con secrets `TAURI_SIGNING_PRIVATE_KEY` + `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, upload installer + `.sig` + `latest.json` su GitHub Release. Logica upsert: se la release esiste gia' (re-run), uploader con `--clobber`.
+- UI `DesktopUpdateBanner`: sticky top, mostra versione disponibile con bottone "Installa" (chiama `cmd_check_update_and_install`).
+
+**D4 — Port Sprint S-4 ruolo `control_center` su desktop (DONE):**
+
+- Schema SQLite locale (Tauri rusqlite WAL): tabella `paired_devices_local` con colonna `role` mirror della cloud. Migration `apps/desktop/src-tauri/migrations/0003_paired_devices_role.sql`.
+- Endpoint Axum `/api/v1/devices/:id/role` per promote/demote da admin desktop (auth via `device_token`).
+- Filesystem layout `~/SlideCenter/<event_slug>/<sala>/<sessione>/<file>` quando role=`control_center`, identico al cloud.
+
+**D5 — Pannello admin "Centri Slide" cloud (DONE):**
+
+- `apps/web/src/features/desktop-devices/repository.ts`: DTO `DesktopDevice`, `DesktopProvisionToken`, `PairedDeviceLite` + funzioni `listDesktopDevices`, `listDesktopProvisionTokens`, `createDesktopProvisionToken`, `revokeDesktopProvisionToken`, `revokeDesktopDevice`, `listPairedDevicesWithRole`, `updatePairedDeviceRole`.
+- `apps/web/src/features/desktop-devices/DesktopDevicesView.tsx` (~600 righe): pagina admin in 3 sezioni:
+  - **PC server collegati** (cards per ogni `desktop_device` con badge online/offline, last_seen_at relativo, button revoca).
+  - **Magic-link attivi** (lista token con status `active|expired|exhausted|revoked`, button "Genera link" → dialog form `label`/`expiresMinutes`/`maxUses` → success dialog con QR code SVG inline + URL copiabile, button "Stampa" che apre window dedicata).
+  - **Ruolo PC sala** (lista `paired_devices` con toggle "Promuovi a Centro Slide" / "Riporta a sala", chiama `update_device_role` RPC).
+- Rotta `/centri-slide` protetta da `RequireTenantAdmin` in `apps/web/src/app/routes.tsx`.
+- Sidebar item "Centri Slide" (icona `Server` lucide) in `AppShell.tsx` sezione admin.
+- Rotta deep-link `/centro-slide/bind?t=<token>` → `DesktopBindAutoView` che auto-detecta backend (cloud vs desktop): in cloud mostra istruzioni "apri questo link sul PC Centro Slide", in desktop chiama `bindDesktopLicense(token)` automaticamente.
+- i18n: 53 nuove keys `desktopDevices.*` + `nav.desktopDevices` IT/EN.
+
+**D6 — Heartbeat automatico licenza desktop (DONE):**
+
+- `apps/desktop/src-tauri/src/license/heartbeat.rs`: funzione `spawn_background_loop` che spawna task `tokio` con loop infinito.
+- Intervallo: 6h in release, 60s in debug (`#[cfg(debug_assertions)]`).
+- Initial delay 30s post-boot per non bloccare start-up. Skip silenzioso se device non bindato. Errori loggati ma mai fatal.
+- Integrato in `main.rs` setup: `license::heartbeat::spawn_background_loop()` chiamato dopo che il server locale Axum e' booted.
+- Risultato: il PC desktop verifica autonomamente la licenza ogni 6h quando online, refresh `last_seen_at` in `desktop_devices` cloud, gestione automatica grace offline 30gg.
+
+**D7 — Script signing + release tagging automatizzati (DONE):**
+
+- `apps/desktop/scripts/setup-signing-keys.ps1`: genera coppia Ed25519 in `~/.tauri/slidecenter-desktop.key`/.pub (idempotente, prompt prima di sovrascrivere), aggiorna `tauri.signing.json` con la public key, opzionalmente esegue `gh secret set TAURI_SIGNING_PRIVATE_KEY` e `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` su GitHub repo.
+- `apps/desktop/scripts/tag-release.ps1`: pre-check (working tree pulito + branch `main` + upstream sincronizzato), bump version in `apps/desktop/package.json` + `apps/desktop/src-tauri/Cargo.toml` + `apps/desktop/src-tauri/tauri.conf.json`, optional commit + tag annotato `desktop-v<version>` + push tag → trigger automatico workflow GH Actions.
+- Workflow `desktop-release.yml` ora supporta anche `workflow_dispatch` per re-run manuale di un tag esistente (con `release_notes` override opzionale via input). Logica upsert: re-run su tag esistente non fallisce, fa `gh release upload --clobber`.
+
+**D8 — Documentazione utente + smoke test QA (DONE):**
+
+- `docs/Setup_PC_Centro_Slide.md` (~330 righe): guida operativa IT non-tech per Andrea + clienti suoi che installano il PC Centro Slide. 10 sezioni: cosa fa il PC, prerequisiti hw/sw, download/installazione, primo avvio, bind cloud, verifica rete LAN (3 test mDNS+health+pairing), checklist 48h pre-evento, aggiornamenti automatici, disinstallazione, troubleshooting (5 scenari comuni).
+- `docs/Smoke_Test_Centro_Slide.md` (~180 righe): checklist QA tecnica end-to-end per Andrea + AI agent prima di taggare nuova release. 12 sezioni con ~120 checkbox: build & installer, install PC1, primo avvio, bind cloud, heartbeat (Sprint D6), pannello admin (gen/revoca link + toggle ruolo), deep-link, auto-update, disinstallazione, edge cases regressione, RLS isolation tenant. Output report compilabile per CHANGELOG/release notes.
+
+**Quality gate D1-D8:**
+
+- `pnpm typecheck` → 5/5 task OK (web, desktop-web, shared, ui, root)
+- `pnpm lint` → 0 errori, 0 warning su feature `desktop-devices` e `desktop-license`
+- `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml` → 0 errori (warnings allow su `dead_code` per moduli futuri)
+- `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --bin slide-center-desktop license::` → 7+ test passano
+- i18n parity: 53 nuove keys in IT/EN allineate
+- Migration applicata in produzione via MCP Supabase (`apply_migration` su `cdjxxxkrhgdkcpkkozdl`)
+- 3 Edge Functions deployate (`desktop-provision-create`, `desktop-license-bind`, `desktop-license-verify`)
+- `get_advisors` su Supabase: 0 nuovi issue introdotti
+
+**Rimasto fuori scope D1-D8 (backlog post-vendita):**
+
+- Code-signing certificato EV per installer (~300 EUR/anno) — al momento installer self-signed con SmartScreen warning bypassabile.
+- Tauri build cross-platform Linux/macOS — solo Windows x64 per ora.
+- Telemetria desktop verso cloud (logs centralizzati) — solo log locali in `%LOCALAPPDATA%\Live SLIDE CENTER\logs\`.
 
 ---
 

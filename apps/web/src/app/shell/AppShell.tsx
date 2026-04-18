@@ -11,6 +11,7 @@ import {
   Monitor,
   ScrollText,
   Search,
+  Server,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -356,6 +357,15 @@ function TenantSidebarSections({
                   >
                     <Users />
                     <span>{t('nav.team')}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={isActive('/centri-slide')}
+                    onClick={() => navigate('/centri-slide')}
+                  >
+                    <Server />
+                    <span>{t('nav.desktopDevices')}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>

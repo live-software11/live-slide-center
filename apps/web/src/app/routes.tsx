@@ -41,6 +41,14 @@ export const router = createBrowserRouter([
         path: '/centro-slide/licenza',
         lazy: () => import('@/features/desktop-license/DesktopLicenseView'),
       },
+      {
+        // Sprint D5 — Deep-link "/centro-slide/bind?t=<token>" aperto dai
+        // magic-link generati dal pannello Centri Slide. In modalita
+        // desktop fa il bind in automatico; in modalita cloud mostra
+        // istruzioni "apri questo URL sul PC server".
+        path: '/centro-slide/bind',
+        lazy: () => import('@/features/desktop-license/DesktopBindAutoView'),
+      },
       // Sprint T-3-G (G10): telecomando remoto via tablet. Rotta pubblica
       // (auth via token nel path), nessun JWT richiesto.
       {
@@ -150,6 +158,19 @@ export const router = createBrowserRouter([
                   {
                     index: true,
                     lazy: () => import('@/features/team/TeamView'),
+                  },
+                ],
+              },
+              {
+                // Sprint D5 — Pannello admin "Centri Slide": gestisce PC
+                // desktop server (licenze) + magic-link bind + ruolo PC sala
+                // (room ↔ control_center). Solo tenant admin.
+                path: 'centri-slide',
+                element: <RequireTenantAdmin />,
+                children: [
+                  {
+                    index: true,
+                    lazy: () => import('@/features/desktop-devices/DesktopDevicesView'),
                   },
                 ],
               },

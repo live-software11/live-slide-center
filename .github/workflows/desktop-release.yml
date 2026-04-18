@@ -24,6 +24,14 @@ on:
   push:
     tags:
       - 'desktop-v*'
+  # Sprint D7 — trigger manuale per ri-eseguire una release esistente.
+  # Da Actions UI: seleziona il tag dalla branch dropdown, lancia run.
+  workflow_dispatch:
+    inputs:
+      release_notes:
+        description: 'Release notes override (Markdown)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -118,11 +126,34 @@ jobs:
         shell: pwsh
         run: |
           $tag = "${{ github.ref_name }}"
+          if (-not ($tag -match '^desktop-v')) {
+            Write-Error "Workflow lanciato su ref non-tag '$tag'. Usa un tag desktop-v* (vedi apps/desktop/scripts/tag-release.ps1)."
+            exit 1
+          }
           $version = $tag -replace '^desktop-v', ''
           $title = "Live SLIDE CENTER Desktop v$version"
-          gh release create $tag `
-            --title $title `
-            --notes "Auto-release da CI. Aggiornamenti firmati Ed25519 + NSIS installer. Vedi CHANGELOG.md per le novita'." `
-            "${{ steps.artifacts.outputs.installer }}" `
-            "${{ steps.artifacts.outputs.signature }}" `
-            "${{ steps.artifacts.outputs.manifest }}"
+          $notesOverride = "${{ github.event.inputs.release_notes }}"
+          if ([string]::IsNullOrWhiteSpace($notesOverride)) {
+            $notes = "Auto-release da CI. Aggiornamenti firmati Ed25519 + NSIS installer. Vedi CHANGELOG.md per le novita'."
+          }
+          else {
+            $notes = $notesOverride
+          }
+          # Upsert: se la release esiste gia' (re-run manuale), aggiorna gli asset
+          $existing = gh release view $tag --json tagName 2>&1 | Out-String
+          if ($existing -match '"tagName"') {
+            Write-Host "Release $tag esiste gia' — re-uploading asset (clobber)"
+            gh release upload $tag `
+              --clobber `
+              "${{ steps.artifacts.outputs.installer }}" `
+              "${{ steps.artifacts.outputs.signature }}" `
+              "${{ steps.artifacts.outputs.manifest }}"
+          }
+          else {
+            gh release create $tag `
+              --title $title `
+              --notes $notes `
+              "${{ steps.artifacts.outputs.installer }}" `
+              "${{ steps.artifacts.outputs.signature }}" `
+              "${{ steps.artifacts.outputs.manifest }}"
+          }

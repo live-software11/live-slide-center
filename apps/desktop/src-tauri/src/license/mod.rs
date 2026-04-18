@@ -30,6 +30,7 @@ pub mod client;
 pub mod commands;
 pub mod crypto;
 pub mod fingerprint;
+pub mod heartbeat;
 pub mod manager;
 pub mod storage;
 pub mod types;

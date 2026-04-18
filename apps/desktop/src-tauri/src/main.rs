@@ -79,6 +79,15 @@ fn main() {
                 // suppress unused warning su `handle` se in futuro non serve
                 let _ = handle;
             });
+
+            // Sprint D6 — heartbeat licenza desktop.
+            // Spawn detached: 30s post-boot, poi 1 chiamata ogni 6h. Skip
+            // automatico se la licenza non e' bound (no spam su PC mai
+            // collegati al cloud). Errori loggati in warn ma NON bloccano
+            // l'app: la grace_period locale (30g) tiene la licenza valida
+            // anche con cloud irraggiungibile.
+            license::heartbeat::spawn_background_loop();
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
