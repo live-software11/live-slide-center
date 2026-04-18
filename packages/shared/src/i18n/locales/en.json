@@ -1085,6 +1085,60 @@
       "remove_failed": "Removal failed."
     }
   },
+  "deviceTelemetry": {
+    "title": "Live perf telemetry — room PCs",
+    "centerBadge": "CENTER",
+    "offline": "offline",
+    "hiddenTab": "Tab in background",
+    "visibleTab": "Tab active",
+    "never": "never",
+    "justNow": "just now",
+    "secondsAgo": "{{n}}s ago",
+    "minutesAgo": "{{n}} min ago",
+    "errorBadge": "load error",
+    "noDevices": "No room PCs reporting telemetry.",
+    "lastRefresh": "upd. {{time}}",
+    "refreshTitle": "Refresh now",
+    "uptime": "uptime",
+    "uptimeTitle": "Time since app start",
+    "uptimeSec": "{{n}}s",
+    "uptimeMin": "{{n}} min",
+    "uptimeHour": "{{n}}h",
+    "uptimeDay": "{{n}}d",
+    "playbackMode": "mode",
+    "playbackModeTitle": "Playback mode declared by the room PC",
+    "downlinkTitle": "Estimated network bandwidth",
+    "batteryCharging": "Battery at {{pct}}% (charging)",
+    "batteryDischarging": "Battery at {{pct}}% (discharging)",
+    "unknownTitle": "Device paired but no recent telemetry",
+    "cardAria": "{{name}}: status {{health}}",
+    "metric": {
+      "heap": "JS Heap",
+      "storage": "Storage",
+      "fps": "FPS",
+      "cpu": "CPU",
+      "ram": "RAM",
+      "disk": "Disk"
+    },
+    "health": {
+      "healthy": "ok",
+      "warning": "warning",
+      "critical": "critical",
+      "unknown": "unknown"
+    },
+    "alertCritical": {
+      "title": "Room PC in critical state",
+      "body": "{{name}} crossed a critical threshold for over 30s. Check immediately."
+    },
+    "alertWarning": {
+      "title": "Room PC needs attention",
+      "body": "{{name}} crossed a warning threshold for over 30s."
+    },
+    "alertRecovered": {
+      "title": "Room PC recovered",
+      "body": "{{name}} is back to a healthy state."
+    }
+  },
   "roomPlayer": {
     "noFiles": "No files uploaded for this room.",
     "noFilesYet": "No files available in this room yet. Files uploaded by the producer will appear here automatically.",

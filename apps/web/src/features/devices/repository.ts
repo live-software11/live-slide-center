@@ -232,11 +232,37 @@ export async function invokePairClaim(
  *
  * Sprint A6: il PC sala puo' dichiarare la propria modalita di playback
  * (`playback_mode`) per renderla visibile alla dashboard admin.
+ *
+ * Sprint T-2 (G9): payload `metrics` opzionale (browser/desktop perf snapshot).
+ * Se presente, viene forwardato lato Edge Function alla RPC SECURITY DEFINER
+ * `record_device_metric_ping` con rate-limit 3s. Best-effort: se omesso, no
+ * insert; se presente ma server fallisce, il bootstrap continua comunque.
  */
+export interface DeviceMetricPingPayload {
+  source?: 'browser' | 'desktop';
+  js_heap_used_pct?: number | null;
+  js_heap_used_mb?: number | null;
+  storage_quota_used_pct?: number | null;
+  storage_quota_used_mb?: number | null;
+  fps?: number | null;
+  network_type?: string | null;
+  network_downlink_mbps?: number | null;
+  battery_pct?: number | null;
+  battery_charging?: boolean | null;
+  visibility?: 'visible' | 'hidden' | null;
+  cpu_pct?: number | null;
+  ram_used_pct?: number | null;
+  ram_used_mb?: number | null;
+  disk_free_pct?: number | null;
+  disk_free_gb?: number | null;
+  app_uptime_sec?: number | null;
+}
+
 export async function invokeRoomPlayerBootstrap(
   deviceToken: string,
   includeVersions = true,
   playbackMode?: PlaybackMode,
+  metrics?: DeviceMetricPingPayload | null,
 ): Promise<RoomPlayerBootstrapResponse> {
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/room-player-bootstrap`;
@@ -256,6 +282,7 @@ export async function invokeRoomPlayerBootstrap(
       device_token: deviceToken,
       include_versions: includeVersions,
       ...(playbackMode ? { playback_mode: playbackMode } : {}),
+      ...(metrics ? { metrics } : {}),
     }),
   });
   const json = (await res.json().catch(() => ({}))) as { error?: string } & Partial<RoomPlayerBootstrapResponse>;
@@ -315,6 +342,80 @@ export async function updateDeviceRole(
   const row = Array.isArray(data) ? data[0] : null;
   if (!row) throw new Error('update_device_role_no_row');
   return { id: row.id, role: row.role as DeviceRole, room_id: row.room_id ?? null };
+}
+
+/**
+ * Sprint T-2 (G9) — admin LivePerfTelemetryPanel.
+ *
+ * Per ogni device dell'evento ritorna:
+ * - `device`: snapshot anagrafica (name, role, status, room_id, last_seen).
+ * - `latest`: ultimo metric ping (null se device non ha mai pingato in finestra).
+ * - `pings`: array (max `p_max_pings_per_device`) di ping recenti, ORDINE
+ *            ASCENDING per ts (utile per disegnare sparkline left-to-right).
+ *
+ * Auth: la RPC e' SECURITY DEFINER ma controlla `app_tenant_id() = events.tenant_id`
+ * + ruolo `admin|tech`. Anon/utenti di altro tenant ricevono 403.
+ *
+ * Performance: query coperta da `idx_device_metric_pings_device_ts` +
+ * `idx_device_metric_pings_event_ts`. Su evento con 12 PC sala × 60 ping/30min
+ * = 720 righe = <50ms tipico.
+ */
+export interface DeviceMetricPing {
+  ts: string;
+  cpu_pct: number | null;
+  ram_used_pct: number | null;
+  js_heap_used_pct: number | null;
+  storage_quota_used_pct: number | null;
+  disk_free_pct: number | null;
+  fps: number | null;
+  battery_pct: number | null;
+  battery_charging: boolean | null;
+  network_type: string | null;
+  visibility: 'visible' | 'hidden' | null;
+}
+
+export interface DeviceMetricsLatest extends DeviceMetricPing {
+  tenant_id: string;
+  device_id: string;
+  event_id: string | null;
+  room_id: string | null;
+  source: 'browser' | 'desktop';
+  js_heap_used_mb: number | null;
+  storage_quota_used_mb: number | null;
+  network_downlink_mbps: number | null;
+  ram_used_mb: number | null;
+  disk_free_gb: number | null;
+  app_uptime_sec: number | null;
+  playback_mode: 'auto' | 'live' | 'turbo' | null;
+  device_role: 'room' | 'control_center' | null;
+}
+
+export interface DeviceMetricsRow {
+  device: {
+    id: string;
+    name: string;
+    role: 'room' | 'control_center';
+    status: 'online' | 'offline' | 'degraded';
+    room_id: string | null;
+    last_seen_at: string | null;
+    last_ip: string | null;
+  };
+  latest: DeviceMetricsLatest | null;
+  pings: DeviceMetricPing[];
+}
+
+export async function fetchDeviceMetricsForEvent(
+  eventId: string,
+  options: { windowMin?: number; maxPingsPerDevice?: number } = {},
+): Promise<DeviceMetricsRow[]> {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.rpc('fetch_device_metrics_for_event', {
+    p_event_id: eventId,
+    p_window_min: options.windowMin ?? 30,
+    p_max_pings_per_device: options.maxPingsPerDevice ?? 60,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as DeviceMetricsRow[];
 }
 
 export async function renameDevice(deviceId: string, deviceName: string): Promise<void> {

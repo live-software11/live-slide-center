@@ -34,6 +34,7 @@ import {
 import { useEventPresentationSpeakerIds } from '@/features/presentations/hooks/useEventPresentationSpeakerIds';
 import { SessionFilesPanel } from '@/features/presentations/components/SessionFilesPanel';
 import { DevicesPanel } from '@/features/devices/DevicesPanel';
+import { LivePerfTelemetryPanel } from '@/features/devices/components/LivePerfTelemetryPanel';
 import { useRoomStates } from '@/features/devices/hooks/useRoomStates';
 import { useRoomDevices } from '@/features/devices/hooks/useRoomDevices';
 import { PlaybackModeBadge } from '@/features/devices/components/PlaybackModeBadge';
@@ -2061,8 +2062,11 @@ export default function EventDetailView() {
           {t('devices.panel.sectionTitle')}
         </h2>
         <p className="mt-1 text-sm text-sc-text-dim">{t('devices.panel.sectionIntro')}</p>
-        <div className="mt-6 max-w-2xl">
+        <div className="mt-6 space-y-6 max-w-4xl">
           <DevicesPanel eventId={event.id} eventName={event.name} rooms={rooms} />
+          {/* Sprint T-2 (G9): widget telemetria perf live PC sala. Self-hidden
+              quando 0 device pairati. */}
+          <LivePerfTelemetryPanel eventId={event.id} />
         </div>
       </section>
 

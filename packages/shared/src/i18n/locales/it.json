@@ -1085,6 +1085,60 @@
       "remove_failed": "Rimozione fallita."
     }
   },
+  "deviceTelemetry": {
+    "title": "Telemetria perf live PC sala",
+    "centerBadge": "CENTRO",
+    "offline": "offline",
+    "hiddenTab": "Tab in background",
+    "visibleTab": "Tab attiva",
+    "never": "mai",
+    "justNow": "ora",
+    "secondsAgo": "{{n}}s fa",
+    "minutesAgo": "{{n}} min fa",
+    "errorBadge": "errore caricamento",
+    "noDevices": "Nessun PC sala con telemetria attiva.",
+    "lastRefresh": "agg. {{time}}",
+    "refreshTitle": "Aggiorna ora",
+    "uptime": "uptime",
+    "uptimeTitle": "Tempo dall'avvio dell'app",
+    "uptimeSec": "{{n}}s",
+    "uptimeMin": "{{n}} min",
+    "uptimeHour": "{{n}}h",
+    "uptimeDay": "{{n}}g",
+    "playbackMode": "modo",
+    "playbackModeTitle": "Modalità di playback dichiarata dal PC sala",
+    "downlinkTitle": "Velocità rete stimata",
+    "batteryCharging": "Batteria al {{pct}}% (in carica)",
+    "batteryDischarging": "Batteria al {{pct}}% (scarica)",
+    "unknownTitle": "Device pairato ma senza telemetria recente",
+    "cardAria": "{{name}}: stato {{health}}",
+    "metric": {
+      "heap": "Heap JS",
+      "storage": "Storage",
+      "fps": "FPS",
+      "cpu": "CPU",
+      "ram": "RAM",
+      "disk": "Disco"
+    },
+    "health": {
+      "healthy": "ok",
+      "warning": "attenzione",
+      "critical": "critico",
+      "unknown": "ignoto"
+    },
+    "alertCritical": {
+      "title": "PC sala in stato critico",
+      "body": "{{name}} ha superato una soglia critica per oltre 30s. Verifica subito."
+    },
+    "alertWarning": {
+      "title": "PC sala in attenzione",
+      "body": "{{name}} ha superato una soglia di attenzione per oltre 30s."
+    },
+    "alertRecovered": {
+      "title": "PC sala recuperato",
+      "body": "{{name}} è tornato in stato sano."
+    }
+  },
   "roomPlayer": {
     "noFiles": "Nessun file caricato per questa sala.",
     "noFilesYet": "Nessun file disponibile in questa sala. I file caricati dal regista appariranno qui automaticamente.",

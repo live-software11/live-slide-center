@@ -44,6 +44,7 @@ import {
 import { isRunningInTauri } from '@/lib/backend-mode';
 import { useFileSync, type FileSyncItem, type RealtimeChannelStatus } from './hooks/useFileSync';
 import { useConnectivityMode, type ConnectivityMode } from './hooks/useConnectivityMode';
+import { useDevicePerformanceCollector } from './hooks/useDevicePerformanceCollector';
 import { FileSyncStatus } from './components/FileSyncStatus';
 import { StorageUsagePanel } from './components/StorageUsagePanel';
 import { RoomDeviceUploadDropzone } from './components/RoomDeviceUploadDropzone';
@@ -617,6 +618,12 @@ export default function RoomPlayerView() {
     enabled: Boolean(roomData && token),
   });
 
+  // Sprint T-2 (G9): collector telemetria perf live. Le metriche sono
+  // raccolte ad ogni tick di polling (12s/60s/5s a seconda del playbackMode)
+  // e iniettate nel payload `metrics` di `invokeRoomPlayerBootstrap`. Sul
+  // server vengono persistite in `device_metric_pings` con rate-limit 3s.
+  const { collectMetrics } = useDevicePerformanceCollector();
+
   // Sprint T-1 (G8): notify toast quando una nuova versione viene "promossa
   // a current" dall'admin. Confronto il `versionNumber` corrente di ogni
   // presentation con quello visto al render precedente:
@@ -744,7 +751,18 @@ export default function RoomPlayerView() {
     if (!token) return;
     const pollToken = token;
     const id = window.setInterval(() => {
-      void invokeRoomPlayerBootstrap(pollToken, false, playbackMode)
+      // Sprint T-2 (G9): raccogli metric ping prima di pingare il bootstrap.
+      // Best-effort: se collectMetrics() fallisce o throwa, passiamo null e
+      // l'Edge Function semplicemente non insertera' nulla.
+      void (async () => {
+        let metrics = null;
+        try {
+          metrics = await collectMetrics();
+        } catch {
+          /* metric collection failed: continuiamo comunque, no insert */
+        }
+        return invokeRoomPlayerBootstrap(pollToken, false, playbackMode, metrics);
+      })()
         .then((d) => {
           setDevice((prev) => (prev?.name === d.device.name && prev?.id === d.device.id ? prev : { id: d.device.id, name: d.device.name }));
           const role: DeviceRole = d.device.role ?? 'room';
@@ -815,7 +833,7 @@ export default function RoomPlayerView() {
         .catch(() => { });
     }, 12_000);
     return () => window.clearInterval(id);
-  }, [token, roomId, playbackMode]);
+  }, [token, roomId, playbackMode, collectMetrics]);
 
   const handleDisconnect = () => {
     try {

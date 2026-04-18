@@ -301,6 +301,43 @@ export type Database = {
         };
         Relationships: [];
       };
+      device_metric_pings: {
+        /**
+         * Sprint T-2 (G9) — telemetria perf live PC sala (CPU/RAM/disco/heap)
+         * NON aggregata. Append-only, retention 24h via cleanup_device_metric_pings.
+         * Vedi migration 20260418100000_device_metric_pings.sql.
+         */
+        Row: {
+          id: number;
+          tenant_id: string;
+          device_id: string;
+          event_id: string | null;
+          room_id: string | null;
+          ts: string;
+          source: 'browser' | 'desktop';
+          js_heap_used_pct: number | null;
+          js_heap_used_mb: number | null;
+          storage_quota_used_pct: number | null;
+          storage_quota_used_mb: number | null;
+          fps: number | null;
+          network_type: string | null;
+          network_downlink_mbps: number | null;
+          battery_pct: number | null;
+          battery_charging: boolean | null;
+          visibility: 'visible' | 'hidden' | null;
+          cpu_pct: number | null;
+          ram_used_pct: number | null;
+          ram_used_mb: number | null;
+          disk_free_pct: number | null;
+          disk_free_gb: number | null;
+          app_uptime_sec: number | null;
+          playback_mode: 'auto' | 'live' | 'turbo' | null;
+          device_role: 'room' | 'control_center' | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       pairing_codes: {
         Row: {
           code: string;
@@ -1102,6 +1139,55 @@ export type Database = {
       update_device_role: {
         Args: { p_device_id: string; p_new_role: 'room' | 'control_center' };
         Returns: { id: string; role: 'room' | 'control_center'; room_id: string | null }[];
+      };
+      /**
+       * Sprint T-2 (G9) — ingest metric ping. Chiamata SOLO da Edge Function
+       * `room-player-bootstrap` con service_role. Rate-limit 3s per device.
+       */
+      record_device_metric_ping: {
+        Args: { p_device_id: string; p_payload: Record<string, unknown> };
+        Returns: { ok: boolean; error?: string; skipped?: string };
+      };
+      /**
+       * Sprint T-2 (G9) — admin live perf widget LivePerfTelemetryPanel.
+       * Per ogni device dell'evento: ultimo ping + array ping ultimi N min.
+       */
+      fetch_device_metrics_for_event: {
+        Args: {
+          p_event_id: string;
+          p_window_min?: number;
+          p_max_pings_per_device?: number;
+        };
+        Returns: Array<{
+          device: {
+            id: string;
+            name: string;
+            role: 'room' | 'control_center';
+            status: 'online' | 'offline' | 'degraded';
+            room_id: string | null;
+            last_seen_at: string | null;
+            last_ip: string | null;
+          };
+          latest: Database['public']['Tables']['device_metric_pings']['Row'] | null;
+          pings: Array<{
+            ts: string;
+            cpu_pct: number | null;
+            ram_used_pct: number | null;
+            js_heap_used_pct: number | null;
+            storage_quota_used_pct: number | null;
+            disk_free_pct: number | null;
+            fps: number | null;
+            battery_pct: number | null;
+            battery_charging: boolean | null;
+            network_type: string | null;
+            visibility: 'visible' | 'hidden' | null;
+          }>;
+        }>;
+      };
+      /** Sprint T-2 — cleanup retention 24h, chiamato da pg_cron daily. */
+      cleanup_device_metric_pings: {
+        Args: Record<string, never>;
+        Returns: number;
       };
     };
     Enums: {

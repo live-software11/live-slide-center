@@ -3,11 +3,11 @@
 > **Documento operativo gemello di `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare, in ordine di priorita. Per "cosa fa il prodotto" e "come e fatto" → architettura.
 >
-> **Versione:** 2.9 — 18 aprile 2026 (post-Sprint T-1)
+> **Versione:** 2.10 — 18 aprile 2026 (post-Sprint T-2)
 > **Owner:** Andrea Rizzari
-> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**. **Sprint T-1 (G8, badge versione "in onda" sempre visibile in sala + toast cambio versione, §0.16) DONE**.
+> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**. **Sprint T-1 (G8, badge versione "in onda" sempre visibile in sala + toast cambio versione, §0.16) DONE**. **Sprint T-2 (G9, telemetria perf live PC sala — CPU/RAM/heap/disco/FPS/battery, §0.17) DONE**.
 >
-> **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 8/10 chiusi (G1 in R-1, G2 in R-2, G3 in R-3, G4 in S-1, G5 in S-2, G6 in S-3, G7 in S-4, G8 in T-1) → completata FAMIGLIA R + completata FAMIGLIA S → famiglia T 1/3 (restano G9 telemetria perf, G10 features competitor).**
+> **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 9/10 chiusi (G1 in R-1, G2 in R-2, G3 in R-3, G4 in S-1, G5 in S-2, G6 in S-3, G7 in S-4, G8 in T-1, G9 in T-2) → completata FAMIGLIA R + completata FAMIGLIA S → famiglia T 2/3 (resta G10 features competitor).**
 >
 > **Hardening Sprint Q+1 (§ 0.8):** completato hardening backend (Supabase RLS least-privilege + 7 indici hot-path + PKCE + CSP + CI types drift + auto-deploy Edge Functions).
 >
@@ -25,7 +25,9 @@
 >
 > **Sprint S-4 (§ 0.15):** introdotto ruolo `paired_devices.role` (`'room'` default | `'control_center'`). Un PC promosso a "Centro Slide" riceve i file di **TUTTE** le sale dell'evento (manifest multi-room dal `room-player-bootstrap`), filesystem locale strutturato `Sala/Sessione/file`, niente `RoomDeviceUploadDropzone` (read-only), header dedicato con badge `CENTRO`. Promote/demote da kebab in `DeviceList`; sezione speciale "Centri Slide" sopra la lavagna in `RoomAssignBoard`. Migration `20260418090000_paired_devices_role.sql` + RPC `update_device_role`.
 >
-> **Sprint T-1 (§ 0.16):** versione "in onda" ora visibile **a colpo d'occhio** in sala. Badge `vN/M` con color coding sovrano: **verde** se la corrente e' anche la piu' recente, **giallo** se l'admin ha riportato indietro la corrente (esiste una versione piu' nuova). Badge `inline` sempre visibile accanto al filename in `FileSyncStatus`; badge `overlay` top-right durante l'anteprima fullscreen di `FilePreviewDialog` (auto-fade 5s, ricompare on mouse/touch/key — UX standard player video). Toast notify automatico su cambio versione (`info` se nuova, `warning` se rollback admin) con titolo + descrizione i18n IT/EN. Edge Function `room-player-bootstrap` arricchita con `versionNumber` + `versionTotal` (MAX su `presentation_versions` per `presentation_id` filtrato `status IN ('ready','superseded')`). Zero modifiche schema DB. Verde per Sprint T-2 (G9, telemetria perf live PC sala CPU/RAM/disco aggregata) quando vuoi.
+> **Sprint T-1 (§ 0.16):** versione "in onda" ora visibile **a colpo d'occhio** in sala. Badge `vN/M` con color coding sovrano: **verde** se la corrente e' anche la piu' recente, **giallo** se l'admin ha riportato indietro la corrente (esiste una versione piu' nuova). Badge `inline` sempre visibile accanto al filename in `FileSyncStatus`; badge `overlay` top-right durante l'anteprima fullscreen di `FilePreviewDialog` (auto-fade 5s, ricompare on mouse/touch/key — UX standard player video). Toast notify automatico su cambio versione (`info` se nuova, `warning` se rollback admin) con titolo + descrizione i18n IT/EN. Edge Function `room-player-bootstrap` arricchita con `versionNumber` + `versionTotal` (MAX su `presentation_versions` per `presentation_id` filtrato `status IN ('ready','superseded')`). Zero modifiche schema DB.
+>
+> **Sprint T-2 (§ 0.17):** telemetria perf live PC sala (CPU/RAM/heap/storage/FPS/battery/network) ora disponibile come widget admin **`LivePerfTelemetryPanel`** in `EventDetailView`. Il PC sala collector (`useDevicePerformanceCollector`) raccoglie ad ogni tick di polling (5/12/60s a seconda del playback mode) un payload metrics — heap JS%, storage quota%, FPS via rAF EMA, network type+downlink, battery%+charging, visibility tab — e lo iniettia nel bootstrap. L'Edge Function lo persiste nella nuova tabella append-only `device_metric_pings` (RLS chiusa, INSERT solo via SECURITY DEFINER `record_device_metric_ping` con rate-limit 3s, retention 24h via `cleanup_device_metric_pings` schedulato pg_cron daily 03:00 UTC). L'admin polla ogni 8s la RPC `fetch_device_metrics_for_event` (auth `app_tenant_id()` + ruolo admin/tech) e vede una griglia card per device con header health-dot (verde/giallo/rosso/grigio), badge battery, status offline/network/source, e per ogni metrica numero big colorato + sparkline SVG inline (zero deps, ~200 byte) ultimi 30 min. **Soglie sovrane** (heap>=85% warning/95% critical, storage>=90/95, FPS<30/15, battery<20/10 e !charging, CPU/RAM solo per source=desktop>=85/95). Toast alert debounced **30s** quando un device entra in critical/warning, toast `success` "recovered" al rientro. Pannello collassabile (default chiuso, summary header "X sani | Y attenzione | Z critici" sempre visibile), persistito localStorage. Auto-hidden quando 0 device pairati (no rumore UI in tenant nuovo). Verde per Sprint T-3 (G10, features competitor: file checking, ePoster, mobile speaker ready room) quando vuoi.
 
 ---
 
@@ -41,6 +43,7 @@
    - 0.14 [Sprint S-3 — Export ZIP fine evento ordinato sala/sessione (DONE)](#014-sprint-s-3--export-zip-fine-evento-ordinato-salasessione-done-18042026)
    - 0.15 [Sprint S-4 — Ruolo device "Centro Slide" multi-room (DONE)](#015-sprint-s-4--ruolo-device-centro-slide-multi-room-done-18042026)
    - 0.16 [Sprint T-1 — Badge versione "in onda" + toast cambio versione (DONE)](#016-sprint-t-1--badge-versione-in-onda--toast-cambio-versione-done-18042026)
+   - 0.17 [Sprint T-2 — Telemetria perf live PC sala (DONE)](#017-sprint-t-2--telemetria-perf-live-pc-sala-done-18042026)
 1. [Stato attuale (tutto DONE)](#1-stato-attuale-tutto-done)
 2. [Cose da fare ORA (azioni esterne Andrea, NON automatizzabili)](#2-cose-da-fare-ora-azioni-esterne-andrea-non-automatizzabili)
 3. [Field test desktop (quando vorrai farlo)](#3-field-test-desktop-quando-vorrai-farlo)
@@ -79,7 +82,7 @@
 | G6  | Export ZIP fine evento piatto (no struttura sala/sessione)        | **MEDIUM** | `apps/web/src/features/events/lib/event-export.ts` `buildEventSlidesZip`            | **S-3** | **DONE** ✅ |
 | G7  | "Centro Slide" multi-room = ruolo device assente                  | **MEDIUM** | DB schema `paired_devices.role` + `useFileSync` multi-room manifest                 | **S-4** | **DONE** ✅ |
 | G8  | Versione "in onda" non visibile a colpo d'occhio in sala          | **LOW**    | `apps/web/src/features/devices/RoomPlayerView.tsx` overlay badge `vN/M`             | **T-1** | **DONE** ✅ |
-| G9  | Telemetria perf live PC sala (CPU/RAM/disco) non aggregata        | **LOW**    | `room_state` schema + `<RoomCard>` overlay realtime                                 | **T-2** | pending     |
+| G9  | Telemetria perf live PC sala (CPU/RAM/disco) non aggregata        | **LOW**    | `device_metric_pings` + `LivePerfTelemetryPanel`                                    | **T-2** | **DONE** ✅ |
 | G10 | Features competitor mancanti (file checking, ePoster, mobile SRR) | **LOW**    | Vari (vedi §0.4)                                                                    | **T-3** | pending     |
 
 ### 0.2 Cosa funziona GIA' bene (non toccare)
@@ -370,7 +373,7 @@
 | Sprint   | Gap | Obiettivo                                                 | Tempo dev | Tempo test | Output                                              | Stato       |
 | -------- | --- | --------------------------------------------------------- | --------- | ---------- | --------------------------------------------------- | ----------- |
 | **T-1**  | G8  | Badge versione "in onda" sala + toast cambio versione     | 0.5 g     | 0.25 g     | `<VersionBadge>` inline+overlay, toast info/warning | **DONE** ✅ |
-| **T-2**  | G9  | Telemetria CPU/RAM/disco/rete PC sala in `room_state`     | 1 g       | 0.5 g      | Migration + comando Tauri Rust + `<RoomCard>`       | pending     |
+| **T-2**  | G9  | Telemetria heap/storage/FPS/battery PC sala admin live    | 1 g       | 0.5 g      | `device_metric_pings` + `LivePerfTelemetryPanel`    | **DONE** ✅ |
 | **T-3a** | G10 | File error checking automatico (font, video, risoluzione) | 1.5 g     | 0.5 g      | Edge Function `slide-validator`                     | pending     |
 | **T-3c** | G10 | Email reminder schedulati (cron upload pending)           | 0.5 g     | 0.25 g     | Cron job + template gia' presenti                   | pending     |
 | **T-3d** | G10 | Speaker timer integrato (link Live SPEAKER TIMER)         | 0.5 g     | 0.25 g     | Iframe / link su `LiveRegiaView`                    | pending     |
@@ -1230,16 +1233,16 @@ Pronto a partire con **Sprint T-1** appena Andrea da' il via.
 
 **File modificati:**
 
-| File                                                                            | Cosa                                                                                                                                                                                                                                                                                              |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `supabase/functions/room-player-bootstrap/index.ts`                             | Aggiunto `version_number` al SELECT su `presentation_versions` per le current versions; nuova query aggregata `MAX(version_number)` per ogni `presentation_id` filtrato `status IN ('ready','superseded')`; `FileRow` esteso con `versionNumber: number \| null` + `versionTotal: number \| null` |
-| `apps/web/src/features/devices/repository.ts`                                   | `RoomPlayerBootstrapFileRow` esteso con `versionNumber` + `versionTotal` (entrambi nullable per BC con bootstrap pre-T-1)                                                                                                                                                                         |
-| `apps/web/src/features/devices/hooks/useFileSync.ts`                            | `FileSyncItem` esteso con `versionNumber` + `versionTotal`; `rowToItem` propaga i campi (fallback `?? null`)                                                                                                                                                                                      |
-| `apps/web/src/features/devices/components/VersionBadge.tsx` **(NUOVO)**         | Componente riusabile `VersionBadge`: due varianti `inline` / `overlay`, color coding sovrano verde/giallo/neutro, auto-fade timer per overlay variant, pattern derived-state-from-props raccomandato React 19 (no `setState` in effect)                                                            |
-| `apps/web/src/features/devices/components/FileSyncStatus.tsx`                   | `<VersionBadge variant="inline">` accanto al filename in `FileRow`                                                                                                                                                                                                                                |
-| `apps/web/src/features/presentations/components/FilePreviewDialog.tsx`          | Nuovo prop `versionInfo?: { number, total }`; `<VersionBadge variant="overlay">` top-right del body; `wakeKey` incrementato su mouseMove/touchStart/keydown per "wake-up" del badge                                                                                                                |
-| `apps/web/src/features/devices/RoomPlayerView.tsx`                              | Nuovo `useEffect` che traccia `presentationId → ultimo versionNumber visto` e dispatcha toast `info` (newer) o `warning` (rollback) via `useToast` (skip primo render per evitare spam in apertura sala); `versionInfo={{ number, total }}` propagato al `<FilePreviewDialog>` via container       |
-| `packages/shared/src/i18n/locales/it.json` + `en.json`                          | 10 nuove chiavi: `roomPlayer.versionBadge.{label,single,tooltipLatest,tooltipOlder,tooltipSingle,aria}` + `roomPlayer.versionToast.{newer.title,newer.body,rollback.title,rollback.body}`. Parita 1270/1270 verificata.                                                                            |
+| File                                                                    | Cosa                                                                                                                                                                                                                                                                                              |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `supabase/functions/room-player-bootstrap/index.ts`                     | Aggiunto `version_number` al SELECT su `presentation_versions` per le current versions; nuova query aggregata `MAX(version_number)` per ogni `presentation_id` filtrato `status IN ('ready','superseded')`; `FileRow` esteso con `versionNumber: number \| null` + `versionTotal: number \| null` |
+| `apps/web/src/features/devices/repository.ts`                           | `RoomPlayerBootstrapFileRow` esteso con `versionNumber` + `versionTotal` (entrambi nullable per BC con bootstrap pre-T-1)                                                                                                                                                                         |
+| `apps/web/src/features/devices/hooks/useFileSync.ts`                    | `FileSyncItem` esteso con `versionNumber` + `versionTotal`; `rowToItem` propaga i campi (fallback `?? null`)                                                                                                                                                                                      |
+| `apps/web/src/features/devices/components/VersionBadge.tsx` **(NUOVO)** | Componente riusabile `VersionBadge`: due varianti `inline` / `overlay`, color coding sovrano verde/giallo/neutro, auto-fade timer per overlay variant, pattern derived-state-from-props raccomandato React 19 (no `setState` in effect)                                                           |
+| `apps/web/src/features/devices/components/FileSyncStatus.tsx`           | `<VersionBadge variant="inline">` accanto al filename in `FileRow`                                                                                                                                                                                                                                |
+| `apps/web/src/features/presentations/components/FilePreviewDialog.tsx`  | Nuovo prop `versionInfo?: { number, total }`; `<VersionBadge variant="overlay">` top-right del body; `wakeKey` incrementato su mouseMove/touchStart/keydown per "wake-up" del badge                                                                                                               |
+| `apps/web/src/features/devices/RoomPlayerView.tsx`                      | Nuovo `useEffect` che traccia `presentationId → ultimo versionNumber visto` e dispatcha toast `info` (newer) o `warning` (rollback) via `useToast` (skip primo render per evitare spam in apertura sala); `versionInfo={{ number, total }}` propagato al `<FilePreviewDialog>` via container      |
+| `packages/shared/src/i18n/locales/it.json` + `en.json`                  | 10 nuove chiavi: `roomPlayer.versionBadge.{label,single,tooltipLatest,tooltipOlder,tooltipSingle,aria}` + `roomPlayer.versionToast.{newer.title,newer.body,rollback.title,rollback.body}`. Parita 1270/1270 verificata.                                                                           |
 
 **Quality gates (tutti VERDI):**
 
@@ -1288,6 +1291,164 @@ GAP famiglia T residui: 2 / 3 (G9 telemetria perf, G10 competitor parity).
 - **G10** (Sprint T-3): features competitor mancanti (file checking pre-evento, ePoster, mobile SRR, speaker timer integrato, email reminder schedulati).
 
 Pronto a partire con **Sprint T-2** appena Andrea da' il via.
+
+---
+
+### 0.17 Sprint T-2 — Telemetria perf live PC sala (DONE 18/04/2026)
+
+**Obiettivo sovrano (G9):** l'admin in centro slide deve sapere **a colpo d'occhio** se ognuno dei suoi PC sala (5 / 12 / 30 device per evento) sta soffrendo (heap quasi pieno, storage browser saturato, FPS in caduta libera, batteria scarica) **prima** che il pubblico veda lag, freeze o blackout durante la proiezione.
+
+**Decisione architettura:** zero round-trip extra. Le metriche vengono **piggyback** sul polling esistente del PC sala (`room-player-bootstrap`, ogni 5/12/60s a seconda del playback mode). Append-only in tabella dedicata `device_metric_pings` con retention 24h via pg_cron daily. Nessun Realtime sulle metriche (volume INSERT alto, l'admin guarda trend di 30 min, non tick singoli) → polling lato admin ogni 8s.
+
+#### 0.17.1 Cosa e' stato implementato
+
+**Backend (Supabase migration `20260418100000_device_metric_pings.sql`):**
+
+- Nuova tabella `public.device_metric_pings` (BIGSERIAL PK, append-only):
+  - `tenant_id` / `device_id` / `event_id` / `room_id` (FK sicuri con `ON DELETE CASCADE`/`SET NULL`)
+  - `ts TIMESTAMPTZ DEFAULT now()`
+  - `source TEXT CHECK (source IN ('browser', 'desktop'))` — discrimina collector PWA vs Tauri Rust futuro
+  - **Browser metrics**: `js_heap_used_pct/mb`, `storage_quota_used_pct/mb`, `fps`, `network_type`, `network_downlink_mbps`, `battery_pct`, `battery_charging`, `visibility ('visible'|'hidden')`
+  - **Desktop metrics** (nullable, popolate fase 2 con sysinfo Rust): `cpu_pct`, `ram_used_pct/mb`, `disk_free_pct/gb`
+  - **Common**: `app_uptime_sec`, `playback_mode`, `device_role`
+  - `CHECK chk_pct_ranges` blocca valori folli (>100, <0, fps>240)
+- **Indici hot-path**: `(device_id, ts DESC)` per latest, `(event_id, ts DESC) WHERE event_id IS NOT NULL` per range query, `(ts)` per cleanup retention
+- **RLS** chiusa: SELECT solo per `is_super_admin()` o `(tenant_id = app_tenant_id() AND role IN ('admin','tech'))`. INSERT/UPDATE/DELETE bloccati a tutti — solo via SECURITY DEFINER.
+- **RPC `record_device_metric_ping(p_device_id, p_payload)` SECURITY DEFINER**: chiamata dall'Edge Function con service_role. Lookup `paired_devices`, **rate-limit soft 3s** (no-op se ultimo ping <3s, evita flood), INSERT con NULLIF safe-cast su tutti i campi, exception handler ritorna `{ok:false, error}` (best-effort: una riga di telemetria persa non blocca mai il bootstrap).
+- **RPC `fetch_device_metrics_for_event(p_event_id, p_window_min, p_max_pings_per_device)` SECURITY DEFINER STABLE**: per ogni device dell'evento ritorna `{device, latest, pings[]}`. Auth: `app_tenant_id() = events.tenant_id` + ruolo admin/tech. Clamp parametri (windowMin 1..60, maxPings 1..200) anti-DoS.
+- **Cleanup retention 24h** `cleanup_device_metric_pings()` SECURITY DEFINER. Schedulato via pg_cron `0 3 * * *` (idempotente: `DO $$` block che fa `cron.unschedule` + `cron.schedule` se `pg_cron` installato).
+- Tipi TypeScript aggiornati in `packages/shared/src/types/database.ts` (`Tables.device_metric_pings` con `Insert: never; Update: never;` per safety, + Functions `record_device_metric_ping`, `fetch_device_metrics_for_event`, `cleanup_device_metric_pings`).
+
+**Edge Function `room-player-bootstrap` (modifica):**
+
+- Accetta nuovo campo opzionale `metrics?: object` nel body. Validato (deve essere object non array).
+- Se presente, dopo l'update `last_seen_at`, chiama `record_device_metric_ping(device.id, enrichedPayload)` con `playback_mode` + `device_role` iniettati lato server (no spoofing client).
+- **Best-effort fire-and-forget**: try/catch loggato in console.warn, mai blocca il bootstrap.
+
+**Client PC sala (`apps/web`):**
+
+- Nuovo hook `useDevicePerformanceCollector()` in `apps/web/src/features/devices/hooks/`:
+  - **FPS tracker**: rAF loop continuo, EMA ultimi 5s, auto-pause su `visibilitychange='hidden'`, max 240fps clamp
+  - **Heap JS**: `performance.memory.usedJSHeapSize / jsHeapSizeLimit` (Chrome only, fallback null Safari/Firefox)
+  - **Storage quota**: `navigator.storage.estimate()` con percent + MB
+  - **Network**: `navigator.connection.{type|effectiveType, downlink}`
+  - **Battery**: `navigator.getBattery()` con cache + listener `levelchange`/`chargingchange` (no polling)
+  - **Visibility**: `document.visibilityState`
+  - **Uptime**: `Date.now() - performance.timeOrigin`
+  - **Source**: `'browser'` se PWA / `'desktop'` se dentro Tauri (preparazione fase 2 Rust sysinfo)
+  - Espone `collectMetrics(): Promise<DeviceMetricPingPayload>` zero-throw (best-effort, sempre risolve).
+- `repository.ts` esteso: `invokeRoomPlayerBootstrap(token, includeVersions, playbackMode, metrics?)` con nuovo parametro opzionale + 4 nuovi tipi (`DeviceMetricPingPayload`, `DeviceMetricPing`, `DeviceMetricsLatest`, `DeviceMetricsRow`) + nuova funzione `fetchDeviceMetricsForEvent(eventId, {windowMin, maxPingsPerDevice})`.
+- `RoomPlayerView.tsx`: chiama `collectMetrics()` prima di ogni invocazione del polling bootstrap, passa il payload come 4° arg. Se collector throwa, passa `null` (no insert lato server).
+
+**Client admin (`apps/web`):**
+
+- Nuovo hook `useDeviceMetrics(eventId, {windowMin, maxPingsPerDevice, refreshMs, enabled})` in `apps/web/src/features/devices/hooks/`:
+  - Polling default 8s. Pausa quando `document.visibilityState='hidden'`. Refresh immediato al rientro visibility.
+  - Anti-race con `reqIdRef` counter (ignora risposta se l'eventId e' cambiato nel frattempo).
+  - Mantiene ultimo dato valido on error, espone `error` separato.
+- Nuovo componente `<Sparkline>` in `apps/web/src/features/devices/components/Sparkline.tsx`:
+  - SVG inline puro, zero dependencies (~200 byte di markup totali per ogni metrica)
+  - Path D continuo, marker "current value", colorazione automatica verde/giallo/rosso a soglia
+  - Supporta `inverted` (per metriche tipo "FPS" o "disk_free" dove pochi=male)
+- Nuovo componente `<LivePerfTelemetryPanel eventId enabled?>` in `apps/web/src/features/devices/components/LivePerfTelemetryPanel.tsx`:
+  - **Card per device** con header health-dot + nome + badge `CENTRO` per control_center + status (offline/network/source) + battery badge colorato
+  - **Grid metriche**: heap, storage, FPS sempre visibili. CPU + RAM SOLO se `source='desktop'` (browser ne lascia placeholder)
+  - **Sparkline** ultimi 30 min sotto ogni numero big colorato
+  - **Footer compact**: uptime, playback mode, downlink Mbps
+  - **Pannello collassabile** (default chiuso, summary header sempre visibile con badge `X sani | Y attenzione | Z critici | W ignoti`)
+  - Persistenza apri/chiudi in `localStorage`: `sc:liveperftelemetry:open`
+  - **Auto-hidden** quando 0 device pairati nell'evento (no rumore UI)
+  - **Toast alert debounced**: stato critical/warning persiste >=30s → toast `error`/`warning` 1× con titolo+descr i18n. Stato `recovered` (critical→healthy dopo notify) → toast `success`. Stato tracciato per device con `useRef<Map<deviceId, {health, sinceTs, notified}>>`.
+- **Soglie sovrane** (configurate inline nel componente, facili da tunare in field):
+  - `heap` >=85 warning / >=95 critical
+  - `storage` >=90 warning / >=95 critical
+  - `fps` <30 warning / <15 critical (inverted)
+  - `cpu` >=85 warning / >=95 critical (solo desktop)
+  - `ram` >=90 warning / >=95 critical (solo desktop)
+  - `disk_free` <=10 warning / <=5 critical (inverted, solo desktop)
+  - `battery` <=20 warning / <=10 critical (inverted, solo se `!charging`)
+- Integrato in `EventDetailView.tsx` sotto `<DevicesPanel />` nella sezione "Devices" dell'evento.
+
+**i18n (10 nuove sezioni × 2 lingue):**
+
+- 51 nuove chiavi sotto `deviceTelemetry.*` in `it.json` + parita perfetta in `en.json`:
+  - Title, badge centro, status (offline/visible/hidden tab), time-ago helpers, refresh, uptime, playback mode, downlink, battery
+  - Metric labels (heap/storage/fps/cpu/ram/disk)
+  - Health labels (healthy/warning/critical/unknown)
+  - Alert toasts (critical/warning/recovered con title + body)
+- Total chiavi: **1312 IT / 1312 EN — parita perfetta**.
+
+#### 0.17.2 Decisioni di design
+
+**Perche' piggyback su `room-player-bootstrap` e non endpoint dedicato?** Zero round-trip extra. Il PC sala gia' polla ogni 5/12/60s. Aggiungere un endpoint separato significherebbe doppio request rate × N device. Anche con 12 PC × 5s (turbo) = 144 req/min/evento, si rimane abbondantemente sotto i limiti Supabase Edge.
+
+**Perche' polling 8s e NON Realtime postgres_changes?** Il volume INSERT su `device_metric_pings` saturerebbe il channel (1 INSERT ogni 5-12s × 30 device = 6 INSERT/s = 21.600/h). Realtime postgres_changes diventa instabile sopra ~5 INSERT/s sostenuti. Inoltre l'admin non deve vedere "tick a tick" ma trend ultimi 30 min — 8s di polling e' UX live indistinguibile + costo Supabase 100× minore.
+
+**Perche' RLS chiusa su INSERT con SECURITY DEFINER RPC?** Il PC sala NON ha sessione utente Supabase (auth via `device_token`). Senza SECURITY DEFINER dovremmo: (a) dare INSERT al ruolo `anon` (sicurezza zero — chiunque potrebbe spammare), oppure (b) creare un JWT per ogni device (costo crittografico + bookkeeping). La RPC SECURITY DEFINER chiamata dall'Edge Function con service_role e' la soluzione standard Supabase: l'Edge ha gia' validato il token, la RPC fa solo INSERT cieco con rate-limit 3s lato server.
+
+**Perche' rate-limit 3s e non 0?** Anti-flood. Se il PC sala bugga e chiama bootstrap a 1Hz invece di 5/12/60s, evitiamo di esplodere `device_metric_pings` con 6× la dimensione attesa. 3s e' inferiore a tutti i tick standard (auto/live/turbo) quindi 100% dei ping legittimi passa, ma blocca i casi patologici.
+
+**Perche' retention 24h e non piu'?** L'admin guarda telemetria DURANTE l'evento (a sera) o subito dopo (review post-mortem). Oltre 24h e' rumore: i dati vecchi non aiutano a debuggare il prossimo evento (PC diversi, sale diverse, network diverso). Cleanup giornaliero pg_cron @ 03:00 UTC mantiene la tabella sotto i 100 MB anche con 5 eventi paralleli.
+
+**Perche' soglie configurate INLINE nel componente e non in DB?** Devono essere facili da tunare in field. Andrea le ricalibra dopo i primi 2-3 eventi reali (es: scoprire che heap >85% e' falso positivo perche' Chrome alloca troppo), e non vogliamo migration per cambiare un numero. Quando saranno stabili, le sposteremo in `tenant_settings` come override per-tenant.
+
+**Perche' niente metriche CPU/RAM reali in fase 1?** Il PC sala oggi e' una **PWA** in browser. Il browser e' sandboxed: NON puo' vedere `% CPU` o `% RAM` reale del sistema operativo. Quello che mostriamo (heap JS, storage quota) e' la "salute" del browser/applicazione, non del PC. Per CPU/RAM reali serve il client desktop Tauri con `sysinfo` Rust crate (fase 2 di T-2, schedulata insieme a Sprint Q hybrid sync). Lo schema DB e' gia' pronto (`cpu_pct`, `ram_used_pct`, `disk_free_pct` nullable + UI condizionata su `source='desktop'`).
+
+**Perche' toast con debounce 30s?** Spam-prevention. Senza debounce, ogni refresh (8s) farebbe 1 toast → l'admin viene sommerso. 30s e' il "tempo che ci mette un PC sala lento a essere notato dal pubblico" — sotto quel valore di solito si tratta di spike transitorio (gc, network blip).
+
+**Perche' pannello collassato di default?** Il summary header ("X sani | Y attenzione") e' gia' informativo. L'admin lo apre solo quando vede badge giallo/rosso o per audit pre-evento. Risparmia 600+ pixel di scroll quando tutto e' OK (caso normale).
+
+#### 0.17.3 File modificati / creati
+
+**Creati (nuovi):**
+
+- `supabase/migrations/20260418100000_device_metric_pings.sql` (300+ linee, schema + 3 RPC + cron)
+- `apps/web/src/features/devices/hooks/useDevicePerformanceCollector.ts` (collector PWA, 230 linee)
+- `apps/web/src/features/devices/hooks/useDeviceMetrics.ts` (admin polling hook, 110 linee)
+- `apps/web/src/features/devices/components/Sparkline.tsx` (SVG sparkline 0-deps, 110 linee)
+- `apps/web/src/features/devices/components/LivePerfTelemetryPanel.tsx` (widget admin completo, 470 linee)
+
+**Modificati:**
+
+- `packages/shared/src/types/database.ts` (+78 linee: tabella + 3 RPC types)
+- `supabase/functions/room-player-bootstrap/index.ts` (+22 linee: parsing metrics + RPC call)
+- `apps/web/src/features/devices/repository.ts` (+86 linee: `DeviceMetricPingPayload` + 4 tipi `DeviceMetric*` + `fetchDeviceMetricsForEvent` + parametro `metrics` su `invokeRoomPlayerBootstrap`)
+- `apps/web/src/features/devices/RoomPlayerView.tsx` (+15 linee: import + hook + collect prima di ogni polling)
+- `apps/web/src/features/events/EventDetailView.tsx` (+3 linee: import + integrazione widget)
+- `packages/shared/src/i18n/locales/it.json` + `en.json` (+51 chiavi/lingua)
+
+#### 0.17.4 Quality gates passati
+
+- `pnpm --filter @slidecenter/shared build` ✅
+- `pnpm --filter @slidecenter/web typecheck` ✅ (0 errori dopo 6 fix iterativi: TFunction da i18next, lucide-icon `title` rimosso, `useToast()` API corretta)
+- `pnpm --filter @slidecenter/web lint` ✅ (1 fix: `prefer-const` su `let timer`)
+- `pnpm --filter @slidecenter/web build` ✅ (PWA generata, 101 entries precache)
+- i18n parity check (Node script): 1312 IT / 1312 EN, **zero key orfane** in entrambi i versi
+- ReadLints su 10 file modificati: **0 errori**
+
+#### 0.17.5 Cosa serve da Andrea / DevOps post-merge
+
+1. **Migration deploy obbligatorio:** push del file `20260418100000_device_metric_pings.sql` → eseguito automaticamente al prossimo deploy Supabase (oppure manuale: `supabase db push`).
+2. **Edge Function deploy obbligatorio:** `room-player-bootstrap` ha modifiche → deploy via `supabase functions deploy room-player-bootstrap` (oppure GitHub Actions auto-deploy se configurato in §0.8).
+3. **pg_cron extension:** se non gia' attiva sull'istanza Supabase del progetto, abilitarla da Dashboard → Database → Extensions. La migration ha un `DO $$` block che salta lo schedule cron se `pg_extension` non ha `pg_cron`, quindi il deploy non rompe niente, ma il cleanup retention non parte. In quel caso si puo' manualmente schedulare un Vercel cron job che chiama `cleanup_device_metric_pings()` via RPC.
+4. **No env var nuove:** zero variabili da settare.
+5. **Frontend:** standard `pnpm build` + push a Vercel — il deploy automatico lo gestisce.
+
+#### 0.17.6 Backlog deferred (NON blocca G9)
+
+- **T-2.b**: collector desktop Tauri Rust (`sysinfo` crate) → CPU/RAM/disk reali per PC sala intranet. Schedulare insieme a Sprint Q hybrid sync.
+- **T-2.c**: salvare le soglie in `tenant_settings` (oggi inline). Aspettiamo 2-3 eventi reali per validare i valori prima di "spostare in DB".
+- **T-2.d**: storico esportabile telemetria (CSV/PDF) per post-mortem evento. Oggi retention 24h e' write-only.
+- **T-2.e**: alert via webhook esterno (Slack / Discord / email) per critici notturni (es: PC sala in attesa per 8h che si rompe a mezzanotte). Oggi solo toast in UI admin (richiede admin presente al PC).
+- **T-2.f**: confronto cross-evento ("PC Sala 2 dell'evento Acme vs PC Sala 2 dell'evento Beta — heap medio +30% perche' file pesanti"). Richiede aggregazione storica → out-of-scope T-2 MVP.
+
+#### 0.17.7 Semaforo VERDE per Sprint T-3
+
+GAP famiglia T residui: **1 / 3** (G10 competitor parity).
+
+- **G10** (Sprint T-3): features competitor mancanti — file checking pre-evento, ePoster, mobile speaker ready room, speaker timer integrato, email reminder schedulati. Vedi §0.4 per analisi dettagliata vs PreSeria, Slidecrew, SLIDEbit, OCSA Suite.
+
+Pronto a partire con **Sprint T-3** appena Andrea da' il via.
 
 ---
 

@@ -56,6 +56,11 @@ Deno.serve(async (req: Request) => {
       // modalita di playback ad ogni bootstrap (polling 5/12/60s a seconda
       // del mode). Validato qui e UPSERT su room_state per la dashboard admin.
       playback_mode?: string;
+      // Sprint T-2 (G9): payload metric ping (browser side: heap%, storage%,
+      // fps, network, battery, visibility / desktop side: cpu, ram, disk).
+      // Tutti i campi opzionali e nullable. Se omesso, NO insert (la RPC
+      // record_device_metric_ping ha rate-limit 3s e best-effort).
+      metrics?: Record<string, unknown>;
     };
 
     const deviceToken = typeof body.device_token === 'string' ? body.device_token.trim() : '';
@@ -63,6 +68,10 @@ Deno.serve(async (req: Request) => {
     const requestedPlaybackMode =
       body.playback_mode === 'auto' || body.playback_mode === 'live' || body.playback_mode === 'turbo'
         ? body.playback_mode
+        : null;
+    const incomingMetrics =
+      body.metrics && typeof body.metrics === 'object' && !Array.isArray(body.metrics)
+        ? body.metrics
         : null;
 
     if (!deviceToken) {
@@ -100,6 +109,27 @@ Deno.serve(async (req: Request) => {
       .from('paired_devices')
       .update({ last_seen_at: new Date().toISOString(), status: 'online' })
       .eq('id', device.id);
+
+    // Sprint T-2 (G9): se il client ha inviato `metrics`, persistiamo via RPC
+    // SECURITY DEFINER con rate-limit 3s. Best-effort fire-and-forget: una
+    // riga di telemetria persa non blocca mai il bootstrap del PC sala.
+    if (incomingMetrics) {
+      try {
+        const enrichedPayload: Record<string, unknown> = {
+          ...incomingMetrics,
+          // Iniettiamo i campi "server-knowable" qui per evitare che il client
+          // possa fingere un playback_mode/role diverso da quello reale.
+          playback_mode: requestedPlaybackMode ?? incomingMetrics.playback_mode ?? null,
+          device_role: deviceRole,
+        };
+        await supabaseAdmin.rpc('record_device_metric_ping', {
+          p_device_id: device.id,
+          p_payload: enrichedPayload,
+        });
+      } catch (err) {
+        console.warn('[room-player-bootstrap] metric ping skipped:', err);
+      }
+    }
 
     const { data: tenant, error: tenantError } = await supabaseAdmin
       .from('tenants')
