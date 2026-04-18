@@ -51,7 +51,7 @@ function LicenseBanner({ license, onDismiss }: { license: LicenseSummary; onDism
   const palette = (() => {
     if (tone === 'expired') return { ring: 'border-sc-danger/40 bg-sc-danger/10 text-sc-danger', icon: <AlertCircle className="h-5 w-5 text-sc-danger" /> };
     if (tone === 'critical') return { ring: 'border-sc-danger/40 bg-sc-danger/10 text-sc-danger', icon: <AlertCircle className="h-5 w-5 text-sc-danger" /> };
-    if (tone === 'warning') return { ring: 'border-amber-500/40 bg-amber-500/10 text-amber-500', icon: <AlertTriangle className="h-5 w-5 text-amber-500" /> };
+    if (tone === 'warning') return { ring: 'border-sc-warning/40 bg-sc-warning/10 text-sc-warning', icon: <AlertTriangle className="h-5 w-5 text-sc-warning" /> };
     return { ring: 'border-sc-primary/30 bg-sc-primary/10 text-sc-primary', icon: <Info className="h-5 w-5 text-sc-primary" /> };
   })();
   const days = license.days_remaining ?? 0;
@@ -101,7 +101,7 @@ function StorageBanner({ storage, onDismiss }: { storage: StorageSummary; onDism
   const tone = storage.threshold;
   const palette = (() => {
     if (tone === 'critical') return { ring: 'border-sc-danger/40 bg-sc-danger/10 text-sc-danger', icon: <AlertCircle className="h-5 w-5 text-sc-danger" /> };
-    return { ring: 'border-amber-500/40 bg-amber-500/10 text-amber-500', icon: <AlertTriangle className="h-5 w-5 text-amber-500" /> };
+    return { ring: 'border-sc-warning/40 bg-sc-warning/10 text-sc-warning', icon: <AlertTriangle className="h-5 w-5 text-sc-warning" /> };
   })();
   const usedMb = Math.round(storage.used_bytes / 1024 / 1024);
   const limitMb = Math.round(storage.limit_bytes / 1024 / 1024);

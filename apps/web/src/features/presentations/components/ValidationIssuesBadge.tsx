@@ -76,7 +76,7 @@ export function ValidationIssuesBadge({ warnings, fileName }: ValidationIssuesBa
     dominantSeverity === 'error'
       ? 'bg-sc-danger/15 text-sc-danger ring-1 ring-sc-danger/30 hover:bg-sc-danger/25'
       : dominantSeverity === 'warning'
-        ? 'bg-yellow-400/15 text-yellow-700 ring-1 ring-yellow-400/40 hover:bg-yellow-400/25 dark:text-yellow-400'
+        ? 'bg-sc-warning/15 text-sc-warning ring-1 ring-sc-warning/40 hover:bg-sc-warning/25'
         : 'bg-sc-text-dim/10 text-sc-text-dim ring-1 ring-sc-text-dim/20 hover:bg-sc-text-dim/15';
 
   const total = warnings.length;
@@ -155,7 +155,7 @@ function SeverityDot({ severity }: { severity: ValidationWarning['severity'] }) 
     severity === 'error'
       ? 'bg-sc-danger'
       : severity === 'warning'
-        ? 'bg-yellow-500'
+        ? 'bg-sc-warning'
         : 'bg-sc-text-dim/60';
   return (
     <span

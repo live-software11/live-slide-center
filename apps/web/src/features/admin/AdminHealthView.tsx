@@ -208,7 +208,7 @@ function CheckBadge({ state }: { state: CheckState }) {
   const { t } = useTranslation();
   if (state.status === 'ok') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-700/50 bg-emerald-950/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-300">
+      <span className="inline-flex items-center gap-1 rounded-full border border-sc-success/40 bg-sc-success/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sc-success">
         <CheckCircle2 className="h-3 w-3" aria-hidden />
         {t('health.ok')}
       </span>
@@ -216,7 +216,7 @@ function CheckBadge({ state }: { state: CheckState }) {
   }
   if (state.status === 'fail') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-red-700/50 bg-red-950/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-red-300">
+      <span className="inline-flex items-center gap-1 rounded-full border border-sc-danger/40 bg-sc-danger/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sc-danger">
         <XCircle className="h-3 w-3" aria-hidden />
         {t('health.fail')}
       </span>
@@ -242,7 +242,7 @@ function CounterCard({
   value: number | string;
   tone?: 'neutral' | 'success' | 'warning';
 }) {
-  const colorClass = tone === 'success' ? 'text-emerald-300' : tone === 'warning' ? 'text-amber-300' : 'text-sc-text';
+  const colorClass = tone === 'success' ? 'text-sc-success' : tone === 'warning' ? 'text-sc-warning' : 'text-sc-text';
   return (
     <div className="rounded-lg border border-sc-primary/12 bg-sc-bg/40 p-4">
       <p className="text-[10px] font-semibold uppercase tracking-wide text-sc-text-dim">{label}</p>

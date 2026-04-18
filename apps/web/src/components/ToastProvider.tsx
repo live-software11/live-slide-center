@@ -101,8 +101,8 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: strin
       case 'warning':
         return {
           icon: <AlertTriangle className="h-5 w-5" aria-hidden />,
-          ring: 'border-amber-500/40 bg-amber-500/10 text-amber-500',
-          iconClass: 'text-amber-500',
+          ring: 'border-sc-warning/40 bg-sc-warning/10 text-sc-warning',
+          iconClass: 'text-sc-warning',
         };
       default:
         return {

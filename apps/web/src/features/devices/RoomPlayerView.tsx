@@ -906,7 +906,9 @@ export default function RoomPlayerView() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-sc-bg">
+      // Sprint U-4 (UX V2.0) — "broadcasting black": il PC sala e' un device
+      // dedicato, sempre fullscreen. Nero puro = look monitor pro/HDMI.
+      <div className="flex min-h-screen items-center justify-center bg-black">
         <p className="text-sc-text-muted">{t('common.loading')}</p>
       </div>
     );
@@ -914,7 +916,7 @@ export default function RoomPlayerView() {
 
   if (authError) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-sc-bg gap-4 p-6">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-black gap-4 p-6">
         <p className="text-sc-danger text-center max-w-sm">
           {authError === 'invalid_token'
             ? t('roomPlayer.error.invalidToken')
@@ -937,7 +939,7 @@ export default function RoomPlayerView() {
 
   if (waitingRoom && device) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-sc-bg gap-5 p-6 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-black gap-5 p-6 text-center">
         <Building2 className="h-12 w-12 text-sc-text-muted" aria-hidden="true" />
         <div className="max-w-md space-y-2">
           <h1 className="text-xl font-semibold text-sc-text">
@@ -973,7 +975,7 @@ export default function RoomPlayerView() {
 
   if (!roomData || !device) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-sc-bg">
+      <div className="flex min-h-screen items-center justify-center bg-black">
         <p className="text-sc-text-muted">{t('common.loading')}</p>
       </div>
     );
@@ -992,8 +994,8 @@ export default function RoomPlayerView() {
   const centerRoomCount = isControlCenter ? roomData.rooms?.length ?? 0 : 0;
 
   return (
-    <div className="flex min-h-screen flex-col bg-sc-bg text-sc-text">
-      <header className="border-b border-sc-primary/12 px-4 py-3">
+    <div className="flex min-h-screen flex-col bg-black text-sc-text">
+      <header className="border-b border-white/5 px-4 py-2.5">
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-center gap-3">
             {isControlCenter ? (

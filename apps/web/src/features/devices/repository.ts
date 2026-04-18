@@ -749,3 +749,163 @@ async function sha256Hex(value: string): Promise<string> {
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// Sprint U-4 — Magic-link provisioning (zero-friction PC sala)
+// ════════════════════════════════════════════════════════════════════════════
+
+export type RoomProvisionToken =
+  Database['public']['Tables']['room_provision_tokens']['Row'];
+
+export interface CreatedRoomProvisionToken {
+  id: string;
+  token: string;
+  expires_at: string;
+  max_uses: number;
+  tenant_id: string;
+  event_id: string;
+  room_id: string;
+}
+
+/**
+ * Sprint U-4 (admin) — genera un magic-link token per la sala. Il valore
+ * `token` torna in chiaro UNA SOLA VOLTA: il client deve mostrarlo subito
+ * in QR/copia e salvarlo solo se serve. In DB resta solo l'hash sha256.
+ *
+ * - `expiresMinutes` clamped 5..43200 (server-side).
+ * - `maxUses` clamped 1..10.
+ */
+export async function createRoomProvisionToken(input: {
+  eventId: string;
+  roomId: string;
+  expiresMinutes?: number;
+  maxUses?: number;
+  label?: string | null;
+}): Promise<CreatedRoomProvisionToken> {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.rpc('rpc_admin_create_room_provision_token', {
+    p_event_id: input.eventId,
+    p_room_id: input.roomId,
+    p_expires_minutes: input.expiresMinutes ?? null,
+    p_max_uses: input.maxUses ?? null,
+    p_label: input.label ?? null,
+  });
+  if (error) throw new Error(error.message);
+  if (!data || typeof data !== 'object') {
+    throw new Error('create_room_provision_token_empty');
+  }
+  return data as unknown as CreatedRoomProvisionToken;
+}
+
+/** Sprint U-4 (admin) — lista token attivi per un evento (RLS multi-tenant). */
+export async function listRoomProvisionTokens(input: {
+  eventId: string;
+  roomId?: string | null;
+  includeRevoked?: boolean;
+}): Promise<RoomProvisionToken[]> {
+  const supabase = getSupabaseBrowserClient();
+  let q = supabase
+    .from('room_provision_tokens')
+    .select('*')
+    .eq('event_id', input.eventId)
+    .order('created_at', { ascending: false })
+    .limit(100);
+  if (input.roomId) q = q.eq('room_id', input.roomId);
+  // Default: nascondiamo i revocati per non sporcare la UI; admin puo'
+  // chiedere il "mostra tutti".
+  if (!input.includeRevoked) q = q.is('revoked_at', null);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+/** Sprint U-4 (admin) — revoca immediata di un magic-link attivo. */
+export async function revokeRoomProvisionToken(tokenId: string): Promise<void> {
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.rpc('rpc_admin_revoke_room_provision_token', {
+    p_token_id: tokenId,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export interface RoomProvisionClaimResponse {
+  device_id: string;
+  tenant_id: string;
+  event_id: string;
+  room_id: string;
+  pair_token: string;
+  max_uses: number;
+  consumed_count: number;
+}
+
+/**
+ * Sprint U-4 (PC sala) — consuma il magic-link e ottiene un pair_token
+ * permanente. Il pair_token viene generato CLIENT-SIDE (32 byte
+ * crypto.getRandomValues) e l'edge function ne calcola lo sha256 lato
+ * server prima di chiamare la RPC SECURITY DEFINER. Il pair_token plain
+ * resta nel browser (localStorage del PC sala) e non viene mai loggato.
+ *
+ * Nota: la chiamata e' anonima (verify_jwt=false). Rate-limit 30/5min/IP
+ * lato edge.
+ */
+export async function claimRoomProvisionToken(input: {
+  token: string;
+  deviceName?: string | null;
+}): Promise<RoomProvisionClaimResponse> {
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/room-provision-claim`;
+  const pairToken = generateRandomToken(32);
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : null;
+  const browser = detectBrowserNameSafe();
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${anonKey}`,
+      apikey: anonKey,
+    },
+    body: JSON.stringify({
+      token: input.token,
+      pair_token: pairToken,
+      device_name: input.deviceName ?? null,
+      device_type: 'browser',
+      browser,
+      user_agent: ua,
+    }),
+  });
+  const json = (await res.json().catch(() => ({}))) as
+    | RoomProvisionClaimResponse
+    | { error?: string };
+  if (!res.ok || !('device_id' in json)) {
+    const err = ('error' in json && json.error) || `room_provision_claim_${res.status}`;
+    throw new Error(err);
+  }
+  return json;
+}
+
+/**
+ * Genera N byte random come stringa base64url (no padding). Usa
+ * crypto.getRandomValues — disponibile in tutti i browser moderni e
+ * sicuro per chiavi/token.
+ */
+function generateRandomToken(byteLen: number): string {
+  const arr = new Uint8Array(byteLen);
+  crypto.getRandomValues(arr);
+  let bin = '';
+  for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
+  return btoa(bin)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function detectBrowserNameSafe(): string | null {
+  if (typeof navigator === 'undefined') return null;
+  const ua = navigator.userAgent;
+  if (/Edg\//.test(ua)) return 'Edge';
+  if (/OPR\//.test(ua)) return 'Opera';
+  if (/Chrome\//.test(ua)) return 'Chrome';
+  if (/Firefox\//.test(ua)) return 'Firefox';
+  if (/Safari\//.test(ua)) return 'Safari';
+  return null;
+}

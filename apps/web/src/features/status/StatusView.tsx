@@ -214,9 +214,9 @@ const OVERALL_PALETTE = {
     bodyKey: 'status.overall.operational.body',
   },
   degraded: {
-    border: 'border-amber-500/30',
-    bg: 'bg-amber-500/5',
-    iconClass: 'text-amber-500',
+    border: 'border-sc-warning/30',
+    bg: 'bg-sc-warning/5',
+    iconClass: 'text-sc-warning',
     icon: <AlertTriangle className="h-8 w-8" />,
     titleKey: 'status.overall.degraded.title',
     bodyKey: 'status.overall.degraded.body',
@@ -239,9 +239,9 @@ const SERVICE_PALETTE = {
     icon: <CheckCircle2 className="h-5 w-5" />,
   },
   degraded: {
-    border: 'border-amber-500/30',
-    bg: 'bg-amber-500/10',
-    iconClass: 'text-amber-500',
+    border: 'border-sc-warning/30',
+    bg: 'bg-sc-warning/10',
+    iconClass: 'text-sc-warning',
     icon: <AlertTriangle className="h-5 w-5" />,
   },
   down: {

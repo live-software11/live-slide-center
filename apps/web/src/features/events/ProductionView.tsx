@@ -414,7 +414,7 @@ export function ProductionView() {
   if (state.status === 'error') {
     return (
       <div className="p-8">
-        <h1 className="text-lg font-semibold text-sc-error">{t('common.errorTitle')}</h1>
+        <h1 className="text-lg font-semibold text-sc-danger">{t('common.errorTitle')}</h1>
         <p className="mt-2 text-sm text-sc-text-dim">{state.message}</p>
         <Button className="mt-4" variant="outline" onClick={() => void reload()}>
           {t('common.retry')}
@@ -463,14 +463,18 @@ export function ProductionView() {
       {actionError ? (
         <div
           role="alert"
-          className="border-b border-sc-error/40 bg-sc-error/10 px-6 py-2 text-sm text-sc-error"
+          className="border-b border-sc-danger/40 bg-sc-danger/10 px-6 py-2 text-sm text-sc-danger"
         >
           {actionError}
         </div>
       ) : null}
 
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-72 shrink-0 border-r border-sc-border bg-sc-surface/30">
+        {/* Sprint U-5 (UX V2.0) — mobile <360px: l'aside cartelle (w-72=288px)
+            sarebbe piu' larga del viewport. La nascondiamo sotto md: a livello
+            mobile la griglia mostra TUTTI i file della root (root_id=null).
+            Le sotto-cartelle restano accessibili da desktop/tablet. */}
+        <aside className="hidden w-72 shrink-0 border-r border-sc-border bg-sc-surface/30 md:block">
           <div className="flex items-center justify-between gap-2 px-4 py-3">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-sc-text-dim">
               {t('production.sidebarTitle')}
@@ -917,7 +921,7 @@ function FolderTreeNodeView({
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem
-            className="text-sc-error focus:text-sc-error"
+            className="text-sc-danger focus:text-sc-danger"
             onSelect={() => onDelete(node.id)}
             disabled={busy}
           >

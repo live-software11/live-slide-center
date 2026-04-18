@@ -438,6 +438,34 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      /**
+       * Sprint U-4 (UX V2.0) — magic-link tokens per zero-friction
+       * provisioning di PC sala. Il token plain non e' mai persistito (solo
+       * lo sha256 in `token_hash`); l'admin lo riceve UNA volta sola in
+       * risposta a `rpc_admin_create_room_provision_token`.
+       */
+      room_provision_tokens: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          event_id: string;
+          room_id: string;
+          token_hash: string;
+          label: string | null;
+          max_uses: number;
+          consumed_count: number;
+          expires_at: string;
+          revoked_at: string | null;
+          created_by_user_id: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: {
+          revoked_at?: string | null;
+          consumed_count?: number;
+        };
+        Relationships: [];
+      };
       presentation_versions: {
         Row: {
           id: string;
@@ -1407,6 +1435,58 @@ export type Database = {
       purge_old_remote_control_pairings: {
         Args: { p_older_than_days?: number };
         Returns: { ok: boolean; deleted: number; cutoff: string };
+      };
+      /**
+       * Sprint U-4 — magic link admin: genera token plain UNA volta sola.
+       * `expires_minutes` 5..43200 (clamped), `max_uses` 1..10 (clamped).
+       */
+      rpc_admin_create_room_provision_token: {
+        Args: {
+          p_event_id: string;
+          p_room_id: string;
+          p_expires_minutes?: number | null;
+          p_max_uses?: number | null;
+          p_label?: string | null;
+        };
+        Returns: {
+          id: string;
+          token: string;
+          expires_at: string;
+          max_uses: number;
+          tenant_id: string;
+          event_id: string;
+          room_id: string;
+        };
+      };
+      /**
+       * Sprint U-4 — consume del magic link da PC sala (anonimo, via Edge
+       * Function `room-provision-claim`). Crea atomicamente un
+       * `paired_devices` record. Errori granulari: token_invalid,
+       * token_revoked, token_expired, token_exhausted.
+       */
+      rpc_consume_room_provision_token: {
+        Args: {
+          p_token: string;
+          p_pair_token_hash: string;
+          p_device_name?: string | null;
+          p_device_type?: string | null;
+          p_browser?: string | null;
+          p_user_agent?: string | null;
+          p_last_ip?: string | null;
+        };
+        Returns: {
+          device_id: string;
+          tenant_id: string;
+          event_id: string;
+          room_id: string;
+          max_uses: number;
+          consumed_count: number;
+        };
+      };
+      /** Sprint U-4 — revoca un magic link attivo (admin-only). */
+      rpc_admin_revoke_room_provision_token: {
+        Args: { p_token_id: string };
+        Returns: { ok: boolean; id: string };
       };
     };
     Enums: {

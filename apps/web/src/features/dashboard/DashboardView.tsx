@@ -213,10 +213,10 @@ function DashboardCard({ icon, title, value, hint, progress, tone = 'primary', h
     tone === 'danger'
       ? 'border-sc-danger/30'
       : tone === 'warning'
-        ? 'border-amber-500/30'
+        ? 'border-sc-warning/30'
         : 'border-sc-primary/15';
   const progressClass =
-    tone === 'danger' ? 'bg-sc-danger' : tone === 'warning' ? 'bg-amber-500' : 'bg-sc-primary';
+    tone === 'danger' ? 'bg-sc-danger' : tone === 'warning' ? 'bg-sc-warning' : 'bg-sc-primary';
   return (
     <article className={`flex flex-col gap-3 rounded-2xl border ${ringClass} bg-sc-surface p-5`}>
       <div className="flex items-center justify-between">

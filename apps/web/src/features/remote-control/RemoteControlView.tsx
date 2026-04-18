@@ -181,10 +181,10 @@ function RemoteControlView() {
   // ── Render ─────────────────────────────────────────────────────────────────
   if (state.kind === 'validating') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100">
+      <div className="flex min-h-screen items-center justify-center bg-sc-bg text-sc-text">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin" />
-          <p className="text-sm text-slate-300">{t('remoteControl.validating')}</p>
+          <p className="text-sm text-sc-text-secondary">{t('remoteControl.validating')}</p>
         </div>
       </div>
     );
@@ -192,15 +192,15 @@ function RemoteControlView() {
 
   if (state.kind === 'invalid') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-slate-100">
-        <div className="max-w-md rounded-2xl border border-red-500/30 bg-red-950/40 p-6 text-center">
-          <h1 className="text-lg font-semibold text-red-100">
+      <div className="flex min-h-screen items-center justify-center bg-sc-bg px-4 text-sc-text">
+        <div className="max-w-md rounded-2xl border border-sc-danger/30 bg-sc-danger/10 p-6 text-center">
+          <h1 className="text-lg font-semibold text-sc-danger">
             {t('remoteControl.invalidTitle')}
           </h1>
-          <p className="mt-2 text-sm text-red-200/80">
+          <p className="mt-2 text-sm text-sc-text-secondary">
             {t(`remoteControl.reason.${state.reason}`)}
           </p>
-          <p className="mt-4 text-xs text-red-200/60">{t('remoteControl.invalidHelp')}</p>
+          <p className="mt-4 text-xs text-sc-text-muted">{t('remoteControl.invalidHelp')}</p>
         </div>
       </div>
     );
@@ -215,22 +215,22 @@ function RemoteControlView() {
   const isBlank = currentId === null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100">
+    <div className="flex min-h-screen flex-col bg-sc-bg text-sc-text">
       {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/70 px-4 py-3 backdrop-blur">
+      <header className="border-b border-sc-primary/12 bg-sc-surface/70 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="truncate text-base font-semibold sm:text-lg">
               {pairing.roomName ?? t('remoteControl.untitledRoom')}
             </h1>
-            <p className="mt-0.5 truncate text-xs text-slate-400">
+            <p className="mt-0.5 truncate text-xs text-sc-text-muted">
               {pairing.eventTitle ? `${pairing.eventTitle} · ` : ''}
               {schedule?.sessionTitle ?? t('remoteControl.noActiveSession')}
             </p>
           </div>
-          <div className="flex items-center gap-3 text-xs text-slate-400">
+          <div className="flex items-center gap-3 text-xs text-sc-text-muted">
             <span
-              className={`inline-flex items-center gap-1 ${realtimeOnline ? 'text-emerald-400' : 'text-amber-400'}`}
+              className={`inline-flex items-center gap-1 ${realtimeOnline ? 'text-sc-success' : 'text-sc-warning'}`}
               title={realtimeOnline ? t('remoteControl.realtimeOn') : t('remoteControl.realtimeOff')}
             >
               {realtimeOnline ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
@@ -238,7 +238,7 @@ function RemoteControlView() {
             <button
               type="button"
               onClick={() => void fetchSchedule()}
-              className="inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-xs hover:bg-slate-800"
+              className="inline-flex items-center gap-1 rounded-md border border-sc-primary/20 px-2 py-1 text-xs hover:bg-sc-elevated"
               aria-label={t('remoteControl.refresh')}
             >
               <RefreshCw className={`h-3.5 w-3.5 ${scheduleLoading ? 'animate-spin' : ''}`} />
@@ -315,10 +315,10 @@ function RemoteControlView() {
         </section>
 
         {/* Scaletta */}
-        <section className="flex min-h-48 flex-1 flex-col rounded-xl border border-slate-800 bg-slate-900/60">
-          <header className="flex items-center justify-between border-b border-slate-800 px-3 py-2">
+        <section className="flex min-h-48 flex-1 flex-col rounded-xl border border-sc-primary/12 bg-sc-surface/60">
+          <header className="flex items-center justify-between border-b border-sc-primary/12 px-3 py-2">
             <h2 className="text-sm font-semibold">{t('remoteControl.scheduleTitle')}</h2>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-sc-text-muted">
               {items.length > 0
                 ? t('remoteControl.scheduleCount', { count: items.length })
                 : t('remoteControl.scheduleEmpty')}
@@ -326,29 +326,29 @@ function RemoteControlView() {
           </header>
           <ul className="flex-1 overflow-auto">
             {items.length === 0 ? (
-              <li className="px-3 py-6 text-center text-xs text-slate-500">
+              <li className="px-3 py-6 text-center text-xs text-sc-text-dim">
                 {scheduleLoading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : t('remoteControl.scheduleEmptyHelp')}
               </li>
             ) : (
               items.map((item, idx) => {
                 const isCurrent = item.presentationId === currentId;
                 return (
-                  <li key={item.presentationId} className="border-b border-slate-800/60 last:border-b-0">
+                  <li key={item.presentationId} className="border-b border-sc-primary/10 last:border-b-0">
                     <button
                       type="button"
                       onClick={() => void dispatch('goto', item.presentationId)}
                       disabled={busyCommand !== null || isCurrent}
                       className={`flex w-full items-center gap-3 px-3 py-3 text-left transition ${
                         isCurrent
-                          ? 'bg-emerald-500/10 text-emerald-100'
-                          : 'hover:bg-slate-800/70 active:bg-slate-700/70 disabled:opacity-50'
+                          ? 'bg-sc-success/10 text-sc-success'
+                          : 'hover:bg-sc-elevated/70 active:bg-sc-elevated disabled:opacity-50'
                       }`}
                     >
                       <span
                         className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                           isCurrent
-                            ? 'bg-emerald-500/30 text-emerald-200'
-                            : 'bg-slate-800 text-slate-300'
+                            ? 'bg-sc-success/30 text-sc-success'
+                            : 'bg-sc-elevated text-sc-text-secondary'
                         }`}
                       >
                         {idx + 1}
@@ -356,13 +356,13 @@ function RemoteControlView() {
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">{item.fileName}</span>
                         {item.speakerName && (
-                          <span className="block truncate text-xs text-slate-400">
+                          <span className="block truncate text-xs text-sc-text-muted">
                             {item.speakerName}
                           </span>
                         )}
                       </span>
                       {isCurrent && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-300">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-sc-success/20 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-sc-success">
                           {t('remoteControl.live')}
                         </span>
                       )}
@@ -388,7 +388,7 @@ interface CurrentBannerProps {
 function CurrentBanner({ schedule, isBlank, tEmpty, tBlankLabel }: CurrentBannerProps) {
   if (isBlank) {
     return (
-      <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-amber-100">
+      <div className="rounded-xl border border-sc-warning/40 bg-sc-warning/10 px-4 py-3 text-sc-warning">
         <p className="text-xs uppercase tracking-wide opacity-70">●</p>
         <p className="mt-0.5 text-base font-semibold">{tBlankLabel}</p>
       </div>
@@ -399,18 +399,18 @@ function CurrentBanner({ schedule, isBlank, tEmpty, tBlankLabel }: CurrentBanner
   );
   if (!current) {
     return (
-      <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-4 py-3">
-        <p className="text-xs uppercase tracking-wide text-slate-500">●</p>
-        <p className="mt-0.5 text-base font-semibold text-slate-300">{tEmpty}</p>
+      <div className="rounded-xl border border-sc-primary/15 bg-sc-surface/70 px-4 py-3">
+        <p className="text-xs uppercase tracking-wide text-sc-text-dim">●</p>
+        <p className="mt-0.5 text-base font-semibold text-sc-text-secondary">{tEmpty}</p>
       </div>
     );
   }
   return (
-    <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-emerald-100">
+    <div className="rounded-xl border border-sc-success/40 bg-sc-success/10 px-4 py-3 text-sc-success">
       <p className="text-xs uppercase tracking-wide opacity-70">● Live</p>
       <p className="mt-0.5 truncate text-base font-semibold">{current.fileName}</p>
       {current.speakerName && (
-        <p className="mt-0.5 truncate text-xs text-emerald-200/70">{current.speakerName}</p>
+        <p className="mt-0.5 truncate text-xs text-sc-success/80">{current.speakerName}</p>
       )}
     </div>
   );
@@ -437,10 +437,10 @@ function CommandButton({
 }: CommandButtonProps) {
   const cls =
     variant === 'primary'
-      ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-100 active:bg-emerald-500/25'
+      ? 'border-sc-success/60 bg-sc-success/15 text-sc-success active:bg-sc-success/25'
       : variant === 'danger'
-        ? 'border-amber-500/60 bg-amber-500/15 text-amber-100 active:bg-amber-500/25'
-        : 'border-slate-700 bg-slate-800/70 text-slate-100 active:bg-slate-700/70';
+        ? 'border-sc-warning/60 bg-sc-warning/15 text-sc-warning active:bg-sc-warning/25'
+        : 'border-sc-primary/20 bg-sc-elevated/70 text-sc-text active:bg-sc-elevated';
   return (
     <button
       type="button"
@@ -477,7 +477,7 @@ function ErrorBanner({ message, t }: ErrorBannerProps) {
   const matchedKey = Object.keys(knownKeys).find((k) => message.includes(k));
   const text = matchedKey ? t(knownKeys[matchedKey]) : message;
   return (
-    <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+    <div className="rounded-lg border border-sc-danger/40 bg-sc-danger/10 px-3 py-2 text-xs text-sc-danger">
       {text}
     </div>
   );

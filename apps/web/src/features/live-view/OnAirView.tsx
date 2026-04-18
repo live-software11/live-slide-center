@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNowMs } from '@/lib/use-now-ms';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import {
@@ -124,7 +125,7 @@ export default function OnAirView() {
   if (!tenantId) {
     return (
       <div className="p-6">
-        <p className="text-sc-error" role="alert">
+        <p className="text-sc-danger" role="alert">
           {t('event.errors.missingTenant')}
         </p>
       </div>
@@ -133,7 +134,7 @@ export default function OnAirView() {
   if (!eventId) {
     return (
       <div className="p-6">
-        <p className="text-sc-error" role="alert">
+        <p className="text-sc-danger" role="alert">
           {t('event.errors.invalidRoute')}
         </p>
       </div>
@@ -142,7 +143,7 @@ export default function OnAirView() {
   if (eventError) {
     return (
       <div className="p-6">
-        <p className="text-sc-error" role="alert">
+        <p className="text-sc-danger" role="alert">
           {eventError === 'not_found'
             ? t('event.notFound')
             : `${t('event.errors.load')}: ${eventError}`}
@@ -159,7 +160,7 @@ export default function OnAirView() {
   if (error) {
     return (
       <div className="p-6">
-        <p className="text-sc-error" role="alert">
+        <p className="text-sc-danger" role="alert">
           {t('liveView.loadError')}: {error}
         </p>
       </div>
@@ -308,7 +309,7 @@ function RoomListItem({ data, selected, nowMs, onSelect }: RoomListItemProps) {
         <Circle
           className={cn(
             'size-2 fill-current',
-            isOnAir ? 'text-sc-error animate-pulse' : 'text-sc-text-dim',
+            isOnAir ? 'text-sc-danger animate-pulse' : 'text-sc-text-dim',
           )}
         />
         <span className="truncate font-medium text-sc-text">{room.name}</span>
@@ -460,11 +461,3 @@ function formatAgo(seconds: number, t: (k: string, opts?: Record<string, unknown
  * calcolare "Avviato Ns fa" senza chiamare `Date.now()` durante il render
  * (rule react-hooks/purity).
  */
-function useNowMs(intervalMs: number): number {
-  const [now, setNow] = useState<number>(() => Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), intervalMs);
-    return () => window.clearInterval(id);
-  }, [intervalMs]);
-  return now;
-}

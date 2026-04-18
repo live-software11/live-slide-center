@@ -264,7 +264,7 @@ export default function TeamView() {
                       <button
                         type="button"
                         onClick={() => void handleRevoke(inv.id)}
-                        className="rounded-md border border-red-700/40 px-2.5 py-1 text-xs text-red-300 hover:bg-red-950/40"
+                        className="rounded-md border border-sc-danger/40 px-2.5 py-1 text-xs text-sc-danger hover:bg-sc-danger/10"
                       >
                         {t('team.revokeButton')}
                       </button>
@@ -283,9 +283,9 @@ export default function TeamView() {
 function StatusBadge({ status }: { status: 'accepted' | 'expired' | 'pending' }) {
   const { t } = useTranslation();
   const cls = {
-    accepted: 'border-emerald-700/60 bg-emerald-950/40 text-emerald-300',
-    expired: 'border-zinc-700 bg-zinc-900 text-zinc-500',
-    pending: 'border-blue-700/60 bg-blue-950/40 text-blue-300',
+    accepted: 'border-sc-success/40 bg-sc-success/10 text-sc-success',
+    expired: 'border-sc-text-dim/30 bg-sc-elevated text-sc-text-dim',
+    pending: 'border-sc-accent/40 bg-sc-accent/10 text-sc-accent',
   }[status];
   return (
     <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${cls}`}>

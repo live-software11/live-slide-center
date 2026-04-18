@@ -41,6 +41,7 @@ import { PlaybackModeBadge } from '@/features/devices/components/PlaybackModeBad
 import { NowPlayingBadge } from '@/features/devices/components/NowPlayingBadge';
 import { NextUpPreview } from '@/features/devices/components/NextUpPreview';
 import { RoomDevicesPanel } from '@/features/devices/components/RoomDevicesPanel';
+import { RoomProvisionTokensPanel } from '@/features/devices/components/RoomProvisionTokensPanel';
 import { RemoteControlPairingsPanel } from '@/features/remote-control/components/RemoteControlPairingsPanel';
 import { EventSearchBar } from './components/EventSearchBar';
 import type { EventFileSearchResult } from './lib/event-file-search';
@@ -1159,6 +1160,16 @@ export default function EventDetailView() {
                   currentRoomId={r.id}
                   locale={i18n.language}
                   onMutated={refreshRoomDevices}
+                />
+                {/* Sprint U-4: zero-friction provisioning del PC sala via
+                    magic-link QR. L'admin lo genera qui, lo stampa o lo
+                    condivide; il PC sala lo apre UNA volta e si configura
+                    da solo. Nessuna digitazione codice 6 cifre. */}
+                <RoomProvisionTokensPanel
+                  eventId={event.id}
+                  roomId={r.id}
+                  roomName={r.name}
+                  locale={i18n.language}
                 />
                 {/* Sprint T-3-G (G10): pannello collassato per gestire i token
                     del telecomando remoto via tablet (PWA `/remote/<token>`). */}

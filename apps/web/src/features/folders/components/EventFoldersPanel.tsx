@@ -158,7 +158,7 @@ export function EventFoldersPanel({ eventId, tenantId }: EventFoldersPanelProps)
       {error ? (
         <p
           role="alert"
-          className="mb-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300"
+          className="mb-3 rounded-md border border-sc-danger/30 bg-sc-danger/10 px-3 py-2 text-xs text-sc-danger"
         >
           {error}
         </p>
@@ -343,7 +343,7 @@ function FolderNodeRow(props: FolderNodeRowProps) {
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="h-7 w-7 text-red-300 hover:text-red-200"
+                className="h-7 w-7 text-sc-danger hover:text-sc-danger/80"
                 aria-label={t('folder.actionDelete')}
                 onClick={() => onDelete(node)}
                 disabled={busy !== null}

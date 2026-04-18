@@ -27,6 +27,13 @@ export const router = createBrowserRouter([
         path: '/sala/:token',
         lazy: () => import('@/features/devices/RoomPlayerView'),
       },
+      // Sprint U-4 (UX V2.0) — magic-link "zero-friction": il PC sala apre
+      // questo URL UNA volta, viene paired in background e rimbalzato su
+      // /sala/:token. Niente keypad, niente conferma manuale.
+      {
+        path: '/sala-magic/:token',
+        lazy: () => import('@/features/devices/MagicProvisionView'),
+      },
       // Sprint T-3-G (G10): telecomando remoto via tablet. Rotta pubblica
       // (auth via token nel path), nessun JWT richiesto.
       {
