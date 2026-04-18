@@ -10,6 +10,9 @@ export default tseslint.config(
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       globals: { ...globals.browser },
+      parserOptions: {
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],

@@ -55,7 +55,7 @@
     "subtitle": "Apri questo link sul PC della sala UNA volta. Il PC verra' configurato automaticamente, senza dover digitare codici.",
     "generateBtn": "Genera nuovo magic link",
     "labelLabel": "Etichetta (opzionale)",
-    "labelPlaceholder": "Es. Sala A — postazione regia",
+    "labelPlaceholder": "Es. {{roomName}} — postazione regia",
     "expiresLabel": "Validita'",
     "expires1h": "1 ora",
     "expires24h": "24 ore",

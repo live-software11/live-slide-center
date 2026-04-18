@@ -16,9 +16,20 @@
   --color-sc-elevated: #132844;
   --color-sc-primary: #3fa9f5;
   --color-sc-primary-deep: #0b5ed7;
+  /* `sc-primary-strong` (Audit-fix Sprint U-5+1): variante hover/active piu' satura
+     del primary. Usata da TenantWarningBanners, StatusView, AuditView,
+     DashboardView, PrivacyView, OnboardingWizard come `hover:bg-sc-primary-strong`
+     / `hover:text-sc-primary-strong`. Senza questo token Tailwind v4 NON emette
+     la classe (no fallback) e l'hover non cambia colore. */
+  --color-sc-primary-strong: #2d8fdc;
   --color-sc-accent: #ff7a00;
   --color-sc-accent-light: #ff9a40;
   --color-sc-navy: #0a2540;
+  /* `sc-border` (Audit-fix Sprint U-5+1): allineato al token `--border` shadcn
+     (vedi :root sotto). 13+ occorrenze in OnAirView, ProductionView,
+     ValidationIssuesBadge, ActivityFeed: prima di questo token le classi
+     `border-sc-border` / `divide-sc-border` non producevano CSS. */
+  --color-sc-border: #1a3050;
   --color-sc-text: #f0f2f5;
   --color-sc-text-secondary: #b8c5d4;
   --color-sc-text-muted: #7a8da3;

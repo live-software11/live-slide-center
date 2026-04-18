@@ -17,7 +17,7 @@
 // può essere recuperato (in DB c'è solo l'hash sha256). Documentato
 // chiaramente in UI ("Conserva o stampa adesso").
 // ════════════════════════════════════════════════════════════════════════════
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
 import { Loader2, Link2, Printer, Copy, Check, Sparkles, Trash2 } from 'lucide-react';
@@ -193,7 +193,11 @@ export function RoomProvisionTokensPanel({ eventId, roomId, roomName, locale }: 
                 type="text"
                 value={genLabel}
                 onChange={(e) => setGenLabel(e.target.value.slice(0, 80))}
-                placeholder={t('roomProvision.labelPlaceholder', { defaultValue: roomName })}
+                /* Audit-fix Sprint U-5+1 (D3): `defaultValue` su react-i18next
+                   ritorna il fallback SOLO se la chiave manca; visto che la
+                   chiave esiste, prima `roomName` non veniva mai mostrato.
+                   Ora la traduzione interpola `{{roomName}}` correttamente. */
+                placeholder={t('roomProvision.labelPlaceholder', { roomName })}
                 className="mt-1 w-full rounded-md border border-sc-primary/20 bg-sc-bg px-2.5 py-1.5 text-sm text-sc-text placeholder:text-sc-text-dim focus:outline-none focus:ring-2 focus:ring-sc-accent"
               />
             </div>
@@ -313,9 +317,9 @@ function RoomProvisionTokenRow({
         : 'bg-sc-text-dim/15 text-sc-text-muted';
   const badgeLabel =
     status === 'active' ? t('roomProvision.activeBadge')
-    : status === 'exhausted' ? t('roomProvision.exhaustedBadge')
-    : status === 'expired' ? t('roomProvision.expiredBadge')
-    : t('roomProvision.revokedBadge');
+      : status === 'exhausted' ? t('roomProvision.exhaustedBadge')
+        : status === 'expired' ? t('roomProvision.expiredBadge')
+          : t('roomProvision.revokedBadge');
 
   return (
     <li className="flex items-center justify-between gap-3 py-3">
@@ -361,6 +365,11 @@ function CreatedTokenView({
   onCopied: () => void;
 }) {
   const { t } = useTranslation();
+  // Audit-fix Sprint U-5+1 (D2): wrapper del QR per estrarre l'SVG renderizzato
+  // in DOM e iniettarlo nella print window. Cosi' eliminiamo la dipendenza dal
+  // CDN esterno `api.qrserver.com` (che leakava il magic-link URL al servizio
+  // terzo + bloccava la stampa offline).
+  const qrWrapperRef = useRef<HTMLDivElement>(null);
   const url = useMemo(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://app.liveslidecenter.com';
     return `${origin}/sala-magic/${created.token}`;
@@ -375,8 +384,24 @@ function CreatedTokenView({
   }, [url, onCopied]);
 
   const onPrint = useCallback(() => {
-    // Apriamo una finestra solo con il QR + URL e lanciamo print(). Stile
-    // minimal, bianco/nero, ottimizzato per stampa A4 verticale.
+    // Audit-fix D2: estraiamo lo `<svg>` gia' renderizzato dal DOM (vedi
+    // `qrWrapperRef`). Risultato:
+    //   - Zero richieste a `api.qrserver.com` (privacy: il magic-link non
+    //     viene piu' mandato a un CDN terzo per generare l'immagine).
+    //   - Funziona offline / dietro proxy aziendali che bloccano CDN.
+    //   - Stesso QR esatto che l'utente vede nel dialog (consistency UX).
+    // Se il wrapper non e' montato (race condition impossibile in pratica),
+    // facciamo fallback a "stampa solo URL" senza QR — l'admin puo' sempre
+    // copiare il link.
+    const svgEl = qrWrapperRef.current?.querySelector('svg');
+    let qrSvgInline = '';
+    if (svgEl) {
+      const cloned = svgEl.cloneNode(true) as SVGSVGElement;
+      cloned.setAttribute('width', '320');
+      cloned.setAttribute('height', '320');
+      cloned.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      qrSvgInline = cloned.outerHTML;
+    }
     const w = window.open('', '_blank', 'width=800,height=900');
     if (!w) return;
     w.document.write(`<!doctype html>
@@ -386,28 +411,23 @@ function CreatedTokenView({
   h1 { font-size: 22px; margin: 0 0 8px; }
   p { color: #444; font-size: 14px; margin: 4px 0; }
   .qr { display: flex; justify-content: center; padding: 24px 0; }
+  .qr svg { width: 320px; height: 320px; }
   code { display: block; word-break: break-all; background: #f5f5f5; padding: 12px; border-radius: 6px; font-size: 13px; }
   .footer { color: #888; font-size: 11px; margin-top: 20px; }
+  @media print { body { padding: 16px; } }
 </style></head>
 <body>
   <h1>Magic Link sala</h1>
   <p>Apri questo URL UNA volta sul PC della sala. Il PC verrà configurato automaticamente.</p>
-  <div class="qr" id="qr"></div>
+  <div class="qr">${qrSvgInline || '<p style="color:#888">QR non disponibile, usa l&#39;URL sotto.</p>'}</div>
   <p><strong>URL:</strong></p>
   <code>${escapeHtml(url)}</code>
   <p class="footer">Scade: ${escapeHtml(expiresFmt)} · Max usi: ${created.max_uses}</p>
   <script>
-    // Render QR via canvas inline (qrcode-generator self-contained)
-    // — scaricato da CDN cosi' la pagina di stampa è autonoma.
-    var img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=' + encodeURIComponent(${JSON.stringify(url)});
-    img.alt = 'QR Magic Link';
-    img.style.width = '320px';
-    img.style.height = '320px';
-    img.onload = function() { window.print(); };
-    img.onerror = function() { window.print(); };
-    document.getElementById('qr').appendChild(img);
+    // QR gia' inline in DOM (estratto dal componente React principale,
+    // niente CDN). Lanciamo print() al next tick per assicurarci che il
+    // layout sia stato calcolato.
+    setTimeout(function(){ window.print(); }, 50);
   </script>
 </body></html>`);
     w.document.close();
@@ -418,7 +438,7 @@ function CreatedTokenView({
       <p className="text-xs text-sc-text-muted">
         {t('roomProvision.successDesc', { when: expiresFmt })}
       </p>
-      <div className="flex justify-center rounded-lg bg-white p-6">
+      <div ref={qrWrapperRef} className="flex justify-center rounded-lg bg-white p-6">
         <QRCodeSVG value={url} size={224} level="M" includeMargin={false} />
       </div>
       <div className="rounded-md border border-sc-primary/15 bg-sc-bg p-2.5">

@@ -917,1027 +917,132 @@ export default function EventDetailView() {
 
         <TabsContent value="rooms" className="mt-6 space-y-12">
           <section aria-labelledby="rooms-section-title">
-        <h2 id="rooms-section-title" className="text-lg font-semibold text-sc-text">
-          {t('room.titlePlural')}
-        </h2>
-        <p className="mt-1 text-sm text-sc-text-dim">{t('room.eventDetailIntro')}</p>
+            <h2 id="rooms-section-title" className="text-lg font-semibold text-sc-text">
+              {t('room.titlePlural')}
+            </h2>
+            <p className="mt-1 text-sm text-sc-text-dim">{t('room.eventDetailIntro')}</p>
 
-        <div className="mt-6 rounded-xl border border-sc-primary/12 bg-sc-surface/60 p-6">
-          <h3 className="text-sm font-medium text-sc-text">{t('room.create')}</h3>
-          <form className="mt-4 flex max-w-lg flex-col gap-4" onSubmit={onRoomSubmit} noValidate>
-            <div>
-              <label htmlFor="room-name" className="mb-1 block text-sm text-sc-text-muted">
-                {t('room.name')}
-              </label>
-              <input
-                id="room-name"
-                className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                aria-invalid={errors.name ? true : undefined}
-                {...register('name')}
-              />
-              {errors.name ? (
-                <p className="mt-1 text-xs text-sc-danger" role="alert">
-                  {errors.name.message}
-                </p>
-              ) : null}
-            </div>
-            <div>
-              <label htmlFor="room-type" className="mb-1 block text-sm text-sc-text-muted">
-                {t('room.type')}
-              </label>
-              <select
-                id="room-type"
-                className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                {...register('room_type')}
-              >
-                {ROOM_TYPES.map((rt) => (
-                  <option key={rt} value={rt}>
-                    {roomTypeLabel(t, rt)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {roomCreateError ? (
-              <p className="text-sm text-sc-danger" role="alert">
-                {roomCreateError}
-              </p>
-            ) : null}
-            <button
-              type="submit"
-              disabled={isSubmitting || roomsQuotaBlocked}
-              className="w-fit rounded-xl bg-sc-primary px-4 py-2 text-sm font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
-            >
-              {t('common.create')}
-            </button>
-          </form>
-        </div>
-
-        {rooms.length === 0 ? (
-          <p className="mt-6 text-sm text-sc-text-dim">{t('room.emptyEventList')}</p>
-        ) : (
-          <ul className="mt-6 divide-y divide-sc-primary/12 rounded-xl border border-sc-primary/12">
-            {rooms.map((r) => (
-              <li key={r.id} className="flex flex-col gap-2 px-4 py-3">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0 flex-1">
-                    {roomEditDraft?.id === r.id ? (
-                      <form
-                        className="flex max-w-lg flex-col gap-3"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          void submitRoomEdit();
-                        }}
-                      >
-                        <div>
-                          <label htmlFor={`room-edit-name-${r.id}`} className="mb-1 block text-sm text-sc-text-muted">
-                            {t('room.name')}
-                          </label>
-                          <input
-                            id={`room-edit-name-${r.id}`}
-                            value={roomEditDraft.name}
-                            onChange={(e) =>
-                              setRoomEditDraft((d) => (d?.id === r.id ? { ...d, name: e.target.value } : d))
-                            }
-                            className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                            autoComplete="off"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor={`room-edit-type-${r.id}`} className="mb-1 block text-sm text-sc-text-muted">
-                            {t('room.type')}
-                          </label>
-                          <select
-                            id={`room-edit-type-${r.id}`}
-                            value={roomEditDraft.room_type}
-                            onChange={(e) =>
-                              setRoomEditDraft((d) =>
-                                d?.id === r.id ? { ...d, room_type: e.target.value as RoomType } : d,
-                              )
-                            }
-                            className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                          >
-                            {ROOM_TYPES.map((rt) => (
-                              <option key={rt} value={rt}>
-                                {roomTypeLabel(t, rt)}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        {roomEditError ? (
-                          <p className="text-xs text-sc-danger" role="alert">
-                            {roomEditError}
-                          </p>
-                        ) : null}
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="submit"
-                            disabled={roomEditBusy}
-                            className="rounded-xl bg-sc-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
-                          >
-                            {t('common.save')}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={roomEditBusy}
-                            className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
-                            onClick={() => {
-                              setRoomEditDraft(null);
-                              setRoomEditError(null);
-                            }}
-                          >
-                            {t('common.cancel')}
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-medium text-sc-text">{r.name}</p>
-                          {roomStates[r.id] ? (
-                            <PlaybackModeBadge mode={roomStates[r.id].playback_mode} />
-                          ) : null}
-                        </div>
-                        <p className="text-xs text-sc-text-dim">{roomTypeLabel(t, r.room_type)}</p>
-                        {/* Sprint I (§3.E E4): "In onda" lato admin. Visibile solo se
-                            il PC sala ha segnalato un file aperto. */}
-                        {roomStates[r.id]?.current_presentation_id && roomStates[r.id]?.current_file_name && (
-                          <NowPlayingBadge
-                            fileName={roomStates[r.id].current_file_name as string}
-                            startedAt={roomStates[r.id].last_play_started_at}
-                          />
-                        )}
-                        {/* Sprint T-3-E (G10): pannello "Prossimo file" — render
-                            condizionato a sessione/file attivi, lazy import pdf.js
-                            avviene solo quando c'e' davvero qualcosa da mostrare. */}
-                        <NextUpPreview
-                          roomId={r.id}
-                          enabled={Boolean(roomStates[r.id]?.current_presentation_id)}
-                          versionTrigger={roomStates[r.id]?.current_presentation_id ?? null}
-                        />
-                      </>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
-                    {pendingDelete?.kind === 'room' && pendingDelete.id === r.id ? (
-                      <>
-                        <p className="max-w-xs text-xs text-sc-warning">{t('room.deleteCascadeHint')}</p>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            disabled={deleteBusy}
-                            className="rounded-xl bg-sc-danger/15 px-3 py-1.5 text-xs font-medium text-sc-danger hover:bg-sc-danger/25 disabled:opacity-50"
-                            onClick={async () => {
-                              setDeleteBusy(true);
-                              setDeleteError(null);
-                              const res = await deleteRoom(r.id);
-                              setDeleteBusy(false);
-                              if (res.errorMessage) {
-                                setDeleteError(res.errorMessage);
-                                return;
-                              }
-                              setPendingDelete(null);
-                              setRoomEditDraft((d) => (d?.id === r.id ? null : d));
-                            }}
-                          >
-                            {t('common.confirmDelete')}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={deleteBusy}
-                            className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
-                            onClick={() => {
-                              setPendingDelete(null);
-                              setDeleteError(null);
-                            }}
-                          >
-                            {t('common.cancel')}
-                          </button>
-                        </div>
-                      </>
-                    ) : roomEditDraft?.id === r.id ? null : (
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          className="text-sm text-sc-text-muted hover:text-sc-text"
-                          aria-label={t('room.editAriaLabel', { name: r.name })}
-                          onClick={() => {
-                            setSessionEditDraft(null);
-                            setSessionEditError(null);
-                            setSpeakerEditDraft(null);
-                            setSpeakerEditError(null);
-                            setRoomEditError(null);
-                            setDeleteError(null);
-                            setPendingDelete(null);
-                            setRoomEditDraft({ id: r.id, name: r.name, room_type: r.room_type });
-                          }}
-                        >
-                          {t('common.edit')}
-                        </button>
-                        <button
-                          type="button"
-                          className="text-sm text-sc-danger hover:text-sc-danger"
-                          aria-label={t('room.deleteAriaLabel', { name: r.name })}
-                          onClick={() => {
-                            setSessionEditDraft(null);
-                            setSessionEditError(null);
-                            setSpeakerEditDraft(null);
-                            setSpeakerEditError(null);
-                            setRoomEditDraft((d) => (d?.id === r.id ? null : d));
-                            setRoomEditError(null);
-                            setPendingDelete({ kind: 'room', id: r.id });
-                            setDeleteError(null);
-                          }}
-                        >
-                          {t('common.delete')}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <RoomDevicesPanel
-                  devices={roomDevicesMap[r.id] ?? []}
-                  rooms={rooms.map((rr) => ({ id: rr.id, name: rr.name }))}
-                  currentRoomId={r.id}
-                  locale={i18n.language}
-                  onMutated={refreshRoomDevices}
-                />
-                {/* Sprint U-4: zero-friction provisioning del PC sala via
-                    magic-link QR. L'admin lo genera qui, lo stampa o lo
-                    condivide; il PC sala lo apre UNA volta e si configura
-                    da solo. Nessuna digitazione codice 6 cifre. */}
-                <RoomProvisionTokensPanel
-                  eventId={event.id}
-                  roomId={r.id}
-                  roomName={r.name}
-                  locale={i18n.language}
-                />
-                {/* Sprint T-3-G (G10): pannello collassato per gestire i token
-                    del telecomando remoto via tablet (PWA `/remote/<token>`). */}
-                <RemoteControlPairingsPanel roomId={r.id} locale={i18n.language} />
-              </li>
-            ))}
-          </ul>
-        )}
-          </section>
-        </TabsContent>
-
-        <TabsContent value="sessions" className="mt-6">
-          <section aria-labelledby="sessions-section-title">
-        <h2 id="sessions-section-title" className="text-lg font-semibold text-sc-text">
-          {t('session.titlePlural')}
-        </h2>
-        <p className="mt-1 text-sm text-sc-text-dim">{t('session.eventDetailIntro')}</p>
-        {sessions.length > 1 ? (
-          <p className="mt-2 text-xs text-sc-text-dim">{t('session.dragListHint')}</p>
-        ) : null}
-        {sessionReorderError ? (
-          <p className="mt-2 text-sm text-sc-warning" role="alert">
-            {t('session.reorderFailed')}: {sessionReorderError}
-          </p>
-        ) : null}
-
-        {sessions.length > 0 && rooms.length > 0 ? (
-          <div className="mt-4 flex flex-wrap items-center gap-2" role="tablist" aria-label={t('session.viewModeAria')}>
-            <span className="text-xs text-sc-text-dim">{t('session.viewModeLabel')}</span>
-            <div className="inline-flex rounded-xl border border-sc-primary/20 bg-sc-bg p-0.5">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={sessionScheduleView === 'list'}
-                className={`rounded px-3 py-1.5 text-xs font-medium ${sessionScheduleView === 'list' ? 'bg-sc-elevated text-sc-text' : 'text-sc-text-muted hover:text-sc-text'
-                  }`}
-                onClick={() => setSessionScheduleView('list')}
-              >
-                {t('session.viewList')}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={sessionScheduleView === 'byRoom'}
-                className={`rounded px-3 py-1.5 text-xs font-medium ${sessionScheduleView === 'byRoom' ? 'bg-sc-elevated text-sc-text' : 'text-sc-text-muted hover:text-sc-text'
-                  }`}
-                onClick={() => setSessionScheduleView('byRoom')}
-              >
-                {t('session.viewByRoom')}
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        {rooms.length === 0 ? (
-          <p className="mt-6 text-sm text-sc-warning" role="status">
-            {t('session.needRoomFirst')}
-          </p>
-        ) : (
-          <div className="mt-6 rounded-xl border border-sc-primary/12 bg-sc-surface/60 p-6">
-            <h3 className="text-sm font-medium text-sc-text">{t('session.create')}</h3>
-            <form className="mt-4 flex max-w-lg flex-col gap-4" onSubmit={onSessionSubmit} noValidate>
-              <div>
-                <label htmlFor="session-title" className="mb-1 block text-sm text-sc-text-muted">
-                  {t('session.sessionTitle')}
-                </label>
-                <input
-                  id="session-title"
-                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                  aria-invalid={sessionErrors.title ? true : undefined}
-                  {...registerSession('title')}
-                />
-                {sessionErrors.title ? (
-                  <p className="mt-1 text-xs text-sc-danger" role="alert">
-                    {sessionErrors.title.message}
-                  </p>
-                ) : null}
-              </div>
-              <div>
-                <label htmlFor="session-room" className="mb-1 block text-sm text-sc-text-muted">
-                  {t('session.room')}
-                </label>
-                <select
-                  id="session-room"
-                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                  {...registerSession('room_id')}
-                >
-                  {rooms.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
-                {sessionErrors.room_id ? (
-                  <p className="mt-1 text-xs text-sc-danger" role="alert">
-                    {sessionErrors.room_id.message}
-                  </p>
-                ) : null}
-              </div>
-              <div>
-                <label htmlFor="session-type" className="mb-1 block text-sm text-sc-text-muted">
-                  {t('session.type')}
-                </label>
-                <select
-                  id="session-type"
-                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                  {...registerSession('session_type')}
-                >
-                  {SESSION_TYPES.map((st) => (
-                    <option key={st} value={st}>
-                      {sessionTypeLabel(t, st)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="session-start" className="mb-1 block text-sm text-sc-text-muted">
-                  {t('session.scheduledStart')}
-                </label>
-                <input
-                  id="session-start"
-                  type="datetime-local"
-                  step={60}
-                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                  aria-invalid={sessionErrors.scheduled_start ? true : undefined}
-                  {...registerSession('scheduled_start')}
-                />
-                {sessionErrors.scheduled_start ? (
-                  <p className="mt-1 text-xs text-sc-danger" role="alert">
-                    {sessionErrors.scheduled_start.message}
-                  </p>
-                ) : null}
-              </div>
-              <div>
-                <label htmlFor="session-end" className="mb-1 block text-sm text-sc-text-muted">
-                  {t('session.scheduledEnd')}
-                </label>
-                <input
-                  id="session-end"
-                  type="datetime-local"
-                  step={60}
-                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                  aria-invalid={sessionErrors.scheduled_end ? true : undefined}
-                  {...registerSession('scheduled_end')}
-                />
-                {sessionErrors.scheduled_end ? (
-                  <p className="mt-1 text-xs text-sc-danger" role="alert">
-                    {sessionErrors.scheduled_end.message}
-                  </p>
-                ) : null}
-              </div>
-              {sessionCreateError ? (
-                <p className="text-sm text-sc-danger" role="alert">
-                  {sessionCreateError}
-                </p>
-              ) : null}
-              <button
-                type="submit"
-                disabled={sessionSubmitting}
-                className="w-fit rounded-xl bg-sc-primary px-4 py-2 text-sm font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
-              >
-                {t('common.create')}
-              </button>
-            </form>
-          </div>
-        )}
-
-        {sessions.length === 0 ? (
-          <p className="mt-6 text-sm text-sc-text-dim">{t('session.emptyEventList')}</p>
-        ) : sessionScheduleView === 'list' ? (
-          <ul className="mt-6 divide-y divide-sc-primary/12 rounded-xl border border-sc-primary/12">
-            {sessionsOrdered.map((s) => {
-              const roomName = rooms.find((r) => r.id === s.room_id)?.name ?? t('session.roomUnknown');
-              const canDragReorder = !sessionEditDraft && !sessionReorderBusy;
-              return (
-                <li
-                  key={s.id}
-                  id={`session-${s.id}`}
-                  data-session-id={s.id}
-                  className={`flex scroll-mt-24 flex-col gap-2 px-4 py-3 transition-colors duration-300 sm:flex-row sm:items-start sm:justify-between ${highlightedSessionId === s.id ? 'bg-sc-primary/10' : ''}`}
-                  onDragOver={(e) => {
-                    if (!canDragReorder) return;
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (!canDragReorder) return;
-                    const fromId = e.dataTransfer.getData('text/plain');
-                    if (!fromId || fromId === s.id) return;
-                    const currentIds = sessionsOrdered.map((x) => x.id);
-                    const newOrder = reorderSessionIdList(currentIds, fromId, s.id);
-                    void (async () => {
-                      setSessionReorderError(null);
-                      setSessionReorderBusy(true);
-                      const res = await reorderSessions(newOrder);
-                      setSessionReorderBusy(false);
-                      if (res.errorMessage) {
-                        setSessionReorderError(res.errorMessage);
-                      }
-                    })();
-                  }}
-                >
-                  <div className="flex min-w-0 flex-1 gap-2">
-                    {sessionEditDraft?.id !== s.id ? (
-                      <div
-                        draggable
-                        className="mt-0.5 flex h-8 w-7 shrink-0 cursor-grab select-none items-center justify-center rounded border border-sc-primary/20 bg-sc-surface text-sm text-sc-text-dim hover:bg-sc-elevated active:cursor-grabbing"
-                        aria-label={t('session.dragHandleAriaLabel', { title: s.title })}
-                        title={t('session.dragHint')}
-                        onDragStart={(e) => {
-                          if (!canDragReorder) {
-                            e.preventDefault();
-                            return;
-                          }
-                          e.dataTransfer.setData('text/plain', s.id);
-                          e.dataTransfer.effectAllowed = 'move';
-                        }}
-                      >
-                        <span aria-hidden>⋮⋮</span>
-                      </div>
-                    ) : (
-                      <span className="w-7 shrink-0" aria-hidden />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      {sessionEditDraft?.id === s.id ? (
-                        <form
-                          className="flex max-w-lg flex-col gap-3"
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            void submitSessionEdit();
-                          }}
-                        >
-                          <div>
-                            <label htmlFor={`session-edit-title-${s.id}`} className="mb-1 block text-sm text-sc-text-muted">
-                              {t('session.sessionTitle')}
-                            </label>
-                            <input
-                              id={`session-edit-title-${s.id}`}
-                              value={sessionEditDraft.title}
-                              onChange={(e) =>
-                                setSessionEditDraft((d) => (d?.id === s.id ? { ...d, title: e.target.value } : d))
-                              }
-                              className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                            />
-                          </div>
-                          <div>
-                            <label htmlFor={`session-edit-room-${s.id}`} className="mb-1 block text-sm text-sc-text-muted">
-                              {t('session.room')}
-                            </label>
-                            <select
-                              id={`session-edit-room-${s.id}`}
-                              value={sessionEditDraft.room_id}
-                              onChange={(e) =>
-                                setSessionEditDraft((d) => (d?.id === s.id ? { ...d, room_id: e.target.value } : d))
-                              }
-                              className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                            >
-                              {rooms.map((r) => (
-                                <option key={r.id} value={r.id}>
-                                  {r.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label htmlFor={`session-edit-type-${s.id}`} className="mb-1 block text-sm text-sc-text-muted">
-                              {t('session.type')}
-                            </label>
-                            <select
-                              id={`session-edit-type-${s.id}`}
-                              value={sessionEditDraft.session_type}
-                              onChange={(e) =>
-                                setSessionEditDraft((d) =>
-                                  d?.id === s.id ? { ...d, session_type: e.target.value as SessionType } : d,
-                                )
-                              }
-                              className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                            >
-                              {SESSION_TYPES.map((st) => (
-                                <option key={st} value={st}>
-                                  {sessionTypeLabel(t, st)}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label htmlFor={`session-edit-start-${s.id}`} className="mb-1 block text-sm text-sc-text-muted">
-                              {t('session.scheduledStart')}
-                            </label>
-                            <input
-                              id={`session-edit-start-${s.id}`}
-                              type="datetime-local"
-                              step={60}
-                              value={sessionEditDraft.scheduled_start}
-                              onChange={(e) =>
-                                setSessionEditDraft((d) =>
-                                  d?.id === s.id ? { ...d, scheduled_start: e.target.value } : d,
-                                )
-                              }
-                              className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                            />
-                          </div>
-                          <div>
-                            <label htmlFor={`session-edit-end-${s.id}`} className="mb-1 block text-sm text-sc-text-muted">
-                              {t('session.scheduledEnd')}
-                            </label>
-                            <input
-                              id={`session-edit-end-${s.id}`}
-                              type="datetime-local"
-                              step={60}
-                              value={sessionEditDraft.scheduled_end}
-                              onChange={(e) =>
-                                setSessionEditDraft((d) => (d?.id === s.id ? { ...d, scheduled_end: e.target.value } : d))
-                              }
-                              className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                            />
-                          </div>
-                          {sessionEditError ? (
-                            <p className="text-xs text-sc-danger" role="alert">
-                              {sessionEditError}
-                            </p>
-                          ) : null}
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="submit"
-                              disabled={sessionEditBusy}
-                              className="rounded-xl bg-sc-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
-                            >
-                              {t('common.save')}
-                            </button>
-                            <button
-                              type="button"
-                              disabled={sessionEditBusy}
-                              className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
-                              onClick={() => {
-                                setSessionEditDraft(null);
-                                setSessionEditError(null);
-                              }}
-                            >
-                              {t('common.cancel')}
-                            </button>
-                          </div>
-                        </form>
-                      ) : (
-                        <>
-                          <p className="font-medium text-sc-text">{s.title}</p>
-                          <p className="text-xs text-sc-text-dim">
-                            {roomName} · {sessionTypeLabel(t, s.session_type)}
-                          </p>
-                          <p className="text-xs text-sc-text-muted">
-                            {dateTimeFmt.format(new Date(s.scheduled_start))} →{' '}
-                            {dateTimeFmt.format(new Date(s.scheduled_end))}
-                          </p>
-                          <div className="mt-2">
-                            <button
-                              type="button"
-                              aria-expanded={expandedSessionFiles.has(s.id)}
-                              className="inline-flex items-center gap-1 text-xs font-medium text-sc-primary hover:text-sc-primary"
-                              onClick={() =>
-                                setExpandedSessionFiles((prev) => {
-                                  const next = new Set(prev);
-                                  if (next.has(s.id)) next.delete(s.id);
-                                  else next.add(s.id);
-                                  return next;
-                                })
-                              }
-                            >
-                              <span aria-hidden="true">
-                                {expandedSessionFiles.has(s.id) ? '▾' : '▸'}
-                              </span>
-                              {expandedSessionFiles.has(s.id)
-                                ? t('sessionFiles.toggleHide')
-                                : t('sessionFiles.toggleShow')}
-                            </button>
-                            {expandedSessionFiles.has(s.id) ? (
-                              <SessionFilesPanel
-                                sessionId={s.id}
-                                sessionTitle={s.title}
-                                enabled
-                                moveTargets={sessionMoveTargets}
-                              />
-                            ) : null}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
-                    {pendingDelete?.kind === 'session' && pendingDelete.id === s.id ? (
-                      <>
-                        <p className="max-w-xs text-xs text-sc-warning">{t('session.deleteCascadeHint')}</p>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            disabled={deleteBusy}
-                            className="rounded-xl bg-sc-danger/15 px-3 py-1.5 text-xs font-medium text-sc-danger hover:bg-sc-danger/25 disabled:opacity-50"
-                            onClick={async () => {
-                              setDeleteBusy(true);
-                              setDeleteError(null);
-                              const res = await deleteSession(s.id);
-                              setDeleteBusy(false);
-                              if (res.errorMessage) {
-                                setDeleteError(res.errorMessage);
-                                return;
-                              }
-                              setPendingDelete(null);
-                              setSessionEditDraft((d) => (d?.id === s.id ? null : d));
-                            }}
-                          >
-                            {t('common.confirmDelete')}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={deleteBusy}
-                            className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
-                            onClick={() => {
-                              setPendingDelete(null);
-                              setDeleteError(null);
-                            }}
-                          >
-                            {t('common.cancel')}
-                          </button>
-                        </div>
-                      </>
-                    ) : sessionEditDraft?.id === s.id ? null : (
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          className="text-sm text-sc-text-muted hover:text-sc-text"
-                          aria-label={t('session.editAriaLabel', { title: s.title })}
-                          onClick={() => {
-                            setRoomEditDraft(null);
-                            setRoomEditError(null);
-                            setSpeakerEditDraft(null);
-                            setSpeakerEditError(null);
-                            setSessionEditError(null);
-                            setDeleteError(null);
-                            setPendingDelete(null);
-                            setSessionEditDraft({
-                              id: s.id,
-                              title: s.title,
-                              room_id: s.room_id,
-                              session_type: s.session_type,
-                              scheduled_start: toDatetimeLocalValue(s.scheduled_start),
-                              scheduled_end: toDatetimeLocalValue(s.scheduled_end),
-                            });
-                          }}
-                        >
-                          {t('common.edit')}
-                        </button>
-                        <button
-                          type="button"
-                          className="text-sm text-sc-danger hover:text-sc-danger"
-                          aria-label={t('session.deleteAriaLabel', { title: s.title })}
-                          onClick={() => {
-                            setSessionEditDraft((d) => (d?.id === s.id ? null : d));
-                            setSessionEditError(null);
-                            setPendingDelete({ kind: 'session', id: s.id });
-                            setDeleteError(null);
-                          }}
-                        >
-                          {t('common.delete')}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <div className="mt-6 space-y-6" aria-label={t('session.byRoomSectionAria')}>
-            <p className="text-xs text-sc-text-dim">{t('session.byRoomIntro')}</p>
-            {rooms.map((room) => {
-              const roomSessions = sessionsByRoom.get(room.id) ?? [];
-              return (
-                <div key={room.id} className="rounded-xl border border-sc-primary/12 bg-sc-bg/50 p-4">
-                  <h3 className="text-sm font-semibold text-sc-text">{room.name}</h3>
-                  <p className="text-xs text-sc-text-dim">{roomTypeLabel(t, room.room_type)}</p>
-                  {roomSessions.length === 0 ? (
-                    <p className="mt-3 text-xs text-sc-text-dim">{t('session.byRoomEmpty')}</p>
-                  ) : (
-                    <ul className="mt-3 space-y-2">
-                      {roomSessions.map((s) => (
-                        <li
-                          key={s.id}
-                          id={`session-${s.id}`}
-                          data-session-id={s.id}
-                          className={`flex scroll-mt-24 gap-3 rounded-xl border px-3 py-2.5 transition-colors duration-300 ${highlightedSessionId === s.id ? 'border-sc-primary/40 bg-sc-primary/10' : 'border-sc-primary/12 bg-sc-surface/60'}`}
-                        >
-                          <div className="w-1 shrink-0 rounded-full bg-sc-primary" aria-hidden />
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-sc-text">{s.title}</p>
-                            <p className="text-xs text-sc-text-dim">{sessionTypeLabel(t, s.session_type)}</p>
-                            <p className="text-xs text-sc-text-muted">
-                              {dateTimeFmt.format(new Date(s.scheduled_start))}
-                              {' → '}
-                              {dateTimeFmt.format(new Date(s.scheduled_end))}
-                            </p>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-          </section>
-        </TabsContent>
-
-        <TabsContent value="speakers" className="mt-6">
-          <section aria-labelledby="speakers-section-title">
-        <button
-          type="button"
-          onClick={() => setShowAdvancedSpeakers((v) => !v)}
-          aria-expanded={showAdvancedSpeakers}
-          className="inline-flex items-center gap-2 text-sm font-medium text-sc-text-muted hover:text-sc-text"
-        >
-          <span aria-hidden="true">{showAdvancedSpeakers ? '▾' : '▸'}</span>
-          {showAdvancedSpeakers
-            ? t('speakersAdvanced.toggleHide')
-            : t('speakersAdvanced.toggleShow')}
-        </button>
-        {!showAdvancedSpeakers ? (
-          <p className="mt-1 max-w-2xl text-xs text-sc-text-dim">{t('speakersAdvanced.intro')}</p>
-        ) : null}
-      </section>
-      {showAdvancedSpeakers ? (
-        <section className="mt-6" aria-labelledby="speakers-section-title-inner">
-          <h2 id="speakers-section-title-inner" className="text-lg font-semibold text-sc-text">
-            {t('speaker.titlePlural')}
-          </h2>
-          <p className="mt-1 text-sm text-sc-text-dim">{t('speaker.eventDetailIntro')}</p>
-
-          {sessions.length > 0 ? (
-            <div className="mt-4 max-w-2xl rounded-xl border border-sc-primary/12 bg-sc-bg/60 p-4">
-              <h3 className="text-sm font-medium text-sc-text">{t('speaker.csvImport.title')}</h3>
-              <p className="mt-1 text-xs text-sc-text-dim">{t('speaker.csvImport.hint')}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={downloadSpeakerCsvTemplate}
-                  className="rounded-xl border border-sc-primary/20 bg-sc-surface px-3 py-2 text-xs font-medium text-sc-text hover:bg-sc-elevated"
-                >
-                  {t('speaker.csvImport.downloadTemplate')}
-                </button>
-                <input
-                  ref={speakerCsvInputRef}
-                  type="file"
-                  accept=".csv,text/csv"
-                  className="sr-only"
-                  aria-label={t('speaker.csvImport.fileAriaLabel')}
-                  onChange={(e) => {
-                    const list = e.target.files;
-                    void onSpeakerCsvSelected(list);
-                    e.target.value = '';
-                  }}
-                />
-                <button
-                  type="button"
-                  disabled={csvImportBusy}
-                  onClick={() => speakerCsvInputRef.current?.click()}
-                  className="rounded-xl bg-sc-primary px-3 py-2 text-xs font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
-                >
-                  {csvImportBusy ? t('speaker.csvImport.importing') : t('speaker.csvImport.selectFile')}
-                </button>
-              </div>
-              {csvFeedback ? (
-                <pre
-                  className={`mt-3 max-h-40 overflow-y-auto whitespace-pre-wrap font-sans text-xs ${csvFeedback.variant === 'error' ? 'text-sc-warning' : 'text-sc-success'
-                    }`}
-                  role="status"
-                >
-                  {csvFeedback.message}
-                </pre>
-              ) : null}
-            </div>
-          ) : null}
-
-          {speakerAuxError ? (
-            <p className="mt-3 text-sm text-sc-danger" role="alert">
-              {speakerAuxError}
-            </p>
-          ) : null}
-
-          {sessions.length === 0 ? (
-            <p className="mt-6 text-sm text-sc-warning" role="status">
-              {t('speaker.needSessionFirst')}
-            </p>
-          ) : (
             <div className="mt-6 rounded-xl border border-sc-primary/12 bg-sc-surface/60 p-6">
-              <h3 className="text-sm font-medium text-sc-text">{t('speaker.create')}</h3>
-              <form className="mt-4 flex max-w-lg flex-col gap-4" onSubmit={onSpeakerSubmit} noValidate>
+              <h3 className="text-sm font-medium text-sc-text">{t('room.create')}</h3>
+              <form className="mt-4 flex max-w-lg flex-col gap-4" onSubmit={onRoomSubmit} noValidate>
                 <div>
-                  <label htmlFor="speaker-session" className="mb-1 block text-sm text-sc-text-muted">
-                    {t('speaker.linkedSession')}
+                  <label htmlFor="room-name" className="mb-1 block text-sm text-sc-text-muted">
+                    {t('room.name')}
+                  </label>
+                  <input
+                    id="room-name"
+                    className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                    aria-invalid={errors.name ? true : undefined}
+                    {...register('name')}
+                  />
+                  {errors.name ? (
+                    <p className="mt-1 text-xs text-sc-danger" role="alert">
+                      {errors.name.message}
+                    </p>
+                  ) : null}
+                </div>
+                <div>
+                  <label htmlFor="room-type" className="mb-1 block text-sm text-sc-text-muted">
+                    {t('room.type')}
                   </label>
                   <select
-                    id="speaker-session"
+                    id="room-type"
                     className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                    {...registerSpeaker('session_id')}
+                    {...register('room_type')}
                   >
-                    {sessions.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.title}
+                    {ROOM_TYPES.map((rt) => (
+                      <option key={rt} value={rt}>
+                        {roomTypeLabel(t, rt)}
                       </option>
                     ))}
                   </select>
-                  {speakerErrors.session_id ? (
-                    <p className="mt-1 text-xs text-sc-danger" role="alert">
-                      {speakerErrors.session_id.message}
-                    </p>
-                  ) : null}
                 </div>
-                <div>
-                  <label htmlFor="speaker-name" className="mb-1 block text-sm text-sc-text-muted">
-                    {t('speaker.fullName')}
-                  </label>
-                  <input
-                    id="speaker-name"
-                    className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                    autoComplete="name"
-                    aria-invalid={speakerErrors.full_name ? true : undefined}
-                    {...registerSpeaker('full_name')}
-                  />
-                  {speakerErrors.full_name ? (
-                    <p className="mt-1 text-xs text-sc-danger" role="alert">
-                      {speakerErrors.full_name.message}
-                    </p>
-                  ) : null}
-                </div>
-                <div>
-                  <label htmlFor="speaker-email" className="mb-1 block text-sm text-sc-text-muted">
-                    {t('speaker.emailOptional')}
-                  </label>
-                  <input
-                    id="speaker-email"
-                    type="email"
-                    autoComplete="email"
-                    className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                    aria-invalid={speakerErrors.email ? true : undefined}
-                    {...registerSpeaker('email')}
-                  />
-                  {speakerErrors.email ? (
-                    <p className="mt-1 text-xs text-sc-danger" role="alert">
-                      {speakerErrors.email.message}
-                    </p>
-                  ) : null}
-                </div>
-                {speakerCreateError ? (
+                {roomCreateError ? (
                   <p className="text-sm text-sc-danger" role="alert">
-                    {speakerCreateError}
+                    {roomCreateError}
                   </p>
                 ) : null}
                 <button
                   type="submit"
-                  disabled={speakerSubmitting}
+                  disabled={isSubmitting || roomsQuotaBlocked}
                   className="w-fit rounded-xl bg-sc-primary px-4 py-2 text-sm font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
                 >
                   {t('common.create')}
                 </button>
               </form>
             </div>
-          )}
 
-          {speakersSorted.length === 0 ? (
-            <p className="mt-6 text-sm text-sc-text-dim">{t('speaker.emptyEventList')}</p>
-          ) : (
-            <ul className="mt-6 divide-y divide-sc-primary/12 rounded-xl border border-sc-primary/12">
-              {speakersSorted.map((sp) => {
-                const sessionTitle =
-                  sessions.find((s) => s.id === sp.session_id)?.title ?? t('speaker.sessionUnknown');
-                const portalUrl =
-                  sp.upload_token && sp.upload_token.length > 0
-                    ? getUploadPortalAbsoluteUrl(sp.upload_token)
-                    : null;
-                const expiresLabel =
-                  sp.upload_token_expires_at && portalUrl
-                    ? dateTimeFmt.format(new Date(sp.upload_token_expires_at))
-                    : null;
-                const versionsOpen = versionsExpandedSpeakerId === sp.id;
-                return (
-                  <li key={sp.id} className="flex flex-col gap-2 px-4 py-3">
+            {rooms.length === 0 ? (
+              <p className="mt-6 text-sm text-sc-text-dim">{t('room.emptyEventList')}</p>
+            ) : (
+              <ul className="mt-6 divide-y divide-sc-primary/12 rounded-xl border border-sc-primary/12">
+                {rooms.map((r) => (
+                  <li key={r.id} className="flex flex-col gap-2 px-4 py-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
-                        {speakerEditDraft?.id === sp.id ? (
+                        {roomEditDraft?.id === r.id ? (
                           <form
-                            className="mb-3 flex max-w-lg flex-col gap-3"
+                            className="flex max-w-lg flex-col gap-3"
                             onSubmit={(e) => {
                               e.preventDefault();
-                              void submitSpeakerEdit();
+                              void submitRoomEdit();
                             }}
                           >
                             <div>
-                              <label htmlFor={`speaker-edit-session-${sp.id}`} className="mb-1 block text-sm text-sc-text-muted">
-                                {t('speaker.linkedSession')}
+                              <label htmlFor={`room-edit-name-${r.id}`} className="mb-1 block text-sm text-sc-text-muted">
+                                {t('room.name')}
+                              </label>
+                              <input
+                                id={`room-edit-name-${r.id}`}
+                                value={roomEditDraft.name}
+                                onChange={(e) =>
+                                  setRoomEditDraft((d) => (d?.id === r.id ? { ...d, name: e.target.value } : d))
+                                }
+                                className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                                autoComplete="off"
+                              />
+                            </div>
+                            <div>
+                              <label htmlFor={`room-edit-type-${r.id}`} className="mb-1 block text-sm text-sc-text-muted">
+                                {t('room.type')}
                               </label>
                               <select
-                                id={`speaker-edit-session-${sp.id}`}
-                                value={speakerEditDraft.session_id}
+                                id={`room-edit-type-${r.id}`}
+                                value={roomEditDraft.room_type}
                                 onChange={(e) =>
-                                  setSpeakerEditDraft((d) =>
-                                    d?.id === sp.id ? { ...d, session_id: e.target.value } : d,
+                                  setRoomEditDraft((d) =>
+                                    d?.id === r.id ? { ...d, room_type: e.target.value as RoomType } : d,
                                   )
                                 }
                                 className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
                               >
-                                {sessions.map((sess) => (
-                                  <option key={sess.id} value={sess.id}>
-                                    {sess.title}
+                                {ROOM_TYPES.map((rt) => (
+                                  <option key={rt} value={rt}>
+                                    {roomTypeLabel(t, rt)}
                                   </option>
                                 ))}
                               </select>
                             </div>
-                            <div>
-                              <label htmlFor={`speaker-edit-name-${sp.id}`} className="mb-1 block text-sm text-sc-text-muted">
-                                {t('speaker.fullName')}
-                              </label>
-                              <input
-                                id={`speaker-edit-name-${sp.id}`}
-                                value={speakerEditDraft.full_name}
-                                onChange={(e) =>
-                                  setSpeakerEditDraft((d) =>
-                                    d?.id === sp.id ? { ...d, full_name: e.target.value } : d,
-                                  )
-                                }
-                                className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                                autoComplete="name"
-                              />
-                            </div>
-                            <div>
-                              <label htmlFor={`speaker-edit-email-${sp.id}`} className="mb-1 block text-sm text-sc-text-muted">
-                                {t('speaker.emailOptional')}
-                              </label>
-                              <input
-                                id={`speaker-edit-email-${sp.id}`}
-                                type="email"
-                                value={speakerEditDraft.email}
-                                onChange={(e) =>
-                                  setSpeakerEditDraft((d) => (d?.id === sp.id ? { ...d, email: e.target.value } : d))
-                                }
-                                className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
-                                autoComplete="email"
-                              />
-                            </div>
-                            {speakerEditError ? (
+                            {roomEditError ? (
                               <p className="text-xs text-sc-danger" role="alert">
-                                {speakerEditError}
+                                {roomEditError}
                               </p>
                             ) : null}
                             <div className="flex flex-wrap gap-2">
                               <button
                                 type="submit"
-                                disabled={speakerEditBusy}
+                                disabled={roomEditBusy}
                                 className="rounded-xl bg-sc-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
                               >
                                 {t('common.save')}
                               </button>
                               <button
                                 type="button"
-                                disabled={speakerEditBusy}
+                                disabled={roomEditBusy}
                                 className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
                                 onClick={() => {
-                                  setSpeakerEditDraft(null);
-                                  setSpeakerEditError(null);
+                                  setRoomEditDraft(null);
+                                  setRoomEditError(null);
                                 }}
                               >
                                 {t('common.cancel')}
@@ -1946,134 +1051,84 @@ export default function EventDetailView() {
                           </form>
                         ) : (
                           <>
-                            <p className="font-medium text-sc-text">{sp.full_name}</p>
-                            <p className="text-xs text-sc-text-dim">{sessionTitle}</p>
-                            {sp.email ? <p className="text-xs text-sc-text-muted">{sp.email}</p> : null}
-                          </>
-                        )}
-                        {portalUrl ? (
-                          <div className="mt-3 flex flex-col gap-2 border-t border-sc-primary/10 pt-3 sm:flex-row sm:items-start sm:gap-4">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-medium text-sc-text-muted">{t('speaker.uploadLinkLabel')}</p>
-                              <p className="mt-1 break-all font-mono text-xs text-sc-text-secondary">{portalUrl}</p>
-                              {expiresLabel ? (
-                                <p className="mt-1 text-xs text-sc-text-dim">
-                                  {t('speaker.uploadExpires', { date: expiresLabel })}
-                                </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-medium text-sc-text">{r.name}</p>
+                              {roomStates[r.id] ? (
+                                <PlaybackModeBadge mode={roomStates[r.id].playback_mode} />
                               ) : null}
-                              <div className="mt-2 flex flex-wrap items-center gap-2">
-                                <button
-                                  type="button"
-                                  className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs font-medium text-sc-text hover:bg-sc-elevated"
-                                  onClick={async () => {
-                                    setSpeakerAuxError(null);
-                                    try {
-                                      await navigator.clipboard.writeText(portalUrl);
-                                      setCopiedSpeakerId(sp.id);
-                                      window.setTimeout(() => setCopiedSpeakerId((cur) => (cur === sp.id ? null : cur)), 2200);
-                                    } catch {
-                                      setSpeakerAuxError(t('speaker.copyUploadLinkFailed'));
-                                    }
-                                  }}
-                                >
-                                  {copiedSpeakerId === sp.id ? t('speaker.linkCopied') : t('speaker.copyUploadLink')}
-                                </button>
-                              </div>
                             </div>
-                            <div
-                              className="shrink-0 rounded-xl bg-white p-2"
-                              role="img"
-                              aria-label={t('speaker.uploadQrAria', { name: sp.full_name })}
-                            >
-                              <QRCodeSVG value={portalUrl} size={104} level="M" />
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="mt-3 border-t border-sc-primary/10 pt-3">
-                            <p className="text-xs text-sc-text-dim">{t('speaker.uploadLinkMissing')}</p>
-                            <button
-                              type="button"
-                              disabled={regenerateBusyId === sp.id}
-                              className="mt-2 rounded-xl border border-sc-warning/30 px-3 py-1.5 text-xs font-medium text-sc-warning hover:bg-sc-warning/10 disabled:opacity-50"
-                              onClick={async () => {
-                                setSpeakerAuxError(null);
-                                setRegenerateBusyId(sp.id);
-                                try {
-                                  const res = await regenerateSpeakerUpload(sp.id);
-                                  if (res.errorMessage) {
-                                    setSpeakerAuxError(
-                                      res.errorMessage === 'missing_context'
-                                        ? t('speaker.errors.missingContext')
-                                        : res.errorMessage,
-                                    );
-                                  }
-                                } catch (err) {
-                                  setSpeakerAuxError(err instanceof Error ? err.message : 'unknown');
-                                } finally {
-                                  setRegenerateBusyId(null);
-                                }
-                              }}
-                            >
-                              {regenerateBusyId === sp.id ? t('speaker.generatingUploadLink') : t('speaker.generateUploadLink')}
-                            </button>
-                          </div>
+                            <p className="text-xs text-sc-text-dim">{roomTypeLabel(t, r.room_type)}</p>
+                            {/* Sprint I (§3.E E4): "In onda" lato admin. Visibile solo se
+                            il PC sala ha segnalato un file aperto. */}
+                            {roomStates[r.id]?.current_presentation_id && roomStates[r.id]?.current_file_name && (
+                              <NowPlayingBadge
+                                fileName={roomStates[r.id].current_file_name as string}
+                                startedAt={roomStates[r.id].last_play_started_at}
+                              />
+                            )}
+                            {/* Sprint T-3-E (G10): pannello "Prossimo file" — render
+                            condizionato a sessione/file attivi, lazy import pdf.js
+                            avviene solo quando c'e' davvero qualcosa da mostrare. */}
+                            <NextUpPreview
+                              roomId={r.id}
+                              enabled={Boolean(roomStates[r.id]?.current_presentation_id)}
+                              versionTrigger={roomStates[r.id]?.current_presentation_id ?? null}
+                            />
+                          </>
                         )}
                       </div>
                       <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
-                        {pendingDelete?.kind === 'speaker' && pendingDelete.id === sp.id ? (
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              disabled={deleteBusy}
-                              className="rounded-xl bg-sc-danger/15 px-3 py-1.5 text-xs font-medium text-sc-danger hover:bg-sc-danger/25 disabled:opacity-50"
-                              onClick={async () => {
-                                setDeleteBusy(true);
-                                setDeleteError(null);
-                                const res = await deleteSpeaker(sp.id);
-                                setDeleteBusy(false);
-                                if (res.errorMessage) {
-                                  setDeleteError(res.errorMessage);
-                                  return;
-                                }
-                                setPendingDelete(null);
-                                setSpeakerEditDraft((d) => (d?.id === sp.id ? null : d));
-                              }}
-                            >
-                              {t('common.confirmDelete')}
-                            </button>
-                            <button
-                              type="button"
-                              disabled={deleteBusy}
-                              className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
-                              onClick={() => {
-                                setPendingDelete(null);
-                                setDeleteError(null);
-                              }}
-                            >
-                              {t('common.cancel')}
-                            </button>
-                          </div>
-                        ) : speakerEditDraft?.id === sp.id ? null : (
+                        {pendingDelete?.kind === 'room' && pendingDelete.id === r.id ? (
+                          <>
+                            <p className="max-w-xs text-xs text-sc-warning">{t('room.deleteCascadeHint')}</p>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                disabled={deleteBusy}
+                                className="rounded-xl bg-sc-danger/15 px-3 py-1.5 text-xs font-medium text-sc-danger hover:bg-sc-danger/25 disabled:opacity-50"
+                                onClick={async () => {
+                                  setDeleteBusy(true);
+                                  setDeleteError(null);
+                                  const res = await deleteRoom(r.id);
+                                  setDeleteBusy(false);
+                                  if (res.errorMessage) {
+                                    setDeleteError(res.errorMessage);
+                                    return;
+                                  }
+                                  setPendingDelete(null);
+                                  setRoomEditDraft((d) => (d?.id === r.id ? null : d));
+                                }}
+                              >
+                                {t('common.confirmDelete')}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={deleteBusy}
+                                className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
+                                onClick={() => {
+                                  setPendingDelete(null);
+                                  setDeleteError(null);
+                                }}
+                              >
+                                {t('common.cancel')}
+                              </button>
+                            </div>
+                          </>
+                        ) : roomEditDraft?.id === r.id ? null : (
                           <div className="flex flex-wrap items-center justify-end gap-2">
                             <button
                               type="button"
                               className="text-sm text-sc-text-muted hover:text-sc-text"
-                              aria-label={t('speaker.editAriaLabel', { name: sp.full_name })}
+                              aria-label={t('room.editAriaLabel', { name: r.name })}
                               onClick={() => {
-                                setRoomEditDraft(null);
-                                setRoomEditError(null);
                                 setSessionEditDraft(null);
                                 setSessionEditError(null);
-                                setSpeakerAuxError(null);
+                                setSpeakerEditDraft(null);
                                 setSpeakerEditError(null);
+                                setRoomEditError(null);
                                 setDeleteError(null);
                                 setPendingDelete(null);
-                                setSpeakerEditDraft({
-                                  id: sp.id,
-                                  session_id: sp.session_id,
-                                  full_name: sp.full_name,
-                                  email: sp.email ?? '',
-                                });
+                                setRoomEditDraft({ id: r.id, name: r.name, room_type: r.room_type });
                               }}
                             >
                               {t('common.edit')}
@@ -2081,12 +1136,15 @@ export default function EventDetailView() {
                             <button
                               type="button"
                               className="text-sm text-sc-danger hover:text-sc-danger"
-                              aria-label={t('speaker.deleteAriaLabel', { name: sp.full_name })}
+                              aria-label={t('room.deleteAriaLabel', { name: r.name })}
                               onClick={() => {
-                                setSpeakerEditDraft((d) => (d?.id === sp.id ? null : d));
+                                setSessionEditDraft(null);
+                                setSessionEditError(null);
+                                setSpeakerEditDraft(null);
                                 setSpeakerEditError(null);
-                                setSpeakerAuxError(null);
-                                setPendingDelete({ kind: 'speaker', id: sp.id });
+                                setRoomEditDraft((d) => (d?.id === r.id ? null : d));
+                                setRoomEditError(null);
+                                setPendingDelete({ kind: 'room', id: r.id });
                                 setDeleteError(null);
                               }}
                             >
@@ -2096,50 +1154,997 @@ export default function EventDetailView() {
                         )}
                       </div>
                     </div>
-                    <div className="border-t border-sc-primary/10 pt-2">
-                      <button
-                        type="button"
-                        aria-expanded={versionsOpen}
-                        className="inline-flex items-center gap-2 text-xs font-medium text-sc-primary hover:text-sc-primary"
-                        onClick={() =>
-                          setVersionsExpandedSpeakerId((cur) => (cur === sp.id ? null : sp.id))
-                        }
-                      >
-                        <span aria-hidden="true">{versionsOpen ? '▾' : '▸'}</span>
-                        {versionsOpen
-                          ? t('presentation.versions.hide')
-                          : t('presentation.versions.show')}
-                      </button>
-                      <PresentationVersionsPanel
-                        speakerId={sp.id}
-                        speakerName={sp.full_name}
-                        enabled={versionsOpen}
-                        eventSpeakers={panelEventSpeakers}
-                        eventSessions={panelEventSessions}
-                      />
-                    </div>
+                    <RoomDevicesPanel
+                      devices={roomDevicesMap[r.id] ?? []}
+                      rooms={rooms.map((rr) => ({ id: rr.id, name: rr.name }))}
+                      currentRoomId={r.id}
+                      locale={i18n.language}
+                      onMutated={refreshRoomDevices}
+                    />
+                    {/* Sprint U-4: zero-friction provisioning del PC sala via
+                    magic-link QR. L'admin lo genera qui, lo stampa o lo
+                    condivide; il PC sala lo apre UNA volta e si configura
+                    da solo. Nessuna digitazione codice 6 cifre. */}
+                    <RoomProvisionTokensPanel
+                      eventId={event.id}
+                      roomId={r.id}
+                      roomName={r.name}
+                      locale={i18n.language}
+                    />
+                    {/* Sprint T-3-G (G10): pannello collassato per gestire i token
+                    del telecomando remoto via tablet (PWA `/remote/<token>`). */}
+                    <RemoteControlPairingsPanel roomId={r.id} locale={i18n.language} />
                   </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-      ) : null}
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* Audit-fix Sprint U-5+1 (Bug 1): unificato qui il pannello "PC sala
+              & device" che prima viveva in un SECONDO `<TabsContent value="rooms">`
+              duplicato in fondo al file. Radix Tabs con value duplicati genera
+              `id` HTML duplicati (invalid markup) + il secondo TabsContent
+              non veniva mai renderizzato (Radix matcha solo il primo). Il
+              `space-y-12` sul `<TabsContent>` parent fornisce gia' il gap
+              tra la sezione "Sale fisiche" e "PC sala & device". */}
+          <section aria-labelledby="devices-section-title">
+            <h2 id="devices-section-title" className="text-lg font-semibold text-sc-text">
+              {t('devices.panel.sectionTitle')}
+            </h2>
+            <p className="mt-1 text-sm text-sc-text-dim">{t('devices.panel.sectionIntro')}</p>
+            <div className="mt-6 space-y-6 max-w-4xl">
+              <DevicesPanel eventId={event.id} eventName={event.name} rooms={rooms} />
+              {/* Sprint T-2 (G9): widget telemetria perf live PC sala. Self-hidden
+                  quando 0 device pairati. */}
+              <LivePerfTelemetryPanel eventId={event.id} />
+            </div>
+          </section>
         </TabsContent>
 
-        <TabsContent value="rooms" className="mt-6">
-          <section aria-labelledby="devices-section-title">
-        <h2 id="devices-section-title" className="text-lg font-semibold text-sc-text">
-          {t('devices.panel.sectionTitle')}
-        </h2>
-        <p className="mt-1 text-sm text-sc-text-dim">{t('devices.panel.sectionIntro')}</p>
-        <div className="mt-6 space-y-6 max-w-4xl">
-          <DevicesPanel eventId={event.id} eventName={event.name} rooms={rooms} />
-          {/* Sprint T-2 (G9): widget telemetria perf live PC sala. Self-hidden
-              quando 0 device pairati. */}
-          <LivePerfTelemetryPanel eventId={event.id} />
-        </div>
+        <TabsContent value="sessions" className="mt-6">
+          <section aria-labelledby="sessions-section-title">
+            <h2 id="sessions-section-title" className="text-lg font-semibold text-sc-text">
+              {t('session.titlePlural')}
+            </h2>
+            <p className="mt-1 text-sm text-sc-text-dim">{t('session.eventDetailIntro')}</p>
+            {sessions.length > 1 ? (
+              <p className="mt-2 text-xs text-sc-text-dim">{t('session.dragListHint')}</p>
+            ) : null}
+            {sessionReorderError ? (
+              <p className="mt-2 text-sm text-sc-warning" role="alert">
+                {t('session.reorderFailed')}: {sessionReorderError}
+              </p>
+            ) : null}
+
+            {sessions.length > 0 && rooms.length > 0 ? (
+              <div className="mt-4 flex flex-wrap items-center gap-2" role="tablist" aria-label={t('session.viewModeAria')}>
+                <span className="text-xs text-sc-text-dim">{t('session.viewModeLabel')}</span>
+                <div className="inline-flex rounded-xl border border-sc-primary/20 bg-sc-bg p-0.5">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={sessionScheduleView === 'list'}
+                    className={`rounded px-3 py-1.5 text-xs font-medium ${sessionScheduleView === 'list' ? 'bg-sc-elevated text-sc-text' : 'text-sc-text-muted hover:text-sc-text'
+                      }`}
+                    onClick={() => setSessionScheduleView('list')}
+                  >
+                    {t('session.viewList')}
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={sessionScheduleView === 'byRoom'}
+                    className={`rounded px-3 py-1.5 text-xs font-medium ${sessionScheduleView === 'byRoom' ? 'bg-sc-elevated text-sc-text' : 'text-sc-text-muted hover:text-sc-text'
+                      }`}
+                    onClick={() => setSessionScheduleView('byRoom')}
+                  >
+                    {t('session.viewByRoom')}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {rooms.length === 0 ? (
+              <p className="mt-6 text-sm text-sc-warning" role="status">
+                {t('session.needRoomFirst')}
+              </p>
+            ) : (
+              <div className="mt-6 rounded-xl border border-sc-primary/12 bg-sc-surface/60 p-6">
+                <h3 className="text-sm font-medium text-sc-text">{t('session.create')}</h3>
+                <form className="mt-4 flex max-w-lg flex-col gap-4" onSubmit={onSessionSubmit} noValidate>
+                  <div>
+                    <label htmlFor="session-title" className="mb-1 block text-sm text-sc-text-muted">
+                      {t('session.sessionTitle')}
+                    </label>
+                    <input
+                      id="session-title"
+                      className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                      aria-invalid={sessionErrors.title ? true : undefined}
+                      {...registerSession('title')}
+                    />
+                    {sessionErrors.title ? (
+                      <p className="mt-1 text-xs text-sc-danger" role="alert">
+                        {sessionErrors.title.message}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div>
+                    <label htmlFor="session-room" className="mb-1 block text-sm text-sc-text-muted">
+                      {t('session.room')}
+                    </label>
+                    <select
+                      id="session-room"
+                      className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                      {...registerSession('room_id')}
+                    >
+                      {rooms.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </select>
+                    {sessionErrors.room_id ? (
+                      <p className="mt-1 text-xs text-sc-danger" role="alert">
+                        {sessionErrors.room_id.message}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div>
+                    <label htmlFor="session-type" className="mb-1 block text-sm text-sc-text-muted">
+                      {t('session.type')}
+                    </label>
+                    <select
+                      id="session-type"
+                      className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                      {...registerSession('session_type')}
+                    >
+                      {SESSION_TYPES.map((st) => (
+                        <option key={st} value={st}>
+                          {sessionTypeLabel(t, st)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="session-start" className="mb-1 block text-sm text-sc-text-muted">
+                      {t('session.scheduledStart')}
+                    </label>
+                    <input
+                      id="session-start"
+                      type="datetime-local"
+                      step={60}
+                      className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                      aria-invalid={sessionErrors.scheduled_start ? true : undefined}
+                      {...registerSession('scheduled_start')}
+                    />
+                    {sessionErrors.scheduled_start ? (
+                      <p className="mt-1 text-xs text-sc-danger" role="alert">
+                        {sessionErrors.scheduled_start.message}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div>
+                    <label htmlFor="session-end" className="mb-1 block text-sm text-sc-text-muted">
+                      {t('session.scheduledEnd')}
+                    </label>
+                    <input
+                      id="session-end"
+                      type="datetime-local"
+                      step={60}
+                      className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                      aria-invalid={sessionErrors.scheduled_end ? true : undefined}
+                      {...registerSession('scheduled_end')}
+                    />
+                    {sessionErrors.scheduled_end ? (
+                      <p className="mt-1 text-xs text-sc-danger" role="alert">
+                        {sessionErrors.scheduled_end.message}
+                      </p>
+                    ) : null}
+                  </div>
+                  {sessionCreateError ? (
+                    <p className="text-sm text-sc-danger" role="alert">
+                      {sessionCreateError}
+                    </p>
+                  ) : null}
+                  <button
+                    type="submit"
+                    disabled={sessionSubmitting}
+                    className="w-fit rounded-xl bg-sc-primary px-4 py-2 text-sm font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
+                  >
+                    {t('common.create')}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {sessions.length === 0 ? (
+              <p className="mt-6 text-sm text-sc-text-dim">{t('session.emptyEventList')}</p>
+            ) : sessionScheduleView === 'list' ? (
+              <ul className="mt-6 divide-y divide-sc-primary/12 rounded-xl border border-sc-primary/12">
+                {sessionsOrdered.map((s) => {
+                  const roomName = rooms.find((r) => r.id === s.room_id)?.name ?? t('session.roomUnknown');
+                  const canDragReorder = !sessionEditDraft && !sessionReorderBusy;
+                  return (
+                    <li
+                      key={s.id}
+                      id={`session-${s.id}`}
+                      data-session-id={s.id}
+                      className={`flex scroll-mt-24 flex-col gap-2 px-4 py-3 transition-colors duration-300 sm:flex-row sm:items-start sm:justify-between ${highlightedSessionId === s.id ? 'bg-sc-primary/10' : ''}`}
+                      onDragOver={(e) => {
+                        if (!canDragReorder) return;
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (!canDragReorder) return;
+                        const fromId = e.dataTransfer.getData('text/plain');
+                        if (!fromId || fromId === s.id) return;
+                        const currentIds = sessionsOrdered.map((x) => x.id);
+                        const newOrder = reorderSessionIdList(currentIds, fromId, s.id);
+                        void (async () => {
+                          setSessionReorderError(null);
+                          setSessionReorderBusy(true);
+                          const res = await reorderSessions(newOrder);
+                          setSessionReorderBusy(false);
+                          if (res.errorMessage) {
+                            setSessionReorderError(res.errorMessage);
+                          }
+                        })();
+                      }}
+                    >
+                      <div className="flex min-w-0 flex-1 gap-2">
+                        {sessionEditDraft?.id !== s.id ? (
+                          <div
+                            draggable
+                            className="mt-0.5 flex h-8 w-7 shrink-0 cursor-grab select-none items-center justify-center rounded border border-sc-primary/20 bg-sc-surface text-sm text-sc-text-dim hover:bg-sc-elevated active:cursor-grabbing"
+                            aria-label={t('session.dragHandleAriaLabel', { title: s.title })}
+                            title={t('session.dragHint')}
+                            onDragStart={(e) => {
+                              if (!canDragReorder) {
+                                e.preventDefault();
+                                return;
+                              }
+                              e.dataTransfer.setData('text/plain', s.id);
+                              e.dataTransfer.effectAllowed = 'move';
+                            }}
+                          >
+                            <span aria-hidden>⋮⋮</span>
+                          </div>
+                        ) : (
+                          <span className="w-7 shrink-0" aria-hidden />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          {sessionEditDraft?.id === s.id ? (
+                            <form
+                              className="flex max-w-lg flex-col gap-3"
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                void submitSessionEdit();
+                              }}
+                            >
+                              <div>
+                                <label htmlFor={`session-edit-title-${s.id}`} className="mb-1 block text-sm text-sc-text-muted">
+                                  {t('session.sessionTitle')}
+                                </label>
+                                <input
+                                  id={`session-edit-title-${s.id}`}
+                                  value={sessionEditDraft.title}
+                                  onChange={(e) =>
+                                    setSessionEditDraft((d) => (d?.id === s.id ? { ...d, title: e.target.value } : d))
+                                  }
+                                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                                />
+                              </div>
+                              <div>
+                                <label htmlFor={`session-edit-room-${s.id}`} className="mb-1 block text-sm text-sc-text-muted">
+                                  {t('session.room')}
+                                </label>
+                                <select
+                                  id={`session-edit-room-${s.id}`}
+                                  value={sessionEditDraft.room_id}
+                                  onChange={(e) =>
+                                    setSessionEditDraft((d) => (d?.id === s.id ? { ...d, room_id: e.target.value } : d))
+                                  }
+                                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                                >
+                                  {rooms.map((r) => (
+                                    <option key={r.id} value={r.id}>
+                                      {r.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label htmlFor={`session-edit-type-${s.id}`} className="mb-1 block text-sm text-sc-text-muted">
+                                  {t('session.type')}
+                                </label>
+                                <select
+                                  id={`session-edit-type-${s.id}`}
+                                  value={sessionEditDraft.session_type}
+                                  onChange={(e) =>
+                                    setSessionEditDraft((d) =>
+                                      d?.id === s.id ? { ...d, session_type: e.target.value as SessionType } : d,
+                                    )
+                                  }
+                                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                                >
+                                  {SESSION_TYPES.map((st) => (
+                                    <option key={st} value={st}>
+                                      {sessionTypeLabel(t, st)}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label htmlFor={`session-edit-start-${s.id}`} className="mb-1 block text-sm text-sc-text-muted">
+                                  {t('session.scheduledStart')}
+                                </label>
+                                <input
+                                  id={`session-edit-start-${s.id}`}
+                                  type="datetime-local"
+                                  step={60}
+                                  value={sessionEditDraft.scheduled_start}
+                                  onChange={(e) =>
+                                    setSessionEditDraft((d) =>
+                                      d?.id === s.id ? { ...d, scheduled_start: e.target.value } : d,
+                                    )
+                                  }
+                                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                                />
+                              </div>
+                              <div>
+                                <label htmlFor={`session-edit-end-${s.id}`} className="mb-1 block text-sm text-sc-text-muted">
+                                  {t('session.scheduledEnd')}
+                                </label>
+                                <input
+                                  id={`session-edit-end-${s.id}`}
+                                  type="datetime-local"
+                                  step={60}
+                                  value={sessionEditDraft.scheduled_end}
+                                  onChange={(e) =>
+                                    setSessionEditDraft((d) => (d?.id === s.id ? { ...d, scheduled_end: e.target.value } : d))
+                                  }
+                                  className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                                />
+                              </div>
+                              {sessionEditError ? (
+                                <p className="text-xs text-sc-danger" role="alert">
+                                  {sessionEditError}
+                                </p>
+                              ) : null}
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="submit"
+                                  disabled={sessionEditBusy}
+                                  className="rounded-xl bg-sc-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
+                                >
+                                  {t('common.save')}
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={sessionEditBusy}
+                                  className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
+                                  onClick={() => {
+                                    setSessionEditDraft(null);
+                                    setSessionEditError(null);
+                                  }}
+                                >
+                                  {t('common.cancel')}
+                                </button>
+                              </div>
+                            </form>
+                          ) : (
+                            <>
+                              <p className="font-medium text-sc-text">{s.title}</p>
+                              <p className="text-xs text-sc-text-dim">
+                                {roomName} · {sessionTypeLabel(t, s.session_type)}
+                              </p>
+                              <p className="text-xs text-sc-text-muted">
+                                {dateTimeFmt.format(new Date(s.scheduled_start))} →{' '}
+                                {dateTimeFmt.format(new Date(s.scheduled_end))}
+                              </p>
+                              <div className="mt-2">
+                                <button
+                                  type="button"
+                                  aria-expanded={expandedSessionFiles.has(s.id)}
+                                  className="inline-flex items-center gap-1 text-xs font-medium text-sc-primary hover:text-sc-primary"
+                                  onClick={() =>
+                                    setExpandedSessionFiles((prev) => {
+                                      const next = new Set(prev);
+                                      if (next.has(s.id)) next.delete(s.id);
+                                      else next.add(s.id);
+                                      return next;
+                                    })
+                                  }
+                                >
+                                  <span aria-hidden="true">
+                                    {expandedSessionFiles.has(s.id) ? '▾' : '▸'}
+                                  </span>
+                                  {expandedSessionFiles.has(s.id)
+                                    ? t('sessionFiles.toggleHide')
+                                    : t('sessionFiles.toggleShow')}
+                                </button>
+                                {expandedSessionFiles.has(s.id) ? (
+                                  <SessionFilesPanel
+                                    sessionId={s.id}
+                                    sessionTitle={s.title}
+                                    enabled
+                                    moveTargets={sessionMoveTargets}
+                                  />
+                                ) : null}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+                        {pendingDelete?.kind === 'session' && pendingDelete.id === s.id ? (
+                          <>
+                            <p className="max-w-xs text-xs text-sc-warning">{t('session.deleteCascadeHint')}</p>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                disabled={deleteBusy}
+                                className="rounded-xl bg-sc-danger/15 px-3 py-1.5 text-xs font-medium text-sc-danger hover:bg-sc-danger/25 disabled:opacity-50"
+                                onClick={async () => {
+                                  setDeleteBusy(true);
+                                  setDeleteError(null);
+                                  const res = await deleteSession(s.id);
+                                  setDeleteBusy(false);
+                                  if (res.errorMessage) {
+                                    setDeleteError(res.errorMessage);
+                                    return;
+                                  }
+                                  setPendingDelete(null);
+                                  setSessionEditDraft((d) => (d?.id === s.id ? null : d));
+                                }}
+                              >
+                                {t('common.confirmDelete')}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={deleteBusy}
+                                className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
+                                onClick={() => {
+                                  setPendingDelete(null);
+                                  setDeleteError(null);
+                                }}
+                              >
+                                {t('common.cancel')}
+                              </button>
+                            </div>
+                          </>
+                        ) : sessionEditDraft?.id === s.id ? null : (
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              className="text-sm text-sc-text-muted hover:text-sc-text"
+                              aria-label={t('session.editAriaLabel', { title: s.title })}
+                              onClick={() => {
+                                setRoomEditDraft(null);
+                                setRoomEditError(null);
+                                setSpeakerEditDraft(null);
+                                setSpeakerEditError(null);
+                                setSessionEditError(null);
+                                setDeleteError(null);
+                                setPendingDelete(null);
+                                setSessionEditDraft({
+                                  id: s.id,
+                                  title: s.title,
+                                  room_id: s.room_id,
+                                  session_type: s.session_type,
+                                  scheduled_start: toDatetimeLocalValue(s.scheduled_start),
+                                  scheduled_end: toDatetimeLocalValue(s.scheduled_end),
+                                });
+                              }}
+                            >
+                              {t('common.edit')}
+                            </button>
+                            <button
+                              type="button"
+                              className="text-sm text-sc-danger hover:text-sc-danger"
+                              aria-label={t('session.deleteAriaLabel', { title: s.title })}
+                              onClick={() => {
+                                setSessionEditDraft((d) => (d?.id === s.id ? null : d));
+                                setSessionEditError(null);
+                                setPendingDelete({ kind: 'session', id: s.id });
+                                setDeleteError(null);
+                              }}
+                            >
+                              {t('common.delete')}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <div className="mt-6 space-y-6" aria-label={t('session.byRoomSectionAria')}>
+                <p className="text-xs text-sc-text-dim">{t('session.byRoomIntro')}</p>
+                {rooms.map((room) => {
+                  const roomSessions = sessionsByRoom.get(room.id) ?? [];
+                  return (
+                    <div key={room.id} className="rounded-xl border border-sc-primary/12 bg-sc-bg/50 p-4">
+                      <h3 className="text-sm font-semibold text-sc-text">{room.name}</h3>
+                      <p className="text-xs text-sc-text-dim">{roomTypeLabel(t, room.room_type)}</p>
+                      {roomSessions.length === 0 ? (
+                        <p className="mt-3 text-xs text-sc-text-dim">{t('session.byRoomEmpty')}</p>
+                      ) : (
+                        <ul className="mt-3 space-y-2">
+                          {roomSessions.map((s) => (
+                            <li
+                              key={s.id}
+                              id={`session-${s.id}`}
+                              data-session-id={s.id}
+                              className={`flex scroll-mt-24 gap-3 rounded-xl border px-3 py-2.5 transition-colors duration-300 ${highlightedSessionId === s.id ? 'border-sc-primary/40 bg-sc-primary/10' : 'border-sc-primary/12 bg-sc-surface/60'}`}
+                            >
+                              <div className="w-1 shrink-0 rounded-full bg-sc-primary" aria-hidden />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-sc-text">{s.title}</p>
+                                <p className="text-xs text-sc-text-dim">{sessionTypeLabel(t, s.session_type)}</p>
+                                <p className="text-xs text-sc-text-muted">
+                                  {dateTimeFmt.format(new Date(s.scheduled_start))}
+                                  {' → '}
+                                  {dateTimeFmt.format(new Date(s.scheduled_end))}
+                                </p>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </section>
+        </TabsContent>
+
+        <TabsContent value="speakers" className="mt-6">
+          <section aria-labelledby="speakers-section-title">
+            <button
+              type="button"
+              onClick={() => setShowAdvancedSpeakers((v) => !v)}
+              aria-expanded={showAdvancedSpeakers}
+              className="inline-flex items-center gap-2 text-sm font-medium text-sc-text-muted hover:text-sc-text"
+            >
+              <span aria-hidden="true">{showAdvancedSpeakers ? '▾' : '▸'}</span>
+              {showAdvancedSpeakers
+                ? t('speakersAdvanced.toggleHide')
+                : t('speakersAdvanced.toggleShow')}
+            </button>
+            {!showAdvancedSpeakers ? (
+              <p className="mt-1 max-w-2xl text-xs text-sc-text-dim">{t('speakersAdvanced.intro')}</p>
+            ) : null}
+          </section>
+          {showAdvancedSpeakers ? (
+            <section className="mt-6" aria-labelledby="speakers-section-title-inner">
+              <h2 id="speakers-section-title-inner" className="text-lg font-semibold text-sc-text">
+                {t('speaker.titlePlural')}
+              </h2>
+              <p className="mt-1 text-sm text-sc-text-dim">{t('speaker.eventDetailIntro')}</p>
+
+              {sessions.length > 0 ? (
+                <div className="mt-4 max-w-2xl rounded-xl border border-sc-primary/12 bg-sc-bg/60 p-4">
+                  <h3 className="text-sm font-medium text-sc-text">{t('speaker.csvImport.title')}</h3>
+                  <p className="mt-1 text-xs text-sc-text-dim">{t('speaker.csvImport.hint')}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={downloadSpeakerCsvTemplate}
+                      className="rounded-xl border border-sc-primary/20 bg-sc-surface px-3 py-2 text-xs font-medium text-sc-text hover:bg-sc-elevated"
+                    >
+                      {t('speaker.csvImport.downloadTemplate')}
+                    </button>
+                    <input
+                      ref={speakerCsvInputRef}
+                      type="file"
+                      accept=".csv,text/csv"
+                      className="sr-only"
+                      aria-label={t('speaker.csvImport.fileAriaLabel')}
+                      onChange={(e) => {
+                        const list = e.target.files;
+                        void onSpeakerCsvSelected(list);
+                        e.target.value = '';
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={csvImportBusy}
+                      onClick={() => speakerCsvInputRef.current?.click()}
+                      className="rounded-xl bg-sc-primary px-3 py-2 text-xs font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
+                    >
+                      {csvImportBusy ? t('speaker.csvImport.importing') : t('speaker.csvImport.selectFile')}
+                    </button>
+                  </div>
+                  {csvFeedback ? (
+                    <pre
+                      className={`mt-3 max-h-40 overflow-y-auto whitespace-pre-wrap font-sans text-xs ${csvFeedback.variant === 'error' ? 'text-sc-warning' : 'text-sc-success'
+                        }`}
+                      role="status"
+                    >
+                      {csvFeedback.message}
+                    </pre>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {speakerAuxError ? (
+                <p className="mt-3 text-sm text-sc-danger" role="alert">
+                  {speakerAuxError}
+                </p>
+              ) : null}
+
+              {sessions.length === 0 ? (
+                <p className="mt-6 text-sm text-sc-warning" role="status">
+                  {t('speaker.needSessionFirst')}
+                </p>
+              ) : (
+                <div className="mt-6 rounded-xl border border-sc-primary/12 bg-sc-surface/60 p-6">
+                  <h3 className="text-sm font-medium text-sc-text">{t('speaker.create')}</h3>
+                  <form className="mt-4 flex max-w-lg flex-col gap-4" onSubmit={onSpeakerSubmit} noValidate>
+                    <div>
+                      <label htmlFor="speaker-session" className="mb-1 block text-sm text-sc-text-muted">
+                        {t('speaker.linkedSession')}
+                      </label>
+                      <select
+                        id="speaker-session"
+                        className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                        {...registerSpeaker('session_id')}
+                      >
+                        {sessions.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.title}
+                          </option>
+                        ))}
+                      </select>
+                      {speakerErrors.session_id ? (
+                        <p className="mt-1 text-xs text-sc-danger" role="alert">
+                          {speakerErrors.session_id.message}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div>
+                      <label htmlFor="speaker-name" className="mb-1 block text-sm text-sc-text-muted">
+                        {t('speaker.fullName')}
+                      </label>
+                      <input
+                        id="speaker-name"
+                        className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                        autoComplete="name"
+                        aria-invalid={speakerErrors.full_name ? true : undefined}
+                        {...registerSpeaker('full_name')}
+                      />
+                      {speakerErrors.full_name ? (
+                        <p className="mt-1 text-xs text-sc-danger" role="alert">
+                          {speakerErrors.full_name.message}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div>
+                      <label htmlFor="speaker-email" className="mb-1 block text-sm text-sc-text-muted">
+                        {t('speaker.emailOptional')}
+                      </label>
+                      <input
+                        id="speaker-email"
+                        type="email"
+                        autoComplete="email"
+                        className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                        aria-invalid={speakerErrors.email ? true : undefined}
+                        {...registerSpeaker('email')}
+                      />
+                      {speakerErrors.email ? (
+                        <p className="mt-1 text-xs text-sc-danger" role="alert">
+                          {speakerErrors.email.message}
+                        </p>
+                      ) : null}
+                    </div>
+                    {speakerCreateError ? (
+                      <p className="text-sm text-sc-danger" role="alert">
+                        {speakerCreateError}
+                      </p>
+                    ) : null}
+                    <button
+                      type="submit"
+                      disabled={speakerSubmitting}
+                      className="w-fit rounded-xl bg-sc-primary px-4 py-2 text-sm font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
+                    >
+                      {t('common.create')}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {speakersSorted.length === 0 ? (
+                <p className="mt-6 text-sm text-sc-text-dim">{t('speaker.emptyEventList')}</p>
+              ) : (
+                <ul className="mt-6 divide-y divide-sc-primary/12 rounded-xl border border-sc-primary/12">
+                  {speakersSorted.map((sp) => {
+                    const sessionTitle =
+                      sessions.find((s) => s.id === sp.session_id)?.title ?? t('speaker.sessionUnknown');
+                    const portalUrl =
+                      sp.upload_token && sp.upload_token.length > 0
+                        ? getUploadPortalAbsoluteUrl(sp.upload_token)
+                        : null;
+                    const expiresLabel =
+                      sp.upload_token_expires_at && portalUrl
+                        ? dateTimeFmt.format(new Date(sp.upload_token_expires_at))
+                        : null;
+                    const versionsOpen = versionsExpandedSpeakerId === sp.id;
+                    return (
+                      <li key={sp.id} className="flex flex-col gap-2 px-4 py-3">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0 flex-1">
+                            {speakerEditDraft?.id === sp.id ? (
+                              <form
+                                className="mb-3 flex max-w-lg flex-col gap-3"
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  void submitSpeakerEdit();
+                                }}
+                              >
+                                <div>
+                                  <label htmlFor={`speaker-edit-session-${sp.id}`} className="mb-1 block text-sm text-sc-text-muted">
+                                    {t('speaker.linkedSession')}
+                                  </label>
+                                  <select
+                                    id={`speaker-edit-session-${sp.id}`}
+                                    value={speakerEditDraft.session_id}
+                                    onChange={(e) =>
+                                      setSpeakerEditDraft((d) =>
+                                        d?.id === sp.id ? { ...d, session_id: e.target.value } : d,
+                                      )
+                                    }
+                                    className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                                  >
+                                    {sessions.map((sess) => (
+                                      <option key={sess.id} value={sess.id}>
+                                        {sess.title}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label htmlFor={`speaker-edit-name-${sp.id}`} className="mb-1 block text-sm text-sc-text-muted">
+                                    {t('speaker.fullName')}
+                                  </label>
+                                  <input
+                                    id={`speaker-edit-name-${sp.id}`}
+                                    value={speakerEditDraft.full_name}
+                                    onChange={(e) =>
+                                      setSpeakerEditDraft((d) =>
+                                        d?.id === sp.id ? { ...d, full_name: e.target.value } : d,
+                                      )
+                                    }
+                                    className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                                    autoComplete="name"
+                                  />
+                                </div>
+                                <div>
+                                  <label htmlFor={`speaker-edit-email-${sp.id}`} className="mb-1 block text-sm text-sc-text-muted">
+                                    {t('speaker.emailOptional')}
+                                  </label>
+                                  <input
+                                    id={`speaker-edit-email-${sp.id}`}
+                                    type="email"
+                                    value={speakerEditDraft.email}
+                                    onChange={(e) =>
+                                      setSpeakerEditDraft((d) => (d?.id === sp.id ? { ...d, email: e.target.value } : d))
+                                    }
+                                    className="w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 text-sm outline-none ring-sc-ring/25 focus:ring-2"
+                                    autoComplete="email"
+                                  />
+                                </div>
+                                {speakerEditError ? (
+                                  <p className="text-xs text-sc-danger" role="alert">
+                                    {speakerEditError}
+                                  </p>
+                                ) : null}
+                                <div className="flex flex-wrap gap-2">
+                                  <button
+                                    type="submit"
+                                    disabled={speakerEditBusy}
+                                    className="rounded-xl bg-sc-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-sc-primary/80 disabled:opacity-50"
+                                  >
+                                    {t('common.save')}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={speakerEditBusy}
+                                    className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
+                                    onClick={() => {
+                                      setSpeakerEditDraft(null);
+                                      setSpeakerEditError(null);
+                                    }}
+                                  >
+                                    {t('common.cancel')}
+                                  </button>
+                                </div>
+                              </form>
+                            ) : (
+                              <>
+                                <p className="font-medium text-sc-text">{sp.full_name}</p>
+                                <p className="text-xs text-sc-text-dim">{sessionTitle}</p>
+                                {sp.email ? <p className="text-xs text-sc-text-muted">{sp.email}</p> : null}
+                              </>
+                            )}
+                            {portalUrl ? (
+                              <div className="mt-3 flex flex-col gap-2 border-t border-sc-primary/10 pt-3 sm:flex-row sm:items-start sm:gap-4">
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-xs font-medium text-sc-text-muted">{t('speaker.uploadLinkLabel')}</p>
+                                  <p className="mt-1 break-all font-mono text-xs text-sc-text-secondary">{portalUrl}</p>
+                                  {expiresLabel ? (
+                                    <p className="mt-1 text-xs text-sc-text-dim">
+                                      {t('speaker.uploadExpires', { date: expiresLabel })}
+                                    </p>
+                                  ) : null}
+                                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                                    <button
+                                      type="button"
+                                      className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs font-medium text-sc-text hover:bg-sc-elevated"
+                                      onClick={async () => {
+                                        setSpeakerAuxError(null);
+                                        try {
+                                          await navigator.clipboard.writeText(portalUrl);
+                                          setCopiedSpeakerId(sp.id);
+                                          window.setTimeout(() => setCopiedSpeakerId((cur) => (cur === sp.id ? null : cur)), 2200);
+                                        } catch {
+                                          setSpeakerAuxError(t('speaker.copyUploadLinkFailed'));
+                                        }
+                                      }}
+                                    >
+                                      {copiedSpeakerId === sp.id ? t('speaker.linkCopied') : t('speaker.copyUploadLink')}
+                                    </button>
+                                  </div>
+                                </div>
+                                <div
+                                  className="shrink-0 rounded-xl bg-white p-2"
+                                  role="img"
+                                  aria-label={t('speaker.uploadQrAria', { name: sp.full_name })}
+                                >
+                                  <QRCodeSVG value={portalUrl} size={104} level="M" />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mt-3 border-t border-sc-primary/10 pt-3">
+                                <p className="text-xs text-sc-text-dim">{t('speaker.uploadLinkMissing')}</p>
+                                <button
+                                  type="button"
+                                  disabled={regenerateBusyId === sp.id}
+                                  className="mt-2 rounded-xl border border-sc-warning/30 px-3 py-1.5 text-xs font-medium text-sc-warning hover:bg-sc-warning/10 disabled:opacity-50"
+                                  onClick={async () => {
+                                    setSpeakerAuxError(null);
+                                    setRegenerateBusyId(sp.id);
+                                    try {
+                                      const res = await regenerateSpeakerUpload(sp.id);
+                                      if (res.errorMessage) {
+                                        setSpeakerAuxError(
+                                          res.errorMessage === 'missing_context'
+                                            ? t('speaker.errors.missingContext')
+                                            : res.errorMessage,
+                                        );
+                                      }
+                                    } catch (err) {
+                                      setSpeakerAuxError(err instanceof Error ? err.message : 'unknown');
+                                    } finally {
+                                      setRegenerateBusyId(null);
+                                    }
+                                  }}
+                                >
+                                  {regenerateBusyId === sp.id ? t('speaker.generatingUploadLink') : t('speaker.generateUploadLink')}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+                            {pendingDelete?.kind === 'speaker' && pendingDelete.id === sp.id ? (
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  disabled={deleteBusy}
+                                  className="rounded-xl bg-sc-danger/15 px-3 py-1.5 text-xs font-medium text-sc-danger hover:bg-sc-danger/25 disabled:opacity-50"
+                                  onClick={async () => {
+                                    setDeleteBusy(true);
+                                    setDeleteError(null);
+                                    const res = await deleteSpeaker(sp.id);
+                                    setDeleteBusy(false);
+                                    if (res.errorMessage) {
+                                      setDeleteError(res.errorMessage);
+                                      return;
+                                    }
+                                    setPendingDelete(null);
+                                    setSpeakerEditDraft((d) => (d?.id === sp.id ? null : d));
+                                  }}
+                                >
+                                  {t('common.confirmDelete')}
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={deleteBusy}
+                                  className="rounded-xl border border-sc-primary/20 px-3 py-1.5 text-xs text-sc-text-secondary hover:bg-sc-elevated disabled:opacity-50"
+                                  onClick={() => {
+                                    setPendingDelete(null);
+                                    setDeleteError(null);
+                                  }}
+                                >
+                                  {t('common.cancel')}
+                                </button>
+                              </div>
+                            ) : speakerEditDraft?.id === sp.id ? null : (
+                              <div className="flex flex-wrap items-center justify-end gap-2">
+                                <button
+                                  type="button"
+                                  className="text-sm text-sc-text-muted hover:text-sc-text"
+                                  aria-label={t('speaker.editAriaLabel', { name: sp.full_name })}
+                                  onClick={() => {
+                                    setRoomEditDraft(null);
+                                    setRoomEditError(null);
+                                    setSessionEditDraft(null);
+                                    setSessionEditError(null);
+                                    setSpeakerAuxError(null);
+                                    setSpeakerEditError(null);
+                                    setDeleteError(null);
+                                    setPendingDelete(null);
+                                    setSpeakerEditDraft({
+                                      id: sp.id,
+                                      session_id: sp.session_id,
+                                      full_name: sp.full_name,
+                                      email: sp.email ?? '',
+                                    });
+                                  }}
+                                >
+                                  {t('common.edit')}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="text-sm text-sc-danger hover:text-sc-danger"
+                                  aria-label={t('speaker.deleteAriaLabel', { name: sp.full_name })}
+                                  onClick={() => {
+                                    setSpeakerEditDraft((d) => (d?.id === sp.id ? null : d));
+                                    setSpeakerEditError(null);
+                                    setSpeakerAuxError(null);
+                                    setPendingDelete({ kind: 'speaker', id: sp.id });
+                                    setDeleteError(null);
+                                  }}
+                                >
+                                  {t('common.delete')}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="border-t border-sc-primary/10 pt-2">
+                          <button
+                            type="button"
+                            aria-expanded={versionsOpen}
+                            className="inline-flex items-center gap-2 text-xs font-medium text-sc-primary hover:text-sc-primary"
+                            onClick={() =>
+                              setVersionsExpandedSpeakerId((cur) => (cur === sp.id ? null : sp.id))
+                            }
+                          >
+                            <span aria-hidden="true">{versionsOpen ? '▾' : '▸'}</span>
+                            {versionsOpen
+                              ? t('presentation.versions.hide')
+                              : t('presentation.versions.show')}
+                          </button>
+                          <PresentationVersionsPanel
+                            speakerId={sp.id}
+                            speakerName={sp.full_name}
+                            enabled={versionsOpen}
+                            eventSpeakers={panelEventSpeakers}
+                            eventSessions={panelEventSessions}
+                          />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+          ) : null}
         </TabsContent>
       </Tabs>
     </div>

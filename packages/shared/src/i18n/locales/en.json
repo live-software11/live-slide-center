@@ -55,7 +55,7 @@
     "subtitle": "Open this link on the room PC once. The PC will be configured automatically, no code typing.",
     "generateBtn": "Generate new magic link",
     "labelLabel": "Label (optional)",
-    "labelPlaceholder": "E.g. Room A — control booth",
+    "labelPlaceholder": "E.g. {{roomName}} — control booth",
     "expiresLabel": "Validity",
     "expires1h": "1 hour",
     "expires24h": "24 hours",

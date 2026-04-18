@@ -2198,12 +2198,14 @@ L'evoluzione "next/prev SLIDE reale" rimane **fattibile in futuro** come Sprint 
 9. **i18n** — 18 nuove chiavi `appShell.*` aggiunte a IT/EN: `brandSubtitle`, `searchHint{,Admin}`, `commandPlaceholder`, `commandEmpty`, `cmd{JumpTo,Events,OnAir,Help}`, `section{Events,RoomPCs,Tools,AdminMain}`, `production`, `onAir`, `privacy`, `noEvents`, `noDevices`. **Parita 1416/1416**.
 
 **Quality gate verde:**
+
 - `pnpm typecheck` → 5/5 task OK (web + shared + ui buildati come project references)
 - `pnpm lint` → 5/5 task OK
 - `pnpm --filter @slidecenter/web build` → built in 1.83s, bundle index 662.86 kB / 202.54 kB gzip (vs 600KB pre-shadcn — accettabile per la qty di componenti aggiunti)
 - i18n parity 1416/1416 IT/EN
 
 **Cosa NON e' cambiato (vincoli rispettati):**
+
 - Zero cambio URL routing (le rotte esistenti girano dentro l'`Outlet` del nuovo shell)
 - Zero modifiche schema DB
 - Zero modifiche logica auth/realtime/edge functions
@@ -2211,6 +2213,7 @@ L'evoluzione "next/prev SLIDE reale" rimane **fattibile in futuro** come Sprint 
 - `OnboardingGate`, `TenantWarningBanners`, `DesktopUpdateBanner`, `BackendModeBadge` riposizionati ma identici nel comportamento
 
 **Sprint successivi (in coda):**
+
 - **U-2** (next, in_progress): DB `event_folders` + `folder_id` su presentations + `ProductionView` (tree sale/cartelle, grid file, breadcrumb, drop globale, context menu, multi-select) + split `EventDetailView` in 4 tab (Production/Sessions/Speakers/Rooms).
 - **U-3:** rinomina `LiveRegiaView` → `OnAirView` con split layout (lista sale | preview slide N/Tot grosso | ActivityFeed) + estensione `room-player-set-current` con `current_slide_index` + thumbnail slide in onda.
 - **U-4:** `provision_room_device` RPC + route `/sala-magic/:token` + QR stampabile admin + refresh visivo `RoomPlayerView` (layout broadcasting nero/minimal) + `PairView` keypad come fallback.

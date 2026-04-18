@@ -106,10 +106,22 @@ export default function OnAirView() {
 
   const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) return;
+    // Audit-fix Sprint U-5+1 (F4): aggiunto catch sui Promise di
+    // requestFullscreen/exitFullscreen. Senza catch, se l'utente nega
+    // l'autorizzazione fullscreen (Safari iOS, Firefox in iframe sandbox)
+    // o se il browser blocca per gesture-not-detected, otteniamo un
+    // unhandled rejection in console + Sentry warning. Lo `fullscreenchange`
+    // listener (vedi sotto) sincronizza comunque lo stato vero, quindi
+    // possiamo ignorare l'errore (l'utente vede semplicemente che non e'
+    // entrato in fullscreen).
     if (!document.fullscreenElement) {
-      void containerRef.current.requestFullscreen().then(() => setIsFullscreen(true));
+      containerRef.current.requestFullscreen().catch(() => {
+        /* utente ha negato o browser ha bloccato — fullscreenchange listener gestira' lo stato */
+      });
     } else {
-      void document.exitFullscreen().then(() => setIsFullscreen(false));
+      document.exitFullscreen().catch(() => {
+        /* idem — silenzia l'errore, lo stato e' gestito dal listener */
+      });
     }
   }, []);
 
@@ -299,7 +311,7 @@ function RoomListItem({ data, selected, nowMs, onSelect }: RoomListItemProps) {
       onClick={onSelect}
       aria-pressed={selected}
       className={cn(
-        'flex w-full min-w-[14rem] flex-col rounded-lg border px-3 py-2 text-left text-sm transition lg:min-w-0',
+        'flex w-full min-w-56 flex-col rounded-lg border px-3 py-2 text-left text-sm transition lg:min-w-0',
         selected
           ? 'border-sc-accent bg-sc-accent/10 text-sc-text'
           : 'border-sc-border bg-sc-surface/40 text-sc-text-muted hover:border-sc-text-dim hover:bg-sc-surface/70',
@@ -348,18 +360,32 @@ function RoomNowPlayingPanel({ data, nowMs }: { data: LiveRoomData; nowMs: numbe
     ? Math.floor((nowMs - new Date(state.last_play_started_at).getTime()) / 1000)
     : null;
 
-  // Speaker correlato al file in onda (via speaker_id sulla presentation)
-  const nowPlayingSpeaker =
-    nowPlayingPresentation?.speaker_id != null
-      ? (speakers.find((sp) => sp.id === nowPlayingPresentation.speaker_id) ?? null)
-      : null;
-
-  // Sessione corrente (per mostrare "ora in: Sessione X"). Uso `nowMs` per
-  // restare puro (no `new Date()` in render).
-  const now = new Date(nowMs);
-  const currentSession = sessions.find(
-    (s) => new Date(s.scheduled_start) <= now && new Date(s.scheduled_end) > now,
+  // Audit-fix Sprint U-5+1 (F3): memoize speaker lookup. Prima `find()` girava
+  // ad OGNI render (re-render dovuti a nowMs ogni 5s, anche se l'array
+  // `speakers` non cambia). Su eventi con 50+ speaker e' O(n) per render =>
+  // chiamato ~1-12 volte/min senza motivo. Dep su `nowPlayingPresentation`
+  // intero (e non solo speaker_id) per allinearci al React Compiler che
+  // infera la dep sull'oggetto: cosi' la memoization viene preservata
+  // dall'ottimizzatore (vedi react-hooks/preserve-manual-memoization).
+  const nowPlayingSpeaker = useMemo(
+    () =>
+      nowPlayingPresentation?.speaker_id != null
+        ? (speakers.find((sp) => sp.id === nowPlayingPresentation.speaker_id) ?? null)
+        : null,
+    [nowPlayingPresentation, speakers],
   );
+
+  // Audit-fix Sprint U-5+1 (F2): memoize current-session lookup. Idem F3:
+  // `find()` con due `new Date()` per item su sessions (potenzialmente
+  // 30-100). La dipendenza include `nowMs` perche' il match dipende dal
+  // tempo, ma nowMs cambia solo ogni 5s (vs. ogni render). Cosi'
+  // ricalcoliamo solo quando serve.
+  const currentSession = useMemo(() => {
+    const now = new Date(nowMs);
+    return sessions.find(
+      (s) => new Date(s.scheduled_start) <= now && new Date(s.scheduled_end) > now,
+    );
+  }, [sessions, nowMs]);
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -455,9 +481,3 @@ function formatAgo(seconds: number, t: (k: string, opts?: Record<string, unknown
   const h = Math.floor(seconds / 3600);
   return t('onAir.agoHours', { count: h });
 }
-
-/**
- * Hook che ritorna `Date.now()` aggiornato ogni `intervalMs` ms. Usato per
- * calcolare "Avviato Ns fa" senza chiamare `Date.now()` durante il render
- * (rule react-hooks/purity).
- */

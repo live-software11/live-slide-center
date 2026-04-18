@@ -119,7 +119,7 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
         <Sheet open={openMobile} onOpenChange={setOpenMobile}>
           <SheetContent
             side="left"
-            className="w-[var(--sidebar-width-mobile)] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+            className="w-(--sidebar-width-mobile) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
             style={{ '--sidebar-width-mobile': SIDEBAR_WIDTH_MOBILE } as React.CSSProperties}
           >
             <SheetTitle className="sr-only">Navigation</SheetTitle>
@@ -136,7 +136,7 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
         data-slot="sidebar"
         data-variant={variant}
         className={cn(
-          'sticky top-0 hidden h-svh w-[var(--sidebar-width)] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex',
+          'sticky top-0 hidden h-svh w-(--sidebar-width) shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex',
           variant === 'admin' && 'border-sc-accent/25',
           className,
         )}
@@ -315,7 +315,7 @@ const sidebarMenuButtonVariants = cva(
 
 interface SidebarMenuButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof sidebarMenuButtonVariants> {
+  VariantProps<typeof sidebarMenuButtonVariants> {
   asChild?: boolean;
   isActive?: boolean;
 }

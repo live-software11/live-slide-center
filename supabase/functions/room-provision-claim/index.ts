@@ -97,15 +97,27 @@ Deno.serve(async (req: Request) => {
     });
 
     if (error) {
+      // Audit-fix Sprint U-5+1 (B3): match ESATTO sul code dell'eccezione
+      // (RAISE EXCEPTION 'token_invalid' in PL/pgSQL → error.message ===
+      // 'token_invalid'). Prima usavamo `includes()`, che e' fragile:
+      //   - matcherebbe falsamente "function returned a value that is not
+      //     token_invalid for ..." → 404 anche su errori interni Postgres.
+      //   - matcherebbe substring sovrapposti (es. "token_expired_at" ⊂
+      //     "token_expired").
+      // Ora il fallback default e' 400 e l'errore tecnico viene riportato
+      // tale e quale (utile per debugging in dev/staging, in prod il client
+      // mostra solo i code semantici noti).
       const msg = error.message ?? 'rpc_error';
-      const code =
-        msg.includes('token_invalid') ? 404
-        : msg.includes('token_revoked') ? 410   // Gone
-        : msg.includes('token_expired') ? 410
-        : msg.includes('token_exhausted') ? 409  // Conflict
-        : msg.includes('invalid_pair_token_hash') ? 400
-        : msg.includes('missing_token') ? 400
-        : 400;
+      const errorCodeMap: Record<string, number> = {
+        token_invalid: 404,
+        token_revoked: 410, // Gone
+        token_expired: 410,
+        token_exhausted: 409, // Conflict
+        pair_token_collision: 409, // X1: collisione hash su paired_devices
+        invalid_pair_token_hash: 400,
+        missing_token: 400,
+      };
+      const code = errorCodeMap[msg] ?? 400;
       return jsonRes({ error: msg }, code);
     }
 

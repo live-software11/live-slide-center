@@ -202,14 +202,28 @@ export function ProductionView() {
         .filter((v): v is string => Boolean(v));
       const versions: Record<string, VersionLite> = {};
       if (versionIds.length > 0) {
-        // chunk a 200 per non superare i limit di IN(...)
+        // Audit-fix Sprint U-5+1 (H1): parallelizzazione chunks via
+        // Promise.all. Prima i chunk venivano caricati SEQUENZIALMENTE
+        // (`await` in for-loop) — su un evento con 1.000 presentazioni
+        // (5 chunk x 200 ID) significava 5 round-trip in serie ~= 5 x
+        // ~150ms RTT = 750ms di waterfall solo per le versions. Ora i
+        // chunks viaggiano in parallelo => ~150ms totali.
+        // Chunk size 200: limite empirico per IN(...) Postgres /
+        // PostgREST URL length su query GET (max 4KB url ~= 200 UUID).
         const chunkSize = 200;
+        const chunks: string[][] = [];
         for (let i = 0; i < versionIds.length; i += chunkSize) {
-          const chunk = versionIds.slice(i, i + chunkSize);
-          const versionsRes = await supabase
-            .from('presentation_versions')
-            .select('id, file_name, file_size_bytes, status')
-            .in('id', chunk);
+          chunks.push(versionIds.slice(i, i + chunkSize));
+        }
+        const chunkResults = await Promise.all(
+          chunks.map((chunk) =>
+            supabase
+              .from('presentation_versions')
+              .select('id, file_name, file_size_bytes, status')
+              .in('id', chunk),
+          ),
+        );
+        for (const versionsRes of chunkResults) {
           if (versionsRes.error) throw new Error(versionsRes.error.message);
           (versionsRes.data ?? []).forEach((v) => {
             const row = v as VersionLite;

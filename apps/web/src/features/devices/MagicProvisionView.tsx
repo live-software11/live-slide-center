@@ -92,7 +92,14 @@ export default function MagicProvisionView() {
       token,
       // Etichetta default. L'operatore di sala potra' rinominare il device
       // dalla RoomPlayerView ("Modifica nome").
-      deviceName: navigator.platform || 'Sala',
+      // Audit-fix Sprint U-5+1 (C2): `navigator.platform` e' deprecato (vedi
+      // https://developer.mozilla.org/en-US/docs/Web/API/Navigator/platform);
+      // i browser moderni (Chromium 90+) espongono `userAgentData.platform`
+      // tramite Client Hints API. Fallback chain:
+      //   1. userAgentData.platform → 'macOS' / 'Windows' / 'Linux' / etc.
+      //   2. navigator.platform legacy (non-Chromium / browser vecchi)
+      //   3. 'Sala' default generico
+      deviceName: getDevicePlatformLabel(),
     })
       .then((res) => {
         try {
@@ -107,11 +114,11 @@ export default function MagicProvisionView() {
         const msg = err instanceof Error ? err.message : 'unknown';
         const mapped: ClaimError =
           msg.includes('token_invalid') ? 'token_invalid'
-          : msg.includes('token_expired') ? 'token_expired'
-          : msg.includes('token_revoked') ? 'token_revoked'
-          : msg.includes('token_exhausted') ? 'token_exhausted'
-          : msg.includes('rate_limited') ? 'rate_limited'
-          : 'unknown';
+            : msg.includes('token_expired') ? 'token_expired'
+              : msg.includes('token_revoked') ? 'token_revoked'
+                : msg.includes('token_exhausted') ? 'token_exhausted'
+                  : msg.includes('rate_limited') ? 'rate_limited'
+                    : 'unknown';
         setError(mapped);
         setPhase('error');
         if (msg.includes('exhausted') || msg.includes('expired') || msg.includes('revoked')) {
@@ -163,3 +170,25 @@ export default function MagicProvisionView() {
 }
 
 export { MagicProvisionView as Component };
+
+/**
+ * Audit-fix Sprint U-5+1 (C2): ritorna una label descrittiva della piattaforma
+ * del device, usando l'API moderna `navigator.userAgentData` (Client Hints) con
+ * fallback a `navigator.platform` (deprecato ma ancora presente in tutti i
+ * browser fino al 2026) e infine a 'Sala' come default generico.
+ *
+ * Esempi di output: 'Windows', 'macOS', 'Linux', 'Android', 'iOS', 'Sala'.
+ */
+function getDevicePlatformLabel(): string {
+  // Client Hints API (Chromium 90+, Edge, Opera, Brave). Safari & Firefox
+  // non lo espongono → cadiamo sul legacy.
+  const uaData = (navigator as Navigator & {
+    userAgentData?: { platform?: string };
+  }).userAgentData;
+  const modern = uaData?.platform?.trim();
+  if (modern) return modern;
+  // Legacy: deprecato ma sempre disponibile su Safari/Firefox/Chromium-old.
+  const legacy = navigator.platform?.trim();
+  if (legacy) return legacy;
+  return 'Sala';
+}
