@@ -649,6 +649,9 @@ export type Database = {
           expires_at: string | null;
           license_key: string | null;
           license_synced_at: string | null;
+          lemon_squeezy_subscription_id: string | null;
+          lemon_squeezy_customer_id: string | null;
+          lemon_squeezy_variant_id: string | null;
           suspended: boolean;
           onboarded_at: string | null;
           settings: Json;
@@ -670,6 +673,9 @@ export type Database = {
           expires_at?: string | null;
           license_key?: string | null;
           license_synced_at?: string | null;
+          lemon_squeezy_subscription_id?: string | null;
+          lemon_squeezy_customer_id?: string | null;
+          lemon_squeezy_variant_id?: string | null;
           suspended?: boolean;
           onboarded_at?: string | null;
           settings?: Json;
@@ -691,6 +697,9 @@ export type Database = {
           expires_at?: string | null;
           license_key?: string | null;
           license_synced_at?: string | null;
+          lemon_squeezy_subscription_id?: string | null;
+          lemon_squeezy_customer_id?: string | null;
+          lemon_squeezy_variant_id?: string | null;
           suspended?: boolean;
           onboarded_at?: string | null;
           settings?: Json;
@@ -698,6 +707,98 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [];
+      };
+      lemon_squeezy_plan_mapping: {
+        Row: {
+          variant_id: string;
+          plan: Database['public']['Enums']['tenant_plan'];
+          storage_limit_bytes: number;
+          max_events_per_month: number;
+          max_rooms_per_event: number;
+          max_devices_per_room: number;
+          display_name: string;
+          active: boolean;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          variant_id: string;
+          plan: Database['public']['Enums']['tenant_plan'];
+          storage_limit_bytes: number;
+          max_events_per_month: number;
+          max_rooms_per_event: number;
+          max_devices_per_room: number;
+          display_name: string;
+          active?: boolean;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          variant_id?: string;
+          plan?: Database['public']['Enums']['tenant_plan'];
+          storage_limit_bytes?: number;
+          max_events_per_month?: number;
+          max_rooms_per_event?: number;
+          max_devices_per_room?: number;
+          display_name?: string;
+          active?: boolean;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      lemon_squeezy_event_log: {
+        Row: {
+          id: string;
+          event_id: string;
+          event_name: string;
+          subscription_id: string | null;
+          customer_id: string | null;
+          tenant_id: string | null;
+          received_at: string;
+          processed_at: string | null;
+          processing_status: 'received' | 'processed' | 'skipped' | 'failed';
+          payload: Json;
+          error_message: string | null;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          event_name: string;
+          subscription_id?: string | null;
+          customer_id?: string | null;
+          tenant_id?: string | null;
+          received_at?: string;
+          processed_at?: string | null;
+          processing_status?: 'received' | 'processed' | 'skipped' | 'failed';
+          payload: Json;
+          error_message?: string | null;
+        };
+        Update: {
+          id?: string;
+          event_id?: string;
+          event_name?: string;
+          subscription_id?: string | null;
+          customer_id?: string | null;
+          tenant_id?: string | null;
+          received_at?: string;
+          processed_at?: string | null;
+          processing_status?: 'received' | 'processed' | 'skipped' | 'failed';
+          payload?: Json;
+          error_message?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'lemon_squeezy_event_log_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       team_invitations: {
         Row: {
@@ -927,6 +1028,40 @@ export type Database = {
           p_expires_at: string | null;
           p_license_key: string | null;
           p_admin_email: string;
+          p_app_url: string;
+        };
+        Returns: Json;
+      };
+      record_lemon_squeezy_event: {
+        Args: {
+          p_event_id: string;
+          p_event_name: string;
+          p_subscription_id: string | null;
+          p_customer_id: string | null;
+          p_payload: Json;
+        };
+        Returns: Json;
+      };
+      mark_lemon_squeezy_event_processed: {
+        Args: {
+          p_log_id: string;
+          p_status: 'processed' | 'skipped' | 'failed';
+          p_tenant_id: string | null;
+          p_error_message: string | null;
+        };
+        Returns: void;
+      };
+      lemon_squeezy_apply_subscription_event: {
+        Args: {
+          p_event_name: string;
+          p_subscription_id: string;
+          p_customer_id: string | null;
+          p_variant_id: string;
+          p_customer_email: string;
+          p_customer_name: string | null;
+          p_status: string;
+          p_renews_at: string | null;
+          p_ends_at: string | null;
           p_app_url: string;
         };
         Returns: Json;

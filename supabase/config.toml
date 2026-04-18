@@ -378,6 +378,12 @@ verify_jwt = false
 [functions.licensing-sync]
 verify_jwt = false
 
+# Lemon Squeezy webhook: chiamata server-to-server da api.lemonsqueezy.com
+# protetta da HMAC SHA-256 sul body raw (LEMON_SQUEEZY_WEBHOOK_SECRET).
+# Sprint R-2: crea/aggiorna/sospende tenant in base a subscription_*.
+[functions.lemon-squeezy-webhook]
+verify_jwt = false
+
 # Email send: chiamata server-to-server (cron, trigger), protetta da
 # header `x-internal-secret` confrontato con EMAIL_SEND_INTERNAL_SECRET.
 [functions.email-send]

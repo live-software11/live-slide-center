@@ -116,6 +116,8 @@ Il Centro Slide viene venduto in **tre forme** che condividono il 100% della SPA
 > **Sprint Q+1 hardening (DONE 18/04/2026):** Supabase RLS least-privilege, 7 indici hot-path, PKCE flow, CSP completa Vercel, CI types drift + auto-deploy Edge Functions. Vedi `docs/STATO_E_TODO.md` §0.8.
 >
 > **Sprint R-1 chiuso (DONE 18/04/2026):** super-admin (Andrea) puo' creare nuovi tenant cliente + invito primo admin direttamente da `/admin/tenants` senza passare da CLI. Implementato via RPC SECURITY DEFINER `admin_create_tenant_with_invite` + `CreateTenantDialog`. **Gap G1 chiuso (1/10).** Vedi `docs/STATO_E_TODO.md` §0.9.
+>
+> **Sprint R-2 chiuso (DONE 18/04/2026):** integrazione bidirezionale Lemon Squeezy → Live WORKS APP. Edge Function `lemon-squeezy-webhook` riceve subscription events, idempotency strict via `lemon_squeezy_event_log`, mapping configurabile via `lemon_squeezy_plan_mapping`, RPC `lemon_squeezy_apply_subscription_event` crea/aggiorna/sospende tenant. Email automatica `kind='admin-invite'` IT/EN al primo admin (R-1.b inline). **Gap G2 chiuso (2/10).** Vedi `docs/STATO_E_TODO.md` §0.10.
 
 | Area                                                       | Cloud (web)                               | Desktop offline (Tauri 2)                    |
 | ---------------------------------------------------------- | ----------------------------------------- | -------------------------------------------- |
@@ -461,6 +463,9 @@ WHERE email = 'live.software11@gmail.com';
 | `rpc_reorder_sessions(...)`                                                                  | authenticated         | Drag-and-drop persistenza `display_order`                             |
 | `licensing_apply_quota(...)`                                                                 | service_role          | Sync quota dal Live WORKS APP (Sprint 4)                              |
 | `admin_create_tenant_with_invite(...)`                                                       | super_admin           | Crea tenant + invito primo admin in transazione atomica (Sprint R-1)  |
+| `record_lemon_squeezy_event(...)`                                                            | service_role          | Idempotency check + INSERT log evento Lemon Squeezy (Sprint R-2)      |
+| `mark_lemon_squeezy_event_processed(...)`                                                    | service_role          | Marca esito processing evento Lemon Squeezy (Sprint R-2)              |
+| `lemon_squeezy_apply_subscription_event(...)`                                                | service_role          | Crea/aggiorna/sospende tenant da subscription_* events (Sprint R-2)   |
 | `seed_demo_data()` / `clear_demo_data()`                                                     | authenticated         | Onboarding demo (Sprint 6)                                            |
 | `mark_tenant_onboarded()` / `reset_tenant_onboarding()`                                      | authenticated         | Wizard onboarding (Sprint 6)                                          |
 | `tenant_health()`                                                                            | super_admin           | Counter aggregati globali (Sprint 6)                                  |
@@ -1285,8 +1290,8 @@ Vedi `docs/STATO_E_TODO.md` §0.8 per dettaglio file modificati e azioni manuali
 | Sprint | Gap | Nome                                                                                    | Stato   |
 | ------ | --- | --------------------------------------------------------------------------------------- | ------- |
 | R-1    | G1  | Super-admin crea tenant + invito primo admin da `/admin/tenants`                        | DONE    |
-| R-2    | G2  | Live WORKS APP integrazione bidirezionale (Lemon Squeezy webhook condiviso)             | NEXT    |
-| R-3    | G3  | PC sala upload speaker check-in (Edge `room-device-upload-init` + `RoomSpeakerCheckIn`) | pending |
+| R-2    | G2  | Live WORKS APP integrazione bidirezionale (Lemon Squeezy webhook + email admin-invite)  | DONE    |
+| R-3    | G3  | PC sala upload speaker check-in (Edge `room-device-upload-init` + `RoomSpeakerCheckIn`) | NEXT    |
 
 Sprint S (file management OneDrive-style) e Sprint T (perf + competitor parity) restano in pianificazione. Vedi `docs/STATO_E_TODO.md` §0.4 per il dettaglio dei 10 GAP e la roadmap.
 

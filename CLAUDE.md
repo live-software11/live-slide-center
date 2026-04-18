@@ -177,15 +177,15 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 
 ### Audit chirurgico 18/04/2026 (Sprint R / S / T pianificati)
 
-**Stato:** **audit completato, Sprint R-1 DONE (1/10 GAP chiusi), R-2 next.**
+**Stato:** **audit completato, Sprint R-1 + R-2 DONE (2/10 GAP chiusi), R-3 next.**
 
 **Sintesi 10 GAP rilevati** rispetto agli obiettivi prodotto sovrani (parita cloud/desktop, file da locale, versioning chiaro, perf zero impatto, super-admin licenze, OneDrive-style, drag PC, upload da sala, export ordinato, competitor parity):
 
 | Sprint  | Focus                             | Gap addressati    | Tempo dev | Stato                                      |
 | ------- | --------------------------------- | ----------------- | --------- | ------------------------------------------ |
 | **R-1** | Super-admin crea tenant + licenze | G1                | 1.5g      | **DONE 18/04/2026 (vedi §0.9)**            |
-| **R-2** | Live WORKS APP integrazione bidir | G2                | 2g        | NEXT (in attesa GO Andrea)                 |
-| **R-3** | PC sala upload speaker check-in   | G3                | 2g        | pending                                    |
+| **R-2** | Lemon Squeezy webhook + email     | G2                | 2g        | **DONE 18/04/2026 (vedi §0.10)**           |
+| **R-3** | PC sala upload speaker check-in   | G3                | 2g        | NEXT (in attesa GO Andrea)                 |
 | **S**   | OneDrive-style file management    | G4 + G5 + G6 + G7 | 5g        | pending (evento DHS reale > 3 sale)        |
 | **T**   | Performance + competitor parity   | G8 + G9 + G10     | 4g        | pending (match feature PreSeria/Slidecrew) |
 
@@ -210,8 +210,38 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 
 **Cosa NON e' incluso (delegato a sprint successivi):**
 
-- Email automatica all'admin invitato → R-1.b (richiede nuovo template `kind='admin_invite'` su `email-send`). Per ora super-admin copia/incolla URL manualmente. Welcome email post-accept gia' funzionante.
-- Sync con Live WORKS APP per registrare la licenza la' → R-2 (next).
+- ~~Email automatica all'admin invitato (R-1.b)~~ → **incluso in R-2 inline** (template `kind='admin-invite'` IT/EN su `email-send`).
+- ~~Sync con Live WORKS APP per registrare la licenza la'~~ → **R-2 DONE** (vedi sotto).
+
+### Sprint R-2 (G2) — Lemon Squeezy webhook + email admin-invite (DONE 18/04/2026)
+
+**Stato:** **completato e verde.** Quando un cliente compra Slide Center su Live WORKS APP (Lemon Squeezy storefront), viene creato automaticamente il tenant in Slide Center + spedita email di benvenuto con invite link al primo admin. Zero touch manuale del super-admin.
+
+| Area              | Cosa                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Migration         | `supabase/migrations/20260418070000_lemon_squeezy_integration.sql` — 3 colonne nuove `tenants.lemon_squeezy_*` (subscription/customer/variant), tabella `lemon_squeezy_plan_mapping` (configurabile da super-admin), tabella `lemon_squeezy_event_log` (UNIQUE su event_id per idempotency), 3 RPC SECURITY DEFINER (`record_*`, `mark_*_processed`, `apply_subscription_event`). |
+| Edge Function     | `supabase/functions/lemon-squeezy-webhook/index.ts` — HMAC SHA-256 verify (header `X-Signature`), dispatch su 9 event types, idempotency strict, chain a `email-send` con `kind='admin-invite'` quando crea nuovo tenant.                                                                                                                                              |
+| Email template    | `supabase/functions/email-send/index.ts` — nuovo `EmailKind='admin-invite'` con subject + HTML inline IT/EN. Include CTA accept-invite, scadenza visibile, fallback URL plain text.                                                                                                                                                                                    |
+| Config            | `supabase/config.toml` — registrata `[functions.lemon-squeezy-webhook]` con `verify_jwt = false`.                                                                                                                                                                                                                                                                      |
+| Types             | `packages/shared/src/types/database.ts` — 2 tabelle, 3 colonne tenants, 3 RPC nuove allineate al DB schema.                                                                                                                                                                                                                                                            |
+| Env               | `.env.example` — aggiunto `LEMON_SQUEEZY_WEBHOOK_SECRET` (Edge secret).                                                                                                                                                                                                                                                                                                |
+
+**Quality gates verdi:** `pnpm typecheck` (5/5 OK), `pnpm --filter @slidecenter/web lint` (0 errors), `pnpm --filter @slidecenter/web build` (1.66s). Zero ReadLints issues sui file R-2.
+
+**Eventi gestiti:** `subscription_created` (crea tenant + invito admin + email), `subscription_updated/payment_success/resumed` (update plan/quote), `subscription_cancelled/expired/paused` (suspend), `subscription_unpaused/payment_failed` (logged). Race condition `_updated` PRIMA `_created` → noop graceful.
+
+**Setup manuale Andrea (~15 min, vedi `docs/STATO_E_TODO.md` §0.10.6):**
+
+1. Genera `LEMON_SQUEEZY_WEBHOOK_SECRET` (random ≥32 char) → set come Supabase Edge secret.
+2. Configura webhook su Lemon Squeezy Dashboard (URL + secret + abilita 9 events).
+3. Popola `lemon_squeezy_plan_mapping` con i tuoi `variant_id` reali (one-time SQL su Studio).
+4. Test E2E in sandbox Lemon Squeezy con carta `4242 4242 4242 4242`.
+
+**Cosa NON e' incluso:**
+
+- Sync inverso (cancellazione manuale tenant → cancella subscription Lemon Squeezy) → R-2.b deferred (raro, +0.5g).
+- UI super-admin per editare `lemon_squeezy_plan_mapping` → R-2.c deferred (+0.5g).
+- Auto-detect lingua cliente (Lemon Squeezy non espone `customer.locale` standard).
 
 ### Hardening Supabase + Vercel (Sprint Q+1) — DONE 18/04/2026
 

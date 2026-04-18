@@ -31,7 +31,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { corsHeaders, handleCors } from '../_shared/cors.ts';
 
-type EmailKind = 'welcome' | 'license-expiring' | 'storage-warning' | 'event-published';
+type EmailKind = 'welcome' | 'license-expiring' | 'storage-warning' | 'event-published' | 'admin-invite';
 
 interface EmailRequestBody {
   tenant_id: string | null;
@@ -59,6 +59,10 @@ const KIND_DEFAULTS: Record<EmailKind, { subjectIt: string; subjectEn: string }>
   'event-published': {
     subjectIt: 'Evento pubblicato con successo',
     subjectEn: 'Event published successfully',
+  },
+  'admin-invite': {
+    subjectIt: 'Sei stato invitato come amministratore su Live SLIDE CENTER',
+    subjectEn: 'You have been invited as administrator on Live SLIDE CENTER',
   },
 };
 
@@ -289,6 +293,35 @@ function renderTemplate(kind: EmailKind, lang: 'it' | 'en', data: Record<string,
   <p>L'evento <strong>${escapeHtml(eventName)}</strong> per il workspace <strong>${escapeHtml(tenantName)}</strong> e' attivo.</p>
   <p>I relatori possono caricare le slide via i link upload portal, la regia puo' associare i dispositivi e avviare la sincronizzazione.</p>
   <p><a href="${escapeHtml(eventUrl)}" style="${buttonStyle}">Apri evento</a></p>
+  ${footer}
+</div>`;
+  }
+
+  if (kind === 'admin-invite') {
+    const inviteUrl = (data?.['invite_url'] as string | undefined) ?? appUrl;
+    const inviteExpiresIso = (data?.['invite_expires_at'] as string | undefined) ?? '';
+    const expiresLabel = inviteExpiresIso
+      ? new Date(inviteExpiresIso).toLocaleDateString(lang === 'en' ? 'en-GB' : 'it-IT')
+      : '';
+
+    if (lang === 'en') {
+      return `<div style="${baseStyle}">
+  <h1 style="font-size: 22px; margin-bottom: 8px;">You're invited to administer ${escapeHtml(tenantName) || 'a workspace'}</h1>
+  <p>${fullName ? `Hi ${escapeHtml(fullName)}, ` : ''}you have been invited as <strong>administrator</strong> of the workspace <strong>${escapeHtml(tenantName)}</strong> on Live SLIDE CENTER.</p>
+  <p>Live SLIDE CENTER is the operations centre for live conferences: speakers upload slides, the regia controls every screen, the rooms display in sync — even on intranet.</p>
+  <p><a href="${escapeHtml(inviteUrl)}" style="${buttonStyle}">Accept the invitation</a></p>
+  <p style="font-size: 13px; color: #6c7689;">${expiresLabel ? `This invitation expires on <strong>${escapeHtml(expiresLabel)}</strong>. ` : ''}If the button doesn't work, copy and paste this URL into your browser:<br><span style="word-break: break-all; color: #5b8def;">${escapeHtml(inviteUrl)}</span></p>
+  <p style="font-size: 14px; color: #6c7689;">Didn't expect this email? You can safely ignore it — the invitation will expire on its own.</p>
+  ${footer}
+</div>`;
+    }
+    return `<div style="${baseStyle}">
+  <h1 style="font-size: 22px; margin-bottom: 8px;">Sei invitato ad amministrare ${escapeHtml(tenantName) || 'un workspace'}</h1>
+  <p>${fullName ? `Ciao ${escapeHtml(fullName)}, ` : ''}sei stato invitato come <strong>amministratore</strong> del workspace <strong>${escapeHtml(tenantName)}</strong> su Live SLIDE CENTER.</p>
+  <p>Live SLIDE CENTER e' la centrale operativa per le conferenze live: i relatori caricano le slide, la regia controlla ogni schermo, le sale visualizzano in sincrono — anche in intranet.</p>
+  <p><a href="${escapeHtml(inviteUrl)}" style="${buttonStyle}">Accetta l'invito</a></p>
+  <p style="font-size: 13px; color: #6c7689;">${expiresLabel ? `Questo invito scade il <strong>${escapeHtml(expiresLabel)}</strong>. ` : ''}Se il bottone non funziona, copia e incolla questo URL nel browser:<br><span style="word-break: break-all; color: #5b8def;">${escapeHtml(inviteUrl)}</span></p>
+  <p style="font-size: 14px; color: #6c7689;">Non ti aspettavi questa email? Puoi ignorarla — l'invito scadra' da solo.</p>
   ${footer}
 </div>`;
   }
