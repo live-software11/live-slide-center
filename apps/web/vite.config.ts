@@ -63,29 +63,45 @@ export default defineConfig(({ mode }) => {
           clientsClaim: true,
           cleanupOutdatedCaches: true,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,jpg}'],
+          // Sprint Q+1 hardening commerciale:
+          //   - NIENTE cache su /auth/v1/* e /realtime/v1/* (sicurezza sessioni
+          //     + websocket non cacheable).
+          //   - PostgREST (REST API): NetworkFirst con TTL breve (10 min)
+          //     SOLO su GET. Mutation (POST/PATCH/DELETE) bypassano la cache
+          //     per non rischiare doppi invii dopo offline.
+          //   - storage signed URL: TTL ridotto a 60s (i sign URL durano 5 min,
+          //     evitiamo di servire cache scaduta dopo 4 minuti).
+          navigateFallbackDenylist: [/^\/api\//, /^\/auth\//],
           runtimeCaching: [
             {
-              urlPattern: /^https:\/\/.*\.supabase\.co\/.*$/i,
+              urlPattern: ({ url, request }) =>
+                /\.supabase\.co$/.test(url.hostname) &&
+                url.pathname.startsWith('/rest/v1/') &&
+                request.method === 'GET',
               handler: 'NetworkFirst',
               options: {
-                cacheName: 'supabase-api-cache',
+                cacheName: 'supabase-rest-get',
                 expiration: {
                   maxEntries: 80,
                   maxAgeSeconds: 60 * 10,
                 },
                 networkTimeoutSeconds: 8,
+                cacheableResponse: { statuses: [0, 200] },
               },
             },
             {
-              urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/sign\//i,
+              urlPattern: ({ url }) =>
+                /\.supabase\.co$/.test(url.hostname) &&
+                url.pathname.startsWith('/storage/v1/object/sign/'),
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'supabase-signed-downloads',
                 expiration: {
                   maxEntries: 40,
-                  maxAgeSeconds: 60 * 4,
+                  maxAgeSeconds: 60,
                 },
                 networkTimeoutSeconds: 25,
+                cacheableResponse: { statuses: [0, 200] },
               },
             },
           ],

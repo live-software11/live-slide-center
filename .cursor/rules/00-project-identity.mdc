@@ -1,0 +1,62 @@
+---
+description: Identita progetto, fonti di verita, account, vincoli sovrani
+alwaysApply: true
+---
+
+# Live SLIDE CENTER — Identita
+
+## Cos'e
+
+SaaS multi-tenant per **gestione presentazioni in eventi live**. Il prodotto e' commercializzato come **Slide Center**.
+
+- **Cloud:** dashboard React (`apps/web`) + Supabase (PostgreSQL + Auth + Storage + Realtime + Edge Functions)
+- **Desktop offline:** singolo binario Tauri 2 (`apps/desktop`) con server Rust Axum embedded — **stessa SPA** del cloud, backend locale
+- **Owner:** Andrea Rizzari (CTO/imprenditore)
+
+## Fonti di verita (in ordine)
+
+1. **`docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`** — UNICA fonte di verita su "cos'e'" e "com'e' fatto" il prodotto. 24 sezioni, ~90 KB. Sostituisce le precedenti `GUIDA_DEFINITIVA_PROGETTO.md`, `PIANO_FINALE_SLIDE_CENTER_v2.md`, `GUIDA_OPERATIVA_v3_FIELD_TEST_E_OFFLINE.md`.
+2. **`docs/STATO_E_TODO.md`** — UNICA fonte di verita su "cosa rimane da fare" (azioni pending Andrea, field test, Sprint Q opzionale, backlog vendite).
+3. **`CLAUDE.md`** — sintesi viva: stato + comandi quotidiani + mappa rules.
+4. **`docs/Setup_Strumenti_e_MCP.md`** — setup ambiente sviluppo + mappa documentazione completa.
+5. **`docs/Istruzioni_Claude_Desktop.md`** — prompt + workflow per AI assistant.
+6. **`docs/Manuali/`** — 7 manuali operativi (onboarding admin, distribuzione, code signing, email Resend, agent installation, screencast).
+7. **`docs/Commerciale/`** — materiali vendita (listino, SLA, roadmap vendita esterna).
+
+In caso di conflitto: vince sempre **`ARCHITETTURA_LIVE_SLIDE_CENTER.md`**.
+
+## Stack in una riga
+
+React 19 + TS strict + Vite 8 + Tailwind 4 + Tauri 2 + Rust Axum + Supabase + pnpm + Turborepo.
+
+## Account (REGOLA SACRA — verificare prima di ogni operazione remota)
+
+| Servizio | Account                                        | Verifica         |
+| -------- | ---------------------------------------------- | ---------------- |
+| GitHub   | **live-software11**                            | `gh auth status` |
+| Supabase | live.software11@gmail.com                      | Dashboard        |
+| Vercel   | live.software11@gmail.com                      | Dashboard        |
+| Repo     | `github.com/live-software11/live-slide-center` | `git remote -v`  |
+
+Mai operare con account `Andraven11` su questo workspace (e' per Preventivi DHS / Gestionale FREELANCE).
+
+## Vincoli sovrani (NON negoziabili)
+
+1. **Stabilita live > tutto.** Mai compromettere un evento in produzione per una feature nuova.
+2. **Tenant isolation:** ogni tabella business ha `tenant_id` + RLS (`tenant_isolation` + `super_admin_all`). Violazione = bug critico (dettaglio in `01-data-isolation.mdc`).
+3. **File partono SEMPRE da locale.** Il PC che proietta legge dal proprio disco; cloud/LAN sono solo per sync.
+4. **Esperienza UI identica fra cloud e offline desktop.** Stessa codebase `apps/web/src/**`, cambia solo il backend client.
+5. **Persistenza assoluta.** Un PC sala configurato NON perde stato a un riavvio. Solo utente o admin lo disconnettono.
+6. **i18n completezza:** ogni stringa IT visibile in UI ha coppia EN professionale **nello stesso commit**. Zero stringhe hardcoded (dettaglio in `03-i18n.mdc`).
+7. **Dark mode only** — token Tailwind `sc-*` (`sc-bg`, `sc-surface`, `sc-primary`, `sc-accent`...). Mai `zinc-*` o `blue-600` direttamente.
+8. **`apps/player/` NON deve esistere** — il Room Player e' la route `/sala/:token` in `apps/web/`.
+9. **`presentation_versions` e' append-only** — mai UPDATE su righe esistenti, ogni nuova versione = nuova riga.
+10. **MAI mDNS da browser** — discovery Agent = registro IP LAN sul cloud (eccezione: server Rust desktop pubblica `_slidecenter._tcp.local`, browse via Tauri command).
+11. **MAI Supabase JS client diretto in modalita desktop** — passare per `apps/web/src/lib/backend-client.ts` (auto-target server Rust locale).
+12. **MAI contenuto file clienti visibile a super_admin** (GDPR — solo metadati).
+
+## Suite di rules
+
+- **alwaysApply** (sempre attive, breve): `00-project-identity`, `01-data-isolation`, `02-quality-gate`, `03-i18n`, `04-git-workflow`, `mcp-supabase`.
+- **Globs mirati** (su file matching): `web-react`, `web-supabase-client`, `supabase-db`, `desktop-tauri`, `legacy-agents`.
+- **Agent-requestable** (on demand, leggere quando serve approfondimento): `architecture-deep`, `field-test-fase15`, `docs-roadmap`.

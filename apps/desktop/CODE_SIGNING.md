@@ -1,6 +1,8 @@
 # Code Signing — Live SLIDE CENTER Desktop
 
-> Sprint P4 (`docs/GUIDA_OPERATIVA_v3_FIELD_TEST_E_OFFLINE.md` §4.H). **Predisposto, non attivato:** non abbiamo certificato EV oggi.
+> Sprint P4 (vedi `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 storia sprint). **Predisposto, non attivato:** non abbiamo certificato EV oggi.
+> Manuale operativo end-to-end: `docs/Manuali/Manuale_Code_Signing.md` (10 sezioni: acquisto Sectigo, CSR, signtool, env, test, troubleshooting, rinnovo).
+> Decisione di attivazione + costi: `docs/STATO_E_TODO.md` § 2.2.
 
 Senza signing, l'installer NSIS funziona ma SmartScreen mostra "Windows ha protetto il PC" al primo download/avvio. Per uso interno (Andrea + tecnici esperti) si bypassa con "Esegui comunque". Per distribuzione larga o demo a clienti, attivare una delle 3 strategie sotto.
 

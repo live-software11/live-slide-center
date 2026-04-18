@@ -1,0 +1,58 @@
+---
+description: Quality gate — typecheck, lint, build e ricontrollo chirurgico prima di chiudere un task
+alwaysApply: true
+---
+
+# Quality Gate — Chiusura intervento (Senior Engineer Standard)
+
+## Ricontrollo chirurgico (sempre, prima di considerare il task chiuso)
+
+1. **Rileggi il diff** dei file toccati: naming, tipi strict, RLS/tenant, i18n IT/EN, vincoli sovrani in `00-project-identity.mdc`.
+2. **Esegui** dalla root monorepo (PowerShell — usa `;` non `&&`):
+
+   ```powershell
+   pnpm run typecheck    # TypeScript strict — zero errori
+   pnpm run lint         # ESLint — zero errori, zero warning
+   pnpm run build        # Build produzione — deve passare
+   pnpm run test         # solo se hai toccato logica business
+   ```
+
+3. **Per modifiche al desktop Tauri** (`apps/desktop/src-tauri/**`): aggiungi anche `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml` e `cargo clippy --all-targets -- -D warnings`. Il build NSIS completo (`pnpm --filter @slidecenter/desktop release:nsis`) NON e' obbligatorio per chiusura task — basta `cargo check` verde.
+4. **Per modifiche schema Supabase** (`supabase/migrations/**`): `supabase db diff` se possibile, o `supabase test db` (pgTAP). In assenza di CLI: ispezione manuale RLS via `supabase/tests/rls_audit.sql`.
+5. **Semaforo verde:** tutto verde + nessuna incertezza residua → il lavoro e' accettabile.
+
+## Se il build/lint fallisce
+
+- **TypeScript strict:** crea il tipo mancante (in `types.ts` del modulo o rigenera con `supabase gen types typescript --project-id cdjxxxkrhgdkcpkkozdl > packages/shared/src/types/database.ts`). MAI `any` implicito o cast forzato.
+- **ESLint `react-hooks/exhaustive-deps`:** sposta logica dentro `useMemo`/`useCallback` — NON sopprimere con eslint-disable.
+- **ESLint `react-hooks/set-state-in-effect` (React 19):** inline la funzione async dentro `useEffect` con `cancelled` flag e fai i `setState` dopo un `await` boundary (es. `await Promise.resolve()` o `await fetch(...)`). Pattern usato in `DesktopUpdateBanner.tsx`, `useFilePreviewSource.ts`, `useEventFileSearch.ts`.
+- **Vite build:** import circolari → estrai tipi in `types.ts`. Lazy import: `.then(m => ({ default: m.ComponentName }))`.
+
+## Standard di codice
+
+- View page-level: `*View.tsx` (≤600 righe; oltre → split in sotto-componenti)
+- Hook dati: `use*.ts` (≤200 righe; sempre `cancelled` flag in `useEffect` con cleanup)
+- Repository: `repository.ts` per ogni feature (solo CRUD Supabase)
+- Service: `service.ts` per logica business (validazione, trasformazioni)
+- Tipi: `types.ts` per ogni feature
+- **Commenti:** NO commenti che descrivono cosa fa il codice. SI commenti sul **PERCHE** di scelte non ovvie, su invarianti critiche, su trade-off accettati.
+- **Gestione errori:** ogni operazione Supabase in try/catch con log strutturato (`reportError(err, { tag, extra })` da `lib/telemetry.ts` per errori critici Sentry-rilevanti). MAI swallowing silenzioso in upload/sync/pairing.
+- **Error boundaries:** ogni feature wrappata in `<ErrorBoundary moduleName="...">` nel router; `<AppErrorBoundary>` globale in `main.tsx`.
+
+## Priorita di ottimizzazione (ordine)
+
+1. **Correttezza** — il codice fa quello che deve fare, senza bug
+2. **Stabilita live** — non crasha durante eventi, gestisce edge case (offline, token revocato, file in uso)
+3. **Tenant isolation** — nessun dato cross-tenant visibile
+4. **Performance** — query con `limit()`, indici sui filtri, bundle piccolo, render veloci, dedup query inflight (`Promise<...> | null` in `useRef`)
+5. **Manutenibilita** — leggibile, documentato, testabile
+
+## Chiusura sessione e messaggio all'utente
+
+- Se **non** tutto verde: segnala cosa fallisce, correggi, ripeti il ciclo. NON proporre lo step successivo come completato.
+- Se **tutto verde**: in chiusura indica **in una frase** lo step successivo naturale (dalle azioni pending in `docs/STATO_E_TODO.md`), senza avviarlo se non richiesto.
+- Aggiorna documentazione **nello stesso intervento** se la modifica e' strutturale (vedi `docs-roadmap.mdc` per quale doc).
+
+## Mentalita
+
+Ogni modifica deve essere trattata come se andasse in produzione domani mattina su un evento live di un cliente pagante. Se una soluzione e' veloce ma instabile, scartala. Meglio un intervento piccolo verificato che un salto grande non controllato.

@@ -12,7 +12,7 @@ export interface PlanLimits {
 
 export const TENANT_PLANS: TenantPlan[] = ['trial', 'starter', 'pro', 'enterprise'];
 
-/** Allineato a `docs/GUIDA_DEFINITIVA_PROGETTO.md` §12 — non modificare senza aggiornare la guida. */
+/** Allineato a `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 21 (Piani commerciali) + `docs/Commerciale/Listino_Prezzi.md` — non modificare senza aggiornare entrambi. */
 export const PLAN_LIMITS: Record<TenantPlan, PlanLimits> = {
   trial: {
     storageLimitBytes: 5 * 1024 ** 3,

@@ -111,3 +111,135 @@ export async function fetchTenantSuspended(
   if (!data) return { suspended: null, error: 'not_found' };
   return { suspended: data.suspended, error: null };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sprint R-1 (G1): super-admin crea tenant + invito primo admin
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type TenantPlan = Database['public']['Enums']['tenant_plan'];
+
+export interface CreateTenantInput {
+  name: string;
+  slug: string;
+  plan: TenantPlan;
+  storageLimitBytes: number;
+  maxEventsPerMonth: number;
+  maxRoomsPerEvent: number;
+  maxDevicesPerRoom: number;
+  /** ISO 8601 string oppure null per nessuna scadenza (Enterprise perpetua). */
+  expiresAt: string | null;
+  /** Formato XXXX-XXXX-XXXX-XXXX, opzionale (collegamento a Live WORKS APP). */
+  licenseKey: string | null;
+  /** Email del primo admin del tenant; verra' invitato via team_invitations. */
+  adminEmail: string;
+}
+
+export interface CreateTenantResult {
+  tenantId: string;
+  slug: string;
+  inviteId: string;
+  inviteToken: string;
+  inviteUrl: string;
+  inviteExpiresAt: string;
+  adminEmail: string;
+  licenseKey: string | null;
+}
+
+/** Mappa codici errore RPC → chiavi i18n. Stringhe sconosciute → 'unknown'. */
+export const CREATE_TENANT_ERROR_KEYS: Record<string, string> = {
+  forbidden_super_admin_only: 'admin.createTenant.errors.forbidden',
+  invalid_name: 'admin.createTenant.errors.invalidName',
+  invalid_slug: 'admin.createTenant.errors.invalidSlug',
+  invalid_plan: 'admin.createTenant.errors.invalidPlan',
+  invalid_storage_limit: 'admin.createTenant.errors.invalidStorage',
+  invalid_max_events: 'admin.createTenant.errors.invalidMaxEvents',
+  invalid_max_rooms: 'admin.createTenant.errors.invalidMaxRooms',
+  invalid_max_devices: 'admin.createTenant.errors.invalidMaxDevices',
+  invalid_email: 'admin.createTenant.errors.invalidEmail',
+  invalid_license_key_format: 'admin.createTenant.errors.invalidLicenseFormat',
+  slug_already_exists: 'admin.createTenant.errors.slugTaken',
+  license_key_already_assigned: 'admin.createTenant.errors.licenseTaken',
+  invite_already_pending: 'admin.createTenant.errors.invitePending',
+};
+
+/**
+ * Crea tenant + invito primo admin in transazione atomica via RPC SECURITY DEFINER.
+ * L'autorizzazione `is_super_admin()` e' verificata DENTRO l'RPC: il client
+ * non puo' bypassare e l'errore `forbidden_super_admin_only` viene mappato a UI.
+ */
+export async function createTenantWithInvite(
+  supabase: SupabaseClient<Database>,
+  input: CreateTenantInput,
+): Promise<{ data: CreateTenantResult | null; error: string | null; errorCode: string | null }> {
+  // Calcola app_url da window.location: l'invite_url ritornato dalla RPC sara'
+  // navigabile dall'utente invitato sullo stesso dominio dove sta lavorando il
+  // super-admin (es. https://app.liveslidecenter.com).
+  const appUrl =
+    typeof window !== 'undefined' && window.location
+      ? `${window.location.protocol}//${window.location.host}`
+      : '';
+
+  const { data, error } = await supabase.rpc('admin_create_tenant_with_invite', {
+    p_name: input.name,
+    p_slug: input.slug,
+    p_plan: input.plan,
+    p_storage_limit_bytes: input.storageLimitBytes,
+    p_max_events_per_month: input.maxEventsPerMonth,
+    p_max_rooms_per_event: input.maxRoomsPerEvent,
+    p_max_devices_per_room: input.maxDevicesPerRoom,
+    p_expires_at: input.expiresAt,
+    p_license_key: input.licenseKey,
+    p_admin_email: input.adminEmail,
+    p_app_url: appUrl,
+  });
+
+  if (error) {
+    // I codici applicativi sono nel `message` della PostgrestError (RAISE EXCEPTION).
+    // Postgres include "anche" il `code` SQLSTATE: 42501 = forbidden, 23505 =
+    // unique_violation, P0001 = generic raise (default per le nostre RAISE).
+    const rawMsg = error.message ?? 'unknown';
+    return { data: null, error: rawMsg, errorCode: rawMsg };
+  }
+
+  if (!data || typeof data !== 'object') {
+    return { data: null, error: 'malformed_rpc_response', errorCode: 'malformed_rpc_response' };
+  }
+
+  // Cast safe: la RPC restituisce sempre questi campi (vedi migration).
+  const json = data as {
+    tenant_id: string;
+    slug: string;
+    invite_id: string;
+    invite_token: string;
+    invite_url: string;
+    invite_expires_at: string;
+    admin_email: string;
+    license_key: string | null;
+  };
+
+  return {
+    data: {
+      tenantId: json.tenant_id,
+      slug: json.slug,
+      inviteId: json.invite_id,
+      inviteToken: json.invite_token,
+      inviteUrl: json.invite_url,
+      inviteExpiresAt: json.invite_expires_at,
+      adminEmail: json.admin_email,
+      licenseKey: json.license_key,
+    },
+    error: null,
+    errorCode: null,
+  };
+}
+
+/** Suggerisce uno slug valido a partire dal nome azienda (lowercase, no accenti, dash). */
+export function suggestSlug(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64);
+}

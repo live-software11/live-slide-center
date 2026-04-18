@@ -1,0 +1,170 @@
+---
+description: Pattern React 19 / componenti / routing / performance per apps/web
+globs: ['apps/web/src/**/*.tsx', 'apps/web/src/**/*.ts']
+alwaysApply: false
+---
+
+# React 19 + apps/web — Pattern di lavoro
+
+> Riferimento alto livello: `00-project-identity.mdc`. i18n: `03-i18n.mdc`. Quality gate: `02-quality-gate.mdc`.
+
+## Struttura feature
+
+```
+apps/web/src/features/{nome}/
+├── components/         # UI del modulo (≤300 righe per file, riusabili, memoizzati se props complessi)
+├── hooks/              # use*.ts (≤200 righe; cancelled flag in useEffect; cleanup nel return)
+├── lib/                # logica pura, utilities, mai I/O di rete
+├── types.ts            # tipi TypeScript del modulo
+├── repository.ts       # CRUD Supabase (vedi web-supabase-client.mdc)
+├── service.ts          # logica business (validazione, trasformazioni, mai chiamate Supabase dirette)
+└── {Nome}View.tsx      # page-level (≤600 righe; oltre → split in sotto-componenti)
+```
+
+Esempio reale: `features/devices/`, `features/events/`, `features/presentations/`, `features/audit/`, `features/onboarding/`.
+
+## Routing React Router 7 (`apps/web/src/app/routes.tsx`)
+
+- `createBrowserRouter`
+- Nested layout: `RootLayout` (auth gate + sidebar) → child routes
+- **Lazy loading obbligatorio** per ogni feature non-landing:
+
+  ```typescript
+  const EventsView = lazy(() =>
+    import('./features/events/EventsView').then((m) => ({ default: m.EventsView }))
+  );
+  // wrapper:
+  <ErrorBoundary moduleName="Events">
+    <Suspense fallback={<LoadingSkeleton />}>
+      <EventsView />
+    </Suspense>
+  </ErrorBoundary>
+  ```
+
+- Guard ruoli: `RequireAuth`, `RequireTenantAdmin`, `AdminLayout` (super_admin only) — vedi `apps/web/src/app/desktop-role-gate.tsx` per il guard desktop offline.
+- `HydrateFallback` con `i18n.t('common.loading')` (mai stringhe hardcoded).
+
+## Hook Supabase — pattern standard
+
+```typescript
+export function useEvents() {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const data = await listEvents();
+        if (!cancelled) {
+          setEvents(data);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err as Error);
+          setLoading(false);
+        }
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { events, loading, error };
+}
+```
+
+**React 19 — regola `react-hooks/set-state-in-effect`:** la nuova lint rule vieta `setState` sincrono nel body dell'effect. Soluzione: l'async function dentro `useEffect` con `await` boundary va bene (i `setState` post-await sono asincroni). Pattern usato in `DesktopUpdateBanner.tsx`, `useFilePreviewSource.ts`, `useEventFileSearch.ts`.
+
+**React 19 — regola `react-hooks/refs`:** vieta accesso a `ref.current` durante render. Per "derived state during render" usare `useState` + check chiave (vedi `useEventFileSearch.ts` per il pattern).
+
+## Performance
+
+1. **Memoizzazione:** `React.memo()` per componenti che ricevono oggetti/array come props
+2. **`useCallback`:** per handler passati a componenti figli memoizzati
+3. **`useMemo`:** per trasformazioni costose (non abusare — misurare prima)
+4. **Virtualizzazione:** `@tanstack/react-virtual` per liste >50 elementi
+5. **Dedup query inflight:** `useRef<Promise<...> | null>` per evitare race tra polling + Realtime + manual refresh (vedi `useFileSync.ts` `fetchVersionsInflightRef`)
+6. **Lazy import** moduli pesanti solo all'uso (es. `jszip` in `zip-bulk-download.ts` con dynamic import al primo click → chunk separato 95kB gzipped)
+
+## Stato sync — Componente riusabile (Room Player)
+
+```typescript
+type SyncStatus = 'synced' | 'syncing' | 'outdated' | 'offline';
+const STATUS_COLORS: Record<SyncStatus, string> = {
+  synced: 'bg-sc-success',
+  syncing: 'bg-sc-warning animate-pulse',
+  outdated: 'bg-sc-accent',
+  offline: 'bg-sc-danger',
+};
+```
+
+## Design system — Brand Navy Dark
+
+Token Tailwind 4 in `apps/web/src/index.css` via `@theme inline`. **MAI** classi `zinc-*` o `blue-600` dirette — sempre `sc-*`.
+
+```
+Sfondo:    bg-sc-bg (#07101f)        Card:    bg-sc-surface (#0d1c30)     Elevated: bg-sc-elevated (#132844)
+Primary:   bg-sc-primary (#3FA9F5)   Hover:   bg-sc-primary-deep (#0B5ED7)
+Accent:    bg-sc-accent (#FF7A00)    Navy:    bg-sc-navy (#0A2540)
+
+Text:      text-sc-text (#f0f2f5)    Sec:     text-sc-text-secondary (#b8c5d4)
+Muted:     text-sc-text-muted        Dim:     text-sc-text-dim
+
+Success:   text-sc-success           Warning: text-sc-warning              Danger: text-sc-danger
+
+Bordi:     border-sc-primary/12      Input:   border-sc-primary/20
+Focus:     ring-sc-ring/25 + focus:border-sc-primary/40
+```
+
+**Pattern obbligatori:**
+
+- `rounded-xl` per card/input/bottoni; `rounded-2xl` per card grandi (auth, modali principali)
+- Font: DM Sans (Google Fonts, definito in `@theme` + `index.html`)
+- Sidebar: `bg-sc-surface/80 backdrop-blur-xl border-sc-primary/10`
+- Bottone primario: `bg-sc-primary text-white shadow-lg shadow-sc-primary/20 hover:bg-sc-primary-deep`
+- Input: `bg-sc-bg border-sc-primary/15 rounded-xl focus:border-sc-primary/40 focus:ring-2 focus:ring-sc-ring/25`
+
+**Principi UX:**
+
+- Stato sempre visibile con colore inequivocabile
+- Zero ambiguita sulla versione (numero + timestamp + hash troncato)
+- Feedback entro 200ms per azioni UI
+- Dark mode only (coerenza con sito marketing www.liveworksapp.com)
+- Densita informativa alta — utenti target: tecnici AV esperti
+
+## Logo / brand
+
+- **Sorgente:** `icons/Logo Live Slide Center.jpg` (file unico in git).
+- **Pipeline:** `apps/web/scripts/generate-brand-icons.mjs` (devDependency `sharp`) eseguita da `prebuild`/`predev` su `@slidecenter/web`.
+- **Output:** `apps/web/public/` (favicon-16x16.png, favicon-32x32.png, apple-touch-icon.png, pwa-192x192.png, pwa-512x512.png, logo-live-slide-center.jpg).
+- **In React:** sempre `AppBrandLogo` da `src/components/AppBrandLogo.tsx` + `t('app.displayName')` per il wordmark. NON duplicare `<img src="...">`.
+
+## Error Boundary
+
+- Ogni feature wrappata in `<ErrorBoundary moduleName="...">` nel router
+- `<AppErrorBoundary>` globale in `main.tsx`
+- MAI swallowing silenzioso in upload, sync, pairing, download — usare `reportError(err, { tag, extra })` di `lib/telemetry.ts`
+
+## Dual mode cloud / desktop (Sprint J-O)
+
+- La SPA `apps/web` e' **identica** in cloud Vercel e in build desktop Tauri. Discriminator: `import.meta.env.VITE_BACKEND_MODE === 'desktop'`.
+- Helpers in `apps/web/src/lib/backend-mode.ts`: `getBackendMode()`, `isRunningInTauri()`, `getBackendDescriptor()`.
+- Auth: `auth-provider.tsx` esporta `CloudAuthProvider` (Supabase session) + `DesktopAuthProvider` (session fittizia, vedi `desktop-fake-session.ts`).
+- Backend client: sempre via `apps/web/src/lib/supabase.ts` o `lib/backend-client.ts` — questi auto-target il server Rust locale in modalita desktop.
+- Realtime: `lib/realtime-client.ts` astrazione `subscribeToTopic(topic, options)` — cloud usa `supabase.channel(...)`, desktop usa long-poll Sprint N3 `/events/stream`.
+- Backend status: hook `useBackendStatus()` in `lib/use-backend-status.ts` (5 stati: cloud-online/cloud-offline/lan-connected/standalone/loading) → `BackendModeBadge` nella sidebar.
+- Update banner desktop: `<DesktopUpdateBanner>` in `RootLayout` (no-op in cloud; check al boot + ogni 30 min in Tauri).
+
+## Anti-pattern (vietati)
+
+- Stringhe IT hardcoded in JSX (vedi `03-i18n.mdc`)
+- `useState` settato sincrono nel body di `useEffect` (lint React 19)
+- Filter Realtime globale tipo `status=eq.ready` su tabelle condivise (riceveresti eventi di TUTTI i tenant)
+- Dipendenza implicita su `tenant_id` lato client (RLS filtra automaticamente)
+- Class Tailwind `zinc-*` / `blue-600` (usare token `sc-*`)
+- `apps/player/` — NON deve esistere; il Room Player e' route `/sala/:token` in `apps/web/`

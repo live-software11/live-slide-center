@@ -14,7 +14,15 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "setup:supabase-mcp": "powershell -NoProfile -ExecutionPolicy Bypass -File \"./scripts/Setup-Supabase-MCP.ps1\"",
-    "verify:supabase-mcp": "powershell -NoProfile -ExecutionPolicy Bypass -File \"./scripts/Verifica-Supabase-MCP.ps1\""
+    "verify:supabase-mcp": "powershell -NoProfile -ExecutionPolicy Bypass -File \"./scripts/Verifica-Supabase-MCP.ps1\"",
+    "db:types": "supabase gen types typescript --project-id $env:SUPABASE_PROJECT_REF --schema public > packages/shared/src/types/database.ts",
+    "db:types:local": "supabase gen types typescript --local --schema public > packages/shared/src/types/database.ts",
+    "db:diff": "supabase db diff --schema public",
+    "db:lint": "supabase db lint",
+    "db:push": "supabase db push",
+    "fn:deploy": "supabase functions deploy --project-ref $env:SUPABASE_PROJECT_REF",
+    "vercel:env:pull": "vercel env pull .env.local",
+    "vercel:deploy:prod": "vercel deploy --prod"
   },
   "devDependencies": {
     "eslint-config-prettier": "^10.1.8",

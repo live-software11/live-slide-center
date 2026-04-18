@@ -1,6 +1,72 @@
 # Setup Strumenti, MCP e Ambiente — Live SLIDE CENTER
 
 > Guida completa per configurare l'ambiente di sviluppo ottimale.
+>
+> **Versione:** 2.0 — 18 aprile 2026
+> **Status:** allineata con `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` e `docs/STATO_E_TODO.md`.
+
+---
+
+## 0. Mappa documentazione del progetto (cosa leggere e quando)
+
+A partire dalla v2.0 di questo file, la documentazione di **Live SLIDE CENTER** e' consolidata in 4 file di root piu' 2 sottocartelle tematiche.
+
+### Root `docs/`
+
+| File                                         | Quando leggerlo                                                                                                                                                                                                              |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`ARCHITETTURA_LIVE_SLIDE_CENTER.md`**      | UNICA fonte di verita su "cosa e'" e "com'e' fatto" il prodotto. Sostituisce le vecchie `GUIDA_DEFINITIVA_PROGETTO.md`, `PIANO_FINALE_SLIDE_CENTER_v2.md`, `GUIDA_OPERATIVA_v3_FIELD_TEST_E_OFFLINE.md`. ~90 KB, 24 sezioni. |
+| **`STATO_E_TODO.md`**                        | UNICA fonte di verita su "cosa e' fatto" e "cosa rimane da fare". Include field test post-rinvio, Sprint Q opzionale, backlog vendite/legale. ~36 KB, 7 sezioni.                                                             |
+| **`Setup_Strumenti_e_MCP.md`** (questo file) | Setup ambiente sviluppo (Node, pnpm, Rust, Supabase CLI, Tauri, MCP).                                                                                                                                                        |
+| **`Istruzioni_Claude_Desktop.md`**           | Prompt e istruzioni operative per l'AI assistant (sia Claude Desktop che Cursor agent).                                                                                                                                      |
+
+### Sottocartella `docs/Manuali/` (operations + onboarding)
+
+| File                                   | Quando leggerlo                                                             |
+| -------------------------------------- | --------------------------------------------------------------------------- |
+| `README.md`                            | Indice navigabile dei 7 manuali + matrice ruolo→manuale.                    |
+| `Manuale_Onboarding_Admin.md`          | Quando un nuovo cliente fa il primo accesso al cloud SaaS.                  |
+| `Manuale_Installazione_Local_Agent.md` | Installer Tauri storico per la regia.                                       |
+| `Manuale_Installazione_Room_Agent.md`  | Installer Tauri storico per i PC sala.                                      |
+| `Manuale_Distribuzione.md`             | Come distribuire installer firmati ai clienti.                              |
+| `Manuale_Code_Signing.md`              | Setup certificato OV Sectigo per eliminare SmartScreen.                     |
+| `Manuale_Email_Resend.md`              | Setup email transazionali (welcome, license expiring, storage warning).     |
+| `Guida_Uso_Interno_DHS.md`             | Procedure operative quotidiane DHS (uso interno aziendale).                 |
+| `Script_Screencast.md`                 | Scaletta parola-per-parola dei 3 video onboarding (admin web, regia, sala). |
+| `build-pdf.ps1`                        | Script PowerShell per esportare i manuali in PDF (richiede pandoc).         |
+
+### Sottocartella `docs/Commerciale/` (sales + pricing + legale)
+
+| File                             | Quando leggerlo                                                           |
+| -------------------------------- | ------------------------------------------------------------------------- |
+| `README.md`                      | Indice + 5 decisioni urgenti pre-primo-cliente + 10 punti DPA Allegato A. |
+| `Listino_Prezzi.md`              | 4 piani SaaS (Trial / Starter / Pro / Enterprise) + bundle desktop.       |
+| `Contratto_SLA.md`               | Bozza SLA tecnica (uptime, RPO/RTO, supporto). Da rivedere con avvocato.  |
+| `Roadmap_Vendita_Esterna.md`     | 47 voci pending per vendita esterna (legale, marketing, fiscale).         |
+| `SlideHub_Live_Commerciale.docx` | Documento commerciale executive in Word (cliente-friendly).               |
+
+### Regole `.cursor/rules/` (vincoli per l'agente AI)
+
+| File                      | Cosa contiene                                                            |
+| ------------------------- | ------------------------------------------------------------------------ |
+| `00-project-identity.mdc` | Identita progetto, tre modalita di esecuzione, regole sovrane.           |
+| `01-data-isolation.mdc`   | Multi-tenancy, RLS, RBAC, GDPR.                                          |
+| `02-quality-gate.mdc`     | Quality gates obbligatori prima di ogni commit (typecheck, lint, build). |
+| `03-i18n.mdc`             | Parity IT/EN obbligatoria.                                               |
+| `04-git-workflow.mdc`     | Commit conventions, PR workflow, account GitHub corretto.                |
+| `architecture-deep.mdc`   | Mappa profonda dell'architettura per AI.                                 |
+| `desktop-tauri.mdc`       | Pattern specifici per `apps/desktop` (Tauri 2 + Rust).                   |
+| `docs-roadmap.mdc`        | Mappa veloce dei file in `docs/`.                                        |
+| `field-test-fase15.mdc`   | Mappa sprint, verifica, codice coinvolto + framework GO/NO-GO Sprint Q.  |
+| `legacy-agents.mdc`       | Pattern per `apps/agent` e `apps/room-agent` (Tauri storici).            |
+| `mcp-supabase.mdc`        | Uso del server MCP Supabase con PAT.                                     |
+| `supabase-db.mdc`         | Pattern per migrations + RPC SECURITY DEFINER.                           |
+| `web-react.mdc`           | Pattern React 19 + TypeScript strict.                                    |
+| `web-supabase-client.mdc` | Pattern client Supabase JS / `getBackendClient()`.                       |
+
+### File principale workspace `CLAUDE.md`
+
+Riepilogo per AI assistant. Da leggere come prima cosa quando si apre il progetto.
 
 ---
 
@@ -30,7 +96,8 @@
 
 - **URL:** `https://github.com/live-software11/live-slide-center`
 - **Clone:** `git clone https://github.com/live-software11/live-slide-center.git`
-- **Primo push** se il repo non esisteva ancora: vedi `.cursor/rules/deploy-git-workflow.mdc` (sezione _Primo collegamento GitHub_).
+- **Conventions di commit + PR:** vedi `.cursor/rules/04-git-workflow.mdc` (commit message, branch, account corretto).
+- **Account GitHub:** SEMPRE `live-software11` per Live SLIDE CENTER. Verifica con `gh auth status` prima di ogni push remoto.
 
 **EN:** Official monorepo is under org **live-software11**; use `gh auth status` before push.
 

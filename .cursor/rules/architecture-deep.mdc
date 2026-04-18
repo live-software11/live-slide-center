@@ -1,0 +1,215 @@
+---
+description: Mappa profonda architettura — leggere quando si lavora cross-area o si progetta una feature nuova
+alwaysApply: false
+---
+
+# Architecture Deep Dive — Live SLIDE CENTER
+
+> Caricare questa rule **solo** quando: (a) progetti una feature che attraversa cloud + desktop + LAN, (b) refactoring di un sottosistema (Realtime, Storage, Sync), (c) onboarding di un nuovo livello di analisi.
+> Per quotidianita': bastano `00-project-identity`, `01-data-isolation`, `02-quality-gate`, `03-i18n`, `04-git-workflow` (alwaysApply).
+
+## Topologia generale
+
+```
+                    +----------------------------------+
+                    |    Vercel — apps/web (cloud)     |
+                    |  React 19 SPA (Slide Center UI)  |
+                    +----------------+-----------------+
+                                     |
+                  +------------------+------------------+
+                  |                                     |
+        Supabase (cloud)                       Tauri 2 desktop
+        ─────────────────                      ─────────────────
+        PostgreSQL 17 + RLS                    apps/desktop (binario unico)
+        Auth (JWT app_metadata)                ├ Webview = SPA apps/web
+        Storage (TUS resumable)                ├ Server Rust Axum (127.0.0.1:dynamic)
+        Realtime (Postgres+Broadcast)          ├ SQLite locale + WAL
+        Edge Functions Deno (15)               ├ mDNS _slidecenter._tcp.local
+        Cron pg_cron                           └ NSIS installer + Updater Tauri
+                  |
+                  +-------- Live WORKS APP (SaaS partner)
+                            licensing webhook → licensing-sync Edge Fn
+                            (Lemon Squeezy backend Andraven11... no, live-software11)
+```
+
+## Catena dati END-TO-END (esempio: cliente carica file → PC sala lo proietta)
+
+1. **Speaker** (anon, no account) apre URL `https://app.../u/<upload_token>` (route `apps/web/src/features/upload-portal/`).
+2. SPA chiama Supabase Storage TUS endpoint `/storage/v1/upload/resumable` con `bucketName: 'presentations'` e path `tenants/<tenant>/events/<event>/presentations/<id>/v<n>/<file>`.
+3. Lato DB trigger `update_storage_used()` aggiorna quota tenant; trigger `check_storage_quota()` blocca se sopra limite.
+4. SPA crea row `presentation_versions` con `status='ready'`, `sha256=<hash>`, `size_bytes=<n>`, `uploaded_via='speaker'`.
+5. Trigger Realtime su `presentation_versions` → channel `event:<event_id>` riceve `INSERT` → admin/coordinator vedono nuova versione live.
+6. Coordinator/admin clicca "Pubblica" → UPDATE `presentations.current_version_id` → trigger Realtime + trigger Broadcast su `room:<room_id>`.
+7. **PC sala (Room Player)** browser anon su `https://app.../sala/<device_token>`:
+   - Bootstrap iniziale via Edge Fn `room-player-bootstrap` → sala + manifest + topic Broadcast UUID.
+   - Subscribe `supabase.channel('room:<uuid>')` su evento `presentation_changed`.
+   - Hook `useFileSync` riceve evento → fetch nuova `presentation_version` → calcola path → File System Access API → download streaming + verify SHA-256 → notifica `synced`.
+8. Tecnico in sala apre il file dal disco locale (PowerPoint/Keynote) — file gia' presente, zero buffering.
+
+## Catena LAN-only (Sprint M-N — admin offline, sala offline, LAN attiva)
+
+1. PC admin apre `apps/desktop` (Tauri 2). Setup ruolo `admin`, server Rust su `127.0.0.1:N`, mDNS publish `role=admin`.
+2. PC sala apre `apps/desktop`. Setup ruolo `sala`, server Rust su `127.0.0.1:M`, mDNS publish `role=sala`.
+3. SPA admin (modalita desktop): `cmd_discover_lan_pcs(role_filter='sala')` ritorna lista PC sala visibili.
+4. Admin sceglie un PC sala → genera codice 6 cifre → Tauri command `pair_direct_lan({targetBaseUrl, ...})` → POST `/functions/v1/pair-direct` sul server Rust della sala con codice + `device_name` + `event_id`.
+5. Sala valida codice + persiste `device.json` con `pair_token_hash` + `network_mode='lan-online'`. Risponde `{device_token: "<sha256>"}`.
+6. Admin riceve `device_token`, lo registra anche sul proprio admin-locale via `registerPairedDeviceOnAdminLocal({...})` (per fan-out futuro).
+7. Admin carica file via Supabase Storage cloud OR via `/storage/v1/object/...` del proprio server Rust (modalita full-LAN).
+8. `lan_push.rs` su admin → POST `/events/file_added` su tutti i PC sala paired in `network_mode='lan-online'`.
+9. PC sala riceve evento → SPA in long-poll su `/events/stream?since=N&event_id=<uuid>` → riceve evento immediatamente.
+10. Hook `useFileSync` su sala chiama `signLanDownloadUrl({adminBaseUrl, deviceToken, storageKey})` → admin firma URL HMAC-SHA256 (scadenza 30 min) → sala scarica via `/storage-files/...` con HTTP Range.
+
+## Mappa moduli `apps/web/src/features/`
+
+| Feature          | Cosa fa                                                                         |
+| ---------------- | ------------------------------------------------------------------------------- |
+| `auth/`          | Login email/password Supabase Auth, recupero password                           |
+| `dashboard/`     | Tenant home (KPI, eventi recenti, alerts quota)                                 |
+| `events/`        | CRUD eventi + sale + sessioni + speaker (matrice gerarchica)                    |
+| `presentations/` | Lista presentazioni per session + versioning + drag re-order + bulk move        |
+| `upload-portal/` | Speaker public upload via `upload_token` (Sprint 3)                             |
+| `live-view/`     | Regia tempo reale: room status grid + manual override + audit timeline          |
+| `room-player/`   | UI sala anon (`/sala/:token`) — file list, sync status, in-onda                 |
+| `devices/`       | Pairing PC sala (cloud + LAN) + manifest sync + reset device                    |
+| `agents/`        | Gestione Local/Room Agent legacy (Fase 7) + license status                      |
+| `team/`          | Inviti email (Sprint 1c), ruoli RBAC, audit team                                |
+| `tenant/`        | Settings tenant (logo, brand, lingua), super_admin tenant list                  |
+| `billing/`       | Plan, quota usage, payment redirect Live WORKS APP                              |
+| `settings/`      | Lingua override, dark mode toggle (futuro), profilo utente                      |
+| `audit/`         | Activity log filtri + export CSV (super_admin: cross-tenant; admin: own tenant) |
+| `onboarding/`    | Wizard 3-step nuovo tenant + demo seed (Sprint 6)                               |
+| `status/`        | Public `/status` page (Sprint 8) — uptime + componenti DB/Auth/Storage          |
+| `speakers/`      | (riservato — gestito dentro `events/` matrix)                                   |
+
+## Packages condivisi
+
+```
+packages/
+├── shared/                    # @slidecenter/shared
+│   ├── src/types/
+│   │   └── database.ts        # generato da `supabase gen types typescript ...`
+│   ├── src/i18n/
+│   │   ├── index.ts           # init i18next + LanguageDetector
+│   │   └── locales/{it,en}.json
+│   └── src/lib/               # utility cross-app (formatBytes, formatRelativeTime, ...)
+└── ui/                        # @slidecenter/ui (eventuale, attualmente vuoto/inline in apps/web)
+```
+
+## Edge Functions — flussi reali
+
+### Pairing PC sala (cloud)
+
+```
+Admin SPA → pair-init (JWT)        → INSERT pairing_codes (code 6 cifre, expires 10 min)
+                                   ← {code: '123456', expires_at}
+[Mostra codice all'utente]
+PC sala  → pair-claim (no auth)    → SELECT pairing_codes by code → INSERT paired_devices
+                                       (con pair_token_hash = sha256(random_bytes(32)))
+                                     UPDATE pairing_codes SET consumed_at = NOW()
+                                   ← {device_token: '<random-32-byte-hex>', room_state: {...}}
+PC sala  → room-player-bootstrap   → ogni 12-60s (Sprint A playback_mode tuning)
+        (device_token)             ← {presentation_versions, network_mode, agent LAN, manifest}
+```
+
+### Pairing LAN-direct (Sprint N — admin desktop ↔ sala desktop)
+
+```
+Admin Tauri  → cmd_discover_lan_pcs(role='sala') → mDNS browse 1500ms
+                                                  → [{name, addresses, port, txt}]
+Admin SPA    → genera codice 6 cifre client-side
+Admin Tauri  → pair_direct_lan({targetBaseUrl})  → POST http://<sala>:<port>/functions/v1/pair-direct
+                                                    body: {code, device_name, event_id, room_id}
+Sala server  → valida codice (window 5s) → INSERT paired_devices LOCALE
+                                            persisti device.json
+                                          ← {device_token, paired_devices: {...}}
+Admin Tauri  → registerPairedDeviceOnAdminLocal → POST /rest/v1/paired_devices LOCALE admin
+                                                  (mirror per fan-out futuro)
+```
+
+### GDPR export (Sprint 7)
+
+```
+Admin SPA → gdpr-export (JWT admin) → RPC public.gdpr_export_tenant_data(tenant_id)
+                                       (SECURITY DEFINER, bypassa RLS solo per export)
+                                     ZIP service-role: events.json + rooms.json + sessions.json
+                                       + presentations.json + audit.json
+                                     UPLOAD su Storage path tenants/<id>/exports/<timestamp>.zip
+                                   → signed URL 7g
+```
+
+## Schema PostgreSQL — tabelle chiave (riferimento)
+
+| Tabella                 | RLS              | Note                                                             |
+| ----------------------- | ---------------- | ---------------------------------------------------------------- |
+| `tenants`               | super_admin only | suspended boolean (Sprint 8), onboarded*at, plan, quota*\*       |
+| `users`                 | tenant + super   | role enum, app_metadata via auth.users JWT                       |
+| `events`                | tenant + super   | start_date, end_date, settings JSONB, archived_at                |
+| `rooms`                 | tenant + super   | event_id FK, capacity, projection_type                           |
+| `sessions`              | tenant + super   | room_id FK, scheduled_start, scheduled_end, current_speaker_id   |
+| `speakers`              | tenant + super   | session_id FK (nullable per pool), email, presentation_id        |
+| `presentations`         | tenant + super   | session_id FK, current_version_id FK, slot_position, archived_at |
+| `presentation_versions` | tenant + super   | **APPEND-ONLY** — version_number, sha256, size_bytes, status     |
+| `room_state`            | tenant + super   | room_id PK, current_presentation_id, playback_mode (Sprint A)    |
+| `paired_devices`        | tenant + super   | room_id, pair_token_hash, network_mode, last_seen_at             |
+| `pairing_codes`         | service_role     | code TEXT 6 cifre, expires_at, consumed_at                       |
+| `team_invitations`      | tenant + super   | invite_token TEXT 32-byte hex, expires_at, accepted_at           |
+| `local_agents`          | tenant + super   | agent_id, lan_url, last_heartbeat_at, version                    |
+| `activity_log`          | tenant + super   | actor_user_id, action, entity_type, entity_id, metadata JSONB    |
+| `email_log`             | tenant + super   | template, recipient, sent_at, error                              |
+| `tenant_quota_usage`    | tenant + super   | computed view storage_used, events_count, rooms_count            |
+
+## Piano sprint piu' recente (riferimento Fase 15)
+
+Dettaglio in `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 (storia sprint sintetica) + `docs/STATO_E_TODO.md` (azioni pending). Per richieste rapide su uno sprint, leggere `field-test-fase15.mdc`.
+
+| Macro-fase     | Sprint | Stato     | Tema                                                                                                                                                    |
+| -------------- | ------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Field test** | A      | DONE      | playback_mode (auto/live/turbo) — tuning polling sala                                                                                                   |
+|                | B      | DONE      | Realtime Broadcast `room:<uuid>` — PC sala anon                                                                                                         |
+|                | C      | DONE      | Resume HTTP Range + verify SHA-256 + skip se completo                                                                                                   |
+|                | D      | DONE      | Bootstrap optimization (cached fields, manifest one-shot)                                                                                               |
+|                | E      | DONE      | Retry/backoff (E1) + storage guard (E3) + recovery (E2)                                                                                                 |
+|                | F      | DONE      | Bulk actions admin (move, delete, change presentation)                                                                                                  |
+|                | G      | DONE      | Drag&drop file fra sessioni (rpc_move_presentation_to...)                                                                                               |
+|                | H      | DONE      | File preview universale (PPT/PDF/Keynote thumbnail + zoom)                                                                                              |
+|                | I      | DONE      | "In onda" (current_presentation_id + RPC sicura)                                                                                                        |
+| **Desktop**    | J      | DONE      | Bootstrap Tauri 2 + plugin + NSIS                                                                                                                       |
+|                | K      | DONE      | Server Rust Axum locale + SQLite + storage                                                                                                              |
+|                | L      | DONE      | mDNS publish + browse                                                                                                                                   |
+|                | M      | DONE      | Persistenza assoluta sala (device.json)                                                                                                                 |
+|                | N      | DONE      | LAN push admin→sala (fan-out + long-poll)                                                                                                               |
+|                | O      | DONE      | Backend status hook + BackendModeBadge sidebar                                                                                                          |
+|                | P      | DONE      | Updater Tauri + DesktopUpdateBanner + release script                                                                                                    |
+|                | FT     | DONE      | Field Test Readiness Pack (smoke test + runbook + template)                                                                                             |
+|                | Q      | OPZIONALE | Sync hybrid cloud<->offline. GO/NO-GO post-field-test reale (vedi §17 della guida operativa per framework deterministico). Piano READY-TO-CODE in §5.A. |
+
+## Tre modalita di esecuzione del prodotto (§0.bis della guida)
+
+Ogni feature deve funzionare in tutte e tre le modalita o dichiarare esplicitamente quale tocca:
+
+| Modalita         | Backend                                    | Sync sala       | Quando si vende                                     |
+| ---------------- | ------------------------------------------ | --------------- | --------------------------------------------------- |
+| Cloud SaaS       | Supabase (PG + Auth + Storage + Realtime)  | Realtime PG     | Multi-sede, accesso da remoto                       |
+| Desktop intranet | Rust Axum locale + SQLite + mDNS           | LAN push + poll | Single-site senza Internet (fiere, navi, congressi) |
+| Hybrid (post-Q)  | Desktop master + Supabase backup push-only | LAN + cloud 60s | Backup cloud + multi-sede su rete instabile         |
+
+**Astrazioni chiave** (decoupling backend dai componenti):
+
+- `apps/web/src/lib/backend-mode.ts` → `getBackendMode()`, `getBackendBaseUrl()`, `isRunningInTauri()`
+- `apps/web/src/lib/backend-client.ts` → wrapper Supabase (cloud) o REST mirror Rust (desktop)
+- `apps/web/src/lib/realtime-client.ts` → `subscribeToTopic()` cloud=Realtime channel, desktop=long-poll `/events/stream`
+- `apps/web/src/components/BackendModeBadge.tsx` → chip status visibile sempre
+
+**Nessun componente deve avere `if (mode === 'cloud') { ... }` sparso.** L'astrazione vive nei file sopra; i componenti consumano API neutre.
+
+## Enforcement regola sovrana #2 (file da locale)
+
+I wrapper PC sala devono passare `enforceLocalOnly: true` a `useFilePreviewSource`. Una violazione produce errore i18n `sovereignViolation` + `console.error` con stack trace. Reference impl: `apps/web/src/features/devices/RoomPlayerView.tsx::RoomPreviewDialogContainer`. Vedi §0.bis della guida per la matrice completa di enforcement (anteprima, download, LAN, hybrid, lint, smoke test).
+
+## Note di design ricorrenti
+
+- **Append-only versions:** ogni nuovo upload = nuova riga `presentation_versions`. Mai UPDATE su righe esistenti (audit + rollback istantaneo).
+- **Topic Realtime UUID v4:** `room:<uuid>` non enumerable. Comunicato al PC sala anon SOLO da Edge Fn dopo validazione `device_token`.
+- **`if true` su rules sync cross-project:** NON applicabile a Live SLIDE CENTER (che e' single project Supabase). Quel pattern era specifico DHS↔Freelance (Spark).
+- **Doppia chain auth desktop:** in modalita desktop `DesktopAuthProvider` crea session fittizia (`desktop-fake-session.ts`); nel server Rust auth via `admin_token` (Bearer) + verify token via `auth.rs`.
+- **5 livelli network_mode:** non sono stati FSM rigidi ma "viste UI" del backend status corrente. Il vero stato e' su `paired_devices.network_mode` + reachability live.

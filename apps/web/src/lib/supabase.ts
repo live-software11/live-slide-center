@@ -67,6 +67,34 @@ export function getSupabaseBrowserClient(): SupabaseClient<Database> {
   }
   const url = import.meta.env.VITE_SUPABASE_URL!.trim();
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY!.trim();
-  browserClient = createClient<Database>(url, key);
+  // Hardening commerciale (Sprint Q+1):
+  //   - flowType: 'pkce'  → Authorization Code + PKCE (best practice SPA 2026,
+  //     nessun token nell'URL hash, mitigation MITM su redirect OAuth).
+  //   - storageKey         → namespace dedicato per evitare collisioni con
+  //     altre app Supabase aperte sullo stesso dominio (utile per super-admin
+  //     che apre piu' tenant in tab diverse: ognuno ha la propria sessione).
+  //   - x-application-name → identificatore custom in Postgres logs / pgAudit
+  //     per tracciare le query del frontend vs Edge Functions vs script.
+  //   - eventsPerSecond=10 → rate-limit Realtime client-side per evitare flood
+  //     accidentali di subscribe/unsubscribe in caso di re-render aggressivi.
+  browserClient = createClient<Database>(url, key, {
+    auth: {
+      flowType: 'pkce',
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+      storageKey: 'sb-slidecenter-auth',
+    },
+    global: {
+      headers: {
+        'x-application-name': 'live-slide-center-web',
+      },
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+    },
+  });
   return browserClient;
 }

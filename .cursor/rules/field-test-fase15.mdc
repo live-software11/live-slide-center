@@ -1,0 +1,360 @@
+---
+description: Roadmap Fase 15 (Sprint A-Q) field test + offline desktop — leggere per pianificare/chiudere uno sprint
+alwaysApply: false
+---
+
+# Fase 15 — Field Test + Offline Desktop (Sprint A-Q)
+
+> Fonte primaria: `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` (sezioni 14, 22). Questa rule e' una mappa veloce per sapere cosa-fa-cosa, come si verifica, e quale codice e' coinvolto.
+> Per architettura completa: `architecture-deep.mdc`. Per attualita' codice: i file linkati di volta in volta.
+> Per cose da fare ORA: `docs/STATO_E_TODO.md`.
+>
+> **Tre modalita di esecuzione del prodotto** (vedi `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 3): Cloud SaaS / Desktop intranet offline / Hybrid (post-Q). Ogni feature deve funzionare in tutte e tre le modalita o dichiarare esplicitamente quale tocca.
+>
+> **Regola sovrana #2 (file da locale)**: enforcement programmatico via `useFilePreviewSource({ enforceLocalOnly: true })` nei wrapper PC sala — vedi `RoomPlayerView.tsx` come reference. Una violazione produce `sovereignViolation` (i18n) + console.error con stack trace, intercettando regressioni in dev.
+
+## Macro-fasi
+
+- **Sprint A-I (FIELD TEST cloud — Fase 15.1):** rifinitura prodotto cloud per uso reale in eventi live. **Tutti DONE.**
+- **Sprint J-P (DESKTOP OFFLINE — Fase 15.2):** binario Tauri 2 unico (admin/sala) con server Rust + LAN + mDNS. **Tutti DONE.**
+- **Sprint FT (FIELD TEST READINESS PACK — Fase 15.2.5):** smoke test, runbook eseguibile, template feedback con regola GO/NO-GO misurabile. **DONE 2026-04-18.**
+- **Field test desktop:** RINVIATO per scelta Andrea. Procedura completa pronta in `docs/STATO_E_TODO.md` § 3 (preparazione T-2 / smoke T-1 / esecuzione T / decisione T+1) + template feedback inline (§ 3.5).
+- **Sprint Q (HYBRID SYNC CLOUD<->OFFLINE — Fase 15.3, OPZIONALE):** decisione GO/NO-GO **vincolata** al framework deterministico in `docs/STATO_E_TODO.md` § 4.2 (5 domande SI/NO, soglia 2 SI). Pianificazione solo dopo il field test. **Piano READY-TO-CODE** in `docs/STATO_E_TODO.md` § 4.3 (file, RPC, schema, UI, costi, test).
+
+## Sprint A — playback_mode tuning sala
+
+**Goal:** tre modalita' polling Room Player adatte al contesto evento.
+
+**Modi:**
+
+- `auto` (default sale piccole): polling 12s, 1 download concorrente, no throttle.
+- `live` (sale grandi con presentazioni in corso): polling 60s, 1 download concorrente, throttle 50ms ogni 4MB (per non saturare WiFi sala).
+- `turbo` (setup pre-evento): polling 5s, 3 download concorrenti, no throttle.
+
+**File:**
+
+- DB: `supabase/migrations/20260418000000_room_state_playback_mode.sql` (ENUM + colonna).
+- SPA: `apps/web/src/features/room-player/hooks/useFileSync.ts` (logica throttle + concurrent), `useRoomPlayerBootstrap.ts` (timer sec).
+- UI admin: `features/live-view/RoomCard.tsx` switch modalita.
+- i18n: chiavi `roomPlayer.playbackMode.*`.
+
+**Verifica:** in `/sala/<token>` cambia modalita' da admin → sala scarica file con il timing nuovo entro un round.
+
+## Sprint B — Realtime Broadcast PC sala anon
+
+**Goal:** sala anon (no Supabase session) riceve eventi senza polling tight.
+
+**Meccanica:**
+
+- Trigger PG `SECURITY DEFINER` chiama `realtime.send(payload, event, 'room:<uuid>', false)` su `room_state` UPDATE e `presentations.current_version_id` change.
+- Topic = `room:<UUID v4>` (non enumerable). Comunicato al client SOLO da `room-player-bootstrap` dopo validazione `device_token`.
+- SPA sala: `supabase.channel('room:<uuid>').on('broadcast', { event: '*' }, ...)`.
+
+**File:**
+
+- DB: `supabase/migrations/20260418010000_room_realtime_broadcast.sql`.
+- SPA: `features/room-player/hooks/useRoomBroadcast.ts`.
+- i18n: `realtime.*`.
+
+**Verifica:** sala vede `presentation_changed` entro 1 sec dal click admin.
+
+## Sprint C — Resume HTTP Range + verify SHA-256
+
+**Goal:** download riprende da dove si era interrotto (ridurre RTT su file >100MB).
+
+**Meccanica:**
+
+- `getExistingFileSize()` lato sala (File System Access API).
+- Se size > 0: header `Range: bytes=N-` su fetch. Server risponde 206 (partial) o 200 (full re-download fallback).
+- Skip se file gia' completo.
+- `verifyFileSha256` one-shot per file ≤ 512 MiB (Web Crypto digest non e' streaming → file enormi → `'skipped'`).
+
+**File:**
+
+- SPA: `features/room-player/hooks/useFileSync.ts` (`downloadVersionResumable`).
+- i18n: `roomPlayer.fileSync.resuming`, `verifying`.
+
+**Verifica:** interrompi download manualmente (chiudi tab) → riapri sala → riprende dall'offset.
+
+## Sprint D — Bootstrap optimization
+
+**Goal:** ridurre payload `room-player-bootstrap` da call iniziale + polling a (a) bootstrap iniziale completo, (b) polling delta minimi.
+
+**Meccanica:**
+
+- D1: Edge Fn ritorna `network_mode`, `agent_lan_url`, `manifest` cached.
+- D2: Sala chiama bootstrap full ogni 5 minuti, polling sintetico (solo state) negli intermedi.
+
+**File:**
+
+- `supabase/functions/room-player-bootstrap/index.ts`.
+- SPA: `features/room-player/hooks/useRoomPlayerBootstrap.ts`.
+
+## Sprint E — Affidabilita' (E1 retry, E2 recovery, E3 storage guard)
+
+**E1 — Retry/backoff per Edge Fn polling:**
+
+- Wrapper `lib/fetch-with-retry.ts`. Backoff `[500, 2000, 8000]` su `408/425/429/5xx`. AbortSignal rispettato.
+
+**E2 — Recovery wifi/storage:**
+
+- Detection offline (`navigator.onLine` + ping bootstrap). UI badge "Riconnessione...". Auto-resume al ritorno online.
+
+**E3 — Storage guard:**
+
+- `getStorageEstimate()` pre-download. Se `available < size * 1.1` → abort con `errorMessage: 'storage_full'`. UI alert con istruzioni utente.
+
+**File:**
+
+- `apps/web/src/lib/fetch-with-retry.ts`.
+- SPA: `features/room-player/hooks/useFileSync.ts` (storage check), `useRoomPlayerOnline.ts` (E2).
+- i18n: `roomPlayer.fileSync.errors.storageFull`, `roomPlayer.connection.recovering`.
+
+## Sprint F — Bulk actions admin
+
+**Goal:** azioni multi-selezione su lista presentazioni.
+
+**Funzioni:**
+
+- Selezione checkbox + select all visibili.
+- Azioni: cancella, sposta tra sessioni, cambia versione corrente, archivia.
+- Conferma dialog con riepilogo + count.
+- Esecuzione sequenziale con progress bar + report errori per row.
+
+**File:**
+
+- SPA: `features/presentations/components/BulkActionsBar.tsx`, `useBulkActions.ts`.
+- i18n: `bulkActions.*`.
+
+## Sprint G — Drag & drop file fra sessioni
+
+**Goal:** admin trascina file/presentazione da una sessione a un'altra (stessa room o cross-room).
+
+**Meccanica:**
+
+- Library: `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/modifiers`.
+- RPC `rpc_move_presentation_to_session(presentation_id, target_session_id, target_position)`.
+- Optimistic UI + rollback su errore.
+
+**File:**
+
+- DB: `supabase/migrations/20260418020000_move_presentation_to_session.sql`.
+- SPA: `features/presentations/hooks/useDragMove.ts`, view EventsView matrix.
+- i18n: `sessionFiles.dragMove.*`.
+
+## Sprint H — File preview universale
+
+**Goal:** anteprima inline di PPT/PPTX/PDF/Keynote/JPG/PNG senza download.
+
+**Meccanica:**
+
+- Server Edge Fn `file-preview` (NON in lista 15 — riservato Sprint H, valutare implementazione).
+- Storage signed URL temporaneo + viewer iframe.
+- Cache lato client (memory + IndexedDB) per N preview recenti.
+
+**File:**
+
+- SPA: `features/presentations/components/FilePreview.tsx`, `useFilePreviewSource.ts`.
+- i18n: `filePreview.*`.
+
+**Stato:** UI completa, server preview generation in valutazione (Sprint Q?).
+
+## Sprint I — "In onda" (current_presentation_id)
+
+**Goal:** admin vede subito quale presentazione e' attualmente proiettata in sala.
+
+**Meccanica:**
+
+- Colonna `room_state.current_presentation_id` (Sprint I).
+- RPC `rpc_room_player_set_current(device_token, presentation_id)` SECURITY DEFINER:
+  - Verifica `device_token` valido (sha256 contro `paired_devices.pair_token_hash`).
+  - Verifica presentazione appartiene a stessa `room_id`.
+  - UPDATE `room_state.current_presentation_id`.
+  - Trigger Broadcast `room_state_changed`.
+- UI admin: `<NowPlayingBadge>` per ogni room card (`live-view/`).
+
+**File:**
+
+- DB: `supabase/migrations/20260418030000_room_state_now_playing.sql`.
+- Edge Fn: `room-player-set-current`.
+- SPA: `features/live-view/components/NowPlayingBadge.tsx`.
+- i18n: `roomPlayer.nowPlaying.*`.
+
+## Sprint J — Bootstrap Tauri 2 (DESKTOP)
+
+**Goal:** binario singolo Tauri 2 con plugin minimi e NSIS Windows.
+
+**File chiave:**
+
+- `apps/desktop/src-tauri/Cargo.toml` (Tauri 2 + 5 plugin: shell, fs, http, notification, dialog).
+- `apps/desktop/src-tauri/tauri.conf.json` (identifier `com.liveworksapp.slidecenter`, NSIS `language: ['Italian','English']`).
+- `apps/desktop/src-tauri/src/main.rs` (bootstrap, command `cmd_app_info`).
+- `apps/desktop/package.json` (script `dev`, `build`, `release:nsis`).
+
+**Verifica:** `pnpm dev:desktop` → finestra Tauri carica SPA Vite localhost:5173. `pnpm --filter @slidecenter/desktop release:nsis` → installer NSIS in `target/release/bundle/nsis/`.
+
+## Sprint K — Server Rust locale Axum
+
+**Goal:** mirror Supabase su `127.0.0.1:<porta dinamica>`.
+
+**Componenti:**
+
+- K1: bootstrap (porta libera scelta dinamicamente, `admin_token` random 32 byte).
+- K2: route `/rest/v1/<table>` PostgREST minimal.
+- K3: route `/storage/v1/object/...` upload (`multipart/form-data`) + `/storage-files/...` download.
+- K4: HTTP Range support (header `headers` crate).
+- K5: route `/functions/v1/pair-init` + `pair-claim` (codice 6 cifre, sha256 token).
+
+**File:**
+
+- `src-tauri/src/server/mod.rs` (boot Axum + middleware CORS).
+- `src-tauri/src/server/routes/{rest,rpc,storage_routes,functions,lan_events_routes}.rs`.
+- `src-tauri/src/server/{db,storage,auth,error,pgrest}.rs`.
+
+## Sprint L — mDNS publish + browse + role
+
+**Goal:** discovery PC LAN senza configurazione manuale IP.
+
+**Componenti:**
+
+- L1: `~/SlideCenter/role.json` (`admin` | `sala`). Tauri commands `cmd_get_role` / `cmd_set_role`.
+- L2: publish mDNS `_slidecenter._tcp.local` con TXT records `role`, `version`, `port`.
+- L3: `cmd_discover_lan_pcs(role_filter, timeout_ms)` browse one-shot.
+- L4-L5: gestione `mdns-sd` lifecycle, restart su cambio role.
+
+**File:**
+
+- `src-tauri/src/role.rs`.
+- `src-tauri/src/server/mdns.rs`.
+
+## Sprint M — Persistenza assoluta sala
+
+**Goal:** PC sala configurato non perde stato a riavvio.
+
+**Meccanica:**
+
+- M1: backend Rust persiste `paired_devices` in SQLite locale.
+- M2: backend persiste anche `~/SlideCenter/device.json` con metadata pairing (device_id, event_id, room_id, network_mode, paired_at).
+- M3: SPA al boot legge `cmd_get_persisted_device` → se presente → skip schermata pairing → entra direttamente in Room Player.
+
+**File:**
+
+- `src-tauri/src/server/device_persist.rs`.
+- SPA: `apps/web/src/features/auth/desktop-fake-session.ts`, `app/desktop-role-gate.tsx`.
+
+## Sprint N — LAN push admin → sala
+
+**Goal:** sala riceve nuovo file in <1 sec senza Internet.
+
+**Componenti:**
+
+- N1: `lan_push.rs` su admin → POST `/events/file_added` su tutti i `paired_devices` con `network_mode='lan-online'` (timeout 800ms, fan-out concorrente).
+- N2: ring buffer eventi su sala (`lan_events.rs`) con sequence number monotonico.
+- N3: long-poll endpoint `/events/stream?since=<seq>&event_id=<uuid>` (server timeout 25s, client AbortController 30s).
+- SPA sala: hook `useLanEvents` (`lib/realtime-client.ts -> subscribeToTopic` rileva modalita' LAN).
+
+**File:**
+
+- `src-tauri/src/server/{lan_push,lan_events}.rs`.
+- `src-tauri/src/server/routes/lan_events_routes.rs`.
+- SPA: `apps/web/src/lib/desktop-bridge.ts -> fetchLanEvents`.
+
+## Sprint O — Backend status visibile
+
+**Goal:** utente sa sempre se e' in cloud, lan, standalone, offline.
+
+**Componenti:**
+
+- O1: hook `useBackendStatus()` 5 stati (`cloud-online`, `cloud-offline`, `lan-connected`, `standalone`, `loading`).
+- O2: `<BackendModeBadge>` nella sidebar (chip colorato + icona).
+- O3: astrazione `subscribeToTopic(topic, options)` in `lib/realtime-client.ts` — cloud usa `supabase.channel()`, desktop usa long-poll N3.
+
+**File:**
+
+- `apps/web/src/lib/use-backend-status.ts`, `backend-mode.ts`, `realtime-client.ts`.
+- SPA: `apps/web/src/components/BackendModeBadge.tsx`.
+
+## Sprint P — Auto-update Tauri
+
+**Goal:** desktop si aggiorna senza intervento utente.
+
+**Componenti:**
+
+- P1: signing key generation `cargo tauri signer generate -w ~/.tauri/slidecenter-desktop.key`. Documentato in `apps/desktop/UPDATER_SETUP.md`.
+- P2: `tauri.conf.json -> plugins.updater.endpoints` punta a GitHub Releases JSON.
+- P3: `<DesktopUpdateBanner>` nel `RootLayout` — check al boot + ogni 30 min. Tauri commands `cmd_check_for_update` + `cmd_install_update_and_restart`.
+- P4: wrapper PowerShell `apps/desktop/scripts/release.ps1` user-friendly (verifica `gh auth=live-software11`, copia artifact, sha256, changelog).
+
+**File:**
+
+- `src-tauri/Cargo.toml` (aggiunge `tauri-plugin-updater` + `tauri-plugin-process` target-gated desktop).
+- `src-tauri/src/main.rs` (cmd updater).
+- SPA: `features/desktop-updates/DesktopUpdateBanner.tsx`.
+- `apps/desktop/scripts/release.ps1`.
+- i18n: `desktopUpdater.*`.
+
+## Sprint FT — Field Test Readiness Pack ✅ DONE (2026-04-18)
+
+**Goal:** rendere il field test desktop di Settimana 9 eseguibile da una sola persona (Andrea + un tecnico), riproducibile su qualsiasi PC, e con esito **misurabile** (GO/NO-GO produzione + GO/NO-GO Sprint Q basato su dati, non su intuito).
+
+**Componenti:**
+
+- **FT1 — Smoke test automatizzato:**
+  - `apps/desktop/scripts/smoke-test.mjs` (Node 22+, sola lettura, 8 check: installer NSIS, `/health`, `/info`, PostgREST `/rest/v1/events`, mDNS, RTT loopback p95 < 50 ms, free space >= 5 GB, porta 7300 in LISTEN).
+  - Severity `critical`/`warn`/`info`: exit code 0 solo se tutti i `critical` passano.
+  - Output testuale + flag `--json` per pipeline + `--out <file>` per report.
+  - Wrapper `apps/desktop/scripts/smoke-test.ps1` (verifica Node, salva in `~/Documents/SlideCenterFieldTest/`, apre Explorer).
+  - Script npm: `pnpm --filter @slidecenter/desktop smoke-test` / `smoke-test:json` / `smoke-test:sala`.
+
+- **FT2 — Runbook eseguibile:**
+  - Procedura completa in `docs/STATO_E_TODO.md` § 3 (preparazione T-2 / smoke T-1 / esecuzione T / decisione T+1).
+  - Pensato per essere stampato e seguito riga per riga durante il field test.
+
+- **FT3 — Template feedback con regola decisionale:**
+  - Template inline in `docs/STATO_E_TODO.md` § 3.5 (10 sezioni: metadata, inventario PC, esiti smoke test, esiti checklist 10 punti, test critici stress 4K + resilienza rete + persistenza, bug rilevati, KPI con mediana + p95, decisione GO/NO-GO produzione **e** GO/NO-GO Sprint Q).
+  - Decisione Sprint Q in `docs/STATO_E_TODO.md` § 4.2: **5 domande SI/NO + soglia 2 SI -> GO Q**. La decisione su Sprint Q non e' rimandabile: viene presa con dati raccolti in field test.
+
+**Verifica FT:** smoke test gira con Node 22 senza errori; runbook eseguibile da una persona; template feedback ha regola decisionale **misurabile** non lasciata al sentiment.
+
+## Prossimo step REALE — Field Test Desktop Offline (RINVIATO per scelta Andrea)
+
+**NON e' "iniziare Sprint Q".** Quando Andrea decidera' di eseguire il field test (evento DHS reale o cliente esterno richiedente), seguire la procedura completa.
+
+**Procedura:**
+
+1. Segui `docs/STATO_E_TODO.md` § 3 step-by-step (T-2 → T-1 → T → T+1).
+2. Pre-volo automatizzato: `pnpm --filter @slidecenter/desktop smoke-test:sala` su ogni PC field-test (deve restituire `>>> SEMAFORO VERDE` su 100% PC).
+3. Compila il template inline in `docs/STATO_E_TODO.md` § 3.5 (copia in `docs/feedback/<data>_field_test_desktop/REPORT.md`).
+4. Sezione 7 del template: decisione GO/NO-GO **produzione**.
+5. Framework `docs/STATO_E_TODO.md` § 4.2: decisione GO/NO-GO **Sprint Q** (5 domande, soglia 2 SI).
+
+## Sprint Q — Sync Hybrid Cloud<->Offline (OPZIONALE, post-field-test)
+
+**Stato:** **NON in progress.** Decisione vincolata al framework deterministico in `docs/STATO_E_TODO.md` § 4.2 (5 domande SI/NO, soglia 2 SI).
+
+**Goal (se GO):** quando il desktop torna online, sincronizza con cloud Supabase per backup/condivisione cross-sede.
+
+**Tempo stimato:** 5-7 giorni.
+
+**Quando NON serve:** uso interno aziendale single-site senza necessita di backup cloud o condivisione fra sedi distinte.
+
+**Piano READY-TO-CODE:** dettaglio completo in `docs/STATO_E_TODO.md` § 4.3 (giorno per giorno, file, RPC, schema, UI, costi, test manuali).
+
+**Acceptance Sprint Q (per merge):** typecheck + lint + cargo check + cargo clippy --all-targets -- -D warnings exit 0 + test manuali documentati con screenshot in `docs/feedback/<data>_sprint_q_qa/REPORT.md`.
+
+## Sprint successivi (futuro, da pianificare DOPO Q)
+
+- **R — Multi-evento parallelo:** un PC sala assegnato a piu' eventi (ad oggi: 1 device = 1 event).
+- **S — Mobile companion:** app React Native per coordinator (vista live + bulk actions ridotte).
+- **T — AI features:** analisi audio sala (Whisper offline) per matching speaker → file caricato.
+
+## Hardening cross-platform & code-signing (NON e' Sprint Q)
+
+Sono attivita **trasversali** non assegnate a uno sprint specifico:
+
+- Code-sign Windows EV cert (evita SmartScreen): documentato in `apps/desktop/UPDATER_SETUP.md` (Sprint P1). Acquisto cert e firma e' decisione commerciale, non sprint di codice.
+- macOS .dmg signed + notarized: richiede Apple Developer account. Pianificare quando primo cliente macOS lo richiede.
+- Linux AppImage / .deb: pianificare on demand.
+- Telemetry opt-in (Sentry anonymized): valutare dopo i primi clienti paganti.
+
+Per richieste specifiche su sprint chiuso: link al codice + verifica nel piano `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 (storia sprint sintetica) con `Ctrl+F "Sprint X"`.

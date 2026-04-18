@@ -705,7 +705,8 @@ export type Database = {
           tenant_id: string;
           email: string;
           role: Database['public']['Enums']['user_role'];
-          invited_by_user_id: string;
+          invited_by_user_id: string | null;
+          invited_by_role: string;
           invite_token: string;
           invite_token_expires_at: string;
           accepted_at: string | null;
@@ -717,7 +718,8 @@ export type Database = {
           tenant_id: string;
           email: string;
           role?: Database['public']['Enums']['user_role'];
-          invited_by_user_id: string;
+          invited_by_user_id?: string | null;
+          invited_by_role?: string;
           invite_token: string;
           invite_token_expires_at?: string;
           accepted_at?: string | null;
@@ -729,7 +731,8 @@ export type Database = {
           tenant_id?: string;
           email?: string;
           role?: Database['public']['Enums']['user_role'];
-          invited_by_user_id?: string;
+          invited_by_user_id?: string | null;
+          invited_by_role?: string;
           invite_token?: string;
           invite_token_expires_at?: string;
           accepted_at?: string | null;
@@ -909,6 +912,22 @@ export type Database = {
           p_entity_type?: string | null;
           p_limit?: number;
           p_offset?: number;
+        };
+        Returns: Json;
+      };
+      admin_create_tenant_with_invite: {
+        Args: {
+          p_name: string;
+          p_slug: string;
+          p_plan: Database['public']['Enums']['tenant_plan'];
+          p_storage_limit_bytes: number;
+          p_max_events_per_month: number;
+          p_max_rooms_per_event: number;
+          p_max_devices_per_room: number;
+          p_expires_at: string | null;
+          p_license_key: string | null;
+          p_admin_email: string;
+          p_app_url: string;
         };
         Returns: Json;
       };

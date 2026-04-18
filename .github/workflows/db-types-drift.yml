@@ -1,0 +1,80 @@
+name: DB Types Drift Check
+
+# Sprint Q+1 hardening commerciale.
+# Scopo: rilevare quando una migration aggiunge/modifica colonne ma `database.ts`
+# non viene rigenerato, per evitare runtime error tipo "column not found" o
+# missing field in TypeScript checked code.
+#
+# Strategia:
+#   1. Avvio Supabase locale (Postgres + tutte le migrations applicate).
+#   2. Genero i types via `supabase gen types typescript --local`.
+#   3. Diff vs `packages/shared/src/types/database.ts` versionato.
+#   4. Se differiscono, fail della PR con messaggio chiaro su come rigenerare.
+#
+# Nota: il workflow `RLS Audit` gia' esegue `supabase start`, ma su CI separato.
+# Per ora teniamo i due workflow distinti per chiarezza di output (un fail RLS
+# vs fail types ha rimedio diverso).
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**.sql'
+      - 'packages/shared/src/types/database.ts'
+      - '.github/workflows/db-types-drift.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**.sql'
+      - 'packages/shared/src/types/database.ts'
+  workflow_dispatch:
+
+concurrency:
+  group: db-types-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  drift-check:
+    name: Verify packages/shared/src/types/database.ts allineato a migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.20.3
+
+      - name: Avvio Supabase local (Postgres + migrations)
+        run: |
+          supabase start --workdir . --exclude studio,inbucket,imgproxy,storage-api,edge-runtime,realtime,functions
+        env:
+          SUPABASE_INTERNAL_BACKOFF: '1'
+
+      - name: Genera types attesi dal DB locale
+        run: |
+          mkdir -p .ci-tmp
+          supabase gen types typescript --local --schema public > .ci-tmp/database.expected.ts
+
+      - name: Diff vs file versionato
+        run: |
+          set -e
+          if ! diff -q packages/shared/src/types/database.ts .ci-tmp/database.expected.ts > /dev/null; then
+            echo "::error::DRIFT: packages/shared/src/types/database.ts non e' allineato alle migration."
+            echo ""
+            echo "Per risolvere localmente:"
+            echo "  pnpm db:types:local   # se hai supabase CLI + Docker locale"
+            echo "  # oppure"
+            echo "  pnpm db:types         # se SUPABASE_PROJECT_REF e SUPABASE_ACCESS_TOKEN sono settati"
+            echo ""
+            echo "── DIFF (atteso vs versionato) ──"
+            diff -u packages/shared/src/types/database.ts .ci-tmp/database.expected.ts || true
+            exit 1
+          fi
+          echo "::notice::DB types allineati alle migration. Nessun drift."
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop --workdir . --no-backup

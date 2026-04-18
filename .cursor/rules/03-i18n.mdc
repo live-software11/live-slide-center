@@ -1,0 +1,110 @@
+---
+description: i18n IT/EN — completezza obbligatoria per ogni stringa UI
+alwaysApply: true
+---
+
+# i18n — Completezza IT/EN obbligatoria
+
+## Regola sovrana (zero eccezioni)
+
+**Ogni stringa IT visibile in UI deve avere coppia EN professionale nello STESSO commit.**
+
+- Lingua di programmazione: **Italiano** (commenti, sorgenti, naming feature in IT).
+- Lingua UI: **IT + EN** sempre paralleli.
+- Tono EN: B2B professionale, terminologia eventi live / AV / congressi / presentation management.
+
+## Stack i18n
+
+- `i18next` + `react-i18next`
+- File: `packages/shared/src/i18n/locales/it.json` + `en.json`
+- `LanguageDetector` (`localStorage` + `navigator`) configurato in `packages/shared/src/i18n/index.ts`
+- Override manuale in `/settings` via `i18n.changeLanguage('it'|'en')` (Fase 12)
+
+## Cosa va tradotto (ZERO eccezioni)
+
+- Etichette, pulsanti, placeholder, tooltip, titoli pagina
+- `aria-label`, `title`, messaggi errore form, validazioni Zod
+- Componenti shadcn customizzati (Dialog, Toast, Combobox)
+- Empty state, loading state, error state
+- Email body / subject (Edge Functions `email-send`, `team-invite-accept`)
+
+## Cosa NON va tradotto (lasciare in inglese internazionale)
+
+- Nomi prodotto: `Live SLIDE CENTER`, `Slide Center`, `Live PLAN`, `Live CREW`, `Live WORKS APP`
+- Termini tecnici: `Edge Function`, `RLS`, `JWT`, `RPC`, `TUS`, `mDNS`, `LAN`
+- Codici errore tecnici interni (`device_not_found`, `permission_denied` — l'utente vede il messaggio i18n associato, non il codice)
+
+## Pattern obbligatorio
+
+```typescript
+import { useTranslation } from 'react-i18next';
+
+function MyComponent() {
+  const { t } = useTranslation();
+  return <Button aria-label={t('events.create.aria')}>{t('events.create')}</Button>;
+}
+```
+
+**MAI** stringhe IT hardcoded in JSX. Esempio anti-pattern:
+
+```typescript
+<Button>Crea evento</Button>  // VIETATO
+<Button>{t('events.create')}</Button>  // OK (con coppia IT/EN in it.json + en.json)
+```
+
+## Validazione Zod con i18n
+
+```typescript
+import { z } from 'zod';
+import type { TFunction } from 'i18next';
+
+export const eventSchema = (t: TFunction) =>
+  z.object({
+    name: z.string().min(1, t('events.errors.nameRequired')),
+    start_date: z.string().min(1, t('events.errors.startRequired')),
+  });
+```
+
+## Naming chiavi (convenzioni)
+
+- Namespace per feature: `events.*`, `rooms.*`, `sessions.*`, `roomPlayer.*`, `devices.*`, `billing.*`, `settings.*`, `team.*`, `audit.*`
+- Sub-key strutturati: `events.create.title`, `events.create.button`, `events.create.success`, `events.create.errors.duplicateName`
+- Accessibilita prefissata: `a11y.*` per etichette riusabili, oppure suffisso `.aria` (es. `events.create.aria`)
+- Plurale i18next: `_one` / `_other` (es. `roomPlayer.nowPlaying.timeMinutes_one`, `..._other`)
+- Dominio di Sprint A-P: `roomPlayer.playbackMode.*`, `realtime.*`, `bulkActions.*`, `eventSearch.*`, `queueUpload.*`, `sessionFiles.dragMove.*`, `filePreview.*`, `desktopUpdater.*`, `backendMode.*`, `desktopRole.*`
+
+## Terminologia di dominio (riferimento)
+
+| IT                 | EN                       |
+| ------------------ | ------------------------ |
+| Evento             | Event                    |
+| Sala               | Room                     |
+| Sessione           | Session                  |
+| Relatore / Speaker | Speaker / Presenter      |
+| Presentazione      | Presentation             |
+| Centro Slide       | Slide Center             |
+| Regia              | Control Room / Live View |
+| Agente Locale      | Local Agent              |
+| Versione           | Version                  |
+| Sincronizzazione   | Synchronization          |
+| Caricamento        | Upload                   |
+| Scaricamento       | Download                 |
+| In onda            | On Air / Now Playing     |
+| Modalita LIVE      | LIVE mode                |
+| Modalita TURBO     | TURBO mode               |
+
+Nome commerciale: `t('app.displayName')` (`Slide Center`). Mai duplicare hardcoded.
+
+## Documentazione (`docs/*.md`)
+
+- Bilingue: contenuto IT primario + sezione/blocchi EN per riassunti tecnici di paragrafi sostanziali (`**EN:**` introduce la versione inglese).
+- Stile: chiaro, professionale, dominio eventi live/AV.
+
+## Desktop Tauri (`apps/desktop`)
+
+- Installer NSIS: `Italian` + `English` come display languages.
+- UI runtime: stessa SPA del cloud → stesse chiavi `it.json`/`en.json`.
+
+## Verifica parity
+
+Prima di chiudere un task con nuove chiavi: `it.json` e `en.json` devono avere lo **stesso set di chiavi** (parity). Diff via `node -e "const a=Object.keys(require('./it.json')); const b=Object.keys(require('./en.json')); console.log(a.filter(k=>!b.includes(k)))"` o tooling equivalente.

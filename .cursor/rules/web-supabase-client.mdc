@@ -1,0 +1,248 @@
+---
+description: Pattern client Supabase — repository, query, Realtime, Storage, TUS upload (apps/web)
+globs:
+  [
+    'apps/web/src/lib/supabase.ts',
+    'apps/web/src/lib/backend-client.ts',
+    'apps/web/src/lib/realtime-client.ts',
+    'apps/web/src/lib/desktop-bridge.ts',
+    'apps/web/src/lib/desktop-backend-init.ts',
+    'apps/web/src/features/**/repository.ts',
+    'apps/web/src/features/**/hooks/use*.ts',
+  ]
+alwaysApply: false
+---
+
+# Supabase Client Patterns — apps/web
+
+> Per migration / RLS / Edge Functions: `supabase-db.mdc`. Per principi RLS: `01-data-isolation.mdc`.
+
+## Client Supabase (cloud + desktop)
+
+```typescript
+// apps/web/src/lib/supabase.ts
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@slidecenter/shared';
+import { getBackendMode } from './backend-mode';
+import { getDesktopBackendInitialized } from './desktop-backend-init';
+
+let cachedClient: SupabaseClient<Database> | null = null;
+
+export function getSupabaseBrowserClient(): SupabaseClient<Database> {
+  if (cachedClient) return cachedClient;
+  if (getBackendMode() === 'desktop') {
+    const info = getDesktopBackendInitialized();
+    cachedClient = createClient<Database>(info.base_url, info.admin_token, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      global: {
+        headers: { apikey: info.admin_token, Authorization: `Bearer ${info.admin_token}` },
+      },
+    });
+  } else {
+    cachedClient = createClient<Database>(
+      import.meta.env.VITE_SUPABASE_URL,
+      import.meta.env.VITE_SUPABASE_ANON_KEY,
+    );
+  }
+  return cachedClient;
+}
+```
+
+**Regola:** mai chiamare `createClient` direttamente in feature/repository — sempre `getSupabaseBrowserClient()` o l'alias semantico `getBackendClient()` di `lib/backend-client.ts`.
+
+## Repository pattern
+
+```typescript
+// apps/web/src/features/events/repository.ts
+import { getSupabaseBrowserClient } from '../../lib/supabase';
+import type { Database } from '@slidecenter/shared';
+type Event = Database['public']['Tables']['events']['Row'];
+
+export async function listEvents(): Promise<Event[]> {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .order('start_date', { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  return data;
+}
+
+export async function getEventWithRooms(eventId: string) {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from('events')
+    .select('*, rooms (*, sessions (*, speakers (*)))')
+    .eq('id', eventId)
+    .single();
+  if (error) throw error;
+  return data;
+}
+```
+
+**Regole query:**
+
+- Sempre `limit()` sulle liste (cap 50-200 secondo UX).
+- RLS filtra automaticamente per `tenant_id` — **NON** aggiungere `.eq('tenant_id', ...)` lato client (eccezione: super_admin).
+- `select('campo1, campo2')` invece di `select('*')` per query frequenti / heatpath.
+- Join con sintassi embedded: `select('*, rooms(*)')`. `!inner` per inner join (es. `presentations!inner -> sessions -> rooms`).
+- **Update:** `from('table').update({...}).eq('id', id).select().single()` — RLS protegge contro cross-tenant tampering.
+- **Delete:** `from('table').delete().eq('id', id)` — RLS = barriera tenant. Attenzione `ON DELETE CASCADE`: sala → sessioni+relatori; sessione → relatori. UI: conferma a due passaggi + hint CASCADE.
+
+## Realtime pattern
+
+### Postgres changes (utente autenticato — admin / coordinator)
+
+```typescript
+useEffect(() => {
+  if (!eventId) return;
+  const supabase = getSupabaseBrowserClient();
+  const channel = supabase
+    .channel(`room_state:${eventId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'room_state',
+        filter: `event_id=eq.${eventId}`,
+      },
+      (payload) => {
+        // ... aggiorna stato
+      },
+    )
+    .subscribe();
+  return () => {
+    void supabase.removeChannel(channel);
+  };
+}, [eventId]);
+```
+
+**Regole Realtime:**
+
+- Sempre cleanup con `removeChannel` nel return dell'effect.
+- Channel name include context (`eventId`/`roomId`) per evitare conflitti.
+- `filter` nel `.on()` per ridurre traffico — **MAI** filter globali tipo `status=eq.ready` su tabelle condivise (riceveresti eventi di TUTTI i tenant).
+- Realtime attivo su: `room_state`, `presentations`, `presentation_versions`, `local_agents`, `paired_devices`. NO Realtime su `activity_log` (polling 10s).
+
+### Broadcast (utente anon — Room Player PC sala, Sprint B)
+
+```typescript
+const channel = supabase
+  .channel(`room:${roomId}`)
+  .on('broadcast', { event: '*' }, (payload) => {
+    // 'presentation_changed' o 'room_state_changed'
+  })
+  .subscribe();
+```
+
+I trigger PG `SECURITY DEFINER` (vedi `supabase-db.mdc`) pubblicano su `room:<uuid>` con `private=false`. Topic UUID v4 non enumerable, comunicato al client SOLO da `room-player-bootstrap` dopo validazione `device_token`.
+
+### Astrazione cloud/desktop (Sprint O3)
+
+```typescript
+import { subscribeToTopic } from '../../lib/realtime-client';
+
+const sub = subscribeToTopic(`room:${roomId}`, {
+  events: ['presentation_changed', 'room_state_changed'],
+  onMessage: (event, payload) => {
+    /* ... */
+  },
+});
+return () => sub.unsubscribe();
+```
+
+In cloud usa `supabase.channel(...)`, in desktop usa long-poll `/events/stream` (Sprint N3).
+
+## Storage upload (TUS resumable)
+
+```typescript
+import * as tus from 'tus-js-client';
+
+const storagePath = `tenants/${tenantId}/events/${eventId}/presentations/${presentationId}/v${versionNumber}/${file.name}`;
+
+const upload = new tus.Upload(file, {
+  endpoint: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/upload/resumable`,
+  retryDelays: [0, 3000, 5000, 10000, 20000],
+  headers: { authorization: `Bearer ${sessionToken}` },
+  chunkSize: 6 * 1024 * 1024, // 6 MB OBBLIGATORIO per Supabase TUS
+  metadata: {
+    bucketName: 'presentations',
+    objectName: storagePath,
+    contentType: file.type,
+    cacheControl: '3600',
+  },
+  onProgress: (uploaded, total) => onProgress(Math.round((uploaded / total) * 100)),
+  onSuccess,
+  onError,
+});
+
+void upload.findPreviousUploads().then((prev) => {
+  if (prev.length > 0) upload.resumeFromPreviousUpload(prev[0]);
+  upload.start();
+});
+```
+
+**Path obbligatorio:** `tenants/{tenant_id}/events/{event_id}/presentations/{id}/v{n}/{file}`.
+
+**SHA-256 client-side prima dell'upload (Web Crypto API):**
+
+```typescript
+async function computeSha256(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  const hash = await crypto.subtle.digest('SHA-256', buffer);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+```
+
+L'hash viene poi confrontato dal Room Player dopo il download (Sprint C — `verifyFileSha256` one-shot per file ≤ 512 MiB; oltre → `'skipped'` perche' Web Crypto NON ha API streaming).
+
+## Edge Function invocation
+
+```typescript
+const { data, error } = await supabase.functions.invoke('pair-init', {
+  body: { event_id: eventId, room_id: roomId, device_name: 'Sala Auditorium A' },
+});
+
+// In modalita desktop, invoke punta automaticamente al server Rust locale
+// /functions/v1/<name> (vedi desktop-tauri.mdc per endpoint mirror)
+```
+
+Per Edge Functions chiamate in polling tight (es. `room-player-bootstrap` ogni 12s/60s), wrappare con `fetchWithRetry` di `lib/fetch-with-retry.ts` (Sprint E1) — retry su 408/425/429/5xx con backoff `[500, 2000, 8000]`, AbortSignal rispettato.
+
+## File Sync pattern (`features/devices/hooks/useFileSync.ts`)
+
+- **Cloud:** PWA usa File System Access API + signed URL Supabase Storage + streaming su disco.
+- **LAN (Sprint N):** PC sala chiama `/functions/v1/lan-sign-url` sull'admin LAN (no Supabase) → signed URL HMAC-SHA256 admin-locale.
+- **Race condition:** `inflightRef` (Set) impedisce download concorrenti per lo stesso `versionId`.
+- **N+1 prevention:** batch `.in('id', versionIds)` invece di loop.
+- **Realtime scoped:** subscription su `room:<roomId>` (Broadcast) — debounce 250ms → `refreshNow()`.
+- **Resume HTTP Range** (Sprint C): `getExistingFileSize()` + `Range: bytes=N-` + fallback a download completo se server risponde 200 invece di 206; skip se file gia' completo.
+- **playback_mode tuning** (Sprint A): `auto`=polling 12s + 1 concurrent + no throttle; `live`=60s + 1 + throttle 50ms ogni 4MB; `turbo`=5s + 3 concurrent + no throttle.
+- **Storage guard** (Sprint E3): `getStorageEstimate()` pre-check; abort con `errorMessage:'storage_full'` se `available < size * 1.1`.
+- **Long-poll LAN** (Sprint N3): `fetchLanEvents({baseUrl, since, eventId, signal, timeoutMs})` quando `localBackendBaseUrl` settato; backoff 2s su errori transient.
+
+## Lib desktop bridge (`apps/web/src/lib/desktop-bridge.ts`)
+
+Wrapper typed delle Tauri commands:
+
+```typescript
+getDesktopBackendInfo(): Promise<BackendInfo>
+getRole(): Promise<'admin' | 'sala' | null>
+setRole(role): Promise<{restart_required: boolean}>
+discoverLanPcs(roleFilter, timeoutMs): Promise<LanPc[]>
+getPersistedDevice(): Promise<PersistedDevice | null>
+clearDevicePairing(): Promise<void>
+pairDirectLan({targetBaseUrl, ...}): Promise<PairDirectResult>
+pairRevokeLan({targetBaseUrl, ...}): Promise<{ok: boolean, code?: string}>
+signLanDownloadUrl({adminBaseUrl, deviceToken, storageKey}): Promise<{signedURL, ...}>
+fetchLanEvents({baseUrl, since, eventId, signal, timeoutMs}): Promise<LanEventsResponse>
+registerPairedDeviceOnAdminLocal({device_id, event_id, ...}): Promise<void>
+checkForUpdate(): Promise<UpdateCheckResult>
+installUpdateAndRestart(): Promise<void>
+```
+
+In cloud: tutti questi ritornano `{configured: false}` o no-op (sniffing `window.__TAURI_INTERNALS__`).

@@ -4,5 +4,27 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"search.followSymlinks": false,
+		"typescript.tsserver.maxTsServerMemory": 4096,
+		"typescript.tsserver.watchOptions": {
+			"watchFile": "useFsEventsOnParentDirectory",
+			"watchDirectory": "useFsEvents",
+			"fallbackPolling": "dynamicPriority",
+			"synchronousWatchDirectory": false,
+			"excludeDirectories": [
+				"**/node_modules",
+				"**/dist",
+				"**/dist-desktop",
+				"**/.turbo",
+				"**/src-tauri/target",
+				"**/target",
+				"**/release"
+			]
+		},
+		"git.ignoreLimitWarning": true,
+		"rust-analyzer.cargo.buildScripts.useRustcWrapper": false,
+		"workbench.editor.enablePreview": false,
+		"workbench.editor.enablePreviewFromQuickOpen": false
+	}
 }

@@ -1,0 +1,112 @@
+﻿# =============================================================================
+# .cursorignore - Live SLIDE CENTER
+# =============================================================================
+# Esclude file/cartelle da TUTTE le funzionalita Cursor (indicizzazione, AI,
+# search, autocomplete). Usato per evitare che Cursor scansioni cartelle pesanti
+# che mandano in blocco la chat all apertura del workspace.
+#
+# NOTA: Cursor NON rispetta .gitignore per l indicizzazione, serve questo file.
+# Riferimento: https://docs.cursor.com/context/ignore-files
+# =============================================================================
+
+# --- Dipendenze (monorepo pnpm) ---
+node_modules/
+**/node_modules/
+.pnpm-store/
+
+# --- Build output JS/TS ---
+dist/
+**/dist/
+dist-desktop/
+**/dist-desktop/
+build/
+**/build/
+out/
+**/out/
+.next/
+.nuxt/
+.svelte-kit/
+
+# --- Turbo / Vercel cache ---
+.turbo/
+**/.turbo/
+.vercel/
+**/.vercel/
+
+# --- Tauri / Rust build artifacts (i KILLER: ~11 GB, ~24.000 file) ---
+**/src-tauri/target/
+**/src-tauri/gen/schemas/
+target/
+**/target/
+
+# --- Sprint 3: artefatti di distribuzione (NSIS, ZIP portable) ---
+release/
+
+# --- TypeScript build info / emit ---
+*.tsbuildinfo
+**/*.tsbuildinfo
+apps/web/src/**/*.js
+apps/web/src/**/*.d.ts
+!apps/web/src/vite-env.d.ts
+apps/web/*.js
+apps/web/*.d.ts
+
+# --- Coverage / test output ---
+coverage/
+**/coverage/
+.nyc_output/
+
+# --- Supabase locale ---
+supabase/.branches/
+supabase/.temp/
+
+# --- Cartelle temporanee ---
+.tmp/
+.tmp-*.txt
+.commit-msg-tmp.txt
+
+# --- Sprint 5: PDF generati da pandoc (sorgenti MD versionati, PDF no) ---
+docs/Manuali/pdf/
+
+# --- IDE / Tooling locale ---
+.claude/
+.idea/
+
+# --- Lockfile (utile da consultare ma rallenta indicizzazione - 200KB+) ---
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# --- Log ---
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Asset binari grandi (icone gia versionate in icons/, niente da indicizzare) ---
+*.icns
+*.ico
+*.dmg
+*.exe
+*.msi
+*.deb
+*.rpm
+*.AppImage
+*.snap
+
+# --- (Aggiunte audit performance 18 apr 2026 — escludere ulteriori artefatti) ---
+**/src-tauri/gen/
+**/src-tauri/bundle/
+.cargo/
+**/.cargo/
+**/release/
+**/*.rlib
+**/*.rmeta
+**/*.pdb
+*~
+*.swp
+*.swo

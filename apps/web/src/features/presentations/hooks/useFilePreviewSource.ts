@@ -10,7 +10,7 @@ import { readLocalFile } from '@/features/devices/lib/fs-access';
  *
  * - `local` (PC sala): legge il file gia' scaricato dalla cartella locale via
  *   File System Access API. Nessuna chiamata di rete: e' la *regola sovrana*
- *   §1 della guida — durante un evento la sala usa SOLO i file locali. Crea
+ *   §0.2 della guida — durante un evento la sala usa SOLO i file locali. Crea
  *   un object URL con `URL.createObjectURL` e si occupa di revocarlo.
  *
  * - `remote` (admin / fallback): chiama `createVersionPreviewUrl(storageKey)`
@@ -24,8 +24,16 @@ import { readLocalFile } from '@/features/devices/lib/fs-access';
  * - All'unmount o al ricalcolo, revoca l'object URL precedente per evitare
  *   memory leak (i blob restano in RAM finche' qualcuno tiene un riferimento).
  *
+ * Guard regola sovrana #2 (`enforceLocalOnly: true`): se un chiamante
+ * "PC sala" passa accidentalmente `mode: 'remote'`, l'hook NON fa la chiamata
+ * di rete e ritorna `error: 'sovereignViolation'`. In dev logga su console.
+ * Cosi' una regressione futura che rompa la regola viene intercettata in UI
+ * (utente vede messaggio chiaro) e in console (sviluppatore vede stack
+ * trace). Vedi GUIDA_OPERATIVA_v3 §0 e §0.bis.
+ *
  * @returns `{ url, loading, error }`. `error` e' una chiave i18n
- *   (es. `localNotFound`, `remoteFailed`) sotto `filePreview.errors.*`.
+ *   (es. `localNotFound`, `remoteFailed`, `sovereignViolation`) sotto
+ *   `filePreview.errors.*`.
  */
 export type FilePreviewSourceMode = 'local' | 'remote';
 
@@ -41,6 +49,13 @@ export interface UseFilePreviewSourceArgs {
   filename?: string;
   /** Solo `mode === 'remote'`. `presentation_versions.storage_key`. */
   storageKey?: string;
+  /**
+   * Guard regola sovrana #2 — quando `true`, l'hook rifiuta `mode !== 'local'`.
+   * Da impostare a `true` in tutti i wrapper PC sala (Room Player, anteprima
+   * "in onda", futuro "Apri sul PC"). Default `false` per non rompere chiamate
+   * admin esistenti che hanno bisogno di `mode: 'remote'`.
+   */
+  enforceLocalOnly?: boolean;
 }
 
 export interface UseFilePreviewSourceResult {
@@ -56,7 +71,7 @@ interface SourceState {
 }
 
 export function useFilePreviewSource(args: UseFilePreviewSourceArgs): UseFilePreviewSourceResult {
-  const { enabled, mode, dirHandle, segments, filename, storageKey } = args;
+  const { enabled, mode, dirHandle, segments, filename, storageKey, enforceLocalOnly = false } = args;
 
   // Stato unificato (vs 3 setState separati): la lint rule
   // `react-hooks/set-state-in-effect` di React 19 vieta setState sincroni
@@ -87,6 +102,17 @@ export function useFilePreviewSource(args: UseFilePreviewSourceArgs): UseFilePre
 
       if (!enabled) {
         setState({ url: null, loading: false, error: null });
+        return;
+      }
+
+      if (enforceLocalOnly && mode !== 'local') {
+        if (typeof console !== 'undefined') {
+          console.error(
+            '[Slide Center] Violazione regola sovrana #2: il PC sala ha tentato di leggere un file da rete invece che dalla cartella locale.',
+            { mode, hasDirHandle: !!dirHandle, hasFilename: !!filename, storageKeyPresent: !!storageKey }
+          );
+        }
+        setState({ url: null, loading: false, error: 'sovereignViolation' });
         return;
       }
 
@@ -139,7 +165,7 @@ export function useFilePreviewSource(args: UseFilePreviewSourceArgs): UseFilePre
       // semplici stringhe HTTPS che il browser smaltisce da solo.
       if (createdObjectUrl) URL.revokeObjectURL(createdObjectUrl);
     };
-  }, [enabled, mode, dirHandle, filename, segKey, storageKey, segments]);
+  }, [enabled, mode, dirHandle, filename, segKey, storageKey, segments, enforceLocalOnly]);
 
   return state;
 }

@@ -1,0 +1,165 @@
+---
+description: Mappa documentazione (docs/, manuali, commerciale) — leggere quando aggiorni docs o cerchi una guida specifica
+alwaysApply: false
+---
+
+# Documentazione — Mappa & policy aggiornamento
+
+## Hierarchy fonti di verita' (consolidata 18 aprile 2026)
+
+```
+docs/
+├── ARCHITETTURA_LIVE_SLIDE_CENTER.md    ← FONTE UNICA: cos'e' / com'e' fatto (~90 KB, 24 sez.)
+├── STATO_E_TODO.md                       ← FONTE UNICA: cosa rimane da fare (~36 KB, 7 sez.)
+├── Setup_Strumenti_e_MCP.md              ← Setup IDE, MCP servers, Cursor + mappa documentazione
+├── Istruzioni_Claude_Desktop.md          ← Prompt + workflow per AI assistant
+│
+├── Manuali/                              ← 7 manuali operativi
+│   ├── README.md                          ← Indice manuali + matrice ruolo→manuale
+│   ├── Manuale_Onboarding_Admin.md        ← Setup nuovo tenant cliente
+│   ├── Manuale_Distribuzione.md           ← Pipeline release desktop
+│   ├── Manuale_Code_Signing.md            ← OV cert Sectigo Windows + setup signtool
+│   ├── Manuale_Email_Resend.md            ← Setup Resend transactional + DNS
+│   ├── Manuale_Installazione_Local_Agent.md   ← Setup Local Agent (Tauri storico)
+│   ├── Manuale_Installazione_Room_Agent.md    ← Setup Room Agent (Tauri storico)
+│   ├── Guida_Uso_Interno_DHS.md           ← Procedure uso interno DHS aziendale
+│   ├── Script_Screencast.md               ← Scaletta 3 video onboarding
+│   └── build-pdf.ps1                       ← Export manuali in PDF (richiede pandoc)
+│
+└── Commerciale/                          ← Materiali vendita / SLA / pricing
+    ├── README.md                          ← Indice + 5 decisioni urgenti pre-primo-cliente
+    ├── Listino_Prezzi.md                  ← 4 piani SaaS + bundle desktop
+    ├── Contratto_SLA.md                   ← Bozza SLA tecnica (uptime, RPO/RTO, supporto)
+    ├── Roadmap_Vendita_Esterna.md         ← 47 voci pending (legale, marketing, fiscale)
+    └── SlideHub_Live_Commerciale.docx     ← Documento commerciale executive Word
+```
+
+## Priorita' di consultazione (in ordine)
+
+1. **Domanda su architettura / sprint chiusi / regole sovrane:** `ARCHITETTURA_LIVE_SLIDE_CENTER.md`.
+2. **Domanda su cosa fare ora / field test / Sprint Q / pending Andrea:** `STATO_E_TODO.md`.
+3. **Domanda su setup tool / MCP / IDE:** `Setup_Strumenti_e_MCP.md`.
+4. **Domanda su prompt AI assistant / divisione lavoro Cursor vs Claude Desktop:** `Istruzioni_Claude_Desktop.md`.
+5. **Domanda operativa specifica (admin onboarding, code sign, distribuzione, screencast):** `Manuali/<argomento>.md`.
+6. **Domanda commerciale (pricing, SLA, vendita esterna, target):** `Commerciale/<argomento>.md`.
+
+In caso di **conflitto fra docs:** vince sempre **`ARCHITETTURA_LIVE_SLIDE_CENTER.md`**.
+
+## Cosa va aggiornato dopo modifiche al codice
+
+### Modifica feature applicativa (es. nuovo Sprint, refactoring grosso)
+
+→ `ARCHITETTURA_LIVE_SLIDE_CENTER.md`:
+
+- § 4 STATO ATTUALE: aggiornare tabella sprint con status DONE/IN PROGRESS.
+- § 22 STORIA SPRINT: aggiungere nuova riga sintetica con titolo + esito.
+- Sezione tematica corrispondente (§ 13 web, § 14 desktop, § 17 Edge Functions): aggiornare contenuto se la feature impatta architettura.
+
+→ `STATO_E_TODO.md`:
+
+- § 1 STATO ATTUALE: marcare sprint nuovo come DONE.
+- Eventualmente eliminare voci pending divenute completate.
+
+### Modifica schema DB / RLS / Edge Functions
+
+→ `ARCHITETTURA_LIVE_SLIDE_CENTER.md`:
+
+- § 7 DATABASE SCHEMA: aggiungere nuove tabelle/policy/colonne con tipi.
+- § 17 EDGE FUNCTIONS: aggiungere nuova funzione con firma + auth + logica.
+- § 6 MULTI-TENANCY/RLS/RBAC: aggiornare se cambia pattern policy.
+
+→ Eventuale nuovo manuale operativo se la modifica impatta admin (es. nuova quota, nuovo permesso utente).
+
+### Modifica processo deploy / build
+
+→ `Manuali/Manuale_Distribuzione.md` (o nuovo manuale specifico se grosso).
+
+→ `04-git-workflow.mdc` (rule sempre attiva) se cambia comando standard.
+
+→ `STATO_E_TODO.md` § 7 cheat-sheet quotidiano se cambia comando user-facing.
+
+### Modifica pricing / piani / quote
+
+→ `Commerciale/Listino_Prezzi.md` (versione sempre con "approvato Andrea + data").
+
+→ `ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 21 PIANI COMMERCIALI.
+
+→ Codice: `packages/shared/src/constants/plans.ts` (single source per app web).
+
+### Modifica brand / lingua / UI sostanziale
+
+→ Aggiornare in entrambi `it.json` e `en.json` (vedi `03-i18n.mdc` per parity check).
+
+→ `docs/Commerciale/` se impatto marketing.
+
+→ `ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 18 i18n se cambia convention.
+
+### Aggiunta/eliminazione di un documento
+
+→ `Setup_Strumenti_e_MCP.md` § 0 mappa documentazione.
+
+→ `00-project-identity.mdc` lista fonti di verita.
+
+→ `CLAUDE.md` tabella documentazione.
+
+→ Questo stesso file `docs-roadmap.mdc`.
+
+## Cosa NON va piu' usato
+
+- File con suffisso `_v1`, `_OLD`, `.bak` → spostare in `docs/_archive/` se serve preservare, altrimenti cancellare.
+- File legacy `GUIDA_DEFINITIVA_PROGETTO.md`, `PIANO_FINALE_SLIDE_CENTER_v2.md`, `GUIDA_OPERATIVA_v3_FIELD_TEST_E_OFFLINE.md`, `RUNBOOK_FIELD_TEST_DESKTOP.md`, `TEMPLATE_FEEDBACK_FIELD_TEST_v1.md`: ELIMINATI il 18 aprile 2026, contenuto consolidato in `ARCHITETTURA_LIVE_SLIDE_CENTER.md` + `STATO_E_TODO.md`. Se trovi riferimenti residui in codice/docs: SOSTITUISCILI subito con i due nuovi file.
+
+## Stile documentazione
+
+- **Lingua primaria:** Italiano. Tono professionale, terminologia eventi live / AV.
+- **EN parallelo:** sezioni `**EN:**` per riassunti tecnici di paragrafi sostanziali (specialmente in `Manuali/` per onboarding clienti internazionali). Non duplicare l'intero documento.
+- **Formato:** Markdown standard. Tabelle per dati strutturati. Code blocks con lingua specificata. NO HTML inline.
+- **Cross-reference:** link relativi (`[testo](./altro_file.md)` o `[testo](../sezione.md)`).
+- **Naming:** `Snake_Case` o `PascalCase_Descrittivo.md`. NO spazi nel nome file.
+
+## Quando aggiornare CLAUDE.md
+
+`CLAUDE.md` e' il **front-page** rapido per AI assistenti / nuovi developer. Mantenerlo lean (~12 KB).
+
+Aggiornare quando:
+
+- Cambia struttura repo (nuovo `apps/`, nuovo package).
+- Cambia stato sprint (chiude un Sprint).
+- Cambia comando quotidiano (`pnpm dev`, deploy, ecc.).
+- Cambia stack technologico (versione major).
+- Vengono aggiunti/eliminati documenti (aggiornare tabella documentazione).
+
+NON duplicare contenuto di `ARCHITETTURA_LIVE_SLIDE_CENTER.md` o `STATO_E_TODO.md` in `CLAUDE.md` — usare link.
+
+## Tooling per documentazione
+
+- **Editor:** Cursor IDE con plugin Markdown All-in-One (preview live).
+- **Validazione link:** in fase di review manuale (no automation attiva).
+- **Diagrammi:** Mermaid per flow/sequence (supportato da GitHub Markdown). Esempio:
+
+  ```mermaid
+  sequenceDiagram
+    participant Speaker
+    participant Storage
+    participant Realtime
+    participant Sala
+    Speaker->>Storage: TUS upload
+    Storage->>Realtime: trigger PG
+    Realtime->>Sala: broadcast room:<uuid>
+    Sala->>Storage: download verify
+  ```
+
+- **Screenshot:** salvare in `docs/_assets/` con naming `<doc>-<feature>-<n>.png`. Inserire con `![alt](../_assets/<file>)`.
+- **Export PDF manuali:** `docs/Manuali/build-pdf.ps1` (richiede pandoc installato).
+
+## Checklist pre-commit docs
+
+- [ ] Lingua coerente (IT primaria, EN dove richiesto)
+- [ ] Cross-reference funzionanti (link relativi giusti)
+- [ ] Niente segreti / token / chiavi private inline
+- [ ] Tabelle e code block formattati correttamente
+- [ ] Aggiornato indice (README.md di sezione) se nuovo file
+- [ ] Citato in `00-project-identity.mdc` se diventa fonte di verita' nuova
+- [ ] Aggiornato `docs-roadmap.mdc` (questo file) se aggiunto/eliminato/spostato un documento
+- [ ] Aggiornato `Setup_Strumenti_e_MCP.md` § 0 mappa documentazione se aggiunto/eliminato un documento
+- [ ] Aggiornato `CLAUDE.md` tabella documentazione se la mappa cambia

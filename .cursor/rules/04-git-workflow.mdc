@@ -1,0 +1,120 @@
+---
+description: Git workflow, account live-software11 e deploy (Vercel + Supabase + Tauri)
+alwaysApply: true
+---
+
+# Git Workflow & Deploy — Live SLIDE CENTER
+
+## Account ufficiale (zero eccezioni)
+
+- **GitHub login:** `live-software11` (NON `Andraven11` — quello e' per Preventivi DHS / Gestionale FREELANCE)
+- **Origin:** `github.com/live-software11/live-slide-center`
+- **Email commit:** `live.software11@gmail.com`
+- **Nome commit:** `Andrea Rizzari`
+
+## Prima di OGNI push
+
+```powershell
+gh auth status                    # account attivo deve essere live-software11
+git remote -v                     # origin deve puntare a live-software11/live-slide-center
+```
+
+Se l'account e' sbagliato: `gh auth switch --user live-software11`. Mai mutare `git config` automaticamente.
+
+## Esecuzione rapida ("commit and push" / "deploy")
+
+Quando l'utente dice **"commit and push"**, **"deploy"** o simili: esegui subito senza chiedere conferma. Working directory: root monorepo. PowerShell: `;` al posto di `&&`.
+
+```powershell
+git status
+git add <file-modificati>           # o `-A` se la modifica e' coerente e ampia
+git commit -m "feat: descrizione breve"
+git push
+```
+
+Per messaggi multilinea/lunghi: scrivere il messaggio in un file temporaneo (`Write` tool) e committare con `git commit -F .commit-msg-tmp.txt`, poi cancellare il file (PowerShell NON supporta heredoc bash).
+
+## Formato commit (conventional)
+
+| Prefix      | Quando                                  |
+| ----------- | --------------------------------------- |
+| `feat:`     | nuova funzionalita                      |
+| `fix:`      | correzione bug                          |
+| `refactor:` | refactoring senza cambio comportamento  |
+| `chore:`    | build/config/docs/dependency bump       |
+| `db:`       | migration SQL / schema PostgreSQL       |
+| `desktop:`  | modifiche `apps/desktop/` (Tauri, Rust) |
+| `i18n:`     | solo aggiornamento traduzioni IT/EN     |
+
+## Primo collegamento (repo remoto assente)
+
+Se `git fetch origin` risponde `Repository not found`:
+
+```powershell
+gh repo create live-software11/live-slide-center --public --source=. --remote=origin --push --description "Live SLIDE CENTER"
+```
+
+## Deploy
+
+### Web (cloud) — Vercel
+
+Auto-deploy su push a `main`. Per preview: push su branch feature → Vercel crea preview URL.
+
+### Supabase (schema + functions)
+
+```powershell
+supabase db push                     # applica migration pendenti
+supabase functions deploy <nome>     # deploy singola funzione
+supabase functions deploy            # deploy tutte
+supabase gen types typescript --project-id cdjxxxkrhgdkcpkkozdl > packages/shared/src/types/database.ts
+```
+
+### Desktop Tauri 2 — singolo binario (Sprint J-P)
+
+```powershell
+pnpm --filter @slidecenter/desktop release:nsis
+# Build firmata (richiede TAURI_SIGNING_PRIVATE_KEY env):
+pnpm --filter @slidecenter/desktop release:nsis -- --signing-config src-tauri/tauri.signing.json
+```
+
+Wrapper PowerShell user-friendly: `apps/desktop/scripts/release.ps1 [-Signed] [-Debug] [-SkipPrereqs]` (verifica `gh auth=live-software11`, copia artifact in `apps/desktop/release/`, calcola SHA-256, genera `CHANGELOG-v<version>.md` ready-to-paste).
+
+Dev: `pnpm dev:desktop` (Vite strictPort 5173 + Tauri webview).
+
+### Legacy desktop (Fase 7 — `apps/agent` + `apps/room-agent`)
+
+```powershell
+cd apps/agent/src-tauri        ; cargo tauri build    # NSIS Local Agent
+cd apps/room-agent/src-tauri   ; cargo tauri build    # NSIS Room Agent (autostart HKCU)
+```
+
+Vedi `legacy-agents.mdc` per dettaglio.
+
+## Verifica pre-deploy
+
+Vedi `02-quality-gate.mdc`. In sintesi: `pnpm typecheck`, `pnpm lint`, `pnpm build` (cloud + desktop) tutti verdi.
+
+## Troubleshooting
+
+```powershell
+# Migration fallita
+supabase db diff
+supabase migration list
+supabase db reset                    # SOLO sviluppo locale, ATTENZIONE
+
+# Tipi Supabase non aggiornati
+supabase gen types typescript --project-id cdjxxxkrhgdkcpkkozdl --schema public > packages/shared/src/types/database.ts
+
+# Reset rapido test desktop (chiudere app prima)
+Remove-Item ~/SlideCenter/role.json     # cambio ruolo
+Remove-Item ~/SlideCenter/device.json   # libera PC sala paired
+# E in browser admin: localStorage.removeItem('sc:devices:lanBaseUrlByDeviceId')
+```
+
+## Vietato in questo workspace
+
+- Push con sessione `Andraven11` su `origin live-software11/live-slide-center`.
+- Cambiare `origin` verso repo `Andraven11/*` senza richiesta esplicita.
+- `git rebase -i` o `git add -i` (interattivo non supportato dal terminale agent).
+- `git push --force` su `main` senza richiesta esplicita.
+- `git commit --amend` su commit gia' pushati senza richiesta esplicita.

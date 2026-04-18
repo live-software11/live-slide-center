@@ -458,7 +458,8 @@
       "localNotFound": "File non ancora scaricato sul PC sala. Aspetta il completamento del download.",
       "localPermissionDenied": "Permessi cartella revocati: ri-seleziona la cartella di sincronizzazione.",
       "localGeneric": "Impossibile leggere il file dalla cartella locale.",
-      "localMissingArgs": "Cartella o nome file mancanti."
+      "localMissingArgs": "Cartella o nome file mancanti.",
+      "sovereignViolation": "Errore interno: il PC sala deve leggere i file SEMPRE dalla cartella locale, mai dalla rete. Segnala il bug a Live Software."
     }
   },
   "eventSearch": {
@@ -675,7 +676,9 @@
     "success": "Operazione completata",
     "required": "Campo obbligatorio",
     "optional": "Facoltativo",
-    "menu": "Menu"
+    "menu": "Menu",
+    "copy": "Copia",
+    "copied": "Copiato!"
   },
   "validation": {
     "required": "Campo obbligatorio.",
@@ -757,7 +760,53 @@
     "auditColTenant": "Tenant",
     "auditColAction": "Azione",
     "auditColActor": "Attore",
-    "auditColEntity": "Entità"
+    "auditColEntity": "Entità",
+    "createTenant": {
+      "openCta": "Crea nuovo tenant",
+      "title": "Nuovo tenant",
+      "intro": "Crea un nuovo cliente (azienda) e invita il primo amministratore. La licenza opzionale collega il tenant al record in Live WORKS APP.",
+      "fieldName": "Nome azienda",
+      "fieldNamePlaceholder": "es. Studio Eventi XYZ S.r.l.",
+      "fieldSlug": "Slug (URL)",
+      "fieldSlugHint": "Identificatore lowercase usato nelle URL e in audit. Solo lettere, numeri e trattini.",
+      "fieldStorageGb": "Storage (GB)",
+      "fieldStorageHint": "Limite di archiviazione presentazioni. Esempio 250 = 250 GiB.",
+      "fieldStorageEnterpriseHint": "Enterprise: imposta 0 per «illimitato» (nessun controllo quota lato app).",
+      "fieldMaxDevices": "Max PC sala per stanza",
+      "fieldMaxDevicesHint": "Numero massimo di Room Player appaiabili per ogni stanza dell'evento.",
+      "fieldExpiresAt": "Scadenza commerciale",
+      "fieldExpiresNever": "Senza scadenza",
+      "fieldLicenseKey": "License key (opzionale)",
+      "fieldLicenseKeyHint": "Formato XXXX-XXXX-XXXX-XXXX. Lascialo vuoto se non hai ancora generato la licenza in Live WORKS APP / Lemon Squeezy.",
+      "fieldAdminEmail": "Email primo amministratore",
+      "fieldAdminEmailHint": "Riceverà un invito (link valido 14 giorni) per attivare l'account admin del tenant.",
+      "submitCta": "Crea tenant + invio invito",
+      "creating": "Creazione in corso...",
+      "formErrorsTitle": "Controlla i seguenti campi:",
+      "successTitle": "Tenant creato",
+      "successBody": "L'invito al primo admin ({{email}}) è stato registrato. Copia il link sotto e invialo per email/Telegram, oppure attendi l'invio automatico (se configurato).",
+      "successInviteUrl": "Link di invito (copia e invialo all'admin)",
+      "successInviteHint": "Il link scade il {{expiry}}. Se scade, ricrea l'invito da Dettaglio tenant.",
+      "successSlug": "Slug",
+      "successLicense": "License key",
+      "successClose": "Chiudi",
+      "errors": {
+        "generic": "Creazione tenant fallita. Controlla i log.",
+        "forbidden": "Solo i super-admin possono creare tenant.",
+        "invalidName": "Nome azienda non valido (min 2, max 200 caratteri).",
+        "invalidSlug": "Slug non valido. Usa solo lettere lowercase, numeri e trattini (2-64 caratteri).",
+        "invalidPlan": "Piano commerciale non valido.",
+        "invalidStorage": "Storage non valido (0 - 100000 GB).",
+        "invalidMaxEvents": "Numero massimo eventi non valido.",
+        "invalidMaxRooms": "Numero massimo sale non valido.",
+        "invalidMaxDevices": "Numero massimo PC sala non valido.",
+        "invalidEmail": "Email non valida.",
+        "invalidLicenseFormat": "Formato license key non valido (atteso XXXX-XXXX-XXXX-XXXX).",
+        "slugTaken": "Slug già in uso da un altro tenant.",
+        "licenseTaken": "Questa license key è già assegnata a un altro tenant.",
+        "invitePending": "Esiste già un invito attivo per questa email."
+      }
+    }
   },
   "config": {
     "supabaseMissingTitle": "Configurazione Supabase assente",

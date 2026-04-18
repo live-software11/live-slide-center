@@ -61,3 +61,8 @@ docs/Manuali/pdf/
 # Cartelle temporanee di build/scripting locale
 .tmp/
 .tmp-*.txt
+.commit-msg.txt
+.commit-msg-*.txt
+
+# Build output desktop (Vite per app desktop Tauri)
+**/dist-desktop/

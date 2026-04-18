@@ -1,15 +1,27 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import { Plus } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { formatBytes } from './lib/format-bytes';
 import { isUnlimitedStorage } from '@/features/tenant/lib/quota-usage';
 import { useAdminTenants } from './hooks/useAdminTenants';
+import { CreateTenantDialog } from './components/CreateTenantDialog';
 
 export default function AdminTenantsView() {
   const { t } = useTranslation();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const { state, reload } = useAdminTenants(supabase);
+  const [showCreate, setShowCreate] = useState(false);
+
+  const onCreated = useCallback(
+    async (_tenantId: string) => {
+      // Aggiorna la lista in background; il dialog rimane aperto sulla schermata
+      // di successo finche' l'utente non chiude.
+      await reload();
+    },
+    [reload],
+  );
 
   if (state.status === 'loading') {
     return (
@@ -38,8 +50,20 @@ export default function AdminTenantsView() {
 
   return (
     <div className="p-6 lg:p-8">
-      <h1 className="text-2xl font-bold text-sc-text">{t('admin.tenantsTitle')}</h1>
-      <p className="mt-2 max-w-2xl text-sm text-sc-text-muted">{t('admin.tenantsIntro')}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-sc-text">{t('admin.tenantsTitle')}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-sc-text-muted">{t('admin.tenantsIntro')}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowCreate(true)}
+          className="inline-flex items-center gap-2 self-start rounded-xl bg-sc-primary px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sc-primary/20 hover:bg-sc-primary-deep"
+        >
+          <Plus className="h-4 w-4" />
+          {t('admin.createTenant.openCta')}
+        </button>
+      </div>
 
       {state.tenants.length === 0 ? (
         <p className="mt-8 text-sm text-sc-text-dim">{t('admin.tenantsEmpty')}</p>
@@ -95,6 +119,16 @@ export default function AdminTenantsView() {
           </table>
         </div>
       )}
+
+      {showCreate ? (
+        <CreateTenantDialog
+          supabase={supabase}
+          onClose={() => setShowCreate(false)}
+          onCreated={(id) => {
+            void onCreated(id);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

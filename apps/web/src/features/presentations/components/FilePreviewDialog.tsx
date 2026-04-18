@@ -11,7 +11,9 @@ import { AlertCircle, Download, FileText, Loader2, Music, X } from 'lucide-react
  *   URL Supabase Storage (creata via `createVersionPreviewUrl`).
  * - PC sala (`RoomPlayerView` / `FileSyncStatus`): bottone "Apri sul PC" sui
  *   file gia' downloadati -> preview con object URL del blob LOCALE
- *   (regola sovrana §1: la sala usa SOLO i file in cartella, mai cloud).
+ *   (regola sovrana §0.2: la sala usa SOLO i file in cartella, mai cloud).
+ *   Guard runtime nell'hook `useFilePreviewSource` con `enforceLocalOnly:true`
+ *   protegge da regressioni future.
  *
  * Renderer per MIME:
  * - `application/pdf` -> <iframe> (compat browser migliore di <embed>).

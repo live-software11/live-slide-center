@@ -1,0 +1,202 @@
+---
+description: Tauri 2 desktop unico (apps/desktop) — server Rust Axum + SPA condivisa
+globs:
+  [
+    'apps/desktop/**/*.rs',
+    'apps/desktop/**/*.toml',
+    'apps/desktop/**/*.json',
+    'apps/desktop/scripts/*.ps1',
+    'apps/web/src/lib/desktop-bridge.ts',
+    'apps/web/src/lib/backend-mode.ts',
+    'apps/web/src/lib/realtime-client.ts',
+    'apps/web/src/lib/use-backend-status.ts',
+  ]
+alwaysApply: false
+---
+
+# Live SLIDE CENTER Desktop — Tauri 2 (Sprint J-Q)
+
+> Questa rule riguarda il **nuovo desktop unico** `apps/desktop` (Sprint J in poi). Per i Tauri legacy `apps/agent` + `apps/room-agent`: vedi `legacy-agents.mdc`.
+
+## Architettura
+
+Singolo binario Tauri 2 che carica la SPA `apps/web` (la stessa del cloud) e avvia un server **Rust Axum** locale al boot. Il server espone un mirror minimale di Supabase su `127.0.0.1:<porta dinamica>`:
+
+- `/rest/v1/<table>` — PostgREST minimal (SELECT/INSERT/UPSERT/UPDATE/DELETE) contro SQLite locale
+- `/rest/v1/rpc/<name>` — RPC Supabase (es. `rpc_room_player_set_current`)
+- `/storage/v1/object/...` + `/storage-files/...` — upload/download file con HTTP Range
+- `/functions/v1/<name>` — mirror Edge Functions (`pair-init`, `pair-claim`, `pair-direct`, `room-player-bootstrap`...)
+- `/events/file_added` + `/events/presentation_deleted` — push admin → sala (Sprint N1)
+- `/events/stream` — long-poll sala → SPA webview (Sprint N2-N3)
+
+La SPA legge `base_url` + `admin_token` via Tauri command `cmd_backend_info` e li usa al posto delle env Supabase cloud.
+
+## Layout `apps/desktop/`
+
+```
+apps/desktop/
+├── package.json                       # @slidecenter/desktop — script Vite/Tauri
+├── vite.config.ts                     # punta a apps/web/src/main.tsx
+├── tsconfig.json                      # extends ../web
+├── README.md                          # quickstart Sprint J/K
+├── UPDATER_SETUP.md                   # Sprint P3 — setup chiave updater
+├── BUILD.md                           # Sprint J7 — build NSIS
+├── scripts/release.ps1                # wrapper PowerShell user-friendly
+└── src-tauri/
+    ├── Cargo.toml                     # Sprint J: tauri 2, tauri-plugin-{shell,fs,http,notification,dialog,updater,process}
+    ├── build.rs                       # tauri-build
+    ├── tauri.conf.json                # config app, identifier, NSIS, signing, updater
+    ├── tauri.signing.example.json     # template signing (gitignored: .real)
+    ├── capabilities/default.json      # ACL Tauri 2
+    └── src/
+        ├── main.rs                    # bootstrap + cmd_* invoke handlers (~430 righe)
+        ├── role.rs                    # NodeRole = Admin | Sala (read/write ~/SlideCenter/role.json)
+        └── server/
+            ├── mod.rs                 # boot + Router globale + middleware CORS
+            ├── state.rs               # AppState condiviso (pool DB, root paths, admin_token)
+            ├── auth.rs                # check admin_token + device_token
+            ├── db.rs                  # rusqlite + r2d2 + WAL + migration embedded
+            ├── pgrest.rs              # parser query string PostgREST → SQL
+            ├── storage.rs             # path file upload/download
+            ├── error.rs               # tipo errore + IntoResponse
+            ├── mdns.rs                # mdns-sd publish + browse `_slidecenter._tcp.local`
+            ├── lan_push.rs            # client reqwest fan-out push admin→sala
+            ├── lan_events.rs          # ring buffer eventi long-poll
+            ├── device_persist.rs      # JSON ~/SlideCenter/device.json (paired sala)
+            └── routes/
+                ├── mod.rs
+                ├── rest.rs            # /rest/v1/<table> CRUD generico
+                ├── rpc.rs             # /rest/v1/rpc/<name> dispatcher
+                ├── storage_routes.rs  # /storage/v1/* + /storage-files/*
+                ├── functions.rs       # /functions/v1/<name> dispatcher
+                └── lan_events_routes.rs # /events/* push e long-poll
+```
+
+## Stack tecnico
+
+- **Tauri 2** + plugin: `shell`, `fs`, `http`, `notification`, `dialog`, `updater`, `process`.
+- **Axum 0.7** + `tokio` (full) + `tower-http` (cors, fs, trace, limit).
+- **rusqlite 0.31** (bundled) + `r2d2` pool (WAL + single-writer pattern).
+- **mdns-sd 0.11** — pure-rust, niente Bonjour/Avahi: portabile Win/Mac/Linux.
+- **reqwest 0.12** + `rustls-tls` (NO native-tls/OpenSSL — zero dipendenze C su Windows).
+- **sha2 / hmac / hex / base64** — auth + signed URL.
+- **headers** — parsing `Range: bytes=START-END`.
+- `[profile.release]`: `strip = true`, `lto = true`, `codegen-units = 1`, `opt-level = 3`.
+
+## Tauri commands esposte alla SPA
+
+| Command (Rust)                   | Wrapper TS (`desktop-bridge.ts`)        | Scopo                                                |
+| -------------------------------- | --------------------------------------- | ---------------------------------------------------- |
+| `cmd_app_info`                   | `getDesktopAppInfo()`                   | Sniffing Tauri (sprint, version)                     |
+| `cmd_backend_info`               | `getDesktopBackendInfo()`               | base_url + admin_token + role + lan_addresses        |
+| `cmd_get_role` / `cmd_set_role`  | `getRole()` / `setRole()`               | Admin / Sala persistito in `~/SlideCenter/role.json` |
+| `cmd_discover_lan_pcs`           | `discoverLanPcs(roleFilter, timeoutMs)` | Browse mDNS `_slidecenter._tcp.local`                |
+| `cmd_get_persisted_device`       | `getPersistedDevice()`                  | Lettura `~/SlideCenter/device.json` (sala paired)    |
+| `cmd_clear_device_pairing`       | `clearDevicePairing()`                  | Reset pairing (NON tocca role.json)                  |
+| `cmd_updater_status`             | —                                       | Stato configurazione updater (debug)                 |
+| `cmd_check_for_update`           | `checkForUpdate()`                      | Sprint P3 — check GitHub releases                    |
+| `cmd_install_update_and_restart` | `installUpdateAndRestart()`             | Download + install + `app.restart()`                 |
+
+Pattern in `apps/web/src/lib/desktop-bridge.ts`: ogni wrapper sniffa `window.__TAURI_INTERNALS__` e fa **early return** con valore safe in cloud (es. `{ ready: false }`, `null`, `{ ok: false, code: 'not_in_tauri' }`). MAI lanciare eccezioni in cloud per mancanza Tauri.
+
+## Persistenza assoluta (Sprint M2)
+
+File JSON in `~/SlideCenter/`:
+
+- `role.json` — `{ "role": "admin" | "sala" }` (Sprint L1)
+- `device.json` — `{ device_id, event_id, room_id, device_name, network_mode, paired_at, last_seen_at }` per il PC sala paired (Sprint M2)
+
+**Regola sovrana:** un PC sala configurato NON perde stato a un riavvio. Solo `clearDevicePairing` (UI admin "Disconnetti") o l'utente cancellando il file lo resetta.
+
+## Network mode (admin desktop)
+
+`network_mode` (per device, Sprint A6):
+
+- `cloud-online` — usa Supabase cloud per Realtime/Storage (default)
+- `lan-online` — admin in LAN locale, sala scarica da admin (HMAC signed URL)
+- `standalone` — admin offline totale (raro, es. fallback)
+- `cloud-offline` — sala scollegata (cache locale, no Realtime)
+- `loading` — bootstrap iniziale
+
+Hook React: `useBackendStatus()` in `apps/web/src/lib/use-backend-status.ts`. UI: `<BackendModeBadge>` nella sidebar.
+
+## mDNS (`_slidecenter._tcp.local`)
+
+- **Publish (Sprint L2):** all'avvio, ogni nodo (admin o sala) annuncia se stesso con TXT records: `role=admin|sala`, `version=<cargo>`, `port=<axum>`.
+- **Browse (Sprint L3):** `cmd_discover_lan_pcs(role_filter, timeout_ms)` ritorna lista `[{name, host, port, addresses, txt}]`. Default timeout 1500ms (alzare a 3000-5000 su LAN sature).
+- **Eccezione 10:** mai mDNS dal browser cloud — solo da Tauri command Rust → SPA.
+
+## LAN push admin → sala (Sprint N1-N3)
+
+Quando l'admin completa `finalize_upload_version_admin`:
+
+1. `lan_push.rs` legge i `paired_devices` con `network_mode='lan-online'` su quel `event_id`.
+2. Fan-out HTTP POST `http://<sala_ip>:<porta>/events/file_added` con `{presentation_id, version_id, ...}` (timeout 800ms, fire-and-forget).
+3. La sala riceve l'evento → `lan_events.rs` lo mette nel ring buffer.
+4. La SPA della sala fa long-poll su `/events/stream?since=<seq>&event_id=<uuid>` (timeout server 25s, client AbortController 30s) → riceve eventi non appena disponibili.
+
+LAN signed URL HMAC-SHA256 per download tra sala e admin: `signLanDownloadUrl({adminBaseUrl, deviceToken, storageKey})` lato SPA → endpoint `/functions/v1/lan-sign-url` lato admin → URL firmato con scadenza 30 min, validato in `auth.rs`.
+
+## Build NSIS
+
+```powershell
+# Build standard (no signing — installer NON firmato, niente auto-update remoto)
+pnpm --filter @slidecenter/desktop release:nsis
+
+# Build firmata (richiede TAURI_SIGNING_PRIVATE_KEY env var)
+pnpm --filter @slidecenter/desktop release:nsis -- --signing-config src-tauri/tauri.signing.json
+```
+
+**Wrapper PowerShell user-friendly:** `apps/desktop/scripts/release.ps1`
+
+- `-Signed` → carica chiave updater + valida `TAURI_SIGNING_PRIVATE_KEY`
+- `-Debug` → build con symbol e log verbose
+- `-SkipPrereqs` → salta `gh auth status` / `cargo --version` checks
+- Output: copia artifact in `apps/desktop/release/`, calcola SHA-256, genera `CHANGELOG-v<version>.md` ready-to-paste
+
+## Setup updater (Sprint P3)
+
+Vedi `apps/desktop/UPDATER_SETUP.md`. In sintesi:
+
+```powershell
+cargo tauri signer generate -w ~/.tauri/slidecenter-desktop.key
+# Copia .pub in tauri.conf.json -> plugins.updater.pubkey
+# Imposta bundle.createUpdaterArtifacts: true
+$env:TAURI_SIGNING_PRIVATE_KEY = (Get-Content ~/.tauri/slidecenter-desktop.key -Raw)
+pnpm --filter @slidecenter/desktop release:nsis
+```
+
+In SPA: `<DesktopUpdateBanner>` nel `RootLayout` (no-op in cloud; check al boot + ogni 30 min in Tauri).
+
+## Database SQLite locale
+
+- File: `~/SlideCenter/db.sqlite` (override via `SLIDECENTER_DATA_ROOT` env).
+- WAL mode (concurrent reads, single writer).
+- Migration embedded in `db.rs` (eseguite al boot, idempotent — `IF NOT EXISTS`).
+- Schema mirror minimo Supabase: `events`, `rooms`, `sessions`, `presentations`, `presentation_versions`, `room_state`, `paired_devices`, `pairing_codes`.
+
+## Storage locale
+
+- Root: `~/SlideCenter/storage/`
+- Path: `tenants/<tenant>/events/<event>/presentations/<id>/v<n>/<file>` (stesso schema cloud)
+- HTTP Range support per resumable download (`Range: bytes=N-` → 206 Partial Content).
+- Limit body: configurabile via `tower-http::limit` (default 5 GB per upload).
+
+## Testing veloce (cancellare stato)
+
+```powershell
+# Chiudere prima l'app
+Remove-Item ~/SlideCenter/role.json     # cambio ruolo (riavvia per scelta admin/sala)
+Remove-Item ~/SlideCenter/device.json   # libera PC sala paired
+Remove-Item ~/SlideCenter/db.sqlite     # reset DB locale (ATTENZIONE: perdita dati)
+# In browser admin (cloud) per dimenticare base URL LAN:
+# localStorage.removeItem('sc:devices:lanBaseUrlByDeviceId')
+```
+
+## Vincoli specifici
+
+- **MAI Supabase JS client diretto** in modalita desktop — sempre via `lib/backend-client.ts`.
+- **MAI mDNS dal browser** — solo da Rust via Tauri command.
+- **Auth desktop** = `DesktopAuthProvider` con session fittizia (`desktop-fake-session.ts`) — no Supabase Auth in offline.
+- **`apps/web/src/main.tsx`** carica `desktop-backend-init.ts` PRIMA di renderare l'app: blocca lo splash finche' `cmd_backend_info` ritorna `ready: true`.
+- Bug fix MSI/Windows installer: NSIS ha override `language: ["Italian", "English"]` in `tauri.conf.json` per UI installer i18n.

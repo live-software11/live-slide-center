@@ -1,0 +1,246 @@
+---
+description: Migration SQL, RLS, Edge Functions Deno (supabase/)
+globs:
+  [
+    'supabase/migrations/**/*.sql',
+    'supabase/functions/**/*.ts',
+    'supabase/tests/**/*.sql',
+    'supabase/config.toml',
+  ]
+alwaysApply: false
+---
+
+# Supabase Database — migrations, RLS, Edge Functions
+
+> Principi: `01-data-isolation.mdc`. Pattern client: `web-supabase-client.mdc`.
+
+## Project Supabase
+
+- **Name:** Live Slide Center
+- **Project ref:** `cdjxxxkrhgdkcpkkozdl`
+- **Region:** eu-west-1 (Francoforte)
+- **Postgres:** 17.6 (release_channel `ga`)
+- **Status:** ACTIVE_HEALTHY
+
+Per MCP: `CallMcpTool` server `plugin-supabase-supabase` con `"project_id": "cdjxxxkrhgdkcpkkozdl"`. Vedi `mcp-supabase.mdc`.
+
+## Migration pattern
+
+```sql
+-- supabase/migrations/YYYYMMDDHHMMSS_descrizione.sql
+-- Sempre IF NOT EXISTS / IF EXISTS / DROP IF EXISTS per idempotenza
+
+ALTER TABLE presentations
+  ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_presentations_session
+  ON presentations(session_id);
+
+-- Helper SECURITY DEFINER quando serve bypass RLS controllato
+CREATE OR REPLACE FUNCTION public.my_helper(p_arg uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- check ruolo esplicito (NON affidarsi a RLS quando si esegue come definer)
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'unauthorized' USING ERRCODE = '42501';
+  END IF;
+  -- ... logica
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.my_helper(uuid) TO authenticated;
+```
+
+**Naming:** `YYYYMMDDHHMMSS_descrizione.sql`. Esempi: `20260418000000_room_state_playback_mode.sql`, `20260417100000_team_invitations.sql`.
+
+**Idempotenza:** ogni migration deve poter essere ri-eseguita senza errori (uso intensivo `IF NOT EXISTS` / `IF EXISTS` / `OR REPLACE`).
+
+## RLS — pattern obbligatorio
+
+```sql
+ALTER TABLE <table> ENABLE ROW LEVEL SECURITY;
+
+-- Tabelle operative (eventi, sale, sessioni, presentazioni, storage, audit)
+CREATE POLICY tenant_isolation ON <table>
+  FOR ALL USING (
+    tenant_id = public.app_tenant_id()
+    AND NOT public.current_tenant_suspended()
+  );
+
+CREATE POLICY super_admin_all ON <table>
+  FOR ALL USING (public.is_super_admin());
+
+-- Tabelle solo service_role (rate limit, sync log)
+REVOKE ALL ON <table> FROM PUBLIC, authenticated, anon;
+GRANT ALL ON <table> TO service_role;
+```
+
+`users` e `tenants` preservano SELECT senza il blocco `current_tenant_suspended()` per garantire il flusso auth anche per tenant sospesi (vedi migration `20250416140301_phase14_rls_tenant_suspended.sql`).
+
+## Indici PostgreSQL — linee guida
+
+- **Obbligatorio** indice su `tenant_id` (performance RLS).
+- **Obbligatorio** indice su ogni FK (event_id, room_id, session_id, presentation_id, ...).
+- **Composti** per query frequenti: `(tenant_id, event_id)`, `(event_id, scheduled_start)`, `(tenant_id, action, created_at)` (audit).
+- **Parziali** per stati: `WHERE status = 'active'`, `WHERE consumed_at IS NULL`, `WHERE pair_token_hash IS NOT NULL`.
+- **GIN** per JSONB: `CREATE INDEX idx_settings ON events USING GIN (settings)`.
+- **Unique parziale** per dedup condizionali: `CREATE UNIQUE INDEX presentations_speaker_unique ON presentations(session_id, speaker_id) WHERE speaker_id IS NOT NULL`.
+
+## Tabelle con Realtime abilitato
+
+| Tabella                 | Trigger                                               |
+| ----------------------- | ----------------------------------------------------- |
+| `room_state`            | Update sala in tempo reale + Sprint A `playback_mode` |
+| `presentations`         | Cambio `current_version_id` (trigger resync sala)     |
+| `presentation_versions` | Nuova versione file disponibile                       |
+| `local_agents`          | Heartbeat agent, IP LAN                               |
+| `paired_devices`        | PC sala connesso/disconnesso, `last_seen_at`          |
+
+`activity_log` → polling ogni 10s (NON Realtime).
+
+## Realtime Broadcast (Sprint B — PC sala anon)
+
+```sql
+-- Funzione SECURITY DEFINER chiamata da trigger
+CREATE OR REPLACE FUNCTION public.broadcast_room_state_change()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+BEGIN
+  PERFORM realtime.send(
+    jsonb_build_object('roomId', NEW.room_id, 'eventId', NEW.event_id),
+    'room_state_changed',
+    'room:' || NEW.room_id::text,
+    false  -- private=false: chiunque conosca il topic puo' leggere (UUID v4 non enumerable)
+  );
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  -- non bloccare scritture applicative se Realtime e' giu'
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER broadcast_room_state_change_trg
+AFTER UPDATE ON public.room_state
+FOR EACH ROW EXECUTE FUNCTION public.broadcast_room_state_change();
+```
+
+Topic `room:<uuid>` non enumerable (UUID v4 = 122 bit entropia). Comunicato al client SOLO dopo validazione `device_token` via Edge Function `room-player-bootstrap`.
+
+## Trigger di enforcement quote (gia' in DB)
+
+```sql
+public.check_storage_quota()    -- BEFORE INSERT su presentation_versions
+public.update_storage_used()    -- AFTER UPDATE su presentation_versions (status='ready')
+public.check_events_quota()     -- BEFORE INSERT su events
+public.check_rooms_quota()      -- BEFORE INSERT su rooms
+public.current_tenant_suspended() -- SECURITY DEFINER, usato in policy RLS
+```
+
+## Edge Functions Deno — pattern sicuro
+
+```typescript
+// supabase/functions/<name>/index.ts
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+
+Deno.serve(async (req) => {
+  // CORS
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) return jsonError(401, 'unauthorized');
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return jsonError(401, 'unauthorized');
+
+    const tenantId = user.app_metadata?.tenant_id;
+    if (!tenantId) return jsonError(403, 'no_tenant');
+
+    // ... logica scoped per tenantId
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    });
+  } catch (err) {
+    return jsonError(500, 'internal_error');
+  }
+});
+```
+
+**Edge Functions con `verify_jwt = false`** (in `supabase/config.toml`) — autenticano via token custom invece di JWT Supabase:
+
+| Function                  | Token          | Verifica                                            |
+| ------------------------- | -------------- | --------------------------------------------------- |
+| `pair-claim`              | codice 6 cifre | `pairing_codes.code` non scaduto + non consumed     |
+| `room-player-bootstrap`   | `device_token` | sha256 hex contro `paired_devices.pair_token_hash`  |
+| `room-player-rename`      | `device_token` | idem                                                |
+| `room-player-set-current` | `device_token` | idem + check presentation appartiene a stessa room  |
+| `team-invite-accept`      | `invite_token` | `team_invitations.invite_token` non scaduto + valid |
+| `cleanup-expired-codes`   | nessuno (cron) | DELETE `pairing_codes` scaduti — service role       |
+
+**SECURITY DEFINER RPC chiamabili SOLO da Edge Function (mai da client):** `GRANT EXECUTE ON FUNCTION ... TO service_role` (no `authenticated`/`anon`). Esempio: `rpc_room_player_set_current` (Sprint I, autentica `device_token` e fa cross-room check anti-tampering).
+
+## Edge Functions attive (15)
+
+| Function                  | Auth               | Scopo                                                                |
+| ------------------------- | ------------------ | -------------------------------------------------------------------- |
+| `health`                  | nessuna            | Healthcheck ambiente                                                 |
+| `pair-init`               | JWT tenant         | Genera codice 6 cifre + scadenza 10 min, INSERT `pairing_codes`      |
+| `pair-claim`              | nessuna (tecnico)  | Valida codice → INSERT `paired_devices` + token sha256               |
+| `pair-poll`               | JWT tenant         | Polling stato pairing: pending / consumed / expired                  |
+| `cleanup-expired-codes`   | cron               | DELETE `pairing_codes` scaduti                                       |
+| `room-player-bootstrap`   | device_token       | Sala + network_mode + agent LAN + manifest file (Sprint A6/D2)       |
+| `room-player-rename`      | device_token       | Rinomina device da admin remoto                                      |
+| `room-player-set-current` | device_token       | Sprint I — segnala "in onda" lato admin                              |
+| `team-invite-accept`      | invite_token       | Sprint 1 — accetta invito email + crea utente Auth                   |
+| `email-send`              | secret interno     | Sprint 7 — Resend transactional (welcome, license warn)              |
+| `email-cron-licenses`     | cron esterno       | Sprint 7 — scan tenant licenze in scadenza, dispatch warn email      |
+| `gdpr-export`             | JWT admin          | Sprint 7 — ZIP export tenant data via service-role + signed URL 7g   |
+| `licensing-sync`          | HMAC interno       | Sprint 4-5 — sync da Live WORKS APP webhook Lemon Squeezy            |
+| `system-status`           | nessuna (pubblico) | Sprint 8 — status page `/status` con probe paralleli DB/Auth/Storage |
+
+## Migration storiche (riferimento)
+
+Le migration sono in `supabase/migrations/` (25 file totali al 18 apr 2026). Le piu' recenti / chiave:
+
+| File                                              | Sprint | Scopo                                                         |
+| ------------------------------------------------- | ------ | ------------------------------------------------------------- |
+| `20250411090000_init_slide_center.sql`            | 0      | Schema core, RLS base                                         |
+| `20250415140000_phase1_2_hardening.sql`           | 1-2    | `super_admin_all` su tutte le tabelle, quota enforcement      |
+| `20250416120100_tenant_suspended.sql`             | 8      | `tenants.suspended` blocco accesso                            |
+| `20250416140301_phase14_rls_tenant_suspended.sql` | 14     | `current_tenant_suspended()` + policy granulari               |
+| `20260417100000_team_invitations.sql`             | 1c     | Inviti team + RLS + path utente invitato                      |
+| `20260417130000_onboarding_and_demo_seed.sql`     | 6      | Wizard onboarding + `tenants.onboarded_at` + RPC seed         |
+| `20260417140000_sprint7_operations.sql`           | 7      | GDPR export RPC + email log                                   |
+| `20260417150000_sprint8_tenant_audit.sql`         | 8      | RPC `list_tenant_activity` SECURITY DEFINER                   |
+| `20260418000000_room_state_playback_mode.sql`     | A      | ENUM `playback_mode` (auto/live/turbo) + colonna              |
+| `20260418010000_room_realtime_broadcast.sql`      | B      | Trigger Broadcast `room:<uuid>` per PC sala anon              |
+| `20260418020000_move_presentation_to_session.sql` | G      | RPC `rpc_move_presentation_to_session` (admin bulk + drag)    |
+| `20260418030000_room_state_now_playing.sql`       | I      | `current_presentation_id` + RPC `rpc_room_player_set_current` |
+
+## Test RLS
+
+`supabase/tests/rls_audit.sql` — query manuali che verificano isolamento tenant tra utenti di tenant diversi. Eseguire dopo modifiche a policy o aggiunta tabelle.
+
+```bash
+supabase test db                # esegue tutti i test pgTAP
+supabase db diff                # diff schema locale vs remoto
+supabase db reset               # reset locale (SOLO dev — ATTENZIONE)
+```

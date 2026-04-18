@@ -458,7 +458,8 @@
       "localNotFound": "File not yet downloaded on the room PC. Wait for the download to finish.",
       "localPermissionDenied": "Folder permission revoked: re-pick the sync folder.",
       "localGeneric": "Cannot read file from the local folder.",
-      "localMissingArgs": "Folder or file name missing."
+      "localMissingArgs": "Folder or file name missing.",
+      "sovereignViolation": "Internal error: the room PC must ALWAYS read files from its local folder, never from the network. Please report this bug to Live Software."
     }
   },
   "eventSearch": {
@@ -675,7 +676,9 @@
     "success": "Operation completed",
     "required": "Required field",
     "optional": "Optional",
-    "menu": "Menu"
+    "menu": "Menu",
+    "copy": "Copy",
+    "copied": "Copied!"
   },
   "validation": {
     "required": "This field is required.",
@@ -757,7 +760,53 @@
     "auditColTenant": "Tenant",
     "auditColAction": "Action",
     "auditColActor": "Actor",
-    "auditColEntity": "Entity"
+    "auditColEntity": "Entity",
+    "createTenant": {
+      "openCta": "Create new tenant",
+      "title": "New tenant",
+      "intro": "Create a new customer (organization) and invite the first administrator. The optional license key links the tenant to the matching record in Live WORKS APP.",
+      "fieldName": "Organization name",
+      "fieldNamePlaceholder": "e.g. XYZ Events Studio Ltd.",
+      "fieldSlug": "Slug (URL)",
+      "fieldSlugHint": "Lowercase identifier used in URLs and audit logs. Letters, digits and dashes only.",
+      "fieldStorageGb": "Storage (GB)",
+      "fieldStorageHint": "Presentation storage cap. Example 250 = 250 GiB.",
+      "fieldStorageEnterpriseHint": "Enterprise: set to 0 for «unlimited» (no app-side quota enforcement).",
+      "fieldMaxDevices": "Max room PCs per room",
+      "fieldMaxDevicesHint": "Maximum number of Room Player devices that can pair to each event room.",
+      "fieldExpiresAt": "Commercial expiry",
+      "fieldExpiresNever": "Never expires",
+      "fieldLicenseKey": "License key (optional)",
+      "fieldLicenseKeyHint": "Format XXXX-XXXX-XXXX-XXXX. Leave empty if you have not generated the license in Live WORKS APP / Lemon Squeezy yet.",
+      "fieldAdminEmail": "First administrator email",
+      "fieldAdminEmailHint": "They will receive an invite (link valid for 14 days) to activate the tenant admin account.",
+      "submitCta": "Create tenant + send invite",
+      "creating": "Creating...",
+      "formErrorsTitle": "Please review the following fields:",
+      "successTitle": "Tenant created",
+      "successBody": "Invite for the first admin ({{email}}) has been registered. Copy the link below and send it via email/Telegram, or wait for automatic delivery (if configured).",
+      "successInviteUrl": "Invite link (copy and send to the admin)",
+      "successInviteHint": "Link expires on {{expiry}}. If it expires, recreate the invite from Tenant detail.",
+      "successSlug": "Slug",
+      "successLicense": "License key",
+      "successClose": "Close",
+      "errors": {
+        "generic": "Tenant creation failed. Check logs for details.",
+        "forbidden": "Only super-admins can create tenants.",
+        "invalidName": "Invalid organization name (min 2, max 200 characters).",
+        "invalidSlug": "Invalid slug. Use only lowercase letters, digits and dashes (2-64 characters).",
+        "invalidPlan": "Invalid commercial plan.",
+        "invalidStorage": "Invalid storage value (0 - 100000 GB).",
+        "invalidMaxEvents": "Invalid max events value.",
+        "invalidMaxRooms": "Invalid max rooms value.",
+        "invalidMaxDevices": "Invalid max room PCs value.",
+        "invalidEmail": "Invalid email address.",
+        "invalidLicenseFormat": "Invalid license key format (expected XXXX-XXXX-XXXX-XXXX).",
+        "slugTaken": "Slug already in use by another tenant.",
+        "licenseTaken": "This license key is already assigned to another tenant.",
+        "invitePending": "An active invite already exists for this email."
+      }
+    }
   },
   "config": {
     "supabaseMissingTitle": "Supabase configuration missing",

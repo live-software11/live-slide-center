@@ -1021,6 +1021,7 @@ function RoomPreviewDialogContainer({
     dirHandle,
     segments: [roomName || 'sala', item.sessionTitle || 'sessione'],
     filename: item.filename,
+    enforceLocalOnly: true,
   });
 
   // Sul PC sala "scarica" significa: apri il blob URL in una nuova tab. Il

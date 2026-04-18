@@ -1,6 +1,6 @@
 # Updater Setup — Live SLIDE CENTER Desktop
 
-> Sprint P3 (`docs/GUIDA_OPERATIVA_v3_FIELD_TEST_E_OFFLINE.md` §4.H). **Predisposto, da attivare quando hosting GitHub Releases sara' configurato.**
+> Sprint P3 (vedi `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 storia sprint). **Predisposto, da attivare quando hosting GitHub Releases sara' configurato.**
 
 ---
 

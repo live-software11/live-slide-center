@@ -1,0 +1,143 @@
+---
+description: Tauri legacy — Local Agent (apps/agent) + Room Agent (apps/room-agent) Fase 7
+globs:
+  [
+    'apps/agent/**/*.rs',
+    'apps/agent/**/*.toml',
+    'apps/agent/**/*.json',
+    'apps/room-agent/**/*.rs',
+    'apps/room-agent/**/*.toml',
+    'apps/room-agent/**/*.json',
+  ]
+alwaysApply: false
+---
+
+# Legacy Tauri Agents — Local Agent + Room Agent (Fase 7)
+
+> **Stato:** componenti precedenti a Sprint J. Convivono con `apps/desktop` (Tauri 2 unico Sprint J-Q) per scenari legacy specifici. NON eliminare senza concordare con CTO.
+> Per il desktop unico nuovo: `desktop-tauri.mdc`.
+
+## Quando usare quale
+
+- **Cliente nuovo / venduto Sprint J+:** usare **`apps/desktop`** (Tauri 2 unico, Admin/Sala in singolo binario, mDNS + lan-events + signed URL HMAC).
+- **Setup esistente / fallback / scenari multi-agent in LAN molto specifici:** Local Agent + Room Agent legacy possono restare. Non li sviluppiamo piu' attivamente — fix solo per regressioni critiche o licensing.
+- Esistono anche dialog/UI nella SPA (`features/devices/`, `features/agents/`) che orchestrano entrambi i mondi: **non rompere il dialog di pairing legacy** quando si lavora sul nuovo.
+
+## Local Agent (`apps/agent`) — admin LAN
+
+Server HTTP locale che gira sul PC admin in sala. Espone endpoint per il Room Agent (sale registrate alla LAN). Pensato per studi/agenzie con LAN dedicata che vogliono evitare Internet durante l'evento.
+
+```
+apps/agent/
+├── package.json
+└── src-tauri/
+    ├── Cargo.toml                     # Tauri + Axum + rusqlite + tracing + license/*
+    ├── tauri.conf.json
+    ├── build.rs
+    └── src/
+        ├── main.rs / lib.rs           # bootstrap Tauri (tray icon)
+        ├── server.rs                  # Axum router HTTP locale
+        ├── routes.rs                  # endpoint per Room Agent (manifest, signed URL, status)
+        ├── state.rs                   # AppState (pool DB, config)
+        ├── db.rs                      # SQLite mirror (eventi/sale/file metadati)
+        ├── sync.rs                    # bidirezionale Supabase → SQLite (cron)
+        ├── discovery.rs               # mDNS publish "_slidecenterlan._tcp.local"
+        └── license/                   # Sprint 4-5 licensing
+            ├── manager.rs             # validazione license signed (RSA)
+            ├── crypto.rs              # verify Ed25519/RSA signature
+            ├── fingerprint.rs         # machine ID Windows (HW + OS)
+            ├── api.rs                 # client HTTP Live WORKS APP
+            ├── commands.rs            # Tauri commands esposte (license_*)
+            ├── types.rs
+            └── mod.rs
+```
+
+**Build NSIS:**
+
+```powershell
+cd apps/agent/src-tauri
+cargo tauri build           # NSIS installer in src-tauri/target/release/bundle/nsis/
+```
+
+**Tray Icon:** richiede installer NSIS (no `cargo run`). UI minimale: status sync, ultimo evento, log recente. La gestione vera passa dalla SPA admin (`features/devices/AgentManagementView`).
+
+## Room Agent (`apps/room-agent`) — PC sala dedicato
+
+Daemon che gira sul PC sala, autostart all'avvio Windows (HKCU registry). Pre-scarica file dal Local Agent (LAN) o da Supabase Storage (cloud) e li tiene allineati con `room_state`.
+
+```
+apps/room-agent/
+├── package.json
+└── src-tauri/
+    ├── Cargo.toml
+    ├── tauri.conf.json
+    ├── build.rs
+    └── src/
+        ├── main.rs / lib.rs           # bootstrap + tray
+        ├── autostart.rs               # registry Windows HKCU\...\Run (autostart)
+        ├── state.rs                   # AppState (config, paths)
+        ├── poller.rs                  # polling room_state (Supabase o Local Agent)
+        ├── downloader.rs              # download manager con resume HTTP Range
+        ├── motw.rs                    # rimozione Mark-of-the-Web (Zone.Identifier ADS) Windows
+        ├── discovery.rs               # mDNS browse "_slidecenterlan._tcp.local"
+        └── license/                   # stesso pacchetto licensing
+```
+
+**Build NSIS:**
+
+```powershell
+cd apps/room-agent/src-tauri
+cargo tauri build
+```
+
+**Autostart Windows:** scrive in `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run` la chiave `LiveSlideCenterRoomAgent`. UI minimale (tray + finestra status). Per disinstallare l'autostart: rimuovere chiave manualmente o usare uninstaller NSIS.
+
+**MOTW (Mark-of-the-Web):** Windows marca i file scaricati con NTFS Alternate Data Stream `Zone.Identifier`. PowerPoint mostra "Visualizzazione protetta" → blocca animazioni e startup veloce. `motw.rs` rimuove l'ADS dopo download via `unblock-file` Win API equivalente.
+
+## Pattern licensing (`license/`) — condiviso fra i due agent
+
+Tre componenti (Sprint 4-5):
+
+1. **`fingerprint.rs`** — Machine ID = `sha256(hostname + windows_product_id + cpu_id + first_mac)` su Windows. Stable cross-reboot, varia se HW/OS cambia.
+2. **`crypto.rs`** — Verifica firma Ed25519/RSA del bundle license JWT-like emesso da Live WORKS APP.
+3. **`manager.rs`** — Cache file `%APPDATA%/SlideCenter/license.json` con TTL 24h. Re-validazione online ogni 24h via `api.rs` (HTTP POST `/api/v1/license/validate` Live WORKS APP).
+
+**Tauri commands esposte alla SPA admin** (per gestione licenze nel modulo `features/agents/`):
+
+```
+license_get_status      → { valid, expires_at, plan, fingerprint }
+license_activate(key)   → POST attiva contro Live WORKS APP
+license_deactivate()    → revoca locale + remoto
+license_renew()         → forza re-validazione online
+```
+
+## Endpoint chiave Local Agent (Axum)
+
+| Endpoint                        | Auth          | Scopo                                   |
+| ------------------------------- | ------------- | --------------------------------------- |
+| `GET /agent/status`             | nessuna       | Healthcheck (per Room Agent discovery)  |
+| `GET /agent/manifest/:event_id` | shared secret | Lista presentazioni + versioni + sha256 |
+| `GET /agent/file/:version_id`   | shared secret | Stream file (Range support)             |
+| `POST /agent/sync`              | shared secret | Trigger sync manuale da Supabase        |
+| `GET /agent/license`            | nessuna       | Status licensing (per dashboard admin)  |
+
+Shared secret = token random generato al primo boot, scritto in `%APPDATA%/SlideCenter/agent.json` e mostrato nella UI tray. Il Room Agent lo riceve via `discovery.rs` (TXT record mDNS `secret=<hash>`).
+
+## Discovery mDNS legacy
+
+- Service name: `_slidecenterlan._tcp.local` (DIVERSO dal nuovo `_slidecenter._tcp.local` di `apps/desktop`)
+- TXT records: `role=admin`, `port=<axum>`, `secret_hash=<sha256_8>`
+- Pubblicato dal Local Agent, browsed dal Room Agent in loop ogni 30s
+
+## Update / manutenzione
+
+- **NO auto-update** sui legacy agent. Distribuzione manuale: nuovo NSIS via email/condivisione, utente disinstalla + reinstalla.
+- Versioning: `Cargo.toml -> [package] version`. Prima di build: bump version, `cargo update`, ricompila NSIS, calcola SHA-256, aggiorna `docs/Manuali/Manuale_Distribuzione.md`.
+- Logs: `%APPDATA%/SlideCenter/logs/agent-YYYYMMDD.log` (rotazione 7 giorni, `tracing-subscriber` con `RollingFileAppender`).
+
+## Vincoli specifici legacy
+
+- **NON migrare** funzionalita' nuove qui: vanno tutte in `apps/desktop`.
+- **Mantenere ABI/protocollo** stabile: clienti gia' installati non possono essere forzati ad aggiornare.
+- **Test smoke ogni release:** boot agent → discovery mDNS → manifest fetch → download piccolo file. Documentato in `docs/Manuali/Manuale_Installazione_Local_Agent.md` + `docs/Manuali/Manuale_Installazione_Room_Agent.md`.
+- **Bug critici only:** crash, perdita dati, license validation rotta. Feature requests → roadmap `apps/desktop`.

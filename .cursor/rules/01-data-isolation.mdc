@@ -1,0 +1,105 @@
+---
+description: Sacralita dei dati e isolamento tenant — principio non negoziabile
+alwaysApply: true
+---
+
+# Sacralita dei dati e isolamento tenant
+
+## Principio
+
+**Nessun compromesso.** L'isolamento tra tenant e' il fulcro del prodotto. Nessuna modifica puo' indebolirlo, nemmeno temporaneamente.
+
+## Pattern obbligatorio per ogni tabella con dati business
+
+```sql
+ALTER TABLE <table> ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY tenant_isolation ON <table>
+  FOR ALL USING (tenant_id = public.app_tenant_id());
+
+CREATE POLICY super_admin_all ON <table>
+  FOR ALL USING (public.is_super_admin());
+
+CREATE INDEX idx_<table>_tenant_id ON <table>(tenant_id);
+```
+
+Per **tabelle operative** (eventi/sale/sessioni/presentazioni/storage), la policy `tenant_isolation` deve includere `AND NOT public.current_tenant_suspended()` (Fase 14, blocco tenant sospeso). `users` e `tenants` preservano SELECT per il flusso auth.
+
+## Helper functions gia' in DB
+
+```sql
+public.app_tenant_id()           -- estrae tenant_id dal JWT (app_metadata o user_metadata)
+public.is_super_admin()          -- true se role='super_admin' nel JWT
+public.current_tenant_suspended() -- SECURITY DEFINER, true se tenant sospeso
+```
+
+## Ruoli RBAC
+
+| Ruolo           | Accesso                                                                                |
+| --------------- | -------------------------------------------------------------------------------------- |
+| `super_admin`   | Cross-tenant: lista tenant, quote, audit. **NO contenuto file** (GDPR — solo metadati) |
+| `admin`         | Tutto nel proprio tenant: CRUD eventi/sale/sessioni, team, billing, export             |
+| `coordinator`   | CRUD sessioni/speaker, vista regia, gestione upload                                    |
+| `tech`          | Vista sala assegnata, download file, stato sync                                        |
+| speaker (guest) | Solo upload via `upload_token` univoco — nessun account Supabase                       |
+
+JWT custom claims in `app_metadata`: `{tenant_id, role, user_id}`. Bootstrap super_admin via `UPDATE auth.users SET raw_app_meta_data = raw_app_meta_data || '{"role":"super_admin"}'::jsonb WHERE email = 'live.software11@gmail.com'`.
+
+## Query client (NO filtri tenant lato client)
+
+```typescript
+const { data } = await supabase.from('events').select('*').limit(100);
+// RLS filtra automaticamente per tenant — NON aggiungere .eq('tenant_id', ...)
+```
+
+Eccezioni: solo super_admin con `is_super_admin()` puo' specificare tenant nel client.
+
+## Edge Functions — pattern sicuro
+
+Ogni Edge Function deve verificare auth + tenant prima di operare:
+
+```typescript
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+
+Deno.serve(async (req) => {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) return new Response('Unauthorized', { status: 401 });
+  const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return new Response('Unauthorized', { status: 401 });
+  const tenantId = user.app_metadata?.tenant_id;
+  if (!tenantId) return new Response('No tenant', { status: 403 });
+  // ... operazioni scoped per tenantId
+});
+```
+
+Eccezione: Edge Functions che servono PC sala anonimo (`room-player-bootstrap`, `room-player-rename`, `room-player-set-current`, `pair-claim`, `team-invite-accept`) usano `verify_jwt = false` in `config.toml` e autenticano via **token custom** (sha256 hex contro `paired_devices.pair_token_hash` o `team_invitations.invite_token`).
+
+## Storage path (obbligatorio)
+
+```
+tenants/{tenant_id}/events/{event_id}/presentations/{presentation_id}/v{version_n}/{file}
+```
+
+## Realtime — pattern sicuro
+
+- **Postgres changes:** filtro `event=eq.{eventId}` o `room_id=in.(...)` — RLS si applica al subscribe (utente autenticato).
+- **Broadcast:** topic `room:<roomId>` (UUID v4 non enumerable). Usato per notificare il PC sala anon (no Supabase session). Trigger PG `SECURITY DEFINER` chiama `realtime.send(payload, event, 'room:<room_id>', false)`.
+
+## Checklist pre-commit (ogni nuova tabella / modifica RLS)
+
+- [ ] `tenant_id UUID NOT NULL REFERENCES tenants(id)`?
+- [ ] `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` applicato?
+- [ ] Policy `tenant_isolation` (con `current_tenant_suspended()` per tabelle operative)?
+- [ ] Policy `super_admin_all`?
+- [ ] Indice su `tenant_id` (e su ogni FK frequente)?
+- [ ] Realtime channel filtrato per tenant (nessun broadcast globale)?
+- [ ] Storage path include `{tenant_id}/`?
+- [ ] Edge Function verifica auth + tenant prima di operare?
+- [ ] Tabelle solo service_role (es. rate limit): `REVOKE ALL FROM PUBLIC` + `GRANT ... TO service_role`?
+
+Per pattern dettagliati query/repository, vedi `web-supabase-client.mdc`. Per migration/RLS deep dive, vedi `supabase-db.mdc`.

@@ -2,7 +2,7 @@
 
 **Versione installabile per uso offline su LAN aziendale.** Stesso bundle React della SaaS cloud, wrappato in **Tauri 2** + **server Rust locale Axum** (vedi `src-tauri/`).
 
-> Documento operativo: `docs/GUIDA_OPERATIVA_v3_FIELD_TEST_E_OFFLINE.md` §4.H (Sprint P).
+> Documento operativo: `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 14 (architettura desktop) + § 22 (storia Sprint J-P).
 
 ---
 

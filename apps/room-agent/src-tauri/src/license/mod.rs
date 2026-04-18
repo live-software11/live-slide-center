@@ -41,8 +41,8 @@ pub use types::LicenseStatus;
 pub const API_BASE_URL: &str = "https://live-works-app.web.app/api";
 
 /// SKU unico Room Agent (PC sala). Allineato a `Live WORKS APP`
-/// `functions/scripts/seed-firestore.mjs` e a docs §5.2 di
-/// `PIANO_FINALE_SLIDE_CENTER_v2.md`.
+/// `functions/scripts/seed-firestore.mjs` e a `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`
+/// § 12 (Licensing system).
 #[cfg(feature = "license")]
 pub const PRODUCT_ID: &str = "slide-center-room-agent";
 
