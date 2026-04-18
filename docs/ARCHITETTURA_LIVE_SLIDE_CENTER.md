@@ -122,6 +122,8 @@ Il Centro Slide viene venduto in **tre forme** che condividono il 100% della SPA
 > **Sprint R-3 chiuso (DONE 18/04/2026):** PC sala upload speaker check-in. Relatore last-minute carica/sostituisce file dal PC sala via `RoomDeviceUploadDropzone` (drag&drop + progress + SHA-256). Auth via `device_token` (no JWT), upload diretto a Storage via signed URL (bypass limite 6MB Edge Functions). 3 nuove RPC `SECURITY DEFINER` (`init/finalize/abort_upload_version_for_room_device`), 3 nuove Edge Functions (`room-device-upload-init/finalize/abort`). Trigger esistente `broadcast_presentation_version_change` propaga `presentation_changed` su `room:<id>` → admin live view aggiornata in <1s. Activity log con `actor='device'`, `actor_name='PC sala N'`. Enum `upload_source += 'room_device'`, `actor_type += 'device'`. **Gap G3 chiuso → famiglia R commercial readiness completa (3/10).** Vedi `docs/STATO_E_TODO.md` §0.11.
 >
 > **Sprint S-1 chiuso (DONE 18/04/2026):** drag&drop folder admin OneDrive-style. Nuova utility `apps/web/src/features/presentations/lib/folder-traversal.ts` (`extractFilesFromDataTransfer`, `extractFilesFromInputDirectory`) con traversal ricorsivo BFS via `webkitGetAsEntry()` + `<input webkitdirectory>`. Limiti hard 500 file/depth 10/255 char per filename (con truncation segmenti iniziali e prefisso `.../`). Path relativo preservato come prefisso del filename in `presentation_versions.file_name`, sanitizzazione regex applicata solo a `storage_key`. Zero modifiche schema DB. UI `SessionFilesPanel` aggiunge bottone "Sfoglia cartella" + feedback transient con conteggio file aggiunti + warning aggregati (vuoti/duplicati/nameTooLong/truncated). i18n IT/EN +10 chiavi (parita 1217/1217). **Gap G4 chiuso → famiglia S file-management avviata (4/10).** Vedi `docs/STATO_E_TODO.md` §0.12.
+>
+> **Sprint S-2 chiuso (DONE 18/04/2026):** drag&drop visivo PC ↔ sale. Nuovo componente `apps/web/src/features/devices/components/RoomAssignBoard.tsx` — lavagna Kanban-style (colonna "Non assegnati" + N colonne sala) con HTML5 drag&drop nativo (`dataTransfer` MIME custom `application/x-sc-device-id`), aggiornamento ottimistico locale + rollback su errore, busy-state per device durante mutation. `DevicesPanel` aggiunge un toggle persistente in localStorage "Lista | Lavagna" (default: list per retro-compatibilita, vista Lista resta invariata come fallback per touch/keyboard). Mutation tramite `updateDeviceRoom(deviceId, roomId)` esistente, RLS `tenant_isolation` invariata. Realtime listener `paired_devices` postgres_changes gia' attivo allinea altri admin connessi in <1s senza broadcast custom. Zero modifiche schema DB. i18n IT/EN +12 chiavi (parita 1229/1229). **Gap G5 chiuso → famiglia S avanza (5/10, 2/4 sprint S).** Vedi `docs/STATO_E_TODO.md` §0.13.
 
 | Area                                                       | Cloud (web)                               | Desktop offline (Tauri 2)                    |
 | ---------------------------------------------------------- | ----------------------------------------- | -------------------------------------------- |
@@ -1304,12 +1306,12 @@ Famiglia R chiusa: Slide Center e' ora **commercial-ready end-to-end** (purchase
 
 #### File management OneDrive-style (Sprint S) — IN PROGRESS
 
-| Sprint | Gap | Nome                                                                                              | Stato       |
-| ------ | --- | ------------------------------------------------------------------------------------------------- | ----------- |
-| S-1    | G4  | Drag&drop folder intera in upload admin (`folder-traversal.ts` + `<input webkitdirectory>`)      | DONE        |
-| S-2    | G5  | Drag&drop visivo PC ↔ sale (oggi: solo dropdown)                                                  | pending     |
-| S-3    | G6  | Export ZIP fine evento ordinato per sala/sessione (oggi: piatto)                                  | pending     |
-| S-4    | G7  | Ruolo device "Centro Slide" multi-room (oggi: 1 device = 1 sala)                                  | pending     |
+| Sprint | Gap | Nome                                                                                        | Stato   |
+| ------ | --- | ------------------------------------------------------------------------------------------- | ------- |
+| S-1    | G4  | Drag&drop folder intera in upload admin (`folder-traversal.ts` + `<input webkitdirectory>`) | DONE    |
+| S-2    | G5  | Drag&drop visivo PC ↔ sale (`RoomAssignBoard` Kanban + toggle Lista/Lavagna)                | DONE    |
+| S-3    | G6  | Export ZIP fine evento ordinato per sala/sessione (oggi: piatto)                            | pending |
+| S-4    | G7  | Ruolo device "Centro Slide" multi-room (oggi: 1 device = 1 sala)                            | pending |
 
 Sprint T (perf + competitor parity, G8-G10) resta in pianificazione. Vedi `docs/STATO_E_TODO.md` §0.4 per il dettaglio dei 10 GAP e la roadmap.
 

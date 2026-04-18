@@ -891,7 +891,10 @@
       "title": "PC Sala",
       "sectionTitle": "PC Sala",
       "sectionIntro": "Abbina i computer delle sale per visualizzare il file manager in tempo reale.",
-      "addDevice": "+ Aggiungi PC"
+      "addDevice": "+ Aggiungi PC",
+      "viewModeLabel": "Modalità di visualizzazione",
+      "viewList": "Lista",
+      "viewBoard": "Lavagna"
     },
     "list": {
       "empty": "Nessun PC abbinato per questo evento.",
@@ -904,6 +907,21 @@
       "actions": "Azioni dispositivo",
       "online": "Online",
       "offline": "Offline"
+    },
+    "board": {
+      "label": "Lavagna assegnazione PC alle sale",
+      "hint": "Trascina i PC tra le colonne per assegnarli alle sale. La modifica è immediata e visibile a tutti gli admin in tempo reale.",
+      "unassigned": "Non assegnati",
+      "columnLabel": "{{name}} ({{count}} PC)",
+      "dropHere": "Trascina qui un PC",
+      "status": {
+        "online": "Online",
+        "warning": "Inattivo da poco",
+        "offline": "Offline"
+      },
+      "errors": {
+        "move_failed": "Impossibile spostare il PC. Verifica la connessione e riprova."
+      }
     },
     "pairing": {
       "title": "Abbina PC Sala",

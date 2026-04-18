@@ -891,7 +891,10 @@
       "title": "Room PCs",
       "sectionTitle": "Room PCs",
       "sectionIntro": "Pair room computers to display the file manager in real time.",
-      "addDevice": "+ Add PC"
+      "addDevice": "+ Add PC",
+      "viewModeLabel": "View mode",
+      "viewList": "List",
+      "viewBoard": "Board"
     },
     "list": {
       "empty": "No paired PCs for this event.",
@@ -904,6 +907,21 @@
       "actions": "Device actions",
       "online": "Online",
       "offline": "Offline"
+    },
+    "board": {
+      "label": "PC-to-room assignment board",
+      "hint": "Drag PCs across columns to assign them to rooms. Changes are immediate and visible to all admins in real time.",
+      "unassigned": "Unassigned",
+      "columnLabel": "{{name}} ({{count}} PCs)",
+      "dropHere": "Drop a PC here",
+      "status": {
+        "online": "Online",
+        "warning": "Idle for a moment",
+        "offline": "Offline"
+      },
+      "errors": {
+        "move_failed": "Could not move the PC. Check your connection and retry."
+      }
     },
     "pairing": {
       "title": "Pair Room PC",

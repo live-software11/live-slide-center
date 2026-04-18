@@ -3,11 +3,11 @@
 > **Documento operativo gemello di `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare, in ordine di priorita. Per "cosa fa il prodotto" e "come e fatto" → architettura.
 >
-> **Versione:** 2.5 — 18 aprile 2026 (post-Sprint S-1)
+> **Versione:** 2.6 — 18 aprile 2026 (post-Sprint S-2)
 > **Owner:** Andrea Rizzari
-> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**.
+> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**.
 >
-> **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 4/10 chiusi (G1 in R-1, G2 in R-2, G3 in R-3, G4 in S-1) → completata FAMIGLIA R + avviata FAMIGLIA S.**
+> **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 5/10 chiusi (G1 in R-1, G2 in R-2, G3 in R-3, G4 in S-1, G5 in S-2) → completata FAMIGLIA R + avanzata FAMIGLIA S (1/4 → 2/4).**
 >
 > **Hardening Sprint Q+1 (§ 0.8):** completato hardening backend (Supabase RLS least-privilege + 7 indici hot-path + PKCE + CSP + CI types drift + auto-deploy Edge Functions).
 >
@@ -17,7 +17,9 @@
 >
 > **Sprint R-3 (§ 0.11):** relatore last-minute carica/sostituisce file dal PC sala. Auth via `device_token` (no JWT), upload diretto a Storage via signed URL (bypass limite 6MB Edge), broadcast realtime → admin live view aggiornata in <1s, activity_log con `actor='device'` + `actor_name='PC sala N'`.
 >
-> **Sprint S-1 (§ 0.12):** admin puo' droppare cartelle intere (con sotto-cartelle) in upload sessione, OneDrive-style. Traversal ricorsivo `webkitGetAsEntry` + `<input webkitdirectory>`, max 500 file/depth 10, struttura preservata come prefisso filename. Zero modifiche schema DB. Verde per Sprint S-2 (drag&drop visivo PC ↔ sale, G5) quando vuoi.
+> **Sprint S-1 (§ 0.12):** admin puo' droppare cartelle intere (con sotto-cartelle) in upload sessione, OneDrive-style. Traversal ricorsivo `webkitGetAsEntry` + `<input webkitdirectory>`, max 500 file/depth 10, struttura preservata come prefisso filename. Zero modifiche schema DB.
+>
+> **Sprint S-2 (§ 0.13):** admin puo' assegnare PC alle sale tramite **lavagna drag&drop visiva** (Kanban-style con colonne sala + "Non assegnati"). Toggle persistente "Lista | Lavagna" in `DevicesPanel`. HTML5 DnD nativo, aggiornamento ottimistico, realtime listener `paired_devices` gia' attivo allinea altri admin in <1s. Zero modifiche schema DB. Verde per Sprint S-3 (export ZIP fine evento per sala/sessione, G6) quando vuoi.
 
 ---
 
@@ -29,6 +31,7 @@
    - 0.10 [Sprint R-2 — Lemon Squeezy webhook + email admin-invite (DONE)](#010-sprint-r-2--lemon-squeezy-webhook--email-admin-invite-done-18042026)
    - 0.11 [Sprint R-3 — PC sala upload speaker check-in (DONE)](#011-sprint-r-3--pc-sala-upload-speaker-check-in-done-18042026)
    - 0.12 [Sprint S-1 — Drag&drop folder intera in upload admin (DONE)](#012-sprint-s-1--dragdrop-folder-intera-in-upload-admin-done-18042026)
+   - 0.13 [Sprint S-2 — Drag&drop visivo PC ↔ sale (DONE)](#013-sprint-s-2--dragdrop-visivo-pc--sale-done-18042026)
 1. [Stato attuale (tutto DONE)](#1-stato-attuale-tutto-done)
 2. [Cose da fare ORA (azioni esterne Andrea, NON automatizzabili)](#2-cose-da-fare-ora-azioni-esterne-andrea-non-automatizzabili)
 3. [Field test desktop (quando vorrai farlo)](#3-field-test-desktop-quando-vorrai-farlo)
@@ -63,7 +66,7 @@
 | G2  | Live WORKS APP integrazione = solo link esterno (no parita dati)  | **HIGH**   | `apps/web/src/features/billing/` + webhook Lemon Squeezy condiviso                  | **R-2** | **DONE** ✅ |
 | G3  | PC sala NON puo' caricare/sovrascrivere file (read-only)          | **HIGH**   | `apps/web/src/features/devices/RoomPlayerView.tsx`                                  | **R-3** | **DONE** ✅ |
 | G4  | Drag&drop di **folder intera** in upload admin assente            | **MEDIUM** | `apps/web/src/features/presentations/components/SessionFilesPanel.tsx`              | **S-1** | **DONE** ✅ |
-| G5  | Drag&drop visivo PC ↔ sale assente (solo dropdown)                | **MEDIUM** | `apps/web/src/features/devices/components/DeviceList.tsx` + nuova `RoomAssignBoard` | **S-2** | pending     |
+| G5  | Drag&drop visivo PC ↔ sale assente (solo dropdown)                | **MEDIUM** | `apps/web/src/features/devices/components/DeviceList.tsx` + nuova `RoomAssignBoard` | **S-2** | **DONE** ✅ |
 | G6  | Export ZIP fine evento piatto (no struttura sala/sessione)        | **MEDIUM** | `apps/web/src/features/events/lib/event-export.ts` `buildEventSlidesZip`            | **S-3** | pending     |
 | G7  | "Centro Slide" multi-room = ruolo device assente                  | **MEDIUM** | DB schema `paired_devices.role` + `useFileSync` multi-room manifest                 | **S-4** | pending     |
 | G8  | Versione "in onda" non visibile a colpo d'occhio in sala          | **LOW**    | `apps/web/src/features/devices/RoomPlayerView.tsx` overlay badge `vN/M`             | **T-1** | pending     |
@@ -930,6 +933,70 @@ S-1 obiettivo: l'admin puo' droppare in `SessionFilesPanel` una **cartella inter
 #### 0.12.6 Setup manuale richiesto
 
 **Nessuno**. Modifica solo client; non servono variabili env ne migration ne deploy Edge.
+
+---
+
+### 0.13 Sprint S-2 — Drag&drop visivo PC ↔ sale (DONE 18/04/2026)
+
+**Obiettivo prodotto:** chiudere G5 — l'admin deve poter assegnare i PC alle sale tramite **drag&drop visivo** (lavagna Kanban-style con colonne sala + colonna "Non assegnati"), non solo tramite dropdown nel kebab menu. La nuova vista deve coesistere con quella a lista (toggle persistente). Aggiornamento ottimistico immediato + realtime update tra admin diversi.
+
+#### 0.13.1 Cosa ho fatto (codice committato)
+
+**Nuovo componente** `apps/web/src/features/devices/components/RoomAssignBoard.tsx`:
+
+- Lavagna a griglia responsive (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`): prima colonna fissa **"Non assegnati"** (icona `Inbox`), poi N colonne sala (icona `LayoutGrid`).
+- Ogni colonna ha header (nome + count badge), drop zone con feedback ring/colore in hover, e lista di card device verticali. Colonne vuote mostrano placeholder "Trascina qui un PC".
+- Card device: `draggable=true`, mostra grip + icona Monitor + pallino connectivity (`online`/`warning`/`offline` da `last_seen_at` con soglie 30s/180s) + nome + Wifi/WifiOff badge. Cursor `grab` → `grabbing` su drag.
+- **HTML5 drag&drop nativo** (zero deps): `dataTransfer.setData('application/x-sc-device-id', deviceId)` + `effectAllowed='move'`. Validazione MIME custom su drop (ignora drop esterni: file, link, ecc.).
+- **Aggiornamento ottimistico**: dictionary locale `optimisticRoom: Record<deviceId, roomId|null>`. Drop → UI aggiornata immediatamente → `updateDeviceRoom(deviceId, targetRoomId)` → `onRefresh()` per allineare. In caso di errore, rollback dello stato ottimistico + banner `errors.move_failed` (5s).
+- **Busy state per device**: `Loader2` spinner sulla card durante mutation, `pointer-events: none` per evitare doppi drop.
+
+**Integrazione UI** `apps/web/src/features/devices/DevicesPanel.tsx`:
+
+- Nuovo toggle a 2 tab ("Lista" vs "Lavagna") in alto a destra accanto ai bottoni "+ Aggiungi PC" / "Aggiungi PC LAN". Icone `List` e `LayoutGrid`.
+- Persistenza scelta in `localStorage` con chiave `sc:devices:viewMode` (default: `list` per retro-compatibilita).
+- La vista "Lavagna" **non rimpiazza** la lista: entrambe condividono lo stesso state `usePairedDevices` (con realtime listener postgres_changes gia' attivo). Il toggle e' per-user, non per-tenant.
+
+**i18n IT/EN** (parita 1229/1229 keys, +12 nuove):
+
+- `devices.panel.viewModeLabel`, `devices.panel.viewList`, `devices.panel.viewBoard` (3 keys).
+- `devices.board.label`, `devices.board.hint`, `devices.board.unassigned`, `devices.board.columnLabel` (4 keys).
+- `devices.board.dropHere`, `devices.board.status.{online,warning,offline}`, `devices.board.errors.move_failed` (5 keys).
+
+**Schema DB invariato**: zero migrations. La mutation `updateDeviceRoom` esisteva gia' (UPDATE su `paired_devices.room_id` + `updated_at`), e la RLS `tenant_isolation` protegge gia' la mutazione.
+
+#### 0.13.2 Quality gates
+
+- `pnpm --filter @slidecenter/web typecheck` — **0 errori** (tsc strict).
+- `pnpm --filter @slidecenter/web lint` — **0 errori, 0 warning** (eslint).
+- `pnpm --filter @slidecenter/web build` — **OK** in 2.0s. Bundle delta trascurabile (RoomAssignBoard nel chunk `EventDetailView`).
+- i18n parity script Node — **PASS** (1229 = 1229).
+- Manual: drop di un device da colonna "Non assegnati" → "Sala 1" → UI aggiornata immediatamente, mutation `paired_devices.room_id` su Supabase, realtime listener su altro browser admin riceve UPDATE in <1s.
+
+#### 0.13.3 Browser compatibility
+
+- **Chrome/Edge/Safari/Firefox** desktop moderni: drag&drop OK con `dataTransfer.setData/getData` + `effectAllowed='move'`.
+- **Touch device** (iPad/tablet): drag&drop HTML5 nativo NON funziona di default (richiede polyfill o `@dnd-kit/core` con touch backend). **Fallback intenzionale**: l'admin su tablet usa la vista "Lista" che ha il dropdown (kebab menu → Sposta in altra sala). Non e' un caso d'uso primario (centro slide e' sempre desktop).
+- **Mobile**: stessa logica del touch device. Toggle "Lavagna" disponibile ma sub-ottimale; consigliato uso "Lista".
+
+#### 0.13.4 Limiti dichiarati e roadmap
+
+- **No multi-select**: trascini un PC alla volta. Per assegnare 10 PC a una sala servono 10 drag. Acceptable: i centri slide hanno 5-15 PC totali e l'allocazione e' una tantum a inizio evento. **S-2.b deferred** se servisse: shift+click per multi-select + drag bundle.
+- **No drag&drop sale → eventi**: la lavagna mostra solo i PC dell'evento corrente. Se vuoi spostare un PC a un altro evento devi prima fare unpair → re-pair. Voluto (l'evento e' contesto).
+- **No keyboard navigation**: il drag&drop e' solo mouse. Per accessibilita keyboard, l'admin usa la vista "Lista" (dropdown standard). Acceptable per Sprint MVP.
+- **No animazioni transizione card**: scelta MVP per zero deps. Le card "saltano" alla nuova colonna senza animazione. Se vuoi `framer-motion` per smooth transition: **S-2.c deferred** (+0.3g).
+
+#### 0.13.5 Architectural observations
+
+- **Sovereign rule #2** N/A: nessun file viaggia, solo metadata di allocazione (`room_id` su `paired_devices`).
+- **Realtime parity**: `usePairedDevices` ha gia' un listener `postgres_changes` su `paired_devices` filtered by `event_id`. Quindi un admin che droppa un PC su Browser A vede automaticamente l'admin Browser B aggiornare la sua lavagna in <1s, senza che dobbiamo aggiungere broadcast custom.
+- **Optimistic UI pattern**: stesso pattern usato in altre parti dell'app (es. `EventSearchBar` per filtri). Il rollback in caso di errore e' immediato (5s banner) ed evita flash UI.
+- **Zero coupling con desktop/Tauri**: il componente funziona uguale in cloud e in modalita desktop intranet (entrambi usano `usePairedDevices` con il backend astratto). Nessun branch `isRunningInTauri()`.
+- **Coexistence con DeviceList**: la vista "Lista" rimane invariata (zero regressioni). Il kebab menu con dropdown "Assegna sala" continua a funzionare ed e' il fallback ufficiale per touch/keyboard users.
+
+#### 0.13.6 Setup manuale richiesto
+
+**Nessuno**. Modifica solo client; non servono migrations, env vars, deploy Edge Functions. L'admin trova il toggle "Lista | Lavagna" automaticamente al prossimo refresh dell'app.
 
 ---
 
