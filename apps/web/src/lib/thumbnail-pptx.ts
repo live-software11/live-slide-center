@@ -17,9 +17,29 @@
  *    per evitare di soffocare il browser con .pptx multi-GB.
  */
 
-import JSZip from 'jszip';
+// Audit-fix AU-07 (2026-04-18): jszip lazy-loaded dentro extractPptxThumbnailBlob
+// per spostare il ~96KB gzip dal chunk principale al chunk thumbnail-on-demand.
+// Cache della Promise: la prima chiamata fa import dinamico, le successive
+// riusano il modulo gia' caricato senza re-fetch.
+//
+// `import('jszip')` ritorna `{ default: JSZipConstructor }` su esbuild/Vite
+// (la lib usa CJS export). Tipizziamo via `Awaited<ReturnType<...>>` per
+// evitare di importare i tipi statici di jszip (sennon vanifichiamo lo split).
 
 const MAX_BYTES = 50 * 1024 * 1024; // 50 MB: oltre, skip.
+
+type JSZipModule = Awaited<ReturnType<typeof importJSZip>>;
+function importJSZip() {
+  return import('jszip');
+}
+
+let jszipModulePromise: Promise<JSZipModule['default']> | null = null;
+function loadJSZip(): Promise<JSZipModule['default']> {
+  if (!jszipModulePromise) {
+    jszipModulePromise = importJSZip().then((m) => m.default);
+  }
+  return jszipModulePromise;
+}
 
 interface ExtractOptions {
   signal?: AbortSignal;
@@ -39,6 +59,8 @@ export async function extractPptxThumbnailBlob(
   if (pptxBytes.byteLength > MAX_BYTES) return null;
 
   try {
+    const JSZip = await loadJSZip();
+    if (signal?.aborted) return null;
     const zip = await JSZip.loadAsync(pptxBytes);
     if (signal?.aborted) return null;
 

@@ -23,6 +23,7 @@
 //   500 { error: <internal> }
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { corsHeaders, handleCors } from '../_shared/cors.ts';
+import { checkAndRecordEdgeRate, clientIpFromRequest, hashIp } from '../_shared/rate-limit.ts';
 
 function jsonRes(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
@@ -104,6 +105,22 @@ Deno.serve(async (req: Request) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
+
+    // Audit-fix AU-05: rate limit per IP. 120 cmd / 60s / IP.
+    // Doppio rispetto al limite per pairing (60/min) per supportare regista
+    // che fa next/prev rapido (es. domande Q&A); blocca brute-force token
+    // enumeration sul tablet token (8 random alfanum).
+    const ipHash = await hashIp(clientIpFromRequest(req));
+    const rate = await checkAndRecordEdgeRate(supabaseAdmin, {
+      ipHash,
+      scope: 'remote-control-dispatch',
+      maxPerWindow: 120,
+      windowMinutes: 1,
+    });
+    if (rate && !rate.allowed) {
+      console.warn('[remote-control-dispatch] rate-limited', { ipHash, count: rate.count });
+      return jsonRes({ error: 'rate_limited' }, 429);
+    }
 
     const { data, error } = await supabaseAdmin.rpc('rpc_dispatch_remote_command', {
       p_token: token,

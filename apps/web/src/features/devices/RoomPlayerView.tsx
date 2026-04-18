@@ -51,6 +51,7 @@ import { RoomDeviceUploadDropzone } from './components/RoomDeviceUploadDropzone'
 import { FilePreviewDialog } from '@/features/presentations/components/FilePreviewDialog';
 import { useFilePreviewSource } from '@/features/presentations/hooks/useFilePreviewSource';
 import { useToast } from '@/components/use-toast';
+import { enqueueOutbox, startOutboxFlush } from '@/lib/outbox-queue';
 import type { Database } from '@slidecenter/shared';
 
 type SyncStatus = Database['public']['Enums']['sync_status'];
@@ -574,6 +575,22 @@ export default function RoomPlayerView() {
       /* ignore */
     }
   }, [playbackMode]);
+
+  // Audit-fix AU-08 (2026-04-18): outbox queue per `room_player_set_current`.
+  // Se il PC sala apre un file mentre la rete e' giu', il `.catch` di
+  // invokeRoomPlayerSetCurrent accoda in IndexedDB. Il flush ricorrente
+  // (15s + evento `online`) ritrasmette automaticamente quando torna la rete.
+  // Senza outbox: l'admin LIVE_VIEW vede il vecchio "now playing" finche'
+  // l'operatore di sala non apre un altro file (potrebbero passare 30+ min).
+  useEffect(() => {
+    startOutboxFlush({
+      room_player_set_current: async (payload) => {
+        const p = payload as { token: string; presentationId: string | null };
+        if (!p?.token) return;
+        await invokeRoomPlayerSetCurrent(p.token, p.presentationId);
+      },
+    });
+  }, []);
 
   useEffect(() => {
     const on = () => setNavigatorOnline(true);
@@ -1167,9 +1184,13 @@ export default function RoomPlayerView() {
               setNowPlayingPresentationId(item.presentationId);
               if (token) {
                 void invokeRoomPlayerSetCurrent(token, item.presentationId).catch((err) => {
-                  // Logghiamo solo: l'esperienza sala vince sull'audit. Se la
-                  // Edge Function e' giu', il file si apre lo stesso.
-                  console.warn('[room-player] set_current failed', err);
+                  // Audit-fix AU-08: degrade a outbox queue. Logghiamo + accodiamo
+                  // in IndexedDB. Il flush ricorrente (15s + online event) ritenta.
+                  console.warn('[room-player] set_current failed, enqueuing outbox', err);
+                  void enqueueOutbox({
+                    kind: 'room_player_set_current',
+                    payload: { token, presentationId: item.presentationId },
+                  });
                 });
               }
             }}

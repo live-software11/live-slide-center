@@ -1,7 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { TFunction } from 'i18next';
 import { jsPDF } from 'jspdf';
-import JSZip from 'jszip';
 import type { Database } from '@slidecenter/shared';
 import { createVersionDownloadUrlWithClient } from '@/features/presentations/repository';
 import { formatBytes } from '@/features/upload-portal/lib/format-bytes';
@@ -519,6 +518,10 @@ export async function buildEventSlidesZip(
 ): Promise<Blob> {
   const { event, rooms, sessions, t, locale, generatedAtIso, onProgress, includeReadme = true } =
     options;
+  // Audit-fix AU-07 (2026-04-18): lazy import jszip (~96KB gzip). Caricato
+  // solo quando l'admin clicca "Export ZIP slides", non al primo render
+  // di EventDetailView.
+  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
 
   if (includeReadme) {

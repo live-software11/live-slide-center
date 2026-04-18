@@ -30,6 +30,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { corsHeaders, handleCors } from '../_shared/cors.ts';
+import { checkAndRecordEdgeRate, clientIpFromRequest, hashIp } from '../_shared/rate-limit.ts';
 
 interface InitInput {
   device_token?: string;
@@ -81,6 +82,21 @@ Deno.serve(async (req: Request) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
+
+    // Audit-fix AU-05: rate limit per IP. 30 richieste / 5 minuti / IP.
+    // Sufficiente per upload normali (1 PC sala fa ~5-10 upload all'ora);
+    // blocca brute-force token enumeration.
+    const ipHash = await hashIp(clientIpFromRequest(req));
+    const rate = await checkAndRecordEdgeRate(supabaseAdmin, {
+      ipHash,
+      scope: 'room-device-upload-init',
+      maxPerWindow: 30,
+      windowMinutes: 5,
+    });
+    if (rate && !rate.allowed) {
+      console.warn('[room-device-upload-init] rate-limited', { ipHash, count: rate.count });
+      return jsonRes({ error: 'rate_limited' }, 429);
+    }
 
     // 1) Init nel DB (validazione completa lato RPC SECURITY DEFINER)
     const { data: rpcData, error: rpcError } = await supabaseAdmin.rpc(
@@ -166,7 +182,8 @@ Deno.serve(async (req: Request) => {
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal error';
-    return jsonRes({ error: message }, 500);
+    console.error('[room-device-upload-init] unhandled', message);
+    return jsonRes({ error: 'internal_error' }, 500);
   }
 });
 
