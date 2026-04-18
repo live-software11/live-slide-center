@@ -56,24 +56,73 @@ if ([string]::IsNullOrWhiteSpace($SupabaseUrl)) {
 }
 $ServiceRoleKey = $env:SUPABASE_SERVICE_ROLE_KEY
 
+function Show-EnvHelp {
+  Write-Host ''
+  Write-Host 'COME RECUPERARE I VALORI VERI:' -ForegroundColor Yellow
+  Write-Host '  1. Apri https://supabase.com/dashboard'
+  Write-Host '  2. Login con live.software11@gmail.com'
+  Write-Host '  3. Seleziona il progetto live-slide-center'
+  Write-Host '  4. Sidebar: Settings (icona ingranaggio) -> API'
+  Write-Host '  5. Project URL: copia il valore (formato https://xxxxxxxxxxxxxxxxxx.supabase.co)'
+  Write-Host '  6. Project API keys -> service_role: click "Reveal" -> copia il JWT (inizia con eyJ, lungo ~200 char)'
+  Write-Host ''
+  Write-Host 'POI ESEGUI (incolla i valori veri, NON i placeholder):' -ForegroundColor Yellow
+  Write-Host '  $env:SUPABASE_URL = "https://abc1234567890.supabase.co"   # esempio'
+  Write-Host '  $env:SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIs..."  # JWT lungo'
+  Write-Host '  powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Setup-Field-Test-Env.ps1'
+  Write-Host ''
+  Write-Host 'IMPORTANTE: la service_role key bypassa RLS. NON committarla nel repo, NON condividerla.' -ForegroundColor Red
+  Write-Host ''
+}
+
 if ([string]::IsNullOrWhiteSpace($SupabaseUrl)) {
   Write-Host '[X] SUPABASE_URL (o VITE_SUPABASE_URL) NON impostato.' -ForegroundColor Red
-  Write-Host '    Esegui prima: $env:SUPABASE_URL = "https://<project>.supabase.co"' -ForegroundColor Yellow
+  Show-EnvHelp
   exit 1
 }
 
 if ([string]::IsNullOrWhiteSpace($ServiceRoleKey)) {
   Write-Host '[X] SUPABASE_SERVICE_ROLE_KEY NON impostato.' -ForegroundColor Red
-  Write-Host '    Recupera da Supabase dashboard → Settings → API → service_role key.' -ForegroundColor Yellow
-  Write-Host '    Esegui: $env:SUPABASE_SERVICE_ROLE_KEY = "eyJ...."' -ForegroundColor Yellow
+  Show-EnvHelp
   exit 1
 }
 
 $SupabaseUrl = $SupabaseUrl.TrimEnd('/')
 
+# Validazione formato URL: deve essere https://<ref>.supabase.co (no placeholder, no protocolli strani).
+$urlPattern = '^https://[a-z0-9]{15,30}\.supabase\.co$'
+if ($SupabaseUrl -notmatch $urlPattern) {
+  Write-Host '[X] SUPABASE_URL ha un formato non valido.' -ForegroundColor Red
+  Write-Host ('    Valore ricevuto: ' + $SupabaseUrl) -ForegroundColor DarkGray
+  if ($SupabaseUrl -match '<.*>') {
+    Write-Host '    Hai lasciato il PLACEHOLDER letterale (<TUO_PROJECT_REF> o simile).' -ForegroundColor Yellow
+    Write-Host '    Devi sostituirlo con il vero project ref di Supabase.' -ForegroundColor Yellow
+  }
+  else {
+    Write-Host '    Formato atteso: https://<projectref>.supabase.co (15-30 char alfanumerici)' -ForegroundColor Yellow
+  }
+  Show-EnvHelp
+  exit 1
+}
+
+# Validazione formato service_role key: deve essere un JWT lungo (eyJ... > 100 char).
+if ($ServiceRoleKey -notmatch '^eyJ' -or $ServiceRoleKey.Length -lt 100) {
+  Write-Host '[X] SUPABASE_SERVICE_ROLE_KEY ha un formato non valido.' -ForegroundColor Red
+  Write-Host ('    Lunghezza ricevuta: ' + $ServiceRoleKey.Length + ' char (atteso > 100)') -ForegroundColor DarkGray
+  if ($ServiceRoleKey -match '\.\.\.\.|<.*>') {
+    Write-Host '    Hai lasciato il PLACEHOLDER letterale (eyJ.... o <TUA_KEY>).' -ForegroundColor Yellow
+    Write-Host '    Devi sostituirlo con la vera service_role key (JWT completo).' -ForegroundColor Yellow
+  }
+  else {
+    Write-Host '    Formato atteso: JWT che inizia con "eyJ" e lungo circa 200+ caratteri.' -ForegroundColor Yellow
+  }
+  Show-EnvHelp
+  exit 1
+}
+
 if (-not $Quiet) {
   Write-Host ('[OK] SUPABASE_URL: ' + $SupabaseUrl) -ForegroundColor Green
-  Write-Host ('[OK] SUPABASE_SERVICE_ROLE_KEY: presente (' + $ServiceRoleKey.Length + ' char)') -ForegroundColor Green
+  Write-Host ('[OK] SUPABASE_SERVICE_ROLE_KEY: presente (' + $ServiceRoleKey.Length + ' char, prefisso eyJ OK)') -ForegroundColor Green
   Write-Host ''
 }
 
