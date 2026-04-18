@@ -18,6 +18,59 @@
     "billing": "Subscription",
     "activity": "Activity"
   },
+  "folder": {
+    "panelTitle": "Event folders",
+    "panelIntro": "Organize event files by room, session or speaker. Folders are optional.",
+    "newRootFolder": "New folder",
+    "empty": "No folders yet. Create one to start organizing files.",
+    "actionRename": "Rename",
+    "actionDelete": "Delete",
+    "actionNewSub": "New sub-folder",
+    "confirmDelete": "Delete this folder? The files inside will stay in the session (without folder).",
+    "confirmDeleteWithChildren": "Delete this folder and its {{count}} sub-folders? The files inside will stay in the sessions (without folder).",
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "namePlaceholder": "Folder name...",
+    "renamePlaceholder": "New name...",
+    "errors": {
+      "nameLength": "Name must be between 1 and 200 characters."
+    }
+  },
+  "onAir": {
+    "headerKicker": "Control room / on air",
+    "detailKicker": "Selected room",
+    "roomsListTitle": "Rooms ({{count}})",
+    "selectRoomPrompt": "Select a room from the list on the left.",
+    "badgeOnAir": "On air",
+    "badgeIdle": "Idle",
+    "noNowPlayingTitle": "Nothing on air",
+    "noNowPlayingDesc": "The PC for room {{roomName}} is not projecting any file right now.",
+    "nowPlayingUnknown": "(unknown file)",
+    "slideLabel": "Slide",
+    "slideUnknownHint": "The room PC is not yet reporting the slide counter. Update the player to enable it.",
+    "startedAgo": "Started {{ago}}",
+    "agoSeconds": "{{count}}s ago",
+    "agoMinutes": "{{count}}min ago",
+    "agoHours": "{{count}}h ago"
+  },
+  "production": {
+    "headerKicker": "Production / event files",
+    "backToEvent": "Back to event",
+    "uploadFromSession": "Upload file (from session)",
+    "sidebarTitle": "Folders",
+    "rootLabel": "All files",
+    "selectedCount": "{{count}} selected",
+    "moveTo": "Move to...",
+    "clearSelection": "Clear selection",
+    "openSession": "Open session",
+    "untitledFile": "Untitled file",
+    "unknownSpeaker": "Speaker not assigned",
+    "emptyRootTitle": "No files in root",
+    "emptyRootDesc": "Upload a presentation from the event \"Sessions\" tab; you can move it to a folder afterwards.",
+    "emptyFolderTitle": "{{folderName}} is empty",
+    "emptyFolderDesc": "Drag a file here from the left column or use \"Move to...\" after selecting one or more files from root.",
+    "errorMissingEvent": "Missing event id in URL."
+  },
   "appShell": {
     "brandSubtitle": "Production Suite",
     "searchHint": "Search events, rooms, PCs...",
@@ -100,6 +153,12 @@
     "statusPageLink": "Service status"
   },
   "event": {
+    "tabs": {
+      "production": "Production",
+      "sessions": "Sessions",
+      "speakers": "Speakers",
+      "rooms": "Rooms & PCs"
+    },
     "title": "Event",
     "titlePlural": "Events",
     "create": "New event",

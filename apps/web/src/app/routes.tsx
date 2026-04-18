@@ -108,8 +108,12 @@ export const router = createBrowserRouter([
                 lazy: () => import('@/features/events/EventDetailView'),
               },
               {
+                path: 'events/:eventId/production',
+                lazy: () => import('@/features/events/ProductionView'),
+              },
+              {
                 path: 'events/:eventId/live',
-                lazy: () => import('@/features/live-view/LiveRegiaView'),
+                lazy: () => import('@/features/live-view/OnAirView'),
               },
               {
                 path: 'settings',

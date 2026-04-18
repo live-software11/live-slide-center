@@ -23,6 +23,11 @@ Deno.serve(async (req: Request) => {
     const body = (await req.json()) as {
       device_token?: string;
       presentation_id?: string | null;
+      // Sprint U-3: opzionali, retrocompatibili. Il PC sala li passa solo
+      // se sa la posizione corrente nella slide deck (es. PowerPoint COM,
+      // LibreOffice headless). I PC vecchi continuano a funzionare senza.
+      current_slide_index?: number | null;
+      current_slide_total?: number | null;
     };
     const token = typeof body.device_token === 'string' ? body.device_token.trim() : '';
     if (!token) return jsonRes({ error: 'missing_device_token' }, 400);
@@ -37,6 +42,11 @@ Deno.serve(async (req: Request) => {
       if (presentationId.length === 0) presentationId = null;
     }
 
+    // Slide counters (Sprint U-3): cast difensivo a int. Numeri negativi o
+    // non-int → NULL (la RPC ha gia' una sanity-check secondario).
+    const slideIndex = normalizeSlideCounter(body.current_slide_index);
+    const slideTotal = normalizeSlideCounter(body.current_slide_total);
+
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -45,6 +55,8 @@ Deno.serve(async (req: Request) => {
     const { data, error } = await supabaseAdmin.rpc('rpc_room_player_set_current', {
       p_token: token,
       p_presentation_id: presentationId,
+      p_current_slide_index: slideIndex,
+      p_current_slide_total: slideTotal,
     });
 
     if (error) {
@@ -74,4 +86,12 @@ function jsonRes(body: unknown, status: number): Response {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+function normalizeSlideCounter(v: unknown): number | null {
+  if (v === undefined || v === null) return null;
+  if (typeof v !== 'number' || !Number.isFinite(v)) return null;
+  const n = Math.floor(v);
+  if (n < 1) return null;
+  return n;
 }

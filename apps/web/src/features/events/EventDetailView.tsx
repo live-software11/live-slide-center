@@ -44,6 +44,8 @@ import { RoomDevicesPanel } from '@/features/devices/components/RoomDevicesPanel
 import { RemoteControlPairingsPanel } from '@/features/remote-control/components/RemoteControlPairingsPanel';
 import { EventSearchBar } from './components/EventSearchBar';
 import type { EventFileSearchResult } from './lib/event-file-search';
+import { EventFoldersPanel } from '@/features/folders/components/EventFoldersPanel';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@slidecenter/ui';
 const EventExportPanel = lazy(async () => {
   const m = await import('@/features/events/components/EventExportPanel');
   return { default: m.EventExportPanel };
@@ -879,7 +881,41 @@ export default function EventDetailView() {
         <p className="mt-4 text-xs text-sc-text-dim">{t('common.loading')}</p>
       ) : null}
 
-      <section className="mt-8" aria-labelledby="rooms-section-title">
+      {/* Sprint U-2 (UX redesign V2.0): split EventDetailView in 4 tab.
+          Tab Production raccoglie le nuove cartelle + l'export ZIP fine evento;
+          le tab Sessions/Speakers/Rooms restano isofunzionali (stesso markup
+          delle vecchie section), solo riorganizzate sotto un Tabs shadcn. */}
+      <Tabs defaultValue="production" className="mt-8">
+        <TabsList>
+          <TabsTrigger value="production">{t('event.tabs.production')}</TabsTrigger>
+          <TabsTrigger value="sessions">{t('event.tabs.sessions')}</TabsTrigger>
+          <TabsTrigger value="speakers">{t('event.tabs.speakers')}</TabsTrigger>
+          <TabsTrigger value="rooms">{t('event.tabs.rooms')}</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="production" className="mt-6 space-y-8">
+          <EventFoldersPanel eventId={event.id} tenantId={event.tenant_id} />
+          <section aria-labelledby="export-section-title">
+            <h2 id="export-section-title" className="text-lg font-semibold text-sc-text">
+              {t('event.export.sectionTitle')}
+            </h2>
+            <p className="mt-1 text-sm text-sc-text-dim">{t('event.export.sectionIntro')}</p>
+            <div className="mt-6 max-w-3xl">
+              <Suspense fallback={<p className="text-sm text-sc-text-dim">{t('common.loading')}</p>}>
+                <EventExportPanel
+                  supabase={supabase}
+                  event={event}
+                  rooms={rooms}
+                  sessions={sessions}
+                  speakers={speakers}
+                />
+              </Suspense>
+            </div>
+          </section>
+        </TabsContent>
+
+        <TabsContent value="rooms" className="mt-6 space-y-12">
+          <section aria-labelledby="rooms-section-title">
         <h2 id="rooms-section-title" className="text-lg font-semibold text-sc-text">
           {t('room.titlePlural')}
         </h2>
@@ -1131,9 +1167,11 @@ export default function EventDetailView() {
             ))}
           </ul>
         )}
-      </section>
+          </section>
+        </TabsContent>
 
-      <section className="mt-12" aria-labelledby="sessions-section-title">
+        <TabsContent value="sessions" className="mt-6">
+          <section aria-labelledby="sessions-section-title">
         <h2 id="sessions-section-title" className="text-lg font-semibold text-sc-text">
           {t('session.titlePlural')}
         </h2>
@@ -1631,9 +1669,11 @@ export default function EventDetailView() {
             })}
           </div>
         )}
-      </section>
+          </section>
+        </TabsContent>
 
-      <section className="mt-12" aria-labelledby="speakers-section-title">
+        <TabsContent value="speakers" className="mt-6">
+          <section aria-labelledby="speakers-section-title">
         <button
           type="button"
           onClick={() => setShowAdvancedSpeakers((v) => !v)}
@@ -2074,8 +2114,10 @@ export default function EventDetailView() {
           )}
         </section>
       ) : null}
+        </TabsContent>
 
-      <section className="mt-12" aria-labelledby="devices-section-title">
+        <TabsContent value="rooms" className="mt-6">
+          <section aria-labelledby="devices-section-title">
         <h2 id="devices-section-title" className="text-lg font-semibold text-sc-text">
           {t('devices.panel.sectionTitle')}
         </h2>
@@ -2086,25 +2128,9 @@ export default function EventDetailView() {
               quando 0 device pairati. */}
           <LivePerfTelemetryPanel eventId={event.id} />
         </div>
-      </section>
-
-      <section className="mt-12" aria-labelledby="export-section-title">
-        <h2 id="export-section-title" className="text-lg font-semibold text-sc-text">
-          {t('event.export.sectionTitle')}
-        </h2>
-        <p className="mt-1 text-sm text-sc-text-dim">{t('event.export.sectionIntro')}</p>
-        <div className="mt-6 max-w-3xl">
-          <Suspense fallback={<p className="text-sm text-sc-text-dim">{t('common.loading')}</p>}>
-            <EventExportPanel
-              supabase={supabase}
-              event={event}
-              rooms={rooms}
-              sessions={sessions}
-              speakers={speakers}
-            />
-          </Suspense>
-        </div>
-      </section>
+          </section>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

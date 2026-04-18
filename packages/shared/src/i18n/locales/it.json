@@ -18,6 +18,59 @@
     "billing": "Abbonamento",
     "activity": "Attività"
   },
+  "folder": {
+    "panelTitle": "Cartelle dell'evento",
+    "panelIntro": "Organizza i file dell'evento per sala, sessione o speaker. Le cartelle sono opzionali.",
+    "newRootFolder": "Nuova cartella",
+    "empty": "Nessuna cartella. Creane una per iniziare a organizzare i file.",
+    "actionRename": "Rinomina",
+    "actionDelete": "Elimina",
+    "actionNewSub": "Nuova sotto-cartella",
+    "confirmDelete": "Eliminare questa cartella? I file dentro rimarranno nella sessione (senza cartella).",
+    "confirmDeleteWithChildren": "Eliminare questa cartella e le sue {{count}} sotto-cartelle? I file dentro rimarranno nelle sessioni (senza cartella).",
+    "collapse": "Comprimi",
+    "expand": "Espandi",
+    "namePlaceholder": "Nome cartella...",
+    "renamePlaceholder": "Nuovo nome...",
+    "errors": {
+      "nameLength": "Il nome deve essere tra 1 e 200 caratteri."
+    }
+  },
+  "onAir": {
+    "headerKicker": "Regia / on air",
+    "detailKicker": "Sala selezionata",
+    "roomsListTitle": "Sale ({{count}})",
+    "selectRoomPrompt": "Seleziona una sala dalla lista a sinistra.",
+    "badgeOnAir": "On air",
+    "badgeIdle": "Idle",
+    "noNowPlayingTitle": "Nulla in onda",
+    "noNowPlayingDesc": "Il PC della sala {{roomName}} non sta proiettando un file in questo momento.",
+    "nowPlayingUnknown": "(file sconosciuto)",
+    "slideLabel": "Slide",
+    "slideUnknownHint": "Il PC sala non riporta ancora il numero di slide. Aggiornare la versione del player per abilitare il counter.",
+    "startedAgo": "Avviato {{ago}}",
+    "agoSeconds": "{{count}}s fa",
+    "agoMinutes": "{{count}}min fa",
+    "agoHours": "{{count}}h fa"
+  },
+  "production": {
+    "headerKicker": "Production / file evento",
+    "backToEvent": "Torna all'evento",
+    "uploadFromSession": "Carica file (dalla sessione)",
+    "sidebarTitle": "Cartelle",
+    "rootLabel": "Tutti i file",
+    "selectedCount": "{{count}} selezionati",
+    "moveTo": "Sposta in...",
+    "clearSelection": "Annulla selezione",
+    "openSession": "Apri sessione",
+    "untitledFile": "File senza nome",
+    "unknownSpeaker": "Relatore non assegnato",
+    "emptyRootTitle": "Nessun file in root",
+    "emptyRootDesc": "Carica una presentazione dalla sezione \"Sessioni\" dell'evento; potrai poi spostarla in una cartella.",
+    "emptyFolderTitle": "{{folderName}} è vuota",
+    "emptyFolderDesc": "Trascina i file dalla colonna a sinistra o usa \"Sposta in...\" dopo averne selezionati uno o più dalla root.",
+    "errorMissingEvent": "ID evento mancante nell'URL."
+  },
   "appShell": {
     "brandSubtitle": "Production Suite",
     "searchHint": "Cerca eventi, sale, PC...",
@@ -100,6 +153,12 @@
     "statusPageLink": "Stato del servizio"
   },
   "event": {
+    "tabs": {
+      "production": "Produzione",
+      "sessions": "Sessioni",
+      "speakers": "Relatori",
+      "rooms": "Sale & PC"
+    },
     "title": "Evento",
     "titlePlural": "Eventi",
     "create": "Nuovo evento",

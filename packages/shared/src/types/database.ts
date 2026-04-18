@@ -505,6 +505,8 @@ export type Database = {
           session_id: string;
           event_id: string;
           tenant_id: string;
+          /** Sprint U-2: cartella opzionale per organizzazione Production. NULL = root. */
+          folder_id: string | null;
           current_version_id: string | null;
           total_versions: number;
           status: Database['public']['Enums']['presentation_status'];
@@ -520,6 +522,7 @@ export type Database = {
           session_id: string;
           event_id: string;
           tenant_id: string;
+          folder_id?: string | null;
           current_version_id?: string | null;
           total_versions?: number;
           status?: Database['public']['Enums']['presentation_status'];
@@ -535,6 +538,7 @@ export type Database = {
           session_id?: string;
           event_id?: string;
           tenant_id?: string;
+          folder_id?: string | null;
           current_version_id?: string | null;
           total_versions?: number;
           status?: Database['public']['Enums']['presentation_status'];
@@ -543,6 +547,43 @@ export type Database = {
           reviewed_by_user_id?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      /**
+       * Sprint U-2: gerarchia cartelle Production view per organizzare
+       * presentations OneDrive-style. Tree ricorsivo con `parent_id`.
+       */
+      event_folders: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          event_id: string;
+          parent_id: string | null;
+          name: string;
+          created_at: string;
+          updated_at: string;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          event_id: string;
+          parent_id?: string | null;
+          name: string;
+          created_at?: string;
+          updated_at?: string;
+          created_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          tenant_id?: string;
+          event_id?: string;
+          parent_id?: string | null;
+          name?: string;
+          created_at?: string;
+          updated_at?: string;
+          created_by?: string | null;
         };
         Relationships: [];
       };
@@ -555,6 +596,10 @@ export type Database = {
           current_version_id: string | null;
           /** Sprint I (now-playing): quando il PC sala ha aperto il file in onda. */
           last_play_started_at: string | null;
+          /** Sprint U-3 (On Air): indice 1-based della slide attualmente proiettata. NULL se sconosciuto. */
+          current_slide_index: number | null;
+          /** Sprint U-3 (On Air): numero totale di slide del file in onda. NULL se sconosciuto. */
+          current_slide_total: number | null;
           sync_status: Database['public']['Enums']['sync_status'];
           agent_connection: Database['public']['Enums']['connection_status'];
           last_sync_at: string | null;
@@ -569,6 +614,8 @@ export type Database = {
           current_presentation_id?: string | null;
           current_version_id?: string | null;
           last_play_started_at?: string | null;
+          current_slide_index?: number | null;
+          current_slide_total?: number | null;
           sync_status?: Database['public']['Enums']['sync_status'];
           agent_connection?: Database['public']['Enums']['connection_status'];
           last_sync_at?: string | null;
@@ -583,6 +630,8 @@ export type Database = {
           current_presentation_id?: string | null;
           current_version_id?: string | null;
           last_play_started_at?: string | null;
+          current_slide_index?: number | null;
+          current_slide_total?: number | null;
           sync_status?: Database['public']['Enums']['sync_status'];
           agent_connection?: Database['public']['Enums']['connection_status'];
           last_sync_at?: string | null;
@@ -1040,8 +1089,20 @@ export type Database = {
         Args: { p_presentation_id: string; p_target_session_id: string };
         Returns: Json;
       };
+      /** Sprint U-2: muove N presentations in folder atomicamente con tenant+event scope. */
+      move_presentations_to_folder: {
+        Args: { p_presentation_ids: string[]; p_folder_id: string | null };
+        Returns: number;
+      };
       rpc_room_player_set_current: {
-        Args: { p_token: string; p_presentation_id: string | null };
+        Args: {
+          p_token: string;
+          p_presentation_id: string | null;
+          /** Sprint U-3: opzionale, indice 1-based slide corrente. */
+          p_current_slide_index?: number | null;
+          /** Sprint U-3: opzionale, totale slide del file in onda. */
+          p_current_slide_total?: number | null;
+        };
         Returns: Json;
       };
       init_upload_version_for_session: {

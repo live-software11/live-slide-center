@@ -81,6 +81,15 @@ export function useEventLiveData(eventId: string | null) {
         { event: '*', schema: 'public', table: 'speakers', filter: `event_id=eq.${eventId}` },
         () => scheduleReload(),
       )
+      // Sprint U-3 (On Air): ascolto room_state per il "Now Playing" live.
+      // Niente filter event_id (room_state non lo ha), filtro lato hook
+      // tramite il roomIds del snapshot — accetto reload spurio cross-evento
+      // che e' raro e debounced.
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'room_state' },
+        () => scheduleReload(),
+      )
       .subscribe();
 
     return () => {

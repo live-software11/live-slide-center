@@ -526,11 +526,23 @@ export async function getDeviceByToken(token: string): Promise<PairedDevice | nu
 export async function invokeRoomPlayerSetCurrent(
   deviceToken: string,
   presentationId: string | null,
-): Promise<{ ok: boolean; room_id: string; presentation_id: string | null; started_at: string | null }> {
+  /**
+   * Sprint U-3 (On Air): opzionale, indice 1-based slide attualmente
+   * proiettata + totale. Se omessi, retro-compat con behavior esistente
+   * (lo stato slide-counter resta NULL nella row di room_state e l'OnAir
+   * mostra "—/—" per quella sala).
+   */
+  slideCounters?: { currentSlideIndex?: number | null; currentSlideTotal?: number | null },
+): Promise<{
+  ok: boolean;
+  room_id: string;
+  presentation_id: string | null;
+  started_at: string | null;
+  slide_index: number | null;
+  slide_total: number | null;
+}> {
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/room-player-set-current`;
-  // No retry: e' un setter idempotente (un RT update poi e' meglio retry
-  // con un altro file aperto piuttosto che riprovare quello vecchio).
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -538,13 +550,20 @@ export async function invokeRoomPlayerSetCurrent(
       Authorization: `Bearer ${anonKey}`,
       apikey: anonKey,
     },
-    body: JSON.stringify({ device_token: deviceToken, presentation_id: presentationId }),
+    body: JSON.stringify({
+      device_token: deviceToken,
+      presentation_id: presentationId,
+      current_slide_index: slideCounters?.currentSlideIndex ?? null,
+      current_slide_total: slideCounters?.currentSlideTotal ?? null,
+    }),
   });
   const json = (await res.json().catch(() => ({}))) as {
     ok?: boolean;
     room_id?: string;
     presentation_id?: string | null;
     started_at?: string | null;
+    slide_index?: number | null;
+    slide_total?: number | null;
     error?: string;
   };
   if (!res.ok || !json.ok) {
@@ -555,6 +574,8 @@ export async function invokeRoomPlayerSetCurrent(
     room_id: json.room_id!,
     presentation_id: json.presentation_id ?? null,
     started_at: json.started_at ?? null,
+    slide_index: json.slide_index ?? null,
+    slide_total: json.slide_total ?? null,
   };
 }
 
