@@ -665,3 +665,92 @@ export async function installUpdateAndRestart(): Promise<{ ok: boolean; error?: 
     };
   }
 }
+
+// ── Sprint D1 — Sistema licenze unificato cloud/desktop ───────────────────
+//
+// Quattro commands Rust (vedi `apps/desktop/src-tauri/src/license/commands.rs`)
+// che la SPA usa per:
+//   1. mostrare lo stato licenza nel banner / pagina dedicata
+//   2. fare il bind iniziale (incolla magic-link → ottieni pair_token cifrato)
+//   3. heartbeat manuale ("Verifica ora")
+//   4. scollegare il PC ("Reset licenza")
+//
+// In cloud (no Tauri) tutte ritornano `notBound` graceful — l'UI dovrebbe
+// nascondere il modulo intero quando `isRunningInTauri()` e' false.
+
+export type DesktopLicenseStatus =
+  | { kind: 'notBound' }
+  | {
+      kind: 'active';
+      tenantName?: string | null;
+      plan?: string | null;
+      expiresAt?: string | null;
+      lastVerifiedAt: string;
+    }
+  | {
+      kind: 'gracePeriod';
+      tenantName?: string | null;
+      plan?: string | null;
+      lastVerifiedAt: string;
+      graceUntil: string;
+      daysRemaining: number;
+    }
+  | {
+      kind: 'graceExpired';
+      tenantName?: string | null;
+      lastVerifiedAt: string;
+    }
+  | { kind: 'revoked' }
+  | { kind: 'tenantSuspended'; tenantName?: string | null }
+  | { kind: 'error'; message: string };
+
+export async function getDesktopLicenseStatus(): Promise<DesktopLicenseStatus> {
+  if (!isRunningInTauri()) return { kind: 'notBound' };
+  try {
+    return await tauriInvoke<DesktopLicenseStatus>('cmd_license_status');
+  } catch (e) {
+    return { kind: 'error', message: e instanceof Error ? e.message : 'unknown_error' };
+  }
+}
+
+export async function bindDesktopLicense(args: {
+  magicLink: string;
+  deviceName?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!isRunningInTauri()) return { ok: false, error: 'not_desktop' };
+  try {
+    await tauriInvoke<unknown>('cmd_license_bind', {
+      magicLink: args.magicLink,
+      deviceName: args.deviceName ?? null,
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'bind_failed' };
+  }
+}
+
+export async function verifyDesktopLicenseNow(): Promise<{
+  ok: boolean;
+  status?: DesktopLicenseStatus;
+  error?: string;
+}> {
+  if (!isRunningInTauri()) return { ok: false, error: 'not_desktop' };
+  try {
+    const r = await tauriInvoke<{ ok: boolean; status?: DesktopLicenseStatus }>(
+      'cmd_license_verify_now',
+    );
+    return { ok: !!r?.ok, status: r?.status };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'verify_failed' };
+  }
+}
+
+export async function resetDesktopLicense(): Promise<{ ok: boolean; error?: string }> {
+  if (!isRunningInTauri()) return { ok: false, error: 'not_desktop' };
+  try {
+    await tauriInvoke<unknown>('cmd_license_reset');
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'reset_failed' };
+  }
+}

@@ -34,6 +34,13 @@ export const router = createBrowserRouter([
         path: '/sala-magic/:token',
         lazy: () => import('@/features/devices/MagicProvisionView'),
       },
+      {
+        // Sprint D1 — Pagina licenza desktop (bind, verify, reset).
+        // Accessibile in modalita desktop sia da admin che da PC sala (e' uno
+        // stato del PC stesso, non del tenant). In cloud mostra un avviso.
+        path: '/centro-slide/licenza',
+        lazy: () => import('@/features/desktop-license/DesktopLicenseView'),
+      },
       // Sprint T-3-G (G10): telecomando remoto via tablet. Rotta pubblica
       // (auth via token nel path), nessun JWT richiesto.
       {

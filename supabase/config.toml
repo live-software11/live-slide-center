@@ -433,6 +433,16 @@ verify_jwt = false
 [functions.remote-control-dispatch]
 verify_jwt = false
 
+# Sprint D1: bind PC desktop server. Magic-link nel body (no JWT utente),
+# delega a rpc_consume_desktop_provision_token (SECURITY DEFINER).
+[functions.desktop-bind-claim]
+verify_jwt = false
+
+# Sprint D1: heartbeat PC desktop server (1x/24h). Auth via Bearer pair_token
+# sha256-matchato in DB. Aggiorna last_verified_at + ritorna grace_until.
+[functions.desktop-license-verify]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

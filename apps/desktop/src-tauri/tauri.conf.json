@@ -33,14 +33,19 @@
     "targets": ["nsis"],
     "category": "Productivity",
     "shortDescription": "Live SLIDE CENTER — versione desktop offline LAN",
-    "longDescription": "Live SLIDE CENTER Desktop e' la versione installabile per uso offline su LAN aziendale. Stessa UI della versione cloud, ma i dati e i file restano sulla rete dell'evento.",
+    "longDescription": "Live SLIDE CENTER Desktop e' la versione installabile per uso offline su LAN aziendale. Stessa UI della versione cloud (parita' funzionale completa), ma i dati e i file restano sulla rete dell'evento. Il PC server agisce da NAS di raccolta e distribuzione contributi verso i PC sala. Sistema licenze unificato cloud/desktop, aggiornamenti firmati automatici, disinstallazione pulita con preservazione dati opzionale.",
+    "copyright": "(C) 2026 Live Software — Andrea Rizzari",
+    "publisher": "Live Software",
+    "homepage": "https://www.liveworksapp.com",
+    "license": "Proprietary",
+    "licenseFile": "EULA.txt",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.ico"
     ],
-    "createUpdaterArtifacts": false,
+    "createUpdaterArtifacts": true,
     "windows": {
       "webviewInstallMode": {
         "type": "downloadBootstrapper",
@@ -48,17 +53,19 @@
       },
       "nsis": {
         "installerIcon": "icons/icon.ico",
+        "installerHooks": "installer-hooks.nsi",
         "installMode": "currentUser",
-        "displayLanguageSelector": false,
+        "displayLanguageSelector": true,
         "languages": ["Italian", "English"],
-        "compression": "lzma"
+        "compression": "lzma",
+        "startMenuFolder": "Live SLIDE CENTER"
       }
     }
   },
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/live-software11/slide-center-desktop/releases/latest/download/latest.json"
+        "https://github.com/live-software11/live-slide-center/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"

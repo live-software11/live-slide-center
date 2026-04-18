@@ -14,6 +14,7 @@
     "build:tauri:debug": "cargo tauri build --manifest-path src-tauri/Cargo.toml --debug",
     "release:full": "npm run clean && npm run prereqs && npm run build:tauri",
     "release:nsis": "node scripts/release.mjs",
+    "release:latest-json": "node scripts/generate-latest-json.mjs",
     "smoke-test": "node scripts/smoke-test.mjs",
     "smoke-test:json": "node scripts/smoke-test.mjs --json",
     "smoke-test:sala": "node scripts/smoke-test.mjs --skip-installer"

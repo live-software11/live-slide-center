@@ -84,7 +84,7 @@ Per **abilitare** l'auto-update:
    $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = "<password se settata>"
    ```
 5. Build firmata + updater artifacts: `pnpm release:nsis -- --signing-config src-tauri/tauri.signing.json`
-6. Pubblica `*-setup.exe`, `*.exe.sig` e `latest.json` su GitHub Releases (account `live-software11`, repo `slide-center-desktop`).
+6. Pubblica `*-setup.exe`, `*.exe.sig` e `latest.json` su GitHub Releases (account `live-software11`, repo `live-slide-center`, tag `desktop-v<version>`). Auto via CI: `git tag desktop-v0.1.0 && git push origin desktop-v0.1.0` triggera `.github/workflows/desktop-release.yml`.
 
 UI: `apps/web/src/components/DesktopUpdateBanner.tsx` mostra un banner stripe di 40px in cima alla SPA quando `cmd_check_for_update` ritorna `available: true`. Il check parte al boot e si ripete ogni 30 minuti. Il dismiss e' per-versione (sessionStorage), quindi una nuova release ricomparira' automaticamente.
 

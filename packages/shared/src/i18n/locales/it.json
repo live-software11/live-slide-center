@@ -1064,6 +1064,70 @@
     "checkFailed": "Verifica aggiornamenti fallita",
     "notes": "Note di rilascio"
   },
+  "desktopLicense": {
+    "title": "Licenza desktop",
+    "subtitle": "Collega questo PC al tuo account cloud per usarlo come hub Centro Slide",
+    "banner": {
+      "notBoundTitle": "Centro Slide non collegato al cloud",
+      "notBoundCta": "Collega adesso",
+      "graceTitle": "Verifica licenza non riuscita da {{days}} giorni",
+      "graceCta": "Verifica ora",
+      "graceExpiredTitle": "Licenza scaduta — funzioni cloud disabilitate",
+      "graceExpiredHint": "La modalita LAN locale resta attiva. Verifica la connessione internet.",
+      "revokedTitle": "Questo PC e' stato scollegato dal cloud",
+      "revokedCta": "Ricollega",
+      "tenantSuspendedTitle": "Account cloud sospeso",
+      "tenantSuspendedHint": "Contatta l'amministratore o regolarizza l'abbonamento."
+    },
+    "status": {
+      "label": "Stato licenza",
+      "notBound": "Non collegato",
+      "active": "Attiva",
+      "gracePeriod": "Periodo di tolleranza",
+      "graceExpired": "Scaduta",
+      "revoked": "Revocata",
+      "tenantSuspended": "Tenant sospeso",
+      "error": "Errore",
+      "tenantName": "Tenant",
+      "plan": "Piano",
+      "expiresAt": "Scade il",
+      "lastVerifiedAt": "Ultima verifica",
+      "graceUntil": "Scadenza tolleranza",
+      "daysRemaining": "Giorni rimanenti: {{days}}",
+      "noExpiry": "Senza scadenza"
+    },
+    "bind": {
+      "title": "Collega questo PC al cloud",
+      "instructions": "Vai nel pannello cloud → Impostazioni → Centri Slide → Genera magic-link, poi incollalo qui sotto.",
+      "magicLinkLabel": "Magic-link o token",
+      "magicLinkPlaceholder": "https://slide.center/desktop-bind?t=...",
+      "deviceNameLabel": "Nome di questo PC (opzionale)",
+      "deviceNamePlaceholder": "es. PC sala regia",
+      "submit": "Collega",
+      "submitting": "Collegamento in corso...",
+      "success": "PC collegato correttamente al cloud.",
+      "errors": {
+        "empty": "Inserisci il magic-link.",
+        "invalid": "Magic-link non valido o scaduto.",
+        "alreadyConsumed": "Magic-link gia' usato. Generane uno nuovo dal cloud.",
+        "tenantSuspended": "Account cloud sospeso. Contatta l'amministratore.",
+        "rateLimited": "Troppi tentativi. Riprova fra qualche minuto.",
+        "network": "Impossibile contattare il cloud. Verifica la connessione internet.",
+        "generic": "Collegamento fallito: {{error}}"
+      }
+    },
+    "actions": {
+      "verifyNow": "Verifica ora",
+      "verifying": "Verifica in corso...",
+      "verifyOk": "Verifica completata.",
+      "verifyError": "Verifica fallita: {{error}}",
+      "reset": "Scollega questo PC",
+      "resetConfirmTitle": "Scollegare questo PC dal cloud?",
+      "resetConfirmBody": "Il PC continuera' a funzionare in modalita LAN. Per ricollegarlo serve un nuovo magic-link.",
+      "resetConfirmAction": "Scollega",
+      "cancel": "Annulla"
+    }
+  },
   "devices": {
     "panel": {
       "title": "PC Sala",

@@ -29,6 +29,9 @@ const MIGRATION_0001: &str = include_str!("../../migrations/0001_init.sql");
 /// Sprint M3 — `paired_devices.lan_base_url` per il pair-revoke via LAN.
 const MIGRATION_0002: &str = include_str!("../../migrations/0002_paired_devices_lan_url.sql");
 
+/// Sprint D4 (port S-4 cloud) — `paired_devices.role` per Centro Slide multi-room.
+const MIGRATION_0003: &str = include_str!("../../migrations/0003_paired_devices_role.sql");
+
 #[derive(Debug, thiserror::Error)]
 pub enum DbError {
     #[error("io: {0}")]
@@ -96,6 +99,17 @@ fn run_migrations(conn: &Connection) -> Result<(), DbError> {
             info!("migrazione 0002 gia' applicata (lan_base_url presente), skip");
         } else {
             warn!(?err, "errore esecuzione migrazione 0002");
+            return Err(DbError::Sqlite(err));
+        }
+    }
+    // Sprint D4: idem 0002. Tolleriamo "duplicate column name: role" per
+    // idempotenza. L'indice parziale e' protetto da IF NOT EXISTS.
+    if let Err(err) = conn.execute_batch(MIGRATION_0003) {
+        let msg = err.to_string();
+        if msg.contains("duplicate column name") {
+            info!("migrazione 0003 gia' applicata (role presente), skip");
+        } else {
+            warn!(?err, "errore esecuzione migrazione 0003");
             return Err(DbError::Sqlite(err));
         }
     }

@@ -52,6 +52,7 @@ pub fn routes() -> Router<AppState> {
         .route("/rpc/rename_paired_device_by_token", post(rename_device))
         .route("/rpc/rpc_room_player_set_current", post(room_player_set_current))
         .route("/rpc/rpc_move_presentation_to_session", post(move_presentation_to_session))
+        .route("/rpc/update_device_role", post(update_device_role))
 }
 
 // ── 1. init_upload_version_for_session(p_session_id, p_filename, p_size, p_mime) ───
@@ -790,6 +791,107 @@ async fn move_presentation_to_session(
             "ok": true,
             "presentation_id": input.p_presentation_id,
             "session_id": input.p_target_session_id,
+        }))
+    })
+    .await??;
+    Ok(Json(result))
+}
+
+// ── 9. update_device_role(p_device_id, p_new_role) — Sprint D4 ──────────────
+// Port 1:1 della RPC cloud `public.update_device_role` (Sprint S-4).
+//
+// Promuove un device a 'control_center' (room_id forzato a NULL) o lo
+// riporta a 'room' (room_id rimane com'e', l'admin lo riassegna via
+// drag&drop). Bumpa `updated_at` per invalidare la SWR cache nella SPA.
+//
+// Differenze cloud → desktop:
+//   • niente `app_tenant_id()`: usiamo `LOCAL_TENANT_ID` come unico tenant.
+//   • niente `is_super_admin()`: in modalita desktop solo l'admin locale
+//     accede via `AdminAuth` (token in `Authorization: Bearer`).
+//   • niente `RETURNS TABLE`: ritorna direttamente `{ id, role, room_id }`.
+
+#[derive(Deserialize)]
+struct UpdateDeviceRoleInput {
+    p_device_id: String,
+    p_new_role: String,
+}
+
+async fn update_device_role(
+    _admin: AdminAuth,
+    State(state): State<AppState>,
+    Json(input): Json<UpdateDeviceRoleInput>,
+) -> AppResult<Json<Value>> {
+    if input.p_new_role != "room" && input.p_new_role != "control_center" {
+        return Err(AppError::BadRequest(format!(
+            "invalid_role: {}",
+            input.p_new_role
+        )));
+    }
+
+    let pool = state.db.clone();
+    let device_id_for_response = input.p_device_id.clone();
+    let result = tokio::task::spawn_blocking(move || -> AppResult<Value> {
+        let mut conn = pool.get()?;
+        let tx = conn.transaction()?;
+
+        // Verifica esistenza device + isolamento tenant.
+        let exists: Option<String> = tx
+            .query_row(
+                "SELECT id FROM paired_devices WHERE id = ?1 AND tenant_id = ?2",
+                [&input.p_device_id, LOCAL_TENANT_ID],
+                |r| r.get(0),
+            )
+            .ok();
+        if exists.is_none() {
+            return Err(AppError::NotFound("device_not_found".into()));
+        }
+
+        // Quando role='control_center' forziamo room_id=NULL (un Centro Slide
+        // non e' assegnato a una singola sala specifica).
+        if input.p_new_role == "control_center" {
+            tx.execute(
+                "UPDATE paired_devices
+                    SET role = 'control_center',
+                        room_id = NULL,
+                        updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                  WHERE id = ?1 AND tenant_id = ?2",
+                [&input.p_device_id, LOCAL_TENANT_ID],
+            )?;
+        } else {
+            tx.execute(
+                "UPDATE paired_devices
+                    SET role = 'room',
+                        updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                  WHERE id = ?1 AND tenant_id = ?2",
+                [&input.p_device_id, LOCAL_TENANT_ID],
+            )?;
+        }
+
+        let (role, room_id): (String, Option<String>) = tx.query_row(
+            "SELECT role, room_id FROM paired_devices WHERE id = ?1 AND tenant_id = ?2",
+            [&input.p_device_id, LOCAL_TENANT_ID],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )?;
+
+        let activity_id = Uuid::new_v4().to_string();
+        let _ = tx.execute(
+            "INSERT INTO activity_log (id, tenant_id, event_id, actor, actor_id, action, entity_type, entity_id, metadata)
+             SELECT ?1, ?2, pd.event_id, 'user', ?3, 'update_device_role', 'paired_device', ?4, ?5
+               FROM paired_devices pd WHERE pd.id = ?4",
+            rusqlite::params![
+                activity_id,
+                LOCAL_TENANT_ID,
+                LOCAL_ADMIN_USER_ID,
+                input.p_device_id,
+                json!({ "new_role": input.p_new_role }).to_string(),
+            ],
+        );
+
+        tx.commit()?;
+        Ok(json!({
+            "id": device_id_for_response,
+            "role": role,
+            "room_id": room_id,
         }))
     })
     .await??;

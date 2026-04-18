@@ -132,6 +132,17 @@ mime_guess = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
+# ── Sprint D1 — Sistema licenze unificato cloud/desktop ─────────────────────
+# AES-256-GCM per cifrare il pair_token salvato in `~/.slidecenter/license.enc`.
+# Pattern allineato a `apps/agent/src-tauri/src/license/crypto.rs` (legacy).
+# - aes-gcm: implementazione AEAD AES-GCM (rust-crypto, audited). Re-esporta
+#   gia' i trait Aead/KeyInit via `aes_gcm::aead`.
+# - hostname: identificativo device per la dashboard admin (NON anti-tamper).
+# - url: parsing del magic-link (`?t=<token>` / `#t=<token>` / token plain).
+aes-gcm = { version = "0.10", features = ["aes"] }
+hostname = "0.4"
+url = "2"
+
 [profile.release]
 strip = true
 opt-level = 3

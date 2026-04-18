@@ -51,6 +51,7 @@ import { getBackendMode } from '@/lib/backend-mode';
 import { getTenantIdFromSession } from '@/lib/session-tenant';
 import { AppBrandLogo } from '@/components/AppBrandLogo';
 import { BackendModeBadge } from '@/components/BackendModeBadge';
+import { DesktopLicenseBanner } from '@/components/DesktopLicenseBanner';
 import { DesktopUpdateBanner } from '@/components/DesktopUpdateBanner';
 import { OnboardingGate } from '@/features/onboarding/OnboardingGate';
 import { TenantWarningBanners } from '@/features/notifications/components/TenantWarningBanners';
@@ -82,6 +83,7 @@ function AppShellInner({ variant }: { variant: 'tenant' | 'admin' }) {
       <SidebarInset>
         <ShellTopBar variant={variant} />
         {!isAdminVariant ? <DesktopUpdateBanner /> : null}
+        {!isAdminVariant ? <DesktopLicenseBanner /> : null}
         {!isAdminVariant ? <TenantWarningBanners /> : null}
         <div className="flex-1">
           <Suspense

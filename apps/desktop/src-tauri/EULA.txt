@@ -1,0 +1,60 @@
+CONTRATTO DI LICENZA D'USO — LIVE SLIDE CENTER DESKTOP
+Versione 1.0 — 2026
+
+IMPORTANTE: leggi con attenzione il presente contratto prima di installare il
+software. L'installazione costituisce accettazione integrale dei termini.
+
+1. CONCESSIONE LICENZA D'USO
+   Live Software (Andrea Rizzari, Roma — IT) concede all'utente finale una
+   licenza non esclusiva, non trasferibile, revocabile e limitata all'uso del
+   software "Live SLIDE CENTER Desktop" (di seguito "Software") secondo i
+   termini del piano commerciale Slide Center attivo sull'account cloud
+   collegato. Il Software e' fornito "AS IS" senza garanzia esplicita o
+   implicita di idoneita' a un particolare scopo.
+
+2. AMBITO D'USO
+   Il Software e' progettato per la gestione locale di slide, contributi
+   audio-video e regia in eventi live. L'uso e' limitato al numero di
+   dispositivi previsto dal piano licenza attivato sull'account Slide Center
+   dell'utente. La condivisione della licenza tra organizzazioni distinte
+   e' vietata.
+
+3. CONNESSIONE CLOUD
+   Il Software puo' funzionare sia in modalita' connessa (sincronizzata con
+   il backend Slide Center) sia in modalita' offline LAN. In modalita'
+   offline, la licenza viene verificata almeno ogni 30 giorni. Periodi
+   superiori senza ri-verifica disabilitano le funzioni cloud-dipendenti.
+
+4. AGGIORNAMENTI AUTOMATICI
+   Il Software puo' verificare e installare aggiornamenti firmati
+   crittograficamente da Live Software, sostituendo silenziosamente la
+   versione precedente. L'utente acconsente esplicitamente a tale
+   meccanismo. La disattivazione e' possibile rimuovendo il file di
+   configurazione relativo, a proprio rischio.
+
+5. RACCOLTA DATI
+   Il Software NON raccoglie analytics di telemetria. Le sole comunicazioni
+   esterne sono: (a) verifica licenza verso il backend cloud, (b) check
+   aggiornamenti verso GitHub Releases, (c) sincronizzazione esplicita dei
+   dati eventi se l'utente sceglie modalita' connessa. Tutti i dati eventi
+   restano sul dispositivo locale e/o sul cloud Slide Center dell'utente.
+
+6. LIMITAZIONE DI RESPONSABILITA'
+   In nessun caso Live Software sara' responsabile per danni diretti,
+   indiretti, incidentali, speciali o consequenziali derivanti dall'uso o
+   dall'impossibilita' di usare il Software, ivi compresa la perdita di
+   dati, la perdita di profitti o l'interruzione di servizio durante
+   eventi live. L'utente e' responsabile del backup dei propri dati e
+   della verifica del corretto funzionamento prima dell'evento.
+
+7. LEGGE APPLICABILE
+   Il presente contratto e' regolato dalla legge italiana. Foro
+   competente esclusivo: Tribunale di Roma.
+
+8. CONTATTI
+   Live Software — Andrea Rizzari
+   Email: live.software11@gmail.com
+   Sito: https://www.liveworksapp.com
+
+Procedendo con l'installazione l'utente dichiara di aver letto, compreso
+e accettato integralmente i termini del presente contratto.

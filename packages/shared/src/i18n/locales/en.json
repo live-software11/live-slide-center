@@ -1064,6 +1064,70 @@
     "checkFailed": "Update check failed",
     "notes": "Release notes"
   },
+  "desktopLicense": {
+    "title": "Desktop license",
+    "subtitle": "Link this PC to your cloud account to use it as Slide Center hub",
+    "banner": {
+      "notBoundTitle": "Slide Center not linked to cloud",
+      "notBoundCta": "Link now",
+      "graceTitle": "License verification failing for {{days}} days",
+      "graceCta": "Verify now",
+      "graceExpiredTitle": "License expired — cloud features disabled",
+      "graceExpiredHint": "Local LAN mode keeps working. Check your internet connection.",
+      "revokedTitle": "This PC has been unlinked from the cloud",
+      "revokedCta": "Re-link",
+      "tenantSuspendedTitle": "Cloud account suspended",
+      "tenantSuspendedHint": "Contact the administrator or renew the subscription."
+    },
+    "status": {
+      "label": "License status",
+      "notBound": "Not linked",
+      "active": "Active",
+      "gracePeriod": "Grace period",
+      "graceExpired": "Expired",
+      "revoked": "Revoked",
+      "tenantSuspended": "Tenant suspended",
+      "error": "Error",
+      "tenantName": "Tenant",
+      "plan": "Plan",
+      "expiresAt": "Expires on",
+      "lastVerifiedAt": "Last verified",
+      "graceUntil": "Grace ends",
+      "daysRemaining": "Days remaining: {{days}}",
+      "noExpiry": "No expiry"
+    },
+    "bind": {
+      "title": "Link this PC to the cloud",
+      "instructions": "Go to the cloud panel → Settings → Slide Centers → Generate magic-link, then paste it here.",
+      "magicLinkLabel": "Magic-link or token",
+      "magicLinkPlaceholder": "https://slide.center/desktop-bind?t=...",
+      "deviceNameLabel": "This PC name (optional)",
+      "deviceNamePlaceholder": "e.g. Control room PC",
+      "submit": "Link",
+      "submitting": "Linking...",
+      "success": "PC linked to the cloud successfully.",
+      "errors": {
+        "empty": "Enter the magic-link.",
+        "invalid": "Magic-link invalid or expired.",
+        "alreadyConsumed": "Magic-link already used. Generate a new one in the cloud panel.",
+        "tenantSuspended": "Cloud account suspended. Contact the administrator.",
+        "rateLimited": "Too many attempts. Try again in a few minutes.",
+        "network": "Cannot reach the cloud. Check your internet connection.",
+        "generic": "Link failed: {{error}}"
+      }
+    },
+    "actions": {
+      "verifyNow": "Verify now",
+      "verifying": "Verifying...",
+      "verifyOk": "Verification complete.",
+      "verifyError": "Verification failed: {{error}}",
+      "reset": "Unlink this PC",
+      "resetConfirmTitle": "Unlink this PC from the cloud?",
+      "resetConfirmBody": "The PC will keep working in LAN mode. To re-link it you'll need a new magic-link.",
+      "resetConfirmAction": "Unlink",
+      "cancel": "Cancel"
+    }
+  },
   "devices": {
     "panel": {
       "title": "Room PCs",

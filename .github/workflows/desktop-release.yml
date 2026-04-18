@@ -1,0 +1,128 @@
+# Sprint D3 — Build firmata + GitHub Release per Live SLIDE CENTER Desktop.
+#
+# Trigger: push di un tag `desktop-v*` (es. `desktop-v0.1.0`, `desktop-v1.2.3`).
+#
+# Pipeline:
+#   1. Setup toolchain (Node, pnpm, Rust, tauri-cli)
+#   2. pnpm install (intero monorepo, serve la SPA)
+#   3. cargo tauri build firmato (NSIS + updater bundle Ed25519)
+#   4. Genera latest.json
+#   5. gh release create con i 3 asset (installer + .sig + latest.json)
+#
+# Secrets richiesti (GitHub Settings > Secrets > Actions):
+#   • TAURI_SIGNING_PRIVATE_KEY        Contenuto file ~/.tauri/slidecenter-desktop.key
+#   • TAURI_SIGNING_PRIVATE_KEY_PASSWORD  Password della chiave (se settata)
+#
+# La pubkey corrispondente DEVE essere presente in:
+#   apps/desktop/src-tauri/tauri.signing.json -> plugins.updater.pubkey
+#
+# Vedi apps/desktop/UPDATER_SETUP.md per la generazione iniziale delle chiavi.
+
+name: Desktop Release
+
+on:
+  push:
+    tags:
+      - 'desktop-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build signed installer (Windows x86_64)
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cargo cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2.0" --locked
+
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify signing config exists
+        shell: pwsh
+        run: |
+          $cfg = "apps/desktop/src-tauri/tauri.signing.json"
+          if (-not (Test-Path $cfg)) {
+            Write-Error "tauri.signing.json mancante. Vedi apps/desktop/UPDATER_SETUP.md."
+            exit 1
+          }
+          $content = Get-Content $cfg -Raw
+          if ($content -match "REPLACE_WITH_") {
+            Write-Error "tauri.signing.json contiene placeholder REPLACE_WITH_*. Configurare pubkey reale."
+            exit 1
+          }
+
+      - name: Build signed NSIS + updater bundle
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: pnpm --filter @slidecenter/desktop release:nsis -- --signing-config src-tauri/tauri.signing.json --skip-prereqs
+
+      - name: Generate latest.json manifest
+        working-directory: apps/desktop
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $notes = "Auto-build da $tag. Vedi CHANGELOG.md per i dettagli."
+          node scripts/generate-latest-json.mjs --tag $tag --notes $notes
+
+      - name: Resolve artifact paths
+        id: artifacts
+        working-directory: apps/desktop
+        shell: pwsh
+        run: |
+          $manifest = Get-Content "release-output.json" -Raw | ConvertFrom-Json
+          $bundlePath = $manifest.bundle.path
+          $sigPath = "$bundlePath.sig"
+          $latestPath = "$PWD/latest.json"
+          if (-not (Test-Path $bundlePath)) { Write-Error "Installer non trovato: $bundlePath"; exit 1 }
+          if (-not (Test-Path $sigPath))    { Write-Error "Firma non trovata: $sigPath"; exit 1 }
+          if (-not (Test-Path $latestPath)) { Write-Error "latest.json non trovato"; exit 1 }
+          "installer=$bundlePath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "signature=$sigPath"    | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "manifest=$latestPath"  | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Installer:  $bundlePath"
+          Write-Host "Signature:  $sigPath"
+          Write-Host "Manifest:   $latestPath"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag -replace '^desktop-v', ''
+          $title = "Live SLIDE CENTER Desktop v$version"
+          gh release create $tag `
+            --title $title `
+            --notes "Auto-release da CI. Aggiornamenti firmati Ed25519 + NSIS installer. Vedi CHANGELOG.md per le novita'." `
+            "${{ steps.artifacts.outputs.installer }}" `
+            "${{ steps.artifacts.outputs.signature }}" `
+            "${{ steps.artifacts.outputs.manifest }}"

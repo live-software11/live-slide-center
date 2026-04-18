@@ -5,6 +5,7 @@
 // In debug build resta visibile per inspect dei log.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod license;
 mod role;
 mod server;
 
@@ -91,6 +92,10 @@ fn main() {
             cmd_updater_status,
             cmd_check_for_update,
             cmd_install_update_and_restart,
+            license::cmd_license_status,
+            license::cmd_license_bind,
+            license::cmd_license_verify_now,
+            license::cmd_license_reset,
         ])
         .run(tauri::generate_context!())
         .expect("Error running Live SLIDE CENTER Desktop");
@@ -360,7 +365,7 @@ fn cmd_updater_status() -> serde_json::Value {
     serde_json::json!({
         "configured": true,
         "current_version": env!("CARGO_PKG_VERSION"),
-        "endpoint_hint": "https://github.com/live-software11/slide-center-desktop/releases/latest/download/latest.json",
+        "endpoint_hint": "https://github.com/live-software11/live-slide-center/releases/latest/download/latest.json",
     })
 }
 

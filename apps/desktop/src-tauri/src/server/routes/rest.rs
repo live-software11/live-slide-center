@@ -254,11 +254,14 @@ const TABLES: &[TableSpec] = &[
             // Sprint M3: URL LAN del PC sala (es. http://192.168.1.42:7300) per il
             // pair-revoke. Scritto dalla SPA admin via PATCH dopo pair-direct.
             "lan_base_url",
+            // Sprint D4 (port S-4): role 'room' | 'control_center'.
+            "role",
         ],
         cols_write: &[
             "id","event_id","room_id","device_name","device_type","browser","user_agent",
             "pair_token_hash","last_ip","last_seen_at","status","paired_by_user_id","notes",
             "lan_base_url",
+            "role",
         ],
         writable: true,
         auto_cols: &["paired_at","updated_at"],

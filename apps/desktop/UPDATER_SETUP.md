@@ -1,6 +1,12 @@
 # Updater Setup — Live SLIDE CENTER Desktop
 
-> Sprint P3 (vedi `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 storia sprint). **Predisposto, da attivare quando hosting GitHub Releases sara' configurato.**
+> Sprint P3 (configurazione iniziale) + **Sprint D3 (attivato, monorepo + CI)**.
+> Vedi `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22.
+>
+> **Stato:** endpoint configurato sul monorepo `live-software11/live-slide-center`,
+> `createUpdaterArtifacts: true`, workflow `.github/workflows/desktop-release.yml`
+> attivo su push tag `desktop-v*`. Manca SOLO la generazione iniziale della
+> coppia di chiavi Ed25519 (step manuale 1-2 sotto).
 
 ---
 
@@ -15,7 +21,7 @@ Rust (src/main.rs::cmd_check_for_update)
        |
        | tauri-plugin-updater -> app.updater().check().await
        v
-HTTPS GET https://github.com/live-software11/slide-center-desktop/releases/latest/download/latest.json
+HTTPS GET https://github.com/live-software11/live-slide-center/releases/latest/download/latest.json
        |
        | (se available + signature valida)
        v
@@ -56,14 +62,21 @@ Apri `tauri.signing.json` e sostituisci:
 
 con il contenuto del file `~/.tauri/slidecenter-desktop.key.pub` (intero, multi-linea ok).
 
-### 3. Crea il repo GitHub `slide-center-desktop` (account `live-software11`)
+### 3. Configura i secrets su GitHub (monorepo `live-slide-center`)
+
+Decisione architetturale Sprint D3: **stesso repo del monorepo** (no repo separato), tag dedicato `desktop-v<version>`.
 
 ```powershell
 gh auth status
 # Se non e' live-software11:
 gh auth switch --user live-software11
 
-gh repo create live-software11/slide-center-desktop --private --description "Releases binari Live SLIDE CENTER Desktop"
+# Setta i secrets della chiave privata (richiesti dal workflow CI)
+gh secret set TAURI_SIGNING_PRIVATE_KEY --repo live-software11/live-slide-center < "$env:USERPROFILE\.tauri\slidecenter-desktop.key"
+# (opzionale, se hai messo password) :
+$pwd = Read-Host "TAURI_SIGNING_PRIVATE_KEY_PASSWORD" -AsSecureString
+$plain = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pwd))
+gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --repo live-software11/live-slide-center --body $plain
 ```
 
 ### 4. Build firmata + updater artifacts
@@ -81,48 +94,62 @@ Artifact prodotti in `src-tauri/target/release/bundle/nsis/`:
 - `Live SLIDE CENTER Desktop_0.1.0_x64-setup.exe.sig` (firma updater Ed25519, ~88 byte)
 - `latest.json` (manifest updater consumato dal client)
 
-### 5. Crea il `latest.json`
+### 5. Genera il `latest.json` (Sprint D3 — automatico)
 
-Tauri NON genera automaticamente `latest.json` — va creato a mano (oppure via script CI). Esempio:
-
-```jsonc
-{
-  "version": "0.1.0",
-  "notes": "Prima release pubblica desktop. Auto-update attivato.",
-  "pub_date": "2026-04-17T10:00:00Z",
-  "platforms": {
-    "windows-x86_64": {
-      "signature": "<contenuto file .exe.sig>",
-      "url": "https://github.com/live-software11/slide-center-desktop/releases/download/v0.1.0/Live.SLIDE.CENTER.Desktop_0.1.0_x64-setup.exe",
-    },
-  },
-}
+```powershell
+pnpm --filter @slidecenter/desktop release:latest-json
 ```
 
-> **Trick:** `signature` e' la stringa esatta dentro il file `.sig`. Su Windows: `Get-Content "src-tauri/target/release/bundle/nsis/*.sig" -Raw`.
+Lo script `apps/desktop/scripts/generate-latest-json.mjs`:
 
-### 6. Pubblica la release su GitHub
+- legge `release-output.json` (size, sha, path installer)
+- legge il file `.sig` accanto all'installer
+- compila `apps/desktop/latest.json` con `version`, `notes`, `pub_date`,
+  `platforms.windows-x86_64.{signature, url}` puntando a
+  `https://github.com/live-software11/live-slide-center/releases/download/desktop-v<ver>/<installer>`
+
+Override:
+
+```powershell
+node scripts/generate-latest-json.mjs --tag desktop-v0.1.1 --notes "fix sync LAN"
+```
+
+### 6. Pubblica la release (manuale)
 
 ```powershell
 $ver = "0.1.0"
 $bundle = "src-tauri/target/release/bundle/nsis"
 
-gh release create "v$ver" `
-  --repo live-software11/slide-center-desktop `
-  --title "Live SLIDE CENTER Desktop $ver" `
+gh release create "desktop-v$ver" `
+  --repo live-software11/live-slide-center `
+  --title "Live SLIDE CENTER Desktop v$ver" `
   --notes-file CHANGELOG.md `
   "$bundle/Live SLIDE CENTER Desktop_${ver}_x64-setup.exe" `
   "$bundle/Live SLIDE CENTER Desktop_${ver}_x64-setup.exe.sig" `
-  "$bundle/latest.json"
+  "latest.json"
 ```
 
-L'endpoint configurato in `tauri.conf.json` e':
+### 6-bis. Pubblica la release (CI automatica — consigliato)
+
+```powershell
+git tag desktop-v0.1.0
+git push origin desktop-v0.1.0
+```
+
+Il workflow `.github/workflows/desktop-release.yml` esegue automaticamente
+build firmata + generate-latest-json + gh release create. Vedi
+`actions` tab del repo per i log.
+
+L'endpoint configurato in `tauri.conf.json`:
 
 ```
-https://github.com/live-software11/slide-center-desktop/releases/latest/download/latest.json
+https://github.com/live-software11/live-slide-center/releases/latest/download/latest.json
 ```
 
-GitHub Releases serve sempre `/latest/download/<nome-asset>` come redirect all'asset della release piu' recente. Quindi appena pubblichi una nuova release con `latest.json`, tutti i client lo trovano in automatico.
+GitHub Releases serve sempre `/latest/download/<nome-asset>` come redirect
+all'asset della release piu' recente. Quindi appena pubblichi (manualmente
+o via CI) una nuova release `desktop-v*` con `latest.json`, tutti i client
+lo trovano in automatico al prossimo polling (max 30 min).
 
 ---
 
@@ -181,35 +208,23 @@ python -m http.server 8080
 
 ---
 
-## CI futura (Sprint S?)
+## CI attiva (Sprint D3 — implementata)
 
-Esempio GitHub Actions per build firmata automatica su tag:
+Il workflow `.github/workflows/desktop-release.yml` esegue tutto il flusso
+firmato in automatico su push tag `desktop-v*`:
 
-```yaml
-name: Release
-on:
-  push:
-    tags: ['v*.*.*']
-jobs:
-  release:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Install Tauri CLI
-        run: cargo install tauri-cli --version "^2.0" --locked
-      - name: Build signed installer
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_KEY_PASSWORD }}
-        run: pnpm --filter @slidecenter/desktop release:nsis -- --signing-config src-tauri/tauri.signing.json
-      - name: Generate latest.json
-        run: node scripts/generate-latest-json.mjs
-      - name: Upload to release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ github.ref_name }} bundle/*.exe bundle/*.sig latest.json
+1. checkout + setup pnpm/node/rust/tauri-cli
+2. `pnpm install --frozen-lockfile`
+3. validazione `tauri.signing.json` (rifiuta placeholder)
+4. `pnpm release:nsis -- --signing-config tauri.signing.json --skip-prereqs`
+5. `pnpm release:latest-json --tag <tag>`
+6. `gh release create <tag>` con i 3 asset (`.exe`, `.sig`, `latest.json`)
+
+Trigger:
+
+```powershell
+git tag desktop-v0.1.0
+git push origin desktop-v0.1.0
 ```
 
-(Da implementare in Sprint S — fuori scope P.)
+Vedi `Actions > Desktop Release` per i log.
