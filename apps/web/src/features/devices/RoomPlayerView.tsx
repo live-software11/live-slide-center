@@ -585,8 +585,15 @@ export default function RoomPlayerView() {
   useEffect(() => {
     startOutboxFlush({
       room_player_set_current: async (payload) => {
-        const p = payload as { token: string; presentationId: string | null };
-        if (!p?.token) return;
+        const p = payload as { token?: string; presentationId: string | null };
+        // Audit-fix bug AU-08.1 (2026-04-18 sera): se accodassimo un payload
+        // senza token e l'handler facesse `return` silenzioso, l'outbox lo
+        // tratterebbe come "succeeded" e cancellerebbe il record senza mai
+        // aver chiamato l'edge function. Path raggiungibile per schema drift
+        // (vecchia release nel DB IndexedDB del client) o per regressione
+        // upstream. Ritorniamo `{ skipped }` esplicito → conteggiato come
+        // skipped (NON succeeded), warning loggato, item rimosso (retry inutile).
+        if (!p?.token) return { skipped: 'missing_token' };
         await invokeRoomPlayerSetCurrent(p.token, p.presentationId);
       },
     });

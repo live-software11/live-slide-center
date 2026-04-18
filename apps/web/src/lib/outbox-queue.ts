@@ -52,8 +52,36 @@ export interface OutboxItem<TPayload = unknown> {
   lastError?: string;
 }
 
-export type OutboxHandler<TPayload = unknown> = (payload: TPayload) => Promise<void>;
+/**
+ * Risultato esplicito di un handler:
+ *  - `undefined` / `void`  → "ok": item processato con successo, rimosso dalla coda
+ *    e contato in `succeeded`.
+ *  - `{ skipped: 'reason' }` → "drop intenzionale, non recuperabile": il payload e'
+ *    permanentemente invalido (es. token mancante per schema drift di una vecchia
+ *    release). L'item viene rimosso dalla coda (nessun retry sarebbe utile) ma
+ *    contato in `skipped` (NON `succeeded`) e loggato come warning. Audit-fix
+ *    bug AU-08.1 (2026-04-18 sera): senza questo path, `if (!p?.token) return`
+ *    nell'handler veniva interpretato come "ok" e il drop era silenzioso.
+ *  - `throw` → "failure transitoria": item ri-schedulato con backoff
+ *    esponenziale fino a `MAX_ATTEMPTS`, conteggio in `retried`.
+ */
+export interface OutboxHandlerSkipResult {
+  skipped: string;
+}
+export type OutboxHandlerResult = void | OutboxHandlerSkipResult;
+export type OutboxHandler<TPayload = unknown> = (
+  payload: TPayload,
+) => Promise<OutboxHandlerResult>;
 export type OutboxHandlerMap = Record<string, OutboxHandler<unknown>>;
+
+function isSkipResult(value: unknown): value is OutboxHandlerSkipResult {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'skipped' in value &&
+    typeof (value as { skipped: unknown }).skipped === 'string'
+  );
+}
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;
 let flushInterval: ReturnType<typeof setInterval> | null = null;
@@ -186,18 +214,30 @@ export async function enqueueOutbox<T>(input: { kind: string; payload: T }): Pro
 /**
  * Esegue un round di flush su tutti gli item con `nextAttemptAt <= now`.
  * Idempotente: se chiamato in concorrenza, il secondo no-op (flag inflight).
+ *
+ * Stati per item (audit-fix AU-08.1):
+ *   - succeeded: handler ha ritornato `void` → item rimosso dalla coda.
+ *   - skipped:   handler ha ritornato `{ skipped: 'reason' }` → drop intenzionale
+ *                non recuperabile, item rimosso dalla coda, warning loggato.
+ *   - retried:   handler ha throw o non c'e' handler → item re-schedulato con
+ *                backoff esponenziale.
+ *   - dropped:   item ha superato MAX_ATTEMPTS → rimosso, warning loggato.
  */
 export async function flushOutboxOnce(handlers?: OutboxHandlerMap): Promise<{
   processed: number;
   succeeded: number;
+  skipped: number;
   retried: number;
   dropped: number;
 }> {
   const map = handlers ?? registeredHandlers ?? {};
-  if (flushInflight) return { processed: 0, succeeded: 0, retried: 0, dropped: 0 };
+  if (flushInflight) {
+    return { processed: 0, succeeded: 0, skipped: 0, retried: 0, dropped: 0 };
+  }
   flushInflight = true;
   let processed = 0;
   let succeeded = 0;
+  let skipped = 0;
   let retried = 0;
   let dropped = 0;
   try {
@@ -222,9 +262,23 @@ export async function flushOutboxOnce(handlers?: OutboxHandlerMap): Promise<{
         continue;
       }
       try {
-        await handler(item.payload);
-        await txDelete(item.id!);
-        succeeded += 1;
+        const result = await handler(item.payload);
+        if (isSkipResult(result)) {
+          // Audit-fix AU-08.1: drop intenzionale non recuperabile (es. payload
+          // corrotto / schema drift). NON conteggiato come succeeded: il caller
+          // deve sapere che l'effetto NON e' stato applicato. Comunque rimosso
+          // dalla coda perche' il retry sarebbe inutile.
+          await txDelete(item.id!);
+          skipped += 1;
+          console.warn(
+            '[outbox-queue] skipping item (non-recoverable)',
+            item.kind,
+            result.skipped,
+          );
+        } else {
+          await txDelete(item.id!);
+          succeeded += 1;
+        }
       } catch (err) {
         item.attempts += 1;
         item.lastError = err instanceof Error ? err.message : 'unknown';
@@ -243,7 +297,7 @@ export async function flushOutboxOnce(handlers?: OutboxHandlerMap): Promise<{
   } finally {
     flushInflight = false;
   }
-  return { processed, succeeded, retried, dropped };
+  return { processed, succeeded, skipped, retried, dropped };
 }
 
 /**
