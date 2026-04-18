@@ -18,6 +18,26 @@
     "billing": "Subscription",
     "activity": "Activity"
   },
+  "appShell": {
+    "brandSubtitle": "Production Suite",
+    "searchHint": "Search events, rooms, PCs...",
+    "searchHintAdmin": "Search tenants, audit log...",
+    "commandPlaceholder": "Search or type a command...",
+    "commandEmpty": "No results found.",
+    "cmdJumpTo": "Jump to",
+    "cmdEvents": "Open event",
+    "cmdOnAir": "Open On Air",
+    "cmdHelp": "Help",
+    "sectionEvents": "Events",
+    "sectionRoomPCs": "Room PCs",
+    "sectionTools": "Tools",
+    "sectionAdminMain": "Administration",
+    "production": "Production",
+    "onAir": "On Air",
+    "privacy": "Privacy",
+    "noEvents": "No events yet",
+    "noDevices": "No room PCs paired"
+  },
   "auth": {
     "login": "Sign in",
     "logout": "Sign out",

@@ -1,29 +1,115 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
+
+@source '../../../packages/ui/src/**/*.{ts,tsx}';
+
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* ─────────────────────────────────────────────────────────────────────
+   * Palette legacy `sc-*` (preservata per backward-compat con i ~80
+   * componenti inline esistenti). NON modificare questi valori senza
+   * coordinarsi con tutto il refactor U-5.
+   * ─────────────────────────────────────────────────────────────────── */
   --color-sc-bg: #07101f;
   --color-sc-surface: #0d1c30;
   --color-sc-elevated: #132844;
-  --color-sc-primary: #3FA9F5;
-  --color-sc-primary-deep: #0B5ED7;
-  --color-sc-accent: #FF7A00;
-  --color-sc-accent-light: #FF9A40;
-  --color-sc-navy: #0A2540;
+  --color-sc-primary: #3fa9f5;
+  --color-sc-primary-deep: #0b5ed7;
+  --color-sc-accent: #ff7a00;
+  --color-sc-accent-light: #ff9a40;
+  --color-sc-navy: #0a2540;
   --color-sc-text: #f0f2f5;
   --color-sc-text-secondary: #b8c5d4;
   --color-sc-text-muted: #7a8da3;
   --color-sc-text-dim: #556577;
-  --color-sc-ring: #3FA9F5;
+  --color-sc-ring: #3fa9f5;
   --color-sc-success: #4ade80;
   --color-sc-warning: #fbbf24;
   --color-sc-danger: #f87171;
+
+  /* ─────────────────────────────────────────────────────────────────────
+   * Token shadcn/ui (Sprint U-1) — mappati su `sc-*` per preservare
+   * la palette esistente. Aggiungono `bg-background`, `bg-card`,
+   * `bg-primary`, `text-muted-foreground`, ecc. usate dai componenti
+   * shadcn standard senza alterare il look attuale.
+   * ─────────────────────────────────────────────────────────────────── */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Sidebar shadcn (componente ufficiale) */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
   --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   --radius: 0.75rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
 :root {
+  /* Tema dark fisso (NO light mode per ora — vedi U-1 plan) */
   --background: #07101f;
   --foreground: #f0f2f5;
+
+  --card: #0d1c30;
+  --card-foreground: #f0f2f5;
+
+  --popover: #132844;
+  --popover-foreground: #f0f2f5;
+
+  --primary: #3fa9f5;
+  --primary-foreground: #07101f;
+
+  --secondary: #132844;
+  --secondary-foreground: #f0f2f5;
+
+  --muted: #0d1c30;
+  --muted-foreground: #7a8da3;
+
+  --accent: #132844;
+  --accent-foreground: #3fa9f5;
+
+  --destructive: #f87171;
+  --destructive-foreground: #ffffff;
+
+  --border: #1a3050;
+  --input: #132844;
+  --ring: #3fa9f5;
+
+  --sidebar: #0a1726;
+  --sidebar-foreground: #b8c5d4;
+  --sidebar-primary: #3fa9f5;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #112842;
+  --sidebar-accent-foreground: #3fa9f5;
+  --sidebar-border: #1a3050;
+  --sidebar-ring: #3fa9f5;
 }
 
 ::selection {

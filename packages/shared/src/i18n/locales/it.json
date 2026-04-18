@@ -18,6 +18,26 @@
     "billing": "Abbonamento",
     "activity": "Attività"
   },
+  "appShell": {
+    "brandSubtitle": "Production Suite",
+    "searchHint": "Cerca eventi, sale, PC...",
+    "searchHintAdmin": "Cerca tenant, audit log...",
+    "commandPlaceholder": "Cerca o digita un comando...",
+    "commandEmpty": "Nessun risultato.",
+    "cmdJumpTo": "Vai a",
+    "cmdEvents": "Apri evento",
+    "cmdOnAir": "Apri regia in onda",
+    "cmdHelp": "Aiuto",
+    "sectionEvents": "Eventi",
+    "sectionRoomPCs": "PC sala",
+    "sectionTools": "Strumenti",
+    "sectionAdminMain": "Amministrazione",
+    "production": "Produzione",
+    "onAir": "In Onda",
+    "privacy": "Privacy",
+    "noEvents": "Nessun evento",
+    "noDevices": "Nessun PC sala collegato"
+  },
   "auth": {
     "login": "Accedi",
     "logout": "Esci",

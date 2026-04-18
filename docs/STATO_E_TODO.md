@@ -3,7 +3,7 @@
 > **Documento operativo gemello di `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare, in ordine di priorita. Per "cosa fa il prodotto" e "come e fatto" → architettura.
 >
-> **Versione:** 2.14 — 18 aprile 2026 (post-deploy Vercel + Supabase + audit §0.23 + chiusura backlog AU-\* §0.23.3)
+> **Versione:** 2.15 — 18 aprile 2026 sera (post UX Redesign V2.0 Sprint U-1 — Foundation §0.24)
 > **Owner:** Andrea Rizzari
 > **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**. **Sprint T-1 (G8, badge versione "in onda" sempre visibile in sala + toast cambio versione, §0.16) DONE**. **Sprint T-2 (G9, telemetria perf live PC sala — CPU/RAM/heap/disco/FPS/battery, §0.17) DONE**. **Audit completo + bugfix Q+1.5 (§0.18) DONE — semaforo VERDE su tutto**. **Sprint T-3 (G10) COMPLETO: T-3-A (file validator warn-only, §0.20) DONE → T-3-E (Next-Up file preview, §0.21) DONE → T-3-G (remote control tablet, §0.22) DONE — TUTTE E TRE LE FEATURE COMPETITOR VERDE.**
 >
@@ -31,6 +31,8 @@
 >
 > **Audit chirurgico post-deploy 18/04/2026 (§ 0.23):** dopo deploy Vercel + Supabase chiuso con commit `pre-field-test`, audit completo su 100% migrations + Edge Functions + critical paths frontend. Identificate **8 issue HIGH/CRITICAL fixate immediatamente** (`activity_log` colonne errate in `rpc_move_presentation_to_session`, TOCTOU race su `pair-claim`, idempotency race su Lemon Squeezy webhook, cross-room finalize forbidden, info disclosure su 4 Edge Functions, `setState` in render in `SessionFilesPanel`, UI stuck in `EventDetailView`, hang `fetch` senza timeout in export ZIP) — tutti gia' in produzione tramite migration `20260418220000_audit_fixes_post_deploy.sql` + redeploy 4 Edge Functions. **9 issue MEDIUM** documentate in §0.23.2 come backlog per sessioni dedicate (retention DB, CORS hardening, rate limit esteso, performance Realtime e bundle, outbox queue offline Tauri, test E2E mancanti). Quality gate post-fix verde.
 >
+> **UX Redesign V2.0 Sprint U-1 — Foundation (§ 0.24 — DONE 18/04/2026 sera):** redesign completo dell'app shell. Andrea ha esplicitato la nuova UI: sidebar permanente Notion/Linear-style con sezioni espandibili Eventi e PC sala, due modalita' Production/On Air per ogni evento, zero-friction per il PC sala (admin pre-configura, magic link auto-detect). Implementata foundation: shadcn/ui in `packages/ui` (20 componenti base + custom `Sidebar` con desktop sticky + mobile `Sheet` drawer + auto-close on route change), token mapping `sc-*` ↔ shadcn (palette dark invariata), nuovo `AppShell` shell component a 2 varianti (`tenant` | `admin`) che sostituisce `RootLayout`/`AdminRootLayout` come thin wrappers, sidebar a 2 livelli (Eventi expandable → Production/On Air, PC sala con health-dot, Strumenti), top bar con search-hint trigger + ⌘K Command palette globale (`cmdk` based, jump-to dashboard/events/settings + recenti). Quality gate verde: typecheck monorepo (5/5), lint monorepo (5/5), build production OK, i18n parity 1416/1416 (18 nuove keys `appShell.*`). Zero breaking change su URL, zero modifiche schema DB, zero modifiche logica auth/realtime — solo skin + IA. Successivi: U-2 (ProductionView con tree+grid+drop globale, split EventDetail in 4 tab), U-3 (rinomina LiveRegia → OnAir + preview slide N/Tot grosso), U-4 (zero-friction provision via QR), U-5 (re-skin pannelli minori + E2E + tag v2.0).
+>
 > **Chiusura backlog AU-01 → AU-09 (§ 0.23.3 — DONE 18/04/2026):** 9/9 issue MEDIUM risolte in sessione singola. **DB:** migration `20260418230000_audit_medium_fixes.sql` applicata in produzione → `pg_cron` abilitato, 4 job schedulati (`cleanup_lemon_squeezy_event_log` daily 04:00 UTC retention 90gg, `cleanup_device_metric_pings` daily 03:00 UTC retention 24h, `cleanup_pair_claim_rate_events` ogni 30min, `cleanup_edge_function_rate_events` ogni 30min retention 1h), nuova tabella `edge_function_rate_events` + RPC `check_and_record_edge_rate` per rate-limit generico, `search_path` hardening su tutte le `SECURITY DEFINER` (~40 funzioni standardizzate a `pg_catalog, public, pg_temp, extensions, realtime, auth`). **Edge Functions:** nuovi shared `_shared/cors.ts` (whitelist admin con regex Vercel preview) + `_shared/rate-limit.ts` (`checkAndRecordEdgeRate` + `clientIpFromRequest` + `hashIp` salt-aware), applicati a `room-device-upload-init` (30 req/5min/IP) e `remote-control-dispatch` (120 req/min/IP), entrambi ridistribuiti. **Frontend:** `useEventLiveData` debounce reload 200ms (no reload-storm su burst Realtime), `event-export.ts` + `thumbnail-pptx.ts` lazy-import jszip (chunk separato `jszip.min` ~28KB gzip), nuovo `apps/web/src/lib/outbox-queue.ts` IndexedDB con retry exponential backoff integrato in `RoomPlayerView` per `room-player-set-current` (retry 15s + on `online` event, max 8 tentativi). **E2E:** 3 nuove fixture Playwright in `apps/web/e2e/`: `pairing-race.spec.ts` (verifica race TOCTOU `claim_pairing_code_atomic`), `move-presentation.spec.ts` (verifica `activity_log` post-fix), `remote-control.spec.ts` (verifica dispatch + rate limit). Quality gate verde: typecheck + lint + build + i18n parity 1398/1398.
 
 ---
@@ -55,6 +57,7 @@
    - 0.22 [Sprint T-3-G — Remote slide control da tablet (DONE)](#022-sprint-t-3-g--remote-slide-control-da-tablet-done-18042026)
    - 0.23 [Audit chirurgico post-deploy 18/04/2026 (DONE + sessioni dedicate)](#023-audit-chirurgico-post-deploy-18042026-done--sessioni-dedicate)
    - 0.23.3 [Chiusura backlog AU-01 → AU-09 (DONE — 18/04/2026 sera)](#0233-chiusura-backlog-au-01--au-09-done--18042026-sera)
+   - 0.24 [UX Redesign V2.0 — Sprint U-1 Foundation (DONE — 18/04/2026 sera)](#024-ux-redesign-v20--sprint-u-1-foundation-done--18042026-sera)
 1. [Stato attuale (tutto DONE)](#1-stato-attuale-tutto-done)
 2. [Cose da fare ORA (azioni esterne Andrea, NON automatizzabili)](#2-cose-da-fare-ora-azioni-esterne-andrea-non-automatizzabili)
 3. [Field test desktop (quando vorrai farlo)](#3-field-test-desktop-quando-vorrai-farlo)
@@ -2158,6 +2161,60 @@ L'evoluzione "next/prev SLIDE reale" rimane **fattibile in futuro** come Sprint 
 - `throw` → "failure transitoria" → `retried++`, backoff esponenziale fino a `MAX_ATTEMPTS`
 
 `flushOutboxOnce()` ora ritorna `{ processed, succeeded, skipped, retried, dropped }`. Nuovo type guard `isSkipResult` + nuovi tipi `OutboxHandlerSkipResult` / `OutboxHandlerResult`. Handler in `RoomPlayerView` aggiornato a `return { skipped: 'missing_token' }`. Quality gate verde (typecheck + lint + build). Pattern utile per qualsiasi futuro `kind` outbox-ato che abbia validazioni client-side non recuperabili.
+
+### 0.24 UX Redesign V2.0 — Sprint U-1 Foundation (DONE — 18/04/2026 sera)
+
+> **Driver dal cliente:** "non mi piace per niente la UI, non riesco a fare nulla di cio' che voglio, come ad esempio caricare un ppt". Andrea chiede:
+>
+> 1. **Sidebar permanente** Notion/Linear-style con sezioni espandibili **Eventi → sale** e **PC sala** come link rapido + sezione **Strumenti**.
+> 2. **Due modalita' per ogni evento:**
+>    - **Production** (produzione/back-office) → file management OneDrive/Drive-style, drag&drop cartelle, tasto "+ aggiungi";
+>    - **On Air** (regia) → preview low-res di cio' che sta proiettando ogni sala + numero slide corrente/totale grande.
+> 3. **Zero-friction PC sala:** admin pre-configura, il PC apre il magic link dell'evento e si auto-riconosce nella sua sala (no codice da digitare).
+> 4. **Vincolo design:** "user-friendly, poche funzioni ma chiare e professionali, mantieni la palette/coerenza attuale".
+>
+> Piano in 5 sprint U-1 → U-5 condiviso e approvato. **Questo sprint U-1 e' la FOUNDATION:** install design system + nuovo shell + IA della sidebar + command palette. Le viste interne (Production tree, On Air split, magic link) seguono in U-2/U-3/U-4.
+
+**Cosa abbiamo fatto in U-1:**
+
+1. **Design system shadcn/ui in `packages/ui`** — installati Radix primitives (`@radix-ui/react-{slot,dialog,dropdown-menu,context-menu,tooltip,tabs,separator,popover,scroll-area,collapsible,avatar,label,select}`), `cmdk`, `sonner`, `lucide-react`, `tw-animate-css`. Creati 20 componenti base shadcn (`Button` con variant `accent` su `sc-accent`, `Card`, `Input`, `Label`, `Separator`, `Skeleton`, `Badge` con variant `success`/`warning`/`accent`, `Avatar`, `Dialog`, `Sheet`, `DropdownMenu`, `ContextMenu`, `Tabs`, `Tooltip`, `Popover`, `Collapsible`, `ScrollArea`, `Select`, `Command`, `Toaster`) + `useIsMobile` hook. Tutti tipizzati TS strict.
+
+2. **Token mapping `sc-*` ↔ shadcn in `apps/web/src/index.css`** — mappate tutte le CSS vars shadcn (`--background`, `--foreground`, `--card`, `--primary`, `--accent`, `--border`, `--ring`, `--muted-foreground`, `--popover`, `--destructive`, `--sidebar*`...) sui token `sc-*` esistenti del tema dark. **Zero cambio palette visivo** rispetto all'attuale (Andrea: "lo stile mi piace a livello di colori e coerenza"). Aggiunto `@source '../../../packages/ui/src/**/*.{ts,tsx}'` per Tailwind v4 content scan + `@import 'tw-animate-css'` per le animation utility shadcn.
+
+3. **Nuovo `Sidebar` component custom** (`packages/ui/src/components/ui/sidebar.tsx`) ispirato a shadcn: `SidebarProvider` con state `open` desktop + `openMobile` Sheet drawer, sticky `aside` desktop `lg:flex`, `Sheet` mobile `<lg:flex` (auto width 18rem). Sub-componenti: `SidebarHeader`/`SidebarContent`/`SidebarFooter`/`SidebarSeparator`/`SidebarGroup{Label,Content}`/`SidebarMenu{Item,Button,Action,Badge,Sub{Item,Button}}`/`SidebarTrigger`/`SidebarInset`. Variant `'admin'` switcha border a `sc-accent/25`.
+
+4. **`AppShell` component** (`apps/web/src/app/shell/AppShell.tsx`) — nuovo shell che sostituisce `RootLayout` e `AdminRootLayout` (ridotti a thin wrappers `<AppShell variant="tenant"/>` e `<AppShell variant="admin"/>`). Layout 2-colonne desktop (sidebar 16rem | main `SidebarInset`), full-screen mobile con drawer. Auto-close del drawer mobile su route change (hook `useAutoCloseMobileSidebar` interno). Tutti i `Suspense` + `OnboardingGate` + `TenantWarningBanners` + `DesktopUpdateBanner` mantenuti, solo riposizionati nel nuovo shell.
+
+5. **Sidebar 2-livelli** (`ShellSidebarContent` + `TenantSidebarSections` + `AdminSidebarSections`):
+   - **Tenant:** sezioni Dashboard | **Eventi (collapsible)** ogni evento espandibile in 3 sub-link `Apri` / `Production` / `On Air` (badge data evento) | **PC sala (collapsible)** ogni device con `DeviceStatusDot` (verde online <60s, ambra warning, rosso offline) + nome device | **Strumenti** (Sale, Sessioni, Relatori, Activity, Privacy) | (admin tenant) Settings/Team/Billing | (super-admin) link "Admin globale".
+   - **Admin globale:** Dashboard amministrazione | Tenant | Audit log | back-link "Torna al tenant".
+
+6. **Command palette globale ⌘K** (`apps/web/src/app/shell/AppCommandPalette.tsx`) — `cmdk`-based, hotkey `Ctrl/Cmd+K`. Gruppi: **Vai a** (Dashboard, Eventi, Sale, Sessioni, Relatori, Settings, Team, Billing, Activity, Privacy + Admin se super-admin) | **Apri evento** (recenti × 12) | **Apri regia in onda** (recenti × 12) | **Aiuto** (Status page). Niente fuzzy custom — `cmdk` fa filter nativo su `value`.
+
+7. **`useSidebarData` hook** (`apps/web/src/app/shell/useSidebarData.ts`) — fetch lite di `events` (top 20 by `start_date desc`) e `paired_devices` (top 60 by `paired_at desc`) per popolare la sidebar. Una sola query parallel in `Promise.all`, no realtime (per ora sufficiente — refresh on mount). Solo se `tenantId` presente; per admin globale skip totale.
+
+8. **Top bar** (`ShellTopBar`) — `SidebarTrigger` mobile + `CommandPaletteHint` (input fake che apre ⌘K, mostra hotkey) + version-mode badge desktop.
+
+9. **i18n** — 18 nuove chiavi `appShell.*` aggiunte a IT/EN: `brandSubtitle`, `searchHint{,Admin}`, `commandPlaceholder`, `commandEmpty`, `cmd{JumpTo,Events,OnAir,Help}`, `section{Events,RoomPCs,Tools,AdminMain}`, `production`, `onAir`, `privacy`, `noEvents`, `noDevices`. **Parita 1416/1416**.
+
+**Quality gate verde:**
+- `pnpm typecheck` → 5/5 task OK (web + shared + ui buildati come project references)
+- `pnpm lint` → 5/5 task OK
+- `pnpm --filter @slidecenter/web build` → built in 1.83s, bundle index 662.86 kB / 202.54 kB gzip (vs 600KB pre-shadcn — accettabile per la qty di componenti aggiunti)
+- i18n parity 1416/1416 IT/EN
+
+**Cosa NON e' cambiato (vincoli rispettati):**
+- Zero cambio URL routing (le rotte esistenti girano dentro l'`Outlet` del nuovo shell)
+- Zero modifiche schema DB
+- Zero modifiche logica auth/realtime/edge functions
+- Palette dark identica all'attuale
+- `OnboardingGate`, `TenantWarningBanners`, `DesktopUpdateBanner`, `BackendModeBadge` riposizionati ma identici nel comportamento
+
+**Sprint successivi (in coda):**
+- **U-2** (next, in_progress): DB `event_folders` + `folder_id` su presentations + `ProductionView` (tree sale/cartelle, grid file, breadcrumb, drop globale, context menu, multi-select) + split `EventDetailView` in 4 tab (Production/Sessions/Speakers/Rooms).
+- **U-3:** rinomina `LiveRegiaView` → `OnAirView` con split layout (lista sale | preview slide N/Tot grosso | ActivityFeed) + estensione `room-player-set-current` con `current_slide_index` + thumbnail slide in onda.
+- **U-4:** `provision_room_device` RPC + route `/sala-magic/:token` + QR stampabile admin + refresh visivo `RoomPlayerView` (layout broadcasting nero/minimal) + `PairView` keypad come fallback.
+- **U-5:** re-skin shadcn dei pannelli minori (Settings/Team/Billing/Privacy/Audit/Auth/Onboarding/RemoteControl) + responsive 360px + i18n parity + 3-4 E2E Playwright nuovi flussi + tag `v2.0-redesign`.
 
 ---
 
