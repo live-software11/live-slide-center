@@ -3,9 +3,9 @@
 > **Documento operativo gemello di `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare, in ordine di priorita. Per "cosa fa il prodotto" e "come e fatto" → architettura.
 >
-> **Versione:** 2.10 — 18 aprile 2026 (post-Sprint T-2)
+> **Versione:** 2.11 — 18 aprile 2026 (post-Audit Q+1.5)
 > **Owner:** Andrea Rizzari
-> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**. **Sprint T-1 (G8, badge versione "in onda" sempre visibile in sala + toast cambio versione, §0.16) DONE**. **Sprint T-2 (G9, telemetria perf live PC sala — CPU/RAM/heap/disco/FPS/battery, §0.17) DONE**.
+> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**. **Sprint T-1 (G8, badge versione "in onda" sempre visibile in sala + toast cambio versione, §0.16) DONE**. **Sprint T-2 (G9, telemetria perf live PC sala — CPU/RAM/heap/disco/FPS/battery, §0.17) DONE**. **Audit completo + bugfix Q+1.5 (§0.18) DONE — semaforo VERDE su tutto**. **Sprint T-3 (G10) PIANO §0.19 → in esecuzione: T-3-A (file validator warn-only) IN CORSO, T-3-E + T-3-G a seguire dopo semaforo verde Andrea**.
 >
 > **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 9/10 chiusi (G1 in R-1, G2 in R-2, G3 in R-3, G4 in S-1, G5 in S-2, G6 in S-3, G7 in S-4, G8 in T-1, G9 in T-2) → completata FAMIGLIA R + completata FAMIGLIA S → famiglia T 2/3 (resta G10 features competitor).**
 >
@@ -44,6 +44,8 @@
    - 0.15 [Sprint S-4 — Ruolo device "Centro Slide" multi-room (DONE)](#015-sprint-s-4--ruolo-device-centro-slide-multi-room-done-18042026)
    - 0.16 [Sprint T-1 — Badge versione "in onda" + toast cambio versione (DONE)](#016-sprint-t-1--badge-versione-in-onda--toast-cambio-versione-done-18042026)
    - 0.17 [Sprint T-2 — Telemetria perf live PC sala (DONE)](#017-sprint-t-2--telemetria-perf-live-pc-sala-done-18042026)
+   - 0.18 [Audit completo + Bugfix Q+1.5 (DONE)](#018-audit-completo--bugfix-q15-done-18042026)
+   - 0.19 [Sprint T-3 (G10) — Piano implementazione](#019-sprint-t-3-g10--piano-implementazione-decisione-18042026)
 1. [Stato attuale (tutto DONE)](#1-stato-attuale-tutto-done)
 2. [Cose da fare ORA (azioni esterne Andrea, NON automatizzabili)](#2-cose-da-fare-ora-azioni-esterne-andrea-non-automatizzabili)
 3. [Field test desktop (quando vorrai farlo)](#3-field-test-desktop-quando-vorrai-farlo)
@@ -1449,6 +1451,190 @@ GAP famiglia T residui: **1 / 3** (G10 competitor parity).
 - **G10** (Sprint T-3): features competitor mancanti — file checking pre-evento, ePoster, mobile speaker ready room, speaker timer integrato, email reminder schedulati. Vedi §0.4 per analisi dettagliata vs PreSeria, Slidecrew, SLIDEbit, OCSA Suite.
 
 Pronto a partire con **Sprint T-3** appena Andrea da' il via.
+
+---
+
+### 0.18 Audit completo + Bugfix Q+1.5 (DONE 18/04/2026)
+
+> **Trigger:** Andrea ha chiesto **audit completo** del progetto post-G9 prima di procedere con G10. Eseguito controllo a tappeto su sicurezza, qualita codice, dipendenze, RLS, telemetria.
+
+#### 0.18.1 Quality gates eseguiti (tutti VERDI)
+
+```
+pnpm typecheck                    OK  (5/5 task, 2.4s, cache hit parziale)
+pnpm lint                         OK  (5/5 task, ESLint web+shared+ui)
+pnpm build                        OK  (PWA 101 entries, 2546 modules)
+pnpm audit (full incl. devDeps)   OK  (0 vulnerabilita dopo override Q+1.5)
+i18n parity check (Node)          OK  (1312 IT / 1312 EN, zero key orfane)
+```
+
+#### 0.18.2 Audit sicurezza (tutto OK)
+
+| Verifica                                                                 | Esito | Note                                                                                                                    |
+| ------------------------------------------------------------------------ | ----- | ----------------------------------------------------------------------------------------------------------------------- |
+| `SECURITY DEFINER` con `SET search_path` su tutte le RPC (anti-hijack)   | OK    | 50+ funzioni controllate in `supabase/migrations/**.sql`: zero senza `search_path`                                      |
+| Nessuna RLS policy aperta (`USING (true)` o `if true`)                   | OK    | Grep esaustivo: 0 occorrenze. Tutte le policy filtrano per `tenant_id` o ruolo                                          |
+| Webhook Lemon Squeezy: HMAC SHA-256 + timing-safe-equal + payload cap    | OK    | `lemon-squeezy-webhook/index.ts`: signature obbligatoria, body ≤1 MiB, idempotency via `event_id` UNIQUE                |
+| Headers di sicurezza HTTP completi su SPA                                | OK    | `vercel.json`: HSTS preload 2y, CSP completa, X-Frame-Options DENY, COOP/CORP same-origin, Permissions-Policy ristretta |
+| Telemetria perf G9: rate-limit server + INSERT solo via SECURITY DEFINER | OK    | `record_device_metric_ping` rate-limit 3s; UPDATE/DELETE bloccati a tutti i ruoli; `device_metric_pings` write-only     |
+| Bootstrap PC sala: no spoofing campi server-side (playback_mode, role)   | OK    | `room-player-bootstrap/index.ts`: `device_role` iniettato server-side, `playback_mode` validato whitelist               |
+| GDPR: anon NON puo' fare INSERT su `email_log`/`activity_log`            | OK    | `security_least_privilege` Sprint Q+1: REVOKE generale + grant chirurgici solo su `paired_devices`/`pairing_codes`      |
+
+#### 0.18.3 Vulnerabilita pacchetti — fix Q+1.5
+
+**Trovato (pnpm audit completo):**
+
+| Severita | Pacchetto                    | Path                                                                                   | Fix                       |
+| -------- | ---------------------------- | -------------------------------------------------------------------------------------- | ------------------------- |
+| moderate | `serialize-javascript@6.0.2` | `apps/web > vite-plugin-pwa@1.2.0 > workbox-build@7.4.0 > @rollup/plugin-terser@0.4.4` | Override pnpm a `>=7.0.5` |
+| high     | `serialize-javascript@6.0.2` | (stessa catena)                                                                        | (stesso fix)              |
+
+**Impatto reale:** zero a runtime. Le vulnerabilita `serialize-javascript` sono devDependency-only, attivate solo durante `vite build` (generazione PWA service worker). Non viene eseguito codice utente vulnerabile in produzione. Comunque chiuso per CI verde.
+
+**Fix applicato in `package.json` (root):**
+
+```json
+"pnpm": {
+  "overrides": {
+    "serialize-javascript@<7.0.5": ">=7.0.5"
+  }
+}
+```
+
+Re-eseguito `pnpm install --no-frozen-lockfile` + `pnpm audit`: **0 vulnerabilita**, **0 regressioni** (typecheck/lint/build verdi).
+
+#### 0.18.4 Bug funzionali corretti (logica G9 telemetria)
+
+Trovati **2 bug logici** nel widget `LivePerfTelemetryPanel` durante audit chirurgico — entrambi corretti.
+
+**Bug #1: `THRESHOLDS.disk` mancava di `inverted: true`**
+
+- **File:** `apps/web/src/features/devices/components/LivePerfTelemetryPanel.tsx`
+- **Sintomo:** `disk_free_pct` (% disco LIBERO, semantica "pochi = male") veniva trattato come metrica non-inverted (es. heap%, "tanti = male"). Conseguenza: con `disk_free=5%` (disco quasi pieno!) il device veniva classificato `healthy` (mancato allarme); con `disk_free=95%` (disco quasi vuoto, OTTIMO) veniva classificato `critical` (falso allarme).
+- **Fix:** soglie corrette `{ warning: 10, critical: 5, inverted: true }` come specificato in §0.17.1 (paragrafo "Soglie sovrane T-2").
+- **Impatto pre-fix:** zero in produzione finche' i collector desktop Tauri non popolano `disk_free_pct` (oggi il PWA browser lo lascia a `null`, branch never-taken). Pero' sarebbe esploso al primo deploy del collector Rust di T-2.b.
+
+**Bug #2: formula errata in `Sparkline.tsx` per metriche inverted**
+
+- **File:** `apps/web/src/features/devices/components/Sparkline.tsx`
+- **Sintomo:** la classifica colore della sparkline usava `last < (100 - criticalAt)` per metriche `inverted`. Esempio: per FPS con `criticalAt=15`, calcolava `last < (100-15) = last < 85` → tutte le sparkline FPS sotto 85fps mostravano linea ROSSA continua (false positive massivo). Stesso bug su battery e disk_free.
+- **Fix:** formula coerente con `classifyValue` del Panel: `inverted ? last <= criticalAt : last >= criticalAt`.
+- **Impatto pre-fix:** UX rumorosa (sparkline FPS/battery/disk sempre rosse anche su PC sani). Nessun rischio sicurezza ne perdita dati. Mai notato in produzione perche' G9 e' appena uscito (nessun evento reale post-T-2).
+
+**Quality gates post-fix:** typecheck OK, lint OK, build OK, ReadLints OK (zero errori).
+
+#### 0.18.5 File modificati
+
+- `apps/web/src/features/devices/components/LivePerfTelemetryPanel.tsx` (1 fix soglie disk + commento esplicativo)
+- `apps/web/src/features/devices/components/Sparkline.tsx` (1 fix formula `inverted` + commento esplicativo)
+- `package.json` (root) — `pnpm.overrides` per `serialize-javascript`
+- `pnpm-lock.yaml` — aggiornato dall'install
+- `docs/STATO_E_TODO.md` — questa sezione
+
+#### 0.18.6 Conclusione audit
+
+**SEMAFORO VERDE su tutto il progetto**, sicurezza compresa. Nessun blocker, nessuna vulnerabilita aperta, zero regressioni. Sprint T-3 (G10) puo' partire in qualsiasi momento — proposta features competitor in §0.4 e analisi nel resto di questa nota.
+
+---
+
+### 0.19 Sprint T-3 (G10) — Piano implementazione (decisione 18/04/2026)
+
+> **Decisione Andrea (form CTO 18/04/2026):**
+> - **T-3-A** File error checking automatico — modalita **warn-only** (badge gialli, no blocco upload).
+> - **T-3-E** Preview slide successiva su PC tecnico (`LiveRegiaView`).
+> - **T-3-G** Remote slide control da tablet via Realtime broadcast.
+>
+> **Esclusi (decisione esplicita Andrea):**
+> - T-3-B Speaker timer integrato — il prodotto Live SPEAKER TIMER resta separato (cross-sell manuale).
+> - T-3-C Email reminder schedulati — i coordinator continuano a mandare promemoria a mano.
+>
+> **Tempo totale stimato:** ~6.5g dev + 2.5g test = **~9 giorni**.
+> **Esecuzione chirurgica:** uno sprint alla volta, semaforo verde Andrea fra uno e il successivo.
+
+#### 0.19.1 T-3-A — File error checking automatico (warn-only) — IN CORSO
+
+**Cosa fa il sistema:**
+- Quando una `presentation_versions` arriva in stato `ready` (post-finalize), viene chiamato un Edge Function **`slide-validator`** che scarica il blob da Storage, ne ispeziona contenuto e metadati, e popola un campo nuovo `validation_warnings JSONB[]` su `presentation_versions`.
+- L'admin (e lo speaker via portale) vedono un badge giallo `⚠ N issue` accanto al filename. Click → tooltip con dettaglio per ogni issue (es. "font Calibri non embedded", "video src=https://broken.com/clip.mp4 → 404", "risoluzione 1280×720, raccomandato 1920×1080").
+- **Nessun blocco** upload: il file resta sempre disponibile per la proiezione. Le issue sono informative, l'admin decide se chiedere allo speaker un re-upload.
+
+**Tipi di check (versione 1):**
+
+| Tipo file | Check | Severita | Note |
+|-----------|-------|----------|------|
+| `.pptx` | Font non embedded (scan `ppt/theme/*.xml` + `ppt/slides/*.xml` per `typeface=` non in `ppt/fonts/`) | warning | Esclude i font safe-list (Calibri, Arial, Times — disponibili su Windows out-of-box). |
+| `.pptx` | Video con `r:link` HTTP/HTTPS (broken link risk) | warning | Solo flag presenza. Non facciamo HEAD HTTP (latenza Edge non prevedibile). |
+| `.pptx` | Slide size diverso da 16:9 (esclude 4:3 legacy + custom) | info | Letto da `ppt/presentation.xml` `<p:sldSz cx= cy=>`. |
+| `.pdf` | Numero pagine = 0 o file corrotto | error | Solo flag, non blocca (l'admin vede "il file e rotto"). |
+| `tutti` | File >500 MB | warning | Limite raccomandato per evitare lag download PC sala. |
+| `tutti` | MIME type dichiarato vs sniffed | warning | Catch upload PDF rinominati `.pptx` (caso classico). |
+
+**Architettura tecnica:**
+
+```
+[client web upload] → invokeRoomDeviceUploadFinalize / finalize_upload_version_admin
+                    → presentation_versions.status = 'ready'
+                    → trigger AFTER UPDATE → pg_notify('slide_validator', version_id)
+                    → cron Edge Function "slide-validator-tick" (5min) o webhook diretto
+                       → SELECT versioni ready con validation_warnings IS NULL
+                       → for each: signedUrl → fetch → parse → UPDATE validation_warnings
+```
+
+**Decisione architetturale chiave (rate-limit + costo Edge):**
+
+NON triggeriamo l'Edge Function direttamente dal trigger DB (Postgres → HTTP webhook è fragile e costoso). Usiamo invece **polling** schedulato da pg_cron ogni 2 minuti che chiama l'Edge Function via `net.http_post` con un batch di max 10 versioni unvalidated. Pro:
+- Idempotente (il `WHERE validation_warnings IS NULL` previene doppi run).
+- Throttling naturale (max 10 file/2min = 300 file/h che bastano largamente).
+- Crash recovery automatico (se Edge Function fallisce, prossimo tick riprova).
+- Latenza accettabile (max 2 min tra upload e badge visibile, l'admin sta gia visionando il file).
+
+**Schema DB (migration nuova):**
+
+```sql
+ALTER TABLE public.presentation_versions
+  ADD COLUMN validation_warnings JSONB DEFAULT NULL,
+  ADD COLUMN validated_at TIMESTAMPTZ DEFAULT NULL;
+
+CREATE INDEX idx_pv_unvalidated_ready
+  ON public.presentation_versions (created_at)
+  WHERE status = 'ready' AND validation_warnings IS NULL;
+
+-- pg_cron: ogni 2 min chiama l'Edge Function se ci sono versioni unvalidated
+-- (la function ritorna immediatamente se la lista batch e vuota)
+```
+
+**File impattati T-3-A:**
+
+Creati:
+- `supabase/migrations/20260418200000_validation_warnings.sql`
+- `supabase/functions/slide-validator/index.ts` (parser .pptx + .pdf + dispatcher)
+- `apps/web/src/features/presentations/components/ValidationIssuesBadge.tsx`
+
+Modificati:
+- `supabase/functions/_shared/cors.ts` (eventuale)
+- `apps/web/src/features/presentations/repository.ts` (esporre `validation_warnings`)
+- `apps/web/src/features/presentations/components/SessionFilesPanel.tsx` (badge accanto filename)
+- `apps/web/src/features/devices/components/RoomDeviceUploadDropzone.tsx` (badge dopo upload)
+- `packages/shared/src/types/database.ts` (rigenerato post-migration)
+- `packages/shared/src/i18n/locales/it.json` + `en.json` (~20 chiavi)
+
+**Quality gates da soddisfare:**
+- typecheck OK
+- lint OK
+- build OK
+- i18n parity 1312+ → 1330+ chiavi entrambe lingue
+- ReadLints zero errori
+- Test manuale: caricare un .pptx con font Wingdings non embedded → vedere badge giallo `⚠ 1 issue` con tooltip "Font Wingdings non embedded"
+
+**SLA implementazione:** 1.5g dev + 0.5g test = **2 giorni totali** (target: chiusura entro fine settimana).
+
+#### 0.19.2 T-3-E — Preview slide successiva (PENDING, parte dopo semaforo verde T-3-A)
+
+Architettura provvisoria: pdf.js Worker render thumbnail page+1 con cache LRU. Solo per PDF nativi nella v1; per `.pptx` serve pre-conversione (decisione: piggyback su slide-validator se converte, altrimenti placeholder).
+
+#### 0.19.3 T-3-G — Remote slide control da tablet (PENDING, parte dopo semaforo verde T-3-E)
+
+Architettura provvisoria: PWA route `/remote/<token>` + pairing 6-digit + Realtime broadcast `room:<id>:remote` con eventi `next/prev/goto/blank`. PC sala traduce in keydown via Tauri global keybind (desktop) o DOM event (web).
 
 ---
 

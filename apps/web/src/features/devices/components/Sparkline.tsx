@@ -70,9 +70,13 @@ export function Sparkline({
     .join(' ');
 
   // Determinazione tone basata sull'ULTIMO valore (quello che conta lato UX).
+  // Le soglie passate sono SEMPRE espresse nei valori originali della metrica:
+  //   - non-inverted (heap, storage, cpu, ram): >= soglia → male.
+  //   - inverted (fps, battery, disk_free): <= soglia → male.
+  // Es: per FPS, `criticalAt=15` significa "se FPS scende a 15 o meno, critico".
   const last = values[values.length - 1];
-  const isCritical = inverted ? last < (100 - criticalAt) : last >= criticalAt;
-  const isWarning = !isCritical && (inverted ? last < (100 - warningAt) : last >= warningAt);
+  const isCritical = inverted ? last <= criticalAt : last >= criticalAt;
+  const isWarning = !isCritical && (inverted ? last <= warningAt : last >= warningAt);
 
   const lineColor = isCritical ? '#ef4444' : isWarning ? '#f59e0b' : '#22c55e';
   const dotColor = lineColor;

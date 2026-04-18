@@ -72,7 +72,9 @@ const THRESHOLDS = {
   fps: { warning: 30, critical: 15, inverted: true } satisfies MetricThresholds,
   cpu: { warning: 85, critical: 95 } satisfies MetricThresholds,
   ram: { warning: 90, critical: 95 } satisfies MetricThresholds,
-  disk: { warning: 90, critical: 95 } satisfies MetricThresholds,
+  // disk_free_pct e' la % di disco LIBERO: pochi = male → inverted.
+  // Soglie sovrane T-2: <=10% warning, <=5% critical (cfr §0.17.1 STATO_E_TODO.md).
+  disk: { warning: 10, critical: 5, inverted: true } satisfies MetricThresholds,
   battery: { warning: 20, critical: 10, inverted: true } satisfies MetricThresholds,
 } as const;
 
@@ -329,13 +331,12 @@ function DeviceTelemetryCard({
 
         {battery !== null && (
           <div
-            className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium tabular-nums ${
-              classifyValue(batteryCharging === false ? battery : 100, THRESHOLDS.battery) === 'critical'
+            className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium tabular-nums ${classifyValue(batteryCharging === false ? battery : 100, THRESHOLDS.battery) === 'critical'
                 ? 'bg-sc-danger/10 text-sc-danger'
                 : classifyValue(batteryCharging === false ? battery : 100, THRESHOLDS.battery) === 'warning'
                   ? 'bg-sc-warning/10 text-sc-warning'
                   : 'bg-sc-success/10 text-sc-success'
-            }`}
+              }`}
             title={
               batteryCharging
                 ? t('deviceTelemetry.batteryCharging', { pct: battery.toFixed(0) })
