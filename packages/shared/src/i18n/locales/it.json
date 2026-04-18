@@ -1120,6 +1120,24 @@
       "roomsCount_one": "{{count}} sala sincronizzata",
       "roomsCount_other": "{{count}} sale sincronizzate"
     },
+    "versionBadge": {
+      "label": "v{{n}} / {{total}}",
+      "single": "v{{n}}",
+      "tooltipLatest": "Versione {{n}} — è anche la più recente caricata",
+      "tooltipOlder": "Versione {{n}} in onda — esiste una v{{total}} più recente non scelta dal regista",
+      "tooltipSingle": "Versione {{n}} — unica versione caricata per questo file",
+      "aria": "Versione corrente in onda: {{n}} di {{total}}"
+    },
+    "versionToast": {
+      "newer": {
+        "title": "Nuova versione caricata: v{{n}}",
+        "body": "{{file}} ora è in v{{n}}. Verrà mostrata automaticamente al prossimo apri."
+      },
+      "rollback": {
+        "title": "Versione riportata a v{{n}}",
+        "body": "{{file}} è tornato a v{{n}} per scelta del regista (esiste anche v{{total}})."
+      }
+    },
     "actions": {
       "refresh": "Aggiorna ora",
       "refreshing": "Aggiorno…"

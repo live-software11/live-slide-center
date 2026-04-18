@@ -136,6 +136,17 @@ export interface FileSyncItem {
    * file. Fallback al `roomName` props se vuoto.
    */
   roomName: string;
+  /**
+   * Sprint T-1 (G8) — version_number della versione attualmente "in onda".
+   * Nullable per BC con bootstrap pre-T-1.
+   */
+  versionNumber: number | null;
+  /**
+   * Sprint T-1 (G8) — MAX(version_number) tra tutte le versioni 'ready'/'superseded'
+   * della stessa presentation. Se uguale a versionNumber: corrente = latest
+   * (badge verde). Se maggiore: esiste versione piu' nuova (badge giallo).
+   */
+  versionTotal: number | null;
 }
 
 interface UseFileSyncParams {
@@ -257,6 +268,10 @@ function rowToItem(
     // path corretto anche per device 'control_center' che hanno N sale.
     roomId: row.roomId ?? '',
     roomName: row.roomName ?? '',
+    // Sprint T-1 (G8): versionNumber/versionTotal popolati dal bootstrap. Se
+    // null (bootstrap pre-T-1), il PC sala non mostra il badge `vN/M`.
+    versionNumber: row.versionNumber ?? null,
+    versionTotal: row.versionTotal ?? null,
   };
 }
 

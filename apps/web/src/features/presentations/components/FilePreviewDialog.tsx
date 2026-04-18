@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertCircle, Download, FileText, Loader2, Music, X } from 'lucide-react';
+import { VersionBadge } from '@/features/devices/components/VersionBadge';
 
 /**
  * Sprint I (GUIDA_OPERATIVA_v3 §3.D) — dialog full-screen riusabile per
@@ -50,6 +51,18 @@ export interface FilePreviewDialogProps {
    * Se omessa, il bottone non viene mostrato.
    */
   onDownload?: () => void;
+  /**
+   * Sprint T-1 (G8) — info versione "in onda". Quando passato, mostra un
+   * badge overlay top-right durante l'anteprima fullscreen (auto-fade 5s,
+   * ricompare on mouse move / touch). Verde se la corrente e' anche la
+   * piu' recente, giallo se l'admin ha riportato indietro la corrente
+   * (esiste una versione piu' nuova). Mantiene `null` per i contesti admin
+   * dove l'info non e' rilevante (la mostriamo solo lato PC sala).
+   */
+  versionInfo?: {
+    number: number | null;
+    total: number | null;
+  } | null;
 }
 
 function pickRenderer(mime: string): 'pdf' | 'image' | 'video' | 'audio' | 'fallback' {
@@ -70,15 +83,20 @@ export function FilePreviewDialog({
   sourceLoading,
   sourceError,
   onDownload,
+  versionInfo,
 }: FilePreviewDialogProps) {
   const { t } = useTranslation();
+  // Sprint T-1 (G8): wakeKey alimenta il `<VersionBadge variant="overlay">`.
+  // Ogni evento utente nel dialog (mouse move, touch, keypress) lo incrementa
+  // → il badge ricompare e ricalcola il timer 5s di auto-fade. UX standard
+  // dei video player web.
+  const [wakeKey, setWakeKey] = useState(0);
 
-  // Esc per chiudere — usabilita standard dialog (Radix-style senza bringare
-  // l'intero pacchetto solo per questo).
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
+      else setWakeKey((k) => k + 1);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -87,6 +105,8 @@ export function FilePreviewDialog({
   if (!open) return null;
 
   const renderer = pickRenderer(mime);
+  const showVersionOverlay =
+    versionInfo != null && versionInfo.number != null && versionInfo.total != null;
 
   return (
     <div
@@ -98,6 +118,11 @@ export function FilePreviewDialog({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
+      // Sprint T-1 (G8): mouse move / touch dentro il dialog "sveglia" il
+      // badge versione overlay (auto-fade dopo 5s). Stesso comportamento di
+      // un player video web standard.
+      onMouseMove={() => setWakeKey((k) => k + 1)}
+      onTouchStart={() => setWakeKey((k) => k + 1)}
     >
       {/* Header sticky */}
       <header className="flex items-center gap-3 border-b border-sc-primary/12 bg-sc-surface/90 px-4 py-3">
@@ -127,7 +152,24 @@ export function FilePreviewDialog({
       </header>
 
       {/* Body */}
-      <div className="flex flex-1 items-center justify-center overflow-hidden p-4">
+      <div className="relative flex flex-1 items-center justify-center overflow-hidden p-4">
+        {/* Sprint T-1 (G8): badge "vN/M" overlay top-right durante il
+            playback. Auto-fade dopo 5s, ricompare on mouse-move/touch/keypress.
+            Verde se la corrente e' anche la latest, giallo se l'admin ha
+            riportato indietro la corrente (esiste una versione piu' nuova). */}
+        {showVersionOverlay && (
+          <div className="pointer-events-none absolute right-6 top-6 z-10 flex items-center">
+            <div className="pointer-events-auto">
+              <VersionBadge
+                versionNumber={versionInfo!.number}
+                versionTotal={versionInfo!.total}
+                variant="overlay"
+                wakeKey={wakeKey}
+                fadeAfterMs={5_000}
+              />
+            </div>
+          </div>
+        )}
         {sourceLoading ? (
           <div className="flex flex-col items-center gap-2 text-sc-text-dim">
             <Loader2 className="h-6 w-6 animate-spin" />

@@ -49,6 +49,7 @@ import { StorageUsagePanel } from './components/StorageUsagePanel';
 import { RoomDeviceUploadDropzone } from './components/RoomDeviceUploadDropzone';
 import { FilePreviewDialog } from '@/features/presentations/components/FilePreviewDialog';
 import { useFilePreviewSource } from '@/features/presentations/hooks/useFilePreviewSource';
+import { useToast } from '@/components/use-toast';
 import type { Database } from '@slidecenter/shared';
 
 type SyncStatus = Database['public']['Enums']['sync_status'];
@@ -552,6 +553,14 @@ export default function RoomPlayerView() {
   // Sprint I (§3.E E4): id presentation segnalata come "ora in onda". Snapshot
   // ottimistico locale (l'admin lo riceve via room_state.current_presentation_id).
   const [nowPlayingPresentationId, setNowPlayingPresentationId] = useState<string | null>(null);
+  // Sprint T-1 (G8): mappa `presentationId → ultimo versionNumber visto`.
+  // Quando per uno stesso presentationId arriva un versionNumber piu' alto
+  // (= admin ha caricato una nuova versione e l'ha messa "current"), notifico
+  // con un toast bilingue per dare evidenza in regia che il file mostrato e'
+  // cambiato. Inizializzata al primo render con i valori correnti per
+  // evitare un toast spurio "vN nuova" subito dopo l'apertura della sala.
+  const lastSeenVersionRef = useRef<Map<string, number> | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     try {
@@ -607,6 +616,62 @@ export default function RoomPlayerView() {
     navigatorOnline,
     enabled: Boolean(roomData && token),
   });
+
+  // Sprint T-1 (G8): notify toast quando una nuova versione viene "promossa
+  // a current" dall'admin. Confronto il `versionNumber` corrente di ogni
+  // presentation con quello visto al render precedente:
+  //  - Primo render: solo popolo la mappa, NESSUN toast (evita spam in apertura).
+  //  - Render successivi: se per uno stesso `presentationId` il numero e'
+  //    aumentato, mostro toast info "Nuova versione caricata: vN — filename".
+  //  - Se diminuito (rollback admin), mostro toast warning "Versione
+  //    riportata a vN — esiste anche vM piu' recente".
+  // Il file aperto in preview NON viene chiuso: se la "v in onda" cambia
+  // mentre l'utente sta gia' guardando, sara' lui a decidere se ricaricare
+  // (Sprint T-1.b deferred: refresh automatico del preview).
+  useEffect(() => {
+    if (items.length === 0) return;
+    const next = new Map<string, number>();
+    for (const it of items) {
+      if (it.versionNumber == null) continue;
+      next.set(it.presentationId, it.versionNumber);
+    }
+    const prev = lastSeenVersionRef.current;
+    if (prev === null) {
+      lastSeenVersionRef.current = next;
+      return;
+    }
+    for (const [pid, vn] of next.entries()) {
+      const prevVn = prev.get(pid);
+      if (prevVn === undefined) continue;
+      if (vn === prevVn) continue;
+      const item = items.find((i) => i.presentationId === pid);
+      if (!item) continue;
+      const speakerOrFile = item.speakerName?.trim() || item.filename;
+      if (vn > prevVn) {
+        toast.info(t('roomPlayer.versionToast.newer.title', { n: vn }), {
+          description: t('roomPlayer.versionToast.newer.body', {
+            file: speakerOrFile,
+            n: vn,
+          }),
+          duration: 8_000,
+        });
+      } else {
+        const total = item.versionTotal ?? vn;
+        toast.warning(t('roomPlayer.versionToast.rollback.title', { n: vn }), {
+          description: t('roomPlayer.versionToast.rollback.body', {
+            file: speakerOrFile,
+            n: vn,
+            total,
+          }),
+          duration: 10_000,
+        });
+      }
+    }
+    lastSeenVersionRef.current = next;
+    // `t` e `toast` sono stabili (i18n + toast api context). Riconciliamo
+    // ad ogni cambio di items (hook `useFileSync` rifa items quando arrivano
+    // nuove versioni dal bootstrap o da realtime broadcast).
+  }, [items, t, toast]);
 
   useEffect(() => {
     if (!token) {
@@ -1110,7 +1175,7 @@ export default function RoomPlayerView() {
         <RoomPreviewDialogContainer
           item={previewItem}
           dirHandle={dirHandle}
-          roomName={roomData?.name ?? 'sala'}
+          roomName={previewItem.roomName || roomData?.name || 'sala'}
           onClose={() => setPreviewItem(null)}
         />
       )}
@@ -1166,6 +1231,13 @@ function RoomPreviewDialogContainer({
       sourceLoading={loading}
       sourceError={error}
       onDownload={onDownload}
+      // Sprint T-1 (G8): badge "vN/M" overlay top-right durante l'anteprima
+      // fullscreen sul PC sala. Verde se corrente = latest, giallo se admin
+      // ha rollbackato. Auto-fade dopo 5s, ricompare on user interaction.
+      versionInfo={{
+        number: item.versionNumber,
+        total: item.versionTotal,
+      }}
     />
   );
 }

@@ -1120,6 +1120,24 @@
       "roomsCount_one": "{{count}} room synced",
       "roomsCount_other": "{{count}} rooms synced"
     },
+    "versionBadge": {
+      "label": "v{{n}} / {{total}}",
+      "single": "v{{n}}",
+      "tooltipLatest": "Version {{n}} — also the latest one uploaded",
+      "tooltipOlder": "Version {{n}} on screen — there is a more recent v{{total}} not selected by the producer",
+      "tooltipSingle": "Version {{n}} — only version uploaded for this file",
+      "aria": "Current version on screen: {{n}} of {{total}}"
+    },
+    "versionToast": {
+      "newer": {
+        "title": "New version uploaded: v{{n}}",
+        "body": "{{file}} is now v{{n}}. It will be shown automatically the next time you open it."
+      },
+      "rollback": {
+        "title": "Version reverted to v{{n}}",
+        "body": "{{file}} was reverted to v{{n}} by the producer (v{{total}} also exists)."
+      }
+    },
     "actions": {
       "refresh": "Refresh now",
       "refreshing": "Refreshing…"

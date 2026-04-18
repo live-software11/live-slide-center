@@ -29,6 +29,15 @@ interface FileRow {
   // 'control_center' variano per file (1 device = N sale).
   roomId: string;
   roomName: string;
+  // Sprint T-1 (G8): version_number della versione attualmente "in onda" su
+  // questo file (i.e. quella servita al PC sala = current_version_id), e
+  // versionTotal = MAX(version_number) tra tutte le versioni 'ready' o
+  // 'superseded' della stessa presentation. Il PC sala mostra un badge
+  // overlay/inline `vN / M`: verde se N === M (current = latest), giallo se
+  // N < M (admin ha riportato indietro la corrente, esiste una piu' recente).
+  // Entrambi nullable per backward compat con bootstrap pre-T-1.
+  versionNumber: number | null;
+  versionTotal: number | null;
 }
 
 Deno.serve(async (req: Request) => {
@@ -258,12 +267,37 @@ Deno.serve(async (req: Request) => {
           const { data: versions } = await supabaseAdmin
             .from('presentation_versions')
             .select(
-              'id, storage_key, file_name, file_size_bytes, file_hash_sha256, mime_type, created_at',
+              'id, storage_key, file_name, file_size_bytes, file_hash_sha256, mime_type, created_at, version_number',
             )
             .in('id', versionIds)
             .eq('status', 'ready');
 
           const versionMap = new Map((versions ?? []).map((v) => [v.id, v]));
+
+          // Sprint T-1 (G8): per ogni presentation calcoliamo il MAX
+          // version_number tra le versioni 'ready' OR 'superseded' (cioe' tutte
+          // le versioni effettivamente caricate, escludendo solo
+          // 'failed'/'aborted'/'uploading'). Serve a mostrare il badge "vN/M":
+          //   N = version_number del current_version_id (in onda)
+          //   M = MAX(version_number) per la presentation
+          // Se N === M: la corrente e' anche la piu' recente (badge verde).
+          // Se N < M: l'admin ha riportato indietro la corrente, esiste una
+          //           versione piu' recente (badge giallo, "non e' la latest").
+          const presentationIds = (presentations ?? []).map((p) => p.id as string);
+          const maxVersionByPresentation = new Map<string, number>();
+          if (presentationIds.length > 0) {
+            const { data: allVersions } = await supabaseAdmin
+              .from('presentation_versions')
+              .select('presentation_id, version_number')
+              .in('presentation_id', presentationIds)
+              .in('status', ['ready', 'superseded']);
+            for (const row of allVersions ?? []) {
+              const pid = row.presentation_id as string;
+              const vn = (row.version_number as number | null) ?? 0;
+              const cur = maxVersionByPresentation.get(pid) ?? 0;
+              if (vn > cur) maxVersionByPresentation.set(pid, vn);
+            }
+          }
 
           for (const pres of presentations ?? []) {
             const vid = pres.current_version_id as string;
@@ -278,6 +312,13 @@ Deno.serve(async (req: Request) => {
             const session = sessionMap.get(pres.session_id as string);
             const sessionRoomId = (session?.room_id as string | undefined) ?? '';
             const sessionRoomName = roomNameById.get(sessionRoomId) ?? '';
+
+            const currentVersionNumber = (version.version_number as number | null) ?? null;
+            const totalForPresentation = maxVersionByPresentation.get(pres.id as string);
+            const versionTotal =
+              totalForPresentation !== undefined
+                ? totalForPresentation
+                : (currentVersionNumber ?? null);
 
             files.push({
               versionId: version.id,
@@ -294,6 +335,8 @@ Deno.serve(async (req: Request) => {
               fileHashSha256: (version.file_hash_sha256 as string | null) ?? null,
               roomId: sessionRoomId,
               roomName: sessionRoomName,
+              versionNumber: currentVersionNumber,
+              versionTotal,
             });
           }
         }

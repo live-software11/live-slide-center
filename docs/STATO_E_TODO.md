@@ -3,11 +3,11 @@
 > **Documento operativo gemello di `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare, in ordine di priorita. Per "cosa fa il prodotto" e "come e fatto" → architettura.
 >
-> **Versione:** 2.8 — 18 aprile 2026 (post-Sprint S-4)
+> **Versione:** 2.9 — 18 aprile 2026 (post-Sprint T-1)
 > **Owner:** Andrea Rizzari
-> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**.
+> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**. **Sprint T-1 (G8, badge versione "in onda" sempre visibile in sala + toast cambio versione, §0.16) DONE**.
 >
-> **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 7/10 chiusi (G1 in R-1, G2 in R-2, G3 in R-3, G4 in S-1, G5 in S-2, G6 in S-3, G7 in S-4) → completata FAMIGLIA R + completata FAMIGLIA S (4/4) → restano 3 GAP famiglia T (G8/G9/G10).**
+> **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 8/10 chiusi (G1 in R-1, G2 in R-2, G3 in R-3, G4 in S-1, G5 in S-2, G6 in S-3, G7 in S-4, G8 in T-1) → completata FAMIGLIA R + completata FAMIGLIA S → famiglia T 1/3 (restano G9 telemetria perf, G10 features competitor).**
 >
 > **Hardening Sprint Q+1 (§ 0.8):** completato hardening backend (Supabase RLS least-privilege + 7 indici hot-path + PKCE + CSP + CI types drift + auto-deploy Edge Functions).
 >
@@ -23,7 +23,9 @@
 >
 > **Sprint S-3 (§ 0.14):** export ZIP fine evento ora **ordinato** in struttura nested `Sala/Sessione/Speaker_vN_filename.ext` (prima era piatto `slides/...`) + README `info.txt` UTF-8 in root con metadata evento (nome, date, sale, sessioni, conteggio per sala, totale bytes, generato_a). Zero modifiche schema DB, refactor pure-function `event-export.ts`.
 >
-> **Sprint S-4 (§ 0.15):** introdotto ruolo `paired_devices.role` (`'room'` default | `'control_center'`). Un PC promosso a "Centro Slide" riceve i file di **TUTTE** le sale dell'evento (manifest multi-room dal `room-player-bootstrap`), filesystem locale strutturato `Sala/Sessione/file`, niente `RoomDeviceUploadDropzone` (read-only), header dedicato con badge `CENTRO`. Promote/demote da kebab in `DeviceList`; sezione speciale "Centri Slide" sopra la lavagna in `RoomAssignBoard`. Migration `20260418090000_paired_devices_role.sql` + RPC `update_device_role`. Verde per Sprint T-1 (G8, badge "version live" big screen) quando vuoi.
+> **Sprint S-4 (§ 0.15):** introdotto ruolo `paired_devices.role` (`'room'` default | `'control_center'`). Un PC promosso a "Centro Slide" riceve i file di **TUTTE** le sale dell'evento (manifest multi-room dal `room-player-bootstrap`), filesystem locale strutturato `Sala/Sessione/file`, niente `RoomDeviceUploadDropzone` (read-only), header dedicato con badge `CENTRO`. Promote/demote da kebab in `DeviceList`; sezione speciale "Centri Slide" sopra la lavagna in `RoomAssignBoard`. Migration `20260418090000_paired_devices_role.sql` + RPC `update_device_role`.
+>
+> **Sprint T-1 (§ 0.16):** versione "in onda" ora visibile **a colpo d'occhio** in sala. Badge `vN/M` con color coding sovrano: **verde** se la corrente e' anche la piu' recente, **giallo** se l'admin ha riportato indietro la corrente (esiste una versione piu' nuova). Badge `inline` sempre visibile accanto al filename in `FileSyncStatus`; badge `overlay` top-right durante l'anteprima fullscreen di `FilePreviewDialog` (auto-fade 5s, ricompare on mouse/touch/key — UX standard player video). Toast notify automatico su cambio versione (`info` se nuova, `warning` se rollback admin) con titolo + descrizione i18n IT/EN. Edge Function `room-player-bootstrap` arricchita con `versionNumber` + `versionTotal` (MAX su `presentation_versions` per `presentation_id` filtrato `status IN ('ready','superseded')`). Zero modifiche schema DB. Verde per Sprint T-2 (G9, telemetria perf live PC sala CPU/RAM/disco aggregata) quando vuoi.
 
 ---
 
@@ -38,6 +40,7 @@
    - 0.13 [Sprint S-2 — Drag&drop visivo PC ↔ sale (DONE)](#013-sprint-s-2--dragdrop-visivo-pc--sale-done-18042026)
    - 0.14 [Sprint S-3 — Export ZIP fine evento ordinato sala/sessione (DONE)](#014-sprint-s-3--export-zip-fine-evento-ordinato-salasessione-done-18042026)
    - 0.15 [Sprint S-4 — Ruolo device "Centro Slide" multi-room (DONE)](#015-sprint-s-4--ruolo-device-centro-slide-multi-room-done-18042026)
+   - 0.16 [Sprint T-1 — Badge versione "in onda" + toast cambio versione (DONE)](#016-sprint-t-1--badge-versione-in-onda--toast-cambio-versione-done-18042026)
 1. [Stato attuale (tutto DONE)](#1-stato-attuale-tutto-done)
 2. [Cose da fare ORA (azioni esterne Andrea, NON automatizzabili)](#2-cose-da-fare-ora-azioni-esterne-andrea-non-automatizzabili)
 3. [Field test desktop (quando vorrai farlo)](#3-field-test-desktop-quando-vorrai-farlo)
@@ -75,7 +78,7 @@
 | G5  | Drag&drop visivo PC ↔ sale assente (solo dropdown)                | **MEDIUM** | `apps/web/src/features/devices/components/DeviceList.tsx` + nuova `RoomAssignBoard` | **S-2** | **DONE** ✅ |
 | G6  | Export ZIP fine evento piatto (no struttura sala/sessione)        | **MEDIUM** | `apps/web/src/features/events/lib/event-export.ts` `buildEventSlidesZip`            | **S-3** | **DONE** ✅ |
 | G7  | "Centro Slide" multi-room = ruolo device assente                  | **MEDIUM** | DB schema `paired_devices.role` + `useFileSync` multi-room manifest                 | **S-4** | **DONE** ✅ |
-| G8  | Versione "in onda" non visibile a colpo d'occhio in sala          | **LOW**    | `apps/web/src/features/devices/RoomPlayerView.tsx` overlay badge `vN/M`             | **T-1** | pending     |
+| G8  | Versione "in onda" non visibile a colpo d'occhio in sala          | **LOW**    | `apps/web/src/features/devices/RoomPlayerView.tsx` overlay badge `vN/M`             | **T-1** | **DONE** ✅ |
 | G9  | Telemetria perf live PC sala (CPU/RAM/disco) non aggregata        | **LOW**    | `room_state` schema + `<RoomCard>` overlay realtime                                 | **T-2** | pending     |
 | G10 | Features competitor mancanti (file checking, ePoster, mobile SRR) | **LOW**    | Vari (vedi §0.4)                                                                    | **T-3** | pending     |
 
@@ -245,22 +248,26 @@
 
 **Outcome:** un PC promosso a "Centro Slide" sincronizza in background tutti i file di tutte le sale dell'evento, zero impatto sui PC sala (che continuano col loro flusso single-room realtime). Vedi §0.15 per dettagli completi.
 
-#### G8 — Versione "in onda" non visibile a colpo d'occhio in sala
+#### G8 — Versione "in onda" non visibile a colpo d'occhio in sala — **CHIUSO IN SPRINT T-1**
 
-**Evidenza codice:**
+**Evidenza codice (originaria, pre-T-1):**
 
 - `RoomPlayerView` mostra il file corrente ma non c'e' badge persistente "v3 di 5".
 - `presentation.current_version_id` esiste in DB e popola `room_state.current_presentation_id`.
 - Andrea: "deve essere chiaro quale versione si stia usando di un file (in un centro slide lo stesso file puo' essere modificato 100 volte)".
 
-**Soluzione tecnica:**
+**Soluzione applicata (Sprint T-1, 18/04/2026):**
 
-- Overlay top-right su `RoomPlayerView` durante playback: badge `v3 / 5 — caricato 14:23 da Mario`.
-- Auto-fade dopo 5s, ricompare on hover/tap.
-- Toast notify quando admin cambia `current_version_id`: "Nuova versione caricata: v4 (slide 12 modificata)".
-- Color coding: verde se versione corrente, giallo se non e' la piu' recente.
+- Edge Function `room-player-bootstrap` arricchita con `versionNumber` (= `presentation_versions.version_number` della current) + `versionTotal` (= MAX `version_number` per `presentation_id` filtrato `status IN ('ready','superseded')`). Backward-compat: nullable.
+- Componente `<VersionBadge>` riusabile, due varianti: `inline` (chip piccolo accanto al filename in `FileSyncStatus`, sempre visibile) + `overlay` (badge fluttuante top-right in `FilePreviewDialog` durante anteprima fullscreen, auto-fade 5s, ricompare on mouse/touch/keypress — UX video player).
+- Color coding sovrano:
+  - **verde** (`sc-success`, icona `CheckCircle2`) se `versionNumber === versionTotal` (corrente = latest);
+  - **giallo** (`sc-warning`, icona `History`) se `versionNumber < versionTotal` (admin ha riportato indietro la corrente, esiste una versione piu' recente);
+  - neutro (`sc-primary`, icona `Layers`) se `versionTotal === 1` (unica versione caricata).
+- Toast notify automatico in `RoomPlayerView`: useEffect su `items` traccia `presentationId → ultimo versionNumber visto`. Se aumenta → toast `info` "Nuova versione caricata: v{n}". Se diminuisce → toast `warning` "Versione riportata a v{n} (esiste anche v{total})". Inizializzazione lazy al primo render per evitare spam in apertura.
+- 10 nuove i18n keys IT/EN (`roomPlayer.versionBadge.*`, `roomPlayer.versionToast.*`). Parita 1270/1270.
 
-**Tempo stima:** 0.5 giorni dev + 0.25 test.
+**Outcome:** la sala (e chi e' in regia) vede sempre quale versione esatta sta proiettando. Se il file e' stato modificato 100 volte, il badge mostra "v100 / 100" verde; se l'admin ha riportato la corrente a v37, badge "v37 / 100" giallo + tooltip esplicito. Vedi §0.16 per dettagli completi.
 
 #### G9 — Telemetria perf live PC sala non aggregata
 
@@ -346,12 +353,12 @@
 
 #### Sprint S — "OneDrive-style file management" (MEDIUM priority — 5 giorni)
 
-| Sprint  | Gap | Obiettivo                                        | Tempo dev | Tempo test | Output                                         |
-| ------- | --- | ------------------------------------------------ | --------- | ---------- | ---------------------------------------------- |
-| **S-1** ✅ DONE | G4 | Drag&drop folder intera in upload admin          | 1.5 g     | 0.5 g      | `useUploadQueue` esteso con `webkitGetAsEntry` (vedi §0.12) |
-| **S-2** ✅ DONE | G5 | Drag&drop visivo PC ↔ sale (board)               | 1.5 g     | 0.5 g      | `RoomAssignBoardView` + DnD HTML5 nativo (vedi §0.13)        |
-| **S-3** ✅ DONE | G6 | Export ZIP fine evento strutturato sala/sessione | 1 g       | 0.5 g      | `buildEventSlidesZip` v2 con tree (vedi §0.14)               |
-| **S-4** ✅ DONE | G7 | "Centro Slide" multi-room device role            | 2 g       | 1 g        | `paired_devices.role` + branch RoomPlayerView (vedi §0.15)   |
+| Sprint          | Gap | Obiettivo                                        | Tempo dev | Tempo test | Output                                                      |
+| --------------- | --- | ------------------------------------------------ | --------- | ---------- | ----------------------------------------------------------- |
+| **S-1** ✅ DONE | G4  | Drag&drop folder intera in upload admin          | 1.5 g     | 0.5 g      | `useUploadQueue` esteso con `webkitGetAsEntry` (vedi §0.12) |
+| **S-2** ✅ DONE | G5  | Drag&drop visivo PC ↔ sale (board)               | 1.5 g     | 0.5 g      | `RoomAssignBoardView` + DnD HTML5 nativo (vedi §0.13)       |
+| **S-3** ✅ DONE | G6  | Export ZIP fine evento strutturato sala/sessione | 1 g       | 0.5 g      | `buildEventSlidesZip` v2 con tree (vedi §0.14)              |
+| **S-4** ✅ DONE | G7  | "Centro Slide" multi-room device role            | 2 g       | 1 g        | `paired_devices.role` + branch RoomPlayerView (vedi §0.15)  |
 
 **GO/NO-GO criteri:**
 
@@ -360,13 +367,13 @@
 
 #### Sprint T — "Performance + competitivita commerciale" (LOW-MED priority — 4 giorni)
 
-| Sprint   | Gap | Obiettivo                                                 | Tempo dev | Tempo test | Output                                        |
-| -------- | --- | --------------------------------------------------------- | --------- | ---------- | --------------------------------------------- |
-| **T-1**  | G8  | Badge versione "in onda" sala + toast cambio versione     | 0.5 g     | 0.25 g     | Overlay `RoomPlayerView`                      |
-| **T-2**  | G9  | Telemetria CPU/RAM/disco/rete PC sala in `room_state`     | 1 g       | 0.5 g      | Migration + comando Tauri Rust + `<RoomCard>` |
-| **T-3a** | G10 | File error checking automatico (font, video, risoluzione) | 1.5 g     | 0.5 g      | Edge Function `slide-validator`               |
-| **T-3c** | G10 | Email reminder schedulati (cron upload pending)           | 0.5 g     | 0.25 g     | Cron job + template gia' presenti             |
-| **T-3d** | G10 | Speaker timer integrato (link Live SPEAKER TIMER)         | 0.5 g     | 0.25 g     | Iframe / link su `LiveRegiaView`              |
+| Sprint   | Gap | Obiettivo                                                 | Tempo dev | Tempo test | Output                                              | Stato       |
+| -------- | --- | --------------------------------------------------------- | --------- | ---------- | --------------------------------------------------- | ----------- |
+| **T-1**  | G8  | Badge versione "in onda" sala + toast cambio versione     | 0.5 g     | 0.25 g     | `<VersionBadge>` inline+overlay, toast info/warning | **DONE** ✅ |
+| **T-2**  | G9  | Telemetria CPU/RAM/disco/rete PC sala in `room_state`     | 1 g       | 0.5 g      | Migration + comando Tauri Rust + `<RoomCard>`       | pending     |
+| **T-3a** | G10 | File error checking automatico (font, video, risoluzione) | 1.5 g     | 0.5 g      | Edge Function `slide-validator`                     | pending     |
+| **T-3c** | G10 | Email reminder schedulati (cron upload pending)           | 0.5 g     | 0.25 g     | Cron job + template gia' presenti                   | pending     |
+| **T-3d** | G10 | Speaker timer integrato (link Live SPEAKER TIMER)         | 0.5 g     | 0.25 g     | Iframe / link su `LiveRegiaView`                    | pending     |
 
 **GO/NO-GO criteri:**
 
@@ -1102,26 +1109,26 @@ Generato automaticamente da Live SLIDE CENTER. Per assistenza: support@liveworks
 
 #### 0.15.1 Cosa cambia per Andrea
 
-| Prima (≤ Sprint S-3)                                                          | Dopo (Sprint S-4 DONE)                                                                                                                                                            |
-|-------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 1 device pairato = 1 sala (es. "Sala A → PC `1234`").                          | 2 ruoli: **`room`** (default, 1 device = 1 sala specifica) + **`control_center`** (1 device = N sale dell'evento, `room_id NULL`).                                                |
-| Per backup multi-sala dovevi fisicamente copiare i file da ogni PC sala.       | 1 PC promosso a "Centro Slide" sincronizza in background **tutte** le cartelle `Sala/Sessione/file` di tutte le sale dell'evento, senza impattare le performance dei PC sala.        |
-| Nessun modo di distinguere visualmente PC sala vs PC backup/centro.            | UI dedicata: icona `Building2`, badge `CENTRO`, sezione "Centri Slide" sopra la lavagna in `RoomAssignBoard`, branch dedicato in `RoomPlayerView` (header con event-name + `count` sale). |
-| Cambio ruolo non possibile.                                                    | Da kebab in `DeviceList`: **"Promuovi a Centro Slide"** o **"Riporta a sala normale"** (con conferma esplicita; demote: `role_id` resta NULL → admin riassegna a una sala).         |
+| Prima (≤ Sprint S-3)                                                     | Dopo (Sprint S-4 DONE)                                                                                                                                                                    |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 device pairato = 1 sala (es. "Sala A → PC `1234`").                    | 2 ruoli: **`room`** (default, 1 device = 1 sala specifica) + **`control_center`** (1 device = N sale dell'evento, `room_id NULL`).                                                        |
+| Per backup multi-sala dovevi fisicamente copiare i file da ogni PC sala. | 1 PC promosso a "Centro Slide" sincronizza in background **tutte** le cartelle `Sala/Sessione/file` di tutte le sale dell'evento, senza impattare le performance dei PC sala.             |
+| Nessun modo di distinguere visualmente PC sala vs PC backup/centro.      | UI dedicata: icona `Building2`, badge `CENTRO`, sezione "Centri Slide" sopra la lavagna in `RoomAssignBoard`, branch dedicato in `RoomPlayerView` (header con event-name + `count` sale). |
+| Cambio ruolo non possibile.                                              | Da kebab in `DeviceList`: **"Promuovi a Centro Slide"** o **"Riporta a sala normale"** (con conferma esplicita; demote: `role_id` resta NULL → admin riassegna a una sala).               |
 
 #### 0.15.2 File creati/modificati (commit unico, NO breaking changes esterni)
 
-| File                                                              | Tipo      | Cosa fa                                                                                                                                                          |
-|-------------------------------------------------------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `supabase/migrations/20260418090000_paired_devices_role.sql`       | NUOVO     | Aggiunge `paired_devices.role TEXT NOT NULL DEFAULT 'room' CHECK (role IN ('room','control_center'))`. Indice `idx_devices_event_centers` per query rapide. RPC `update_device_role(p_device_id UUID, p_new_role TEXT) SECURITY INVOKER` rispetta RLS tenant-scoped, permission gate `app_tenant_id() OR is_super_admin()`, blocca cross-tenant, forza `room_id=NULL` se promote a `control_center`. |
-| `packages/shared/src/types/database.ts`                            | MODIFICATO| Aggiunto `role: 'room' \| 'control_center'` su Row/Insert/Update di `paired_devices`. Aggiunta firma `update_device_role` su `Functions`.                          |
-| `supabase/functions/room-player-bootstrap/index.ts`                | MODIFICATO| Branch `deviceRole === 'control_center'`: query `presentations` filtrata su **tutte** le sale dell'evento (non solo `room_id` del device), `FileRow` arricchito con `roomId/roomName`, sort multi-room (`roomName → sessionScheduledStart → filename`). Response payload include `control_center: true` + `rooms[]`. Skip `playback_mode` update per centri.   |
-| `apps/web/src/features/devices/repository.ts`                      | MODIFICATO| `RoomPlayerBootstrapFileRow` esteso con `roomId/roomName`. `RoomPlayerBootstrapResponse.device.role?` + `control_center?` + `rooms?`. Nuova fn `updateDeviceRole(deviceId, newRole)` wrapper RPC con error handling. |
-| `apps/web/src/features/devices/hooks/useFileSync.ts`               | MODIFICATO| `FileSyncItem` con `roomId/roomName`. `downloadVersion` usa `item.roomName` come **primo segmento** path locale (`Sala/Sessione/file`). `cleanupOrphanFiles` allineato. Nuovo flag `disableRealtime` (Centri non subscribe a topic per-room → MVP polling-only, sufficiente perche' gia' polling 30s). |
-| `apps/web/src/features/devices/RoomPlayerView.tsx`                 | MODIFICATO| Branch `deviceRole === 'control_center'`: `roomData.id` = `device.id` (pseudo-room per useFileSync), title = event-name, sub = `roomsCount` i18n plural. Header con icona `Building2` + badge `CENTRO`. `RealtimeChip` nascosto. `RoomDeviceUploadDropzone` nascosto (centro = read-only). |
-| `apps/web/src/features/devices/components/DeviceList.tsx`          | MODIFICATO| Kebab azione "Promuovi a Centro Slide" / "Riporta a sala normale" con conferma `window.confirm`. Card differenziata: bg `sc-primary/15`, icona `Building2`, badge "CENTRO" inline col nome, hint "Centro Slide · sincronizza tutte le sale dell'evento". Sezione "Assegna sala" nascosta per centri. |
-| `apps/web/src/features/devices/components/RoomAssignBoard.tsx`     | MODIFICATO| Split `regularDevices` (board drag&drop) vs `centerDevices` (sezione fixed in cima, non draggable). Card centro con icona + status realtime + hint "assegnato a tutte le sale". Empty state distingue "no device" vs "solo centri pairati". |
-| `packages/shared/src/i18n/locales/it.json` + `en.json`             | MODIFICATO| 18 nuove chiavi: `devices.list.{promoteToCenter,promoteToCenterConfirm,demoteToRoom,demoteToRoomConfirm,roleBadgeCenter,centerHint,roleChangeError}` + `devices.board.{centersTitle,centersLabel,centersHint,centerCardTitle,allCentersHint}` + `roomPlayer.center.{headerTitle,headerSubtitleFallback,badge,roomsCount_one,roomsCount_other}`. Parita perfetta IT/EN. |
+| File                                                           | Tipo       | Cosa fa                                                                                                                                                                                                                                                                                                                                                                                              |
+| -------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `supabase/migrations/20260418090000_paired_devices_role.sql`   | NUOVO      | Aggiunge `paired_devices.role TEXT NOT NULL DEFAULT 'room' CHECK (role IN ('room','control_center'))`. Indice `idx_devices_event_centers` per query rapide. RPC `update_device_role(p_device_id UUID, p_new_role TEXT) SECURITY INVOKER` rispetta RLS tenant-scoped, permission gate `app_tenant_id() OR is_super_admin()`, blocca cross-tenant, forza `room_id=NULL` se promote a `control_center`. |
+| `packages/shared/src/types/database.ts`                        | MODIFICATO | Aggiunto `role: 'room' \| 'control_center'` su Row/Insert/Update di `paired_devices`. Aggiunta firma `update_device_role` su `Functions`.                                                                                                                                                                                                                                                            |
+| `supabase/functions/room-player-bootstrap/index.ts`            | MODIFICATO | Branch `deviceRole === 'control_center'`: query `presentations` filtrata su **tutte** le sale dell'evento (non solo `room_id` del device), `FileRow` arricchito con `roomId/roomName`, sort multi-room (`roomName → sessionScheduledStart → filename`). Response payload include `control_center: true` + `rooms[]`. Skip `playback_mode` update per centri.                                         |
+| `apps/web/src/features/devices/repository.ts`                  | MODIFICATO | `RoomPlayerBootstrapFileRow` esteso con `roomId/roomName`. `RoomPlayerBootstrapResponse.device.role?` + `control_center?` + `rooms?`. Nuova fn `updateDeviceRole(deviceId, newRole)` wrapper RPC con error handling.                                                                                                                                                                                 |
+| `apps/web/src/features/devices/hooks/useFileSync.ts`           | MODIFICATO | `FileSyncItem` con `roomId/roomName`. `downloadVersion` usa `item.roomName` come **primo segmento** path locale (`Sala/Sessione/file`). `cleanupOrphanFiles` allineato. Nuovo flag `disableRealtime` (Centri non subscribe a topic per-room → MVP polling-only, sufficiente perche' gia' polling 30s).                                                                                               |
+| `apps/web/src/features/devices/RoomPlayerView.tsx`             | MODIFICATO | Branch `deviceRole === 'control_center'`: `roomData.id` = `device.id` (pseudo-room per useFileSync), title = event-name, sub = `roomsCount` i18n plural. Header con icona `Building2` + badge `CENTRO`. `RealtimeChip` nascosto. `RoomDeviceUploadDropzone` nascosto (centro = read-only).                                                                                                           |
+| `apps/web/src/features/devices/components/DeviceList.tsx`      | MODIFICATO | Kebab azione "Promuovi a Centro Slide" / "Riporta a sala normale" con conferma `window.confirm`. Card differenziata: bg `sc-primary/15`, icona `Building2`, badge "CENTRO" inline col nome, hint "Centro Slide · sincronizza tutte le sale dell'evento". Sezione "Assegna sala" nascosta per centri.                                                                                                 |
+| `apps/web/src/features/devices/components/RoomAssignBoard.tsx` | MODIFICATO | Split `regularDevices` (board drag&drop) vs `centerDevices` (sezione fixed in cima, non draggable). Card centro con icona + status realtime + hint "assegnato a tutte le sale". Empty state distingue "no device" vs "solo centri pairati".                                                                                                                                                          |
+| `packages/shared/src/i18n/locales/it.json` + `en.json`         | MODIFICATO | 18 nuove chiavi: `devices.list.{promoteToCenter,promoteToCenterConfirm,demoteToRoom,demoteToRoomConfirm,roleBadgeCenter,centerHint,roleChangeError}` + `devices.board.{centersTitle,centersLabel,centersHint,centerCardTitle,allCentersHint}` + `roomPlayer.center.{headerTitle,headerSubtitleFallback,badge,roomsCount_one,roomsCount_other}`. Parita perfetta IT/EN.                               |
 
 #### 0.15.3 Quality gates
 
@@ -1164,6 +1171,7 @@ Generato automaticamente da Live SLIDE CENTER. Per assistenza: support@liveworks
 #### 0.15.7 Setup manuale richiesto ad Andrea
 
 1. **Apply migration su Supabase remoto**:
+
    ```bash
    pnpm supabase db push --include-all
    # oppure: npx supabase db push
@@ -1173,12 +1181,14 @@ Generato automaticamente da Live SLIDE CENTER. Per assistenza: support@liveworks
    ```
 
 2. **Re-deploy Edge Function `room-player-bootstrap`**:
+
    ```bash
    pnpm supabase functions deploy room-player-bootstrap
    # output atteso: "Deployed Function: room-player-bootstrap"
    ```
 
 3. **Genera nuovi tipi DB** (per CI types-drift check):
+
    ```bash
    pnpm gen:db-types
    git diff packages/shared/src/types/database.generated.ts
@@ -1195,11 +1205,89 @@ Generato automaticamente da Live SLIDE CENTER. Per assistenza: support@liveworks
 #### 0.15.8 Semaforo VERDE per Sprint T-1
 
 ✅ Sprint S-4 chiude il GAP G7 e completa la **FAMIGLIA S** (4/4 sprint chiusi). Restano **3 GAP famiglia T**:
+
 - **G8** (Sprint T-1): badge "version live" big screen visibile a colpo d'occhio in sala (ora versione mostrata in card piccola `text-xs`).
 - **G9** (Sprint T-2): telemetria perf live PC sala (CPU/RAM/disco) aggregata cross-evento.
 - **G10** (Sprint T-3): features competitor mancanti (file checking pre-evento, ePoster, mobile SRR).
 
 Pronto a partire con **Sprint T-1** appena Andrea da' il via.
+
+---
+
+### 0.16 Sprint T-1 — Badge versione "in onda" + toast cambio versione (DONE 18/04/2026)
+
+**Obiettivo Andrea (sovrano #3):** "deve essere chiaro quale versione si stia usando di un file (in un centro slide lo stesso file puo' essere modificato 100 volte)". Risolve il **GAP G8** identificato nell'audit chirurgico.
+
+**Cosa cambia per Andrea (UX):**
+
+- Sul PC sala, accanto a OGNI nome file in lista (`FileSyncStatus`) compare un badge **`vN / M`** sempre visibile:
+  - **VERDE** + spunta `CheckCircle2` se la corrente e' anche la piu' recente caricata.
+  - **GIALLO** + icona `History` se l'admin ha riportato indietro la corrente (esiste una v_M piu' recente non scelta) — con tooltip esplicito "Versione 3 in onda — esiste una v5 piu' recente non scelta dal regista".
+  - Neutro `Layers` + "v1" se c'e' una sola versione caricata.
+- Quando si apre l'anteprima fullscreen di un file (`FilePreviewDialog`), il badge `v3 / 5` compare **overlay top-right** sul body. **Auto-fade** dopo 5s, **ricompare** on mouse move / touch / keypress / hover sul badge (UX standard player video).
+- Ogni volta che l'admin carica una NUOVA versione e diventa current, sul PC sala compare un toast **`info`**: _"Nuova versione caricata: v4. {{filename o speakerName}} ora e' in v4."_ (durata 8s). Se invece l'admin RIPORTA INDIETRO la corrente (rollback), toast **`warning`** giallo: _"Versione riportata a v3. {{file}} e' tornato a v3 per scelta del regista (esiste anche v5)."_ (durata 10s).
+- Tutti i testi tradotti IT/EN automaticamente.
+
+**File modificati:**
+
+| File                                                                            | Cosa                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `supabase/functions/room-player-bootstrap/index.ts`                             | Aggiunto `version_number` al SELECT su `presentation_versions` per le current versions; nuova query aggregata `MAX(version_number)` per ogni `presentation_id` filtrato `status IN ('ready','superseded')`; `FileRow` esteso con `versionNumber: number \| null` + `versionTotal: number \| null` |
+| `apps/web/src/features/devices/repository.ts`                                   | `RoomPlayerBootstrapFileRow` esteso con `versionNumber` + `versionTotal` (entrambi nullable per BC con bootstrap pre-T-1)                                                                                                                                                                         |
+| `apps/web/src/features/devices/hooks/useFileSync.ts`                            | `FileSyncItem` esteso con `versionNumber` + `versionTotal`; `rowToItem` propaga i campi (fallback `?? null`)                                                                                                                                                                                      |
+| `apps/web/src/features/devices/components/VersionBadge.tsx` **(NUOVO)**         | Componente riusabile `VersionBadge`: due varianti `inline` / `overlay`, color coding sovrano verde/giallo/neutro, auto-fade timer per overlay variant, pattern derived-state-from-props raccomandato React 19 (no `setState` in effect)                                                            |
+| `apps/web/src/features/devices/components/FileSyncStatus.tsx`                   | `<VersionBadge variant="inline">` accanto al filename in `FileRow`                                                                                                                                                                                                                                |
+| `apps/web/src/features/presentations/components/FilePreviewDialog.tsx`          | Nuovo prop `versionInfo?: { number, total }`; `<VersionBadge variant="overlay">` top-right del body; `wakeKey` incrementato su mouseMove/touchStart/keydown per "wake-up" del badge                                                                                                                |
+| `apps/web/src/features/devices/RoomPlayerView.tsx`                              | Nuovo `useEffect` che traccia `presentationId → ultimo versionNumber visto` e dispatcha toast `info` (newer) o `warning` (rollback) via `useToast` (skip primo render per evitare spam in apertura sala); `versionInfo={{ number, total }}` propagato al `<FilePreviewDialog>` via container       |
+| `packages/shared/src/i18n/locales/it.json` + `en.json`                          | 10 nuove chiavi: `roomPlayer.versionBadge.{label,single,tooltipLatest,tooltipOlder,tooltipSingle,aria}` + `roomPlayer.versionToast.{newer.title,newer.body,rollback.title,rollback.body}`. Parita 1270/1270 verificata.                                                                            |
+
+**Quality gates (tutti VERDI):**
+
+- `pnpm --filter @slidecenter/shared build` — OK.
+- `pnpm --filter @slidecenter/shared typecheck` — 0 errori.
+- `pnpm --filter @slidecenter/web typecheck` — 0 errori.
+- `pnpm --filter @slidecenter/web lint` — 0 errori (1 fix iter: refactor `VersionBadge` per evitare `setState` sincrono in `useEffect` → pattern derived-state-from-props con setter durante render body).
+- `pnpm --filter @slidecenter/web build` — OK in 1.58s, PWA 99 entries 3312 KiB. `RoomPlayerView` 54.58 kB (gzip 14.56 kB) — ben sotto la soglia.
+- i18n parity: IT 1270 / EN 1270, **0 chiavi orfane**.
+
+**Flusso end-to-end (esempio reale):**
+
+1. Speaker `Mario Rossi` carica `slide-keynote.pdf` v1 a 14:00 → bootstrap restituisce `versionNumber=1, versionTotal=1` → badge "v1" neutro.
+2. Mario carica v2 alle 14:30 → admin imposta v2 come current → trigger Postgres pubblica `room:<id>` broadcast → PC sala fa rifresh → bootstrap restituisce `versionNumber=2, versionTotal=2` → badge **VERDE "v2 / 2"** + toast `info` "Nuova versione caricata: v2".
+3. Mario carica v3 alle 15:15 (ultimo minuto) → bootstrap restituisce `versionNumber=3, versionTotal=3` → badge **VERDE "v3 / 3"** + toast `info` "Nuova versione caricata: v3".
+4. L'admin si accorge che v3 ha un errore di formattazione → riporta current a v2 → bootstrap restituisce `versionNumber=2, versionTotal=3` → badge **GIALLO "v2 / 3"** (con tooltip "Versione 2 in onda — esiste una v3 piu' recente non scelta dal regista") + toast `warning` "Versione riportata a v2. slide-keynote ora e' tornato a v2 per scelta del regista (esiste anche v3)".
+5. Quando l'utente sala apre l'anteprima fullscreen → badge **OVERLAY GIALLO "v2 / 3"** top-right, visibile per 5s, ricompare on movimento mouse / touch.
+
+**Sicurezza & invarianti rispettate:**
+
+- **Sovrano #2:** I file restano sul disco locale del PC sala (la `versionInfo` e' solo metadata mostrato). Nessun fetch cloud durante l'anteprima.
+- **Sovrano #3:** GAP G8 chiuso definitivamente. Versione "in onda" sempre visibile a colpo d'occhio.
+- **Backward-compat:** se il bootstrap non popola `versionNumber/versionTotal` (deploy parziale o vecchio cache PWA), il badge non appare → degradazione graceful, nessun crash.
+- **No nuove RLS / no nuove RPC:** zero modifiche schema DB. Solo lettura dati esistenti via Edge Function gia' autenticata via `device_token`.
+- **No costo extra Supabase:** la nuova query `presentation_versions` (`presentation_id IN (...)`) usa indice esistente `idx_pv_presentation_id` e tocca solo righe gia' lette nello stesso bootstrap. Cost overhead trascurabile (<1ms su event con 50 presentazioni).
+
+**Limiti noti / roadmap T-1.x (deferred):**
+
+- T-1.b: refresh automatico del preview quando arriva nuova versione mentre l'utente sta gia' guardando (oggi: il badge cambia colore ma il blob locale resta in v_old finche' non si chiude e riapre il preview). Da fare se Andrea segnala UX dubbia in field test.
+- T-1.c: badge `vN/M` anche su `LiveRegiaView` admin (oggi: solo PC sala). Trade-off: l'admin gia' vede `version_number` esplicito in `PresentationVersionsPanel`, quindi piu' "nice-to-have" che bloccante.
+- T-1.d: animazione transizione del badge (color shift verde→giallo) con framer-motion. Oggi: cambio istantaneo. Decidere su feedback Andrea.
+- T-1.e: timestamp + autore della versione corrente nel badge overlay (es. "v3 / 5 — caricato 14:23 da Mario"). Oggi: solo `vN/M`. Aggiungere se richiesto in field test.
+
+**Setup manuale per Andrea (deploy):**
+
+1. **Edge Function deploy obbligatorio:** `room-player-bootstrap` ha modifiche → deploy via `supabase functions deploy room-player-bootstrap` (oppure GitHub Actions auto-deploy se configurato in §0.8).
+2. **No migration:** zero modifiche schema DB.
+3. **No env var nuove:** zero variabili da settare.
+4. **Frontend:** standard `pnpm build` + push a Vercel — il deploy automatico lo gestisce.
+
+#### 0.16.1 Semaforo VERDE per Sprint T-2
+
+GAP famiglia T residui: 2 / 3 (G9 telemetria perf, G10 competitor parity).
+
+- **G9** (Sprint T-2): telemetria perf live PC sala (CPU/RAM/disco/rete) aggregata in `room_state` + visibile cross-evento in `<RoomCard>` admin.
+- **G10** (Sprint T-3): features competitor mancanti (file checking pre-evento, ePoster, mobile SRR, speaker timer integrato, email reminder schedulati).
+
+Pronto a partire con **Sprint T-2** appena Andrea da' il via.
 
 ---
 

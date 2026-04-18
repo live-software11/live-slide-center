@@ -177,7 +177,7 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 
 ### Audit chirurgico 18/04/2026 (Sprint R / S / T pianificati)
 
-**Stato:** **audit completato, famiglia Sprint R DONE + famiglia Sprint S DONE (7/10 GAP chiusi: G1+G2+G3+G4+G5+G6+G7), famiglia T (G8+G9+G10) next.**
+**Stato:** **audit completato, famiglia Sprint R DONE + famiglia Sprint S DONE + Sprint T-1 DONE (8/10 GAP chiusi: G1+G2+G3+G4+G5+G6+G7+G8), restano G9 (Sprint T-2 telemetria perf) e G10 (Sprint T-3 competitor parity).**
 
 **Sintesi 10 GAP rilevati** rispetto agli obiettivi prodotto sovrani (parita cloud/desktop, file da locale, versioning chiaro, perf zero impatto, super-admin licenze, OneDrive-style, drag PC, upload da sala, export ordinato, competitor parity):
 
@@ -190,7 +190,9 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 | **S-2** | Drag&drop visivo PC ↔ sale             | G5             | 1g        | **DONE 18/04/2026 (vedi §0.13)**           |
 | **S-3** | Export ZIP ordinato per sala/sessione  | G6             | 0.5g      | **DONE 18/04/2026 (vedi §0.14)**           |
 | **S-4** | Ruolo device "Centro Slide" multi-room | G7             | 1.5g      | **DONE 18/04/2026 (vedi §0.15)**           |
-| **T**   | Performance + competitor parity        | G8 + G9 + G10  | 4g        | pending (match feature PreSeria/Slidecrew) |
+| **T-1** | Badge versione "in onda" + toast       | G8             | 0.5g      | **DONE 18/04/2026 (vedi §0.16)**           |
+| **T-2** | Telemetria perf PC sala (CPU/RAM/disco)| G9             | 1g        | pending                                    |
+| **T-3** | Competitor parity (file checking, ePoster) | G10        | 2g        | pending (match feature PreSeria/Slidecrew) |
 
 **Dettaglio dei 10 GAP, file coinvolti, soluzione tecnica, decisioni richieste ad Andrea:** `docs/STATO_E_TODO.md` § 0.
 
@@ -407,6 +409,43 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 - Sort custom dei file in centri → S-4.c deferred (oggi hardcoded `roomName ASC → sessionScheduledStart ASC → filename ASC`).
 - Metric "X file mancano vs admin" (QA pre-evento) → S-4.d deferred (oggi mostra solo file presenti su Storage).
 - Centri con Realtime per-room subscription → riconsiderare se Andrea pairera' >5 Centri simultaneamente.
+
+### Sprint T-1 (G8) — Badge versione "in onda" + toast cambio versione (DONE 18/04/2026)
+
+**Stato:** **completato e verde.** Versione "in onda" ora visibile **a colpo d'occhio** in sala. Badge `vN/M` con color coding sovrano: verde se la corrente e' anche la piu' recente, giallo se l'admin ha riportato indietro la corrente (esiste una versione piu' nuova). Badge `inline` sempre visibile accanto al filename in `FileSyncStatus`; badge `overlay` top-right durante l'anteprima fullscreen di `FilePreviewDialog` (auto-fade 5s, ricompare on mouse/touch/key — UX standard player video). Toast notify automatico su cambio versione.
+
+| Area              | Cosa                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Edge Function     | `supabase/functions/room-player-bootstrap/index.ts` — aggiunto `version_number` al SELECT su `presentation_versions`; nuova query aggregata `MAX(version_number)` per ogni `presentation_id` filtrato `status IN ('ready','superseded')`; `FileRow` esteso con `versionNumber: number \| null` + `versionTotal: number \| null`. Indice `idx_pv_presentation_id` esistente sufficiente, no nuovi indici.                                                  |
+| Repository client | `apps/web/src/features/devices/repository.ts` — `RoomPlayerBootstrapFileRow` esteso con `versionNumber` + `versionTotal` (entrambi nullable per BC).                                                                                                                                                                                                                                                                                                       |
+| Hook              | `apps/web/src/features/devices/hooks/useFileSync.ts` — `FileSyncItem` esteso, `rowToItem` propaga (fallback `?? null`).                                                                                                                                                                                                                                                                                                                                    |
+| Component nuovo   | `apps/web/src/features/devices/components/VersionBadge.tsx` — riusabile, due varianti: `inline` (chip text-[10px]) / `overlay` (badge text-sm con shadow + backdrop-blur, opacity 0/100 con transition 500ms). Color coding: verde `sc-success` (latest) / giallo `sc-warning` (older) / neutro `sc-primary` (single). Pattern derived-state-from-props con setter durante render body (evita `setState` in `useEffect` — regola React 19 lint stretta).      |
+| UI lista          | `apps/web/src/features/devices/components/FileSyncStatus.tsx` — `<VersionBadge variant="inline">` accanto al filename in `FileRow`.                                                                                                                                                                                                                                                                                                                        |
+| UI preview        | `apps/web/src/features/presentations/components/FilePreviewDialog.tsx` — nuovo prop `versionInfo?: { number, total }` opzionale; `<VersionBadge variant="overlay">` `absolute right-6 top-6 z-10` nel body; `wakeKey` state incrementato su `onMouseMove`/`onTouchStart`/`onKeydown` per "wake-up" del badge.                                                                                                                                                |
+| UI toast          | `apps/web/src/features/devices/RoomPlayerView.tsx` — `useEffect` su `items` traccia `presentationId → ultimo versionNumber visto` (ref Map). Se cambia: vn > prev → toast `info` "Nuova versione caricata: v{n}" (8s); vn < prev → toast `warning` "Versione riportata a v{n} (esiste anche v{total})" (10s). Skip primo render con `prev === null` per evitare spam in apertura sala.                                                                       |
+| i18n              | 10 nuove chiavi: `roomPlayer.versionBadge.{label,single,tooltipLatest,tooltipOlder,tooltipSingle,aria}` + `roomPlayer.versionToast.{newer.title,newer.body,rollback.title,rollback.body}`. Parita perfetta IT/EN 1270/1270.                                                                                                                                                                                                                                |
+
+**Quality gates verdi:** `pnpm --filter @slidecenter/shared build` (rigenera tipi), `shared typecheck` (0 err), `web typecheck` (0 err), `web lint` (0 err — 1 fix iter: refactor `VersionBadge` per pattern derived-state, evita `react-hooks/set-state-in-effect`), `web build` (1.58s, PWA 99 entries 3312 KiB, RoomPlayerView 54.58 kB gzip 14.56 kB). i18n parity Node script PASS 1270/1270.
+
+**Sicurezza/Performance:**
+
+- Backward-compat 100%: bootstrap pre-T-1 omette i campi → `?? null` nel `rowToItem` → badge non rende → no crash.
+- No nuove RLS / no nuove RPC. La nuova query `presentation_versions(presentation_id IN (...))` usa indice esistente `idx_pv_presentation_id`. Cost overhead trascurabile (<1ms su event con 50 presentazioni).
+- Sovrano #2 rispettato: `versionInfo` e' SOLO metadata visualizzato; il file resta sul disco locale del PC sala. Nessun fetch cloud durante l'anteprima.
+- Sovrano #3 chiuso definitivamente: versione "in onda" sempre visibile a colpo d'occhio.
+
+**Setup manuale Andrea (~2 minuti):**
+
+1. `pnpm supabase functions deploy room-player-bootstrap` — re-deploy Edge Function (obbligatorio: senza, i client ricevono `versionNumber=null` e il badge non appare).
+2. Frontend deploy automatico via Vercel push.
+3. Test smoke: pair PC sala, carica v1 di un file, verifica badge "v1" neutro inline. Carica v2, verifica badge **VERDE "v2 / 2"** + toast info "Nuova versione caricata: v2". Da admin riporta current a v1, verifica badge **GIALLO "v1 / 2"** + toast warning. Apri preview fullscreen, verifica badge overlay top-right con auto-fade 5s.
+
+**Cosa NON e' incluso (deferred):**
+
+- Refresh automatico del preview quando arriva nuova versione mentre l'utente sta gia' guardando → T-1.b deferred (oggi: badge cambia colore ma blob locale resta in v_old finche' non si chiude e riapre il preview).
+- Badge `vN/M` su `LiveRegiaView` admin → T-1.c deferred (l'admin gia' vede `version_number` esplicito in `PresentationVersionsPanel`, "nice-to-have" non bloccante).
+- Animazione transizione colore badge (verde→giallo) con framer-motion → T-1.d deferred.
+- Timestamp + autore della versione corrente nel badge overlay → T-1.e deferred.
 
 ### Hardening Supabase + Vercel (Sprint Q+1) — DONE 18/04/2026
 

@@ -72,6 +72,21 @@ export interface RoomPlayerBootstrapFileRow {
    * sessione e' orfana (fallback al roomName del device).
    */
   roomName: string;
+  /**
+   * Sprint T-1 (G8) — `version_number` della versione attualmente "in onda" su
+   * questo file (i.e. quella servita al PC sala = `current_version_id`).
+   * Nullable per backward compat con bootstrap pre-T-1; in tal caso il PC sala
+   * non mostra il badge `vN/M`.
+   */
+  versionNumber: number | null;
+  /**
+   * Sprint T-1 (G8) — `MAX(version_number)` tra TUTTE le versioni 'ready' o
+   * 'superseded' di questa stessa presentation. Se `versionNumber === versionTotal`
+   * la corrente e' anche la piu' recente (badge verde); se `versionNumber <
+   * versionTotal` significa che l'admin ha riportato indietro la corrente,
+   * esiste una versione piu' nuova (badge giallo).
+   */
+  versionTotal: number | null;
 }
 
 /**

@@ -15,6 +15,7 @@ import {
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FileSyncItem, FileVerifyStatus } from '../hooks/useFileSync';
+import { VersionBadge } from './VersionBadge';
 
 interface FileSyncStatusProps {
   items: FileSyncItem[];
@@ -205,6 +206,15 @@ function FileRow({
           <p className="min-w-0 flex-1 break-all text-sm font-medium text-sc-text" title={item.filename}>
             {item.filename}
           </p>
+          {/* Sprint T-1 (G8): badge inline "vN/M" sempre visibile accanto al
+              nome file. Verde se la corrente e' anche la latest, giallo se
+              c'e' una versione piu' recente (admin ha rollbackato la
+              corrente). Si vede a colpo d'occhio la versione "in onda". */}
+          <VersionBadge
+            versionNumber={item.versionNumber}
+            versionTotal={item.versionTotal}
+            variant="inline"
+          />
           {isNowPlaying && (
             <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-sc-success/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sc-success">
               <Radio className="h-3 w-3 animate-pulse" aria-hidden="true" />
