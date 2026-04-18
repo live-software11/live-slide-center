@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, FolderInput, GripVertical, Trash2, UploadCloud, X } from 'lucide-react';
+import { Download, Folder, FolderInput, GripVertical, Trash2, UploadCloud, X } from 'lucide-react';
 import { formatBytes } from '@/features/upload-portal/lib/format-bytes';
 import {
   createVersionDownloadUrl,
@@ -21,6 +21,12 @@ import {
   setPresentationDragData,
 } from '@/features/presentations/lib/drag-presentation';
 import {
+  extractFilesFromDataTransfer,
+  extractFilesFromInputDirectory,
+  FOLDER_TRAVERSAL_LIMITS,
+  type FolderTraversalResult,
+} from '@/features/presentations/lib/folder-traversal';
+import {
   useUploadQueue,
   type UploadJob,
 } from '@/features/presentations/hooks/useUploadQueue';
@@ -31,9 +37,15 @@ import { getSupabaseBrowserClient } from '@/lib/supabase';
 /**
  * Sprint G (§3.B) — multi-select + bulk action.
  * Sprint H (§3.C) — drag&drop multi-file (C1+C2) + drag tra sessioni (C3).
+ * Sprint S-1 (§G4) — drag&drop CARTELLE intere con sotto-cartelle (DataTransferItem
+ * + webkitGetAsEntry ricorsivo). Il path relativo viene preservato come
+ * prefisso del filename in `presentation_versions.file_name`.
  *
  * Drop zone discrimina:
- *  - `Files` dal SO → enqueue su `useUploadQueue` (multipli OK).
+ *  - `Files` dal SO → enqueue su `useUploadQueue` (multipli OK). Se uno dei
+ *    file droppati e' una cartella (`webkitGetAsEntry().isDirectory`),
+ *    eseguiamo traversal ricorsivo via `extractFilesFromDataTransfer` e
+ *    rinominiamo ogni File con `relativePath` (max 500 file, max 10 livelli).
  *  - `application/x-slidecenter-presentation` → bypass upload, chiama
  *    `movePresentationToSession` (C3). La sorgente e' un `<li>` di un'altra
  *    sessione (anche dello stesso evento). Visual feedback: border blu vs
@@ -128,6 +140,23 @@ export function SessionFilesPanel({
     | null
   >(null);
 
+  // Sprint S-1: feedback transient quando l'utente droppa una cartella.
+  // Mostra "N file aggiunti dalla cartella «X»" + warning per scarti
+  // (vuoti, duplicati, filename troppo lunghi, troncamento).
+  const [folderDropFeedback, setFolderDropFeedback] = useState<
+    | {
+        kind: 'success';
+        rootFolderName: string;
+        added: number;
+        emptyFiles: number;
+        duplicates: number;
+        filenameTooLong: number;
+        truncated: boolean;
+      }
+    | { kind: 'empty'; rootFolderName: string }
+    | null
+  >(null);
+
   // Sprint G — multi-select.
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<BulkAction>('idle');
@@ -139,6 +168,11 @@ export function SessionFilesPanel({
   const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  // Sprint S-1: secondo input dedicato a `webkitdirectory` (sfoglia cartella).
+  // Non riutilizziamo `inputRef` perche' avere `webkitdirectory` impostato
+  // statico bloccherebbe la selezione di file singoli ("Sfoglia file"). Quindi
+  // due input distinti, due bottoni distinti.
+  const folderInputRef = useRef<HTMLInputElement>(null);
   const mountedRef = useRef(true);
   const bulkAbortRef = useRef<AbortController | null>(null);
   const dragCounterRef = useRef(0);
@@ -270,12 +304,54 @@ export function SessionFilesPanel({
     return () => window.clearTimeout(tid);
   }, [crossDropFeedback]);
 
+  // Sprint S-1: feedback transient drop "cartella". Tempo lungo (5s) perche'
+  // contiene piu' info da leggere (count + warning).
+  useEffect(() => {
+    if (!folderDropFeedback) return;
+    const tid = window.setTimeout(() => setFolderDropFeedback(null), 5000);
+    return () => window.clearTimeout(tid);
+  }, [folderDropFeedback]);
+
   const onPick = useCallback(
     (incoming: FileList | File[] | null) => {
       if (!incoming) return;
       const list = Array.from(incoming);
       if (list.length === 0) return;
       queue.enqueue(list);
+    },
+    [queue],
+  );
+
+  /**
+   * Sprint S-1: gestione drop di una CARTELLA (uno o piu' folder root).
+   * Chiamato dal `onDrop` quando rilevato `webkitGetAsEntry().isDirectory`
+   * su almeno un item, oppure dal `<input webkitdirectory>` (change event).
+   *
+   * - In caso di drop misto (file + cartelle), tutto viene unificato dalla
+   *   utility con `relativePath = file.name` per i file diretti.
+   * - I file vengono accodati alla coda upload con il path relativo come
+   *   nome (es. "Conferenza-2026/Sala-1/intro.pptx").
+   * - Mostra feedback transient con summary (added/duplicati/vuoti/troncati).
+   */
+  const handleFolderDropResult = useCallback(
+    (result: FolderTraversalResult) => {
+      if (result.files.length === 0) {
+        setFolderDropFeedback({
+          kind: 'empty',
+          rootFolderName: result.rootFolderName || '',
+        });
+        return;
+      }
+      queue.enqueue(result.files);
+      setFolderDropFeedback({
+        kind: 'success',
+        rootFolderName: result.rootFolderName || '',
+        added: result.files.length,
+        emptyFiles: result.emptyFiles,
+        duplicates: result.duplicates,
+        filenameTooLong: result.filenameTooLong,
+        truncated: result.truncated,
+      });
     },
     [queue],
   );
@@ -556,13 +632,30 @@ export function SessionFilesPanel({
         void handleCrossSessionDrop(presentationDrag.presentationId, presentationDrag.fileName);
         return;
       }
-      // Sprint H C1: drop di file dal SO (multipli OK).
-      const droppedFiles = dt.files;
-      if (droppedFiles && droppedFiles.length > 0) {
-        onPick(droppedFiles);
-      }
+      // Sprint S-1 (G4) + Sprint H C1: drop di file/cartelle dal SO.
+      //
+      // IMPORTANTE: `extractFilesFromDataTransfer` deve essere chiamata
+      // SUBITO con `dt` per leggere `webkitGetAsEntry()` PRIMA che il
+      // browser invalidi gli items (succede dopo il primo microtask
+      // post-drop). La utility raccoglie gli entry sincroni nel primo
+      // step, poi traversa async. Funziona sia per drop di SOLE cartelle,
+      // sia per drop misto (file + cartelle), sia per drop di soli file
+      // (ricade automaticamente su `dt.files` per browser legacy).
+      const hasItems = dt.items && dt.items.length > 0;
+      const hasFiles = dt.files && dt.files.length > 0;
+      if (!hasItems && !hasFiles) return;
+      void extractFilesFromDataTransfer(dt).then((result) => {
+        if (result.containedFolders) {
+          // Almeno una cartella → mostra feedback dedicato (count + warning).
+          handleFolderDropResult(result);
+        } else if (result.files.length > 0) {
+          // Solo file singoli → flusso "drop file" classico, senza feedback
+          // verboso. La coda mostra il progresso per ogni file.
+          queue.enqueue(result.files);
+        }
+      });
     },
-    [handleCrossSessionDrop, onPick, sessionId],
+    [handleCrossSessionDrop, handleFolderDropResult, queue, sessionId],
   );
 
   if (!enabled) return null;
@@ -597,7 +690,9 @@ export function SessionFilesPanel({
         <p className="text-[11px] text-sc-text-dim">
           {dropMode === 'presentation'
             ? t('sessionFiles.dragMove.hint')
-            : t('sessionFiles.dropHintMulti')}
+            : t('sessionFiles.dropHintFolder', {
+                limit: FOLDER_TRAVERSAL_LIMITS.maxFilesPerDrop,
+              })}
         </p>
         <input
           ref={inputRef}
@@ -610,13 +705,42 @@ export function SessionFilesPanel({
             onPick(list);
           }}
         />
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          className="rounded-xl border border-sc-primary/30 bg-sc-surface px-2.5 py-1 text-xs text-sc-text hover:bg-sc-elevated"
-        >
-          {t('sessionFiles.pickFile')}
-        </button>
+        {/* Sprint S-1 (G4): input dedicato a "Sfoglia cartella".
+            L'attributo `webkitdirectory` (Chrome/Edge/Safari) NON e' nei types
+            React 19; `directory` (alias Firefox legacy) invece c'e'. Settiamo
+            entrambi via spread su un oggetto cast a `Record<string, string>`
+            cosi' evitiamo `@ts-expect-error` rompibile. Per il browser sono
+            attributi HTML non-standard ma riconosciuti dal codice nativo. */}
+        <input
+          ref={folderInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          {...({ webkitdirectory: '', directory: '' } as Record<string, string>)}
+          onChange={(e) => {
+            const list = e.target.files;
+            e.target.value = '';
+            const result = extractFilesFromInputDirectory(list);
+            handleFolderDropResult(result);
+          }}
+        />
+        <div className="flex flex-wrap justify-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="rounded-xl border border-sc-primary/30 bg-sc-surface px-2.5 py-1 text-xs text-sc-text hover:bg-sc-elevated"
+          >
+            {t('sessionFiles.pickFile')}
+          </button>
+          <button
+            type="button"
+            onClick={() => folderInputRef.current?.click()}
+            className="inline-flex items-center gap-1 rounded-xl border border-sc-primary/30 bg-sc-surface px-2.5 py-1 text-xs text-sc-text hover:bg-sc-elevated"
+          >
+            <Folder className="h-3 w-3" aria-hidden="true" />
+            {t('sessionFiles.pickFolder')}
+          </button>
+        </div>
       </div>
 
       {/* Sprint H C2: coda upload */}
@@ -629,6 +753,60 @@ export function SessionFilesPanel({
           locale={locale}
           t={t}
         />
+      )}
+
+      {/* Sprint S-1: feedback transient drop cartella (5s).
+          Mostra "N file aggiunti dalla cartella «X»" + warning aggregati.
+          Empty: "La cartella «X» e' vuota o non contiene file validi". */}
+      {folderDropFeedback && (
+        <div
+          role="status"
+          className={`rounded border px-2.5 py-1.5 text-[11px] ${
+            folderDropFeedback.kind === 'success'
+              ? 'border-sc-success/30 bg-sc-success/10 text-sc-success'
+              : 'border-sc-warning/30 bg-sc-warning/10 text-sc-warning'
+          }`}
+        >
+          {folderDropFeedback.kind === 'success' ? (
+            <>
+              <p className="font-medium">
+                {folderDropFeedback.rootFolderName
+                  ? t('sessionFiles.folderEnqueued', {
+                      count: folderDropFeedback.added,
+                      folder: folderDropFeedback.rootFolderName,
+                    })
+                  : t('sessionFiles.folderEnqueuedNoName', {
+                      count: folderDropFeedback.added,
+                    })}
+              </p>
+              {(folderDropFeedback.emptyFiles > 0
+                || folderDropFeedback.duplicates > 0
+                || folderDropFeedback.filenameTooLong > 0
+                || folderDropFeedback.truncated) && (
+                <ul className="mt-1 list-disc pl-4">
+                  {folderDropFeedback.emptyFiles > 0 && (
+                    <li>{t('sessionFiles.folderWarnEmpty', { count: folderDropFeedback.emptyFiles })}</li>
+                  )}
+                  {folderDropFeedback.duplicates > 0 && (
+                    <li>{t('sessionFiles.folderWarnDup', { count: folderDropFeedback.duplicates })}</li>
+                  )}
+                  {folderDropFeedback.filenameTooLong > 0 && (
+                    <li>{t('sessionFiles.folderWarnNameLen', { count: folderDropFeedback.filenameTooLong })}</li>
+                  )}
+                  {folderDropFeedback.truncated && (
+                    <li>{t('sessionFiles.folderWarnTruncated', { limit: FOLDER_TRAVERSAL_LIMITS.maxFilesPerDrop })}</li>
+                  )}
+                </ul>
+              )}
+            </>
+          ) : (
+            <p>
+              {folderDropFeedback.rootFolderName
+                ? t('sessionFiles.folderEmpty', { folder: folderDropFeedback.rootFolderName })
+                : t('sessionFiles.folderEmptyNoName')}
+            </p>
+          )}
+        </div>
       )}
 
       {/* Sprint H C3: feedback transient drop "muovi qui" */}

@@ -120,6 +120,8 @@ Il Centro Slide viene venduto in **tre forme** che condividono il 100% della SPA
 > **Sprint R-2 chiuso (DONE 18/04/2026):** integrazione bidirezionale Lemon Squeezy → Live WORKS APP. Edge Function `lemon-squeezy-webhook` riceve subscription events, idempotency strict via `lemon_squeezy_event_log`, mapping configurabile via `lemon_squeezy_plan_mapping`, RPC `lemon_squeezy_apply_subscription_event` crea/aggiorna/sospende tenant. Email automatica `kind='admin-invite'` IT/EN al primo admin (R-1.b inline). **Gap G2 chiuso (2/10).** Vedi `docs/STATO_E_TODO.md` §0.10.
 >
 > **Sprint R-3 chiuso (DONE 18/04/2026):** PC sala upload speaker check-in. Relatore last-minute carica/sostituisce file dal PC sala via `RoomDeviceUploadDropzone` (drag&drop + progress + SHA-256). Auth via `device_token` (no JWT), upload diretto a Storage via signed URL (bypass limite 6MB Edge Functions). 3 nuove RPC `SECURITY DEFINER` (`init/finalize/abort_upload_version_for_room_device`), 3 nuove Edge Functions (`room-device-upload-init/finalize/abort`). Trigger esistente `broadcast_presentation_version_change` propaga `presentation_changed` su `room:<id>` → admin live view aggiornata in <1s. Activity log con `actor='device'`, `actor_name='PC sala N'`. Enum `upload_source += 'room_device'`, `actor_type += 'device'`. **Gap G3 chiuso → famiglia R commercial readiness completa (3/10).** Vedi `docs/STATO_E_TODO.md` §0.11.
+>
+> **Sprint S-1 chiuso (DONE 18/04/2026):** drag&drop folder admin OneDrive-style. Nuova utility `apps/web/src/features/presentations/lib/folder-traversal.ts` (`extractFilesFromDataTransfer`, `extractFilesFromInputDirectory`) con traversal ricorsivo BFS via `webkitGetAsEntry()` + `<input webkitdirectory>`. Limiti hard 500 file/depth 10/255 char per filename (con truncation segmenti iniziali e prefisso `.../`). Path relativo preservato come prefisso del filename in `presentation_versions.file_name`, sanitizzazione regex applicata solo a `storage_key`. Zero modifiche schema DB. UI `SessionFilesPanel` aggiunge bottone "Sfoglia cartella" + feedback transient con conteggio file aggiunti + warning aggregati (vuoti/duplicati/nameTooLong/truncated). i18n IT/EN +10 chiavi (parita 1217/1217). **Gap G4 chiuso → famiglia S file-management avviata (4/10).** Vedi `docs/STATO_E_TODO.md` §0.12.
 
 | Area                                                       | Cloud (web)                               | Desktop offline (Tauri 2)                    |
 | ---------------------------------------------------------- | ----------------------------------------- | -------------------------------------------- |
@@ -450,39 +452,39 @@ WHERE email = 'live.software11@gmail.com';
 
 ### 7.3 RPC SECURITY DEFINER notevoli
 
-| RPC                                                                                          | Scope                 | Cosa fa                                                               |
-| -------------------------------------------------------------------------------------------- | --------------------- | --------------------------------------------------------------------- |
-| `validate_upload_token(token)`                                                               | anon                  | Valida token speaker, ritorna metadata                                |
-| `init_upload_version(...)`                                                                   | anon                  | Apre `presentation_versions` in `uploading` per speaker               |
-| `finalize_upload_version(...)`                                                               | anon                  | Chiude upload speaker, marca `ready`, aggiorna `current_version_id`   |
-| `abort_upload_version(...)`                                                                  | anon                  | Aborto upload speaker, no decrement quota                             |
-| `init_upload_version_admin(...)`                                                             | authenticated         | Stessa cosa per admin/coordinator drag-and-drop                       |
-| `finalize_upload_version_admin(...)`                                                         | authenticated         | Idem                                                                  |
-| `abort_upload_version_admin(...)`                                                            | authenticated         | Idem                                                                  |
-| `rpc_move_presentation(p_presentation_id, p_target_speaker_id)`                              | authenticated         | Sposta presentation tra speaker stesso evento                         |
-| `rpc_set_current_version(...)`                                                               | authenticated         | Atomic: imposta corrente, demota altre `ready`, riattiva `superseded` |
-| `rpc_update_presentation_status(...)`                                                        | authenticated         | Workflow review con note revisore                                     |
-| `rpc_reorder_sessions(...)`                                                                  | authenticated         | Drag-and-drop persistenza `display_order`                             |
-| `licensing_apply_quota(...)`                                                                 | service_role          | Sync quota dal Live WORKS APP (Sprint 4)                              |
-| `admin_create_tenant_with_invite(...)`                                                       | super_admin           | Crea tenant + invito primo admin in transazione atomica (Sprint R-1)  |
-| `record_lemon_squeezy_event(...)`                                                            | service_role          | Idempotency check + INSERT log evento Lemon Squeezy (Sprint R-2)      |
-| `mark_lemon_squeezy_event_processed(...)`                                                    | service_role          | Marca esito processing evento Lemon Squeezy (Sprint R-2)              |
-| `lemon_squeezy_apply_subscription_event(...)`                                                | service_role          | Crea/aggiorna/sospende tenant da subscription\_\* events (Sprint R-2) |
-| `init_upload_version_for_room_device(p_token, p_session_id, ...)`                            | service_role          | PC sala: apre version 'uploading', validazione cross-room (Sprint R-3)|
-| `finalize_upload_version_for_room_device(p_token, p_version_id, p_sha256)`                   | service_role          | PC sala: promuove a 'ready' + supersedes altre versions (Sprint R-3)  |
-| `abort_upload_version_for_room_device(p_token, p_version_id)`                                | service_role          | PC sala: marca version 'failed' su cancel/error client (Sprint R-3)   |
-| `seed_demo_data()` / `clear_demo_data()`                                                     | authenticated         | Onboarding demo (Sprint 6)                                            |
-| `mark_tenant_onboarded()` / `reset_tenant_onboarding()`                                      | authenticated         | Wizard onboarding (Sprint 6)                                          |
-| `tenant_health()`                                                                            | super_admin           | Counter aggregati globali (Sprint 6)                                  |
-| `export_tenant_data()`                                                                       | authenticated (admin) | GDPR export ZIP (Sprint 7)                                            |
-| `tenant_storage_summary()`                                                                   | authenticated         | Threshold warning >=80% / critical >=95% (Sprint 7)                   |
-| `tenant_license_summary()`                                                                   | authenticated         | Threshold info <=30 / warning <=7 / critical <=1 (Sprint 7)           |
-| `create_tenant_data_export()`                                                                | authenticated (admin) | Apre record export, rate-limit 5min (Sprint 7)                        |
-| `list_tenant_data_exports()`                                                                 | authenticated         | Ultimi 10 export del tenant (Sprint 7)                                |
-| `log_email_sent(...)`                                                                        | service_role          | UPSERT idempotente su `email_log` (Sprint 7)                          |
-| `list_tenants_for_license_warning(min,max,kind)`                                             | super_admin           | Anti-spam scan licenze in scadenza (Sprint 7)                         |
-| `expire_old_data_exports()`                                                                  | super_admin           | Housekeeping ZIP scaduti (Sprint 7)                                   |
-| `list_tenant_activity(p_from, p_to, p_action, p_actor_id, p_entity_type, p_limit, p_offset)` | authenticated (admin) | Audit log paginato + filtri (Sprint 8)                                |
+| RPC                                                                                          | Scope                 | Cosa fa                                                                |
+| -------------------------------------------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------- |
+| `validate_upload_token(token)`                                                               | anon                  | Valida token speaker, ritorna metadata                                 |
+| `init_upload_version(...)`                                                                   | anon                  | Apre `presentation_versions` in `uploading` per speaker                |
+| `finalize_upload_version(...)`                                                               | anon                  | Chiude upload speaker, marca `ready`, aggiorna `current_version_id`    |
+| `abort_upload_version(...)`                                                                  | anon                  | Aborto upload speaker, no decrement quota                              |
+| `init_upload_version_admin(...)`                                                             | authenticated         | Stessa cosa per admin/coordinator drag-and-drop                        |
+| `finalize_upload_version_admin(...)`                                                         | authenticated         | Idem                                                                   |
+| `abort_upload_version_admin(...)`                                                            | authenticated         | Idem                                                                   |
+| `rpc_move_presentation(p_presentation_id, p_target_speaker_id)`                              | authenticated         | Sposta presentation tra speaker stesso evento                          |
+| `rpc_set_current_version(...)`                                                               | authenticated         | Atomic: imposta corrente, demota altre `ready`, riattiva `superseded`  |
+| `rpc_update_presentation_status(...)`                                                        | authenticated         | Workflow review con note revisore                                      |
+| `rpc_reorder_sessions(...)`                                                                  | authenticated         | Drag-and-drop persistenza `display_order`                              |
+| `licensing_apply_quota(...)`                                                                 | service_role          | Sync quota dal Live WORKS APP (Sprint 4)                               |
+| `admin_create_tenant_with_invite(...)`                                                       | super_admin           | Crea tenant + invito primo admin in transazione atomica (Sprint R-1)   |
+| `record_lemon_squeezy_event(...)`                                                            | service_role          | Idempotency check + INSERT log evento Lemon Squeezy (Sprint R-2)       |
+| `mark_lemon_squeezy_event_processed(...)`                                                    | service_role          | Marca esito processing evento Lemon Squeezy (Sprint R-2)               |
+| `lemon_squeezy_apply_subscription_event(...)`                                                | service_role          | Crea/aggiorna/sospende tenant da subscription\_\* events (Sprint R-2)  |
+| `init_upload_version_for_room_device(p_token, p_session_id, ...)`                            | service_role          | PC sala: apre version 'uploading', validazione cross-room (Sprint R-3) |
+| `finalize_upload_version_for_room_device(p_token, p_version_id, p_sha256)`                   | service_role          | PC sala: promuove a 'ready' + supersedes altre versions (Sprint R-3)   |
+| `abort_upload_version_for_room_device(p_token, p_version_id)`                                | service_role          | PC sala: marca version 'failed' su cancel/error client (Sprint R-3)    |
+| `seed_demo_data()` / `clear_demo_data()`                                                     | authenticated         | Onboarding demo (Sprint 6)                                             |
+| `mark_tenant_onboarded()` / `reset_tenant_onboarding()`                                      | authenticated         | Wizard onboarding (Sprint 6)                                           |
+| `tenant_health()`                                                                            | super_admin           | Counter aggregati globali (Sprint 6)                                   |
+| `export_tenant_data()`                                                                       | authenticated (admin) | GDPR export ZIP (Sprint 7)                                             |
+| `tenant_storage_summary()`                                                                   | authenticated         | Threshold warning >=80% / critical >=95% (Sprint 7)                    |
+| `tenant_license_summary()`                                                                   | authenticated         | Threshold info <=30 / warning <=7 / critical <=1 (Sprint 7)            |
+| `create_tenant_data_export()`                                                                | authenticated (admin) | Apre record export, rate-limit 5min (Sprint 7)                         |
+| `list_tenant_data_exports()`                                                                 | authenticated         | Ultimi 10 export del tenant (Sprint 7)                                 |
+| `log_email_sent(...)`                                                                        | service_role          | UPSERT idempotente su `email_log` (Sprint 7)                           |
+| `list_tenants_for_license_warning(min,max,kind)`                                             | super_admin           | Anti-spam scan licenze in scadenza (Sprint 7)                          |
+| `expire_old_data_exports()`                                                                  | super_admin           | Housekeeping ZIP scaduti (Sprint 7)                                    |
+| `list_tenant_activity(p_from, p_to, p_action, p_actor_id, p_entity_type, p_limit, p_offset)` | authenticated (admin) | Audit log paginato + filtri (Sprint 8)                                 |
 
 ### 7.4 Trigger principali
 
@@ -1292,13 +1294,24 @@ Vedi `docs/STATO_E_TODO.md` §0.8 per dettaglio file modificati e azioni manuali
 
 #### Multi-tenant commercial readiness (Sprint R) — DONE
 
-| Sprint | Gap | Nome                                                                                                              | Stato |
-| ------ | --- | ----------------------------------------------------------------------------------------------------------------- | ----- |
-| R-1    | G1  | Super-admin crea tenant + invito primo admin da `/admin/tenants`                                                  | DONE  |
-| R-2    | G2  | Live WORKS APP integrazione bidirezionale (Lemon Squeezy webhook + email admin-invite)                            | DONE  |
-| R-3    | G3  | PC sala upload speaker check-in (Edge `room-device-upload-init/finalize/abort` + `RoomDeviceUploadDropzone`)      | DONE  |
+| Sprint | Gap | Nome                                                                                                         | Stato |
+| ------ | --- | ------------------------------------------------------------------------------------------------------------ | ----- |
+| R-1    | G1  | Super-admin crea tenant + invito primo admin da `/admin/tenants`                                             | DONE  |
+| R-2    | G2  | Live WORKS APP integrazione bidirezionale (Lemon Squeezy webhook + email admin-invite)                       | DONE  |
+| R-3    | G3  | PC sala upload speaker check-in (Edge `room-device-upload-init/finalize/abort` + `RoomDeviceUploadDropzone`) | DONE  |
 
-Famiglia R chiusa: Slide Center e' ora **commercial-ready end-to-end** (purchase Lemon Squeezy → tenant zero-touch → admin invite email → operativita completa con upload da admin/speaker portal/PC sala). Sprint S (file management OneDrive-style, G4-G7) e Sprint T (perf + competitor parity, G8-G10) restano in pianificazione. Vedi `docs/STATO_E_TODO.md` §0.4 per il dettaglio dei 10 GAP e la roadmap.
+Famiglia R chiusa: Slide Center e' ora **commercial-ready end-to-end** (purchase Lemon Squeezy → tenant zero-touch → admin invite email → operativita completa con upload da admin/speaker portal/PC sala).
+
+#### File management OneDrive-style (Sprint S) — IN PROGRESS
+
+| Sprint | Gap | Nome                                                                                              | Stato       |
+| ------ | --- | ------------------------------------------------------------------------------------------------- | ----------- |
+| S-1    | G4  | Drag&drop folder intera in upload admin (`folder-traversal.ts` + `<input webkitdirectory>`)      | DONE        |
+| S-2    | G5  | Drag&drop visivo PC ↔ sale (oggi: solo dropdown)                                                  | pending     |
+| S-3    | G6  | Export ZIP fine evento ordinato per sala/sessione (oggi: piatto)                                  | pending     |
+| S-4    | G7  | Ruolo device "Centro Slide" multi-room (oggi: 1 device = 1 sala)                                  | pending     |
+
+Sprint T (perf + competitor parity, G8-G10) resta in pianificazione. Vedi `docs/STATO_E_TODO.md` §0.4 per il dettaglio dei 10 GAP e la roadmap.
 
 ---
 

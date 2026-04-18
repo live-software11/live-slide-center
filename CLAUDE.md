@@ -177,17 +177,20 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 
 ### Audit chirurgico 18/04/2026 (Sprint R / S / T pianificati)
 
-**Stato:** **audit completato, famiglia Sprint R DONE (3/10 GAP chiusi: G1+G2+G3), S-1 next.**
+**Stato:** **audit completato, famiglia Sprint R DONE + S-1 DONE (4/10 GAP chiusi: G1+G2+G3+G4), S-2 next.**
 
 **Sintesi 10 GAP rilevati** rispetto agli obiettivi prodotto sovrani (parita cloud/desktop, file da locale, versioning chiaro, perf zero impatto, super-admin licenze, OneDrive-style, drag PC, upload da sala, export ordinato, competitor parity):
 
-| Sprint  | Focus                             | Gap addressati    | Tempo dev | Stato                                      |
-| ------- | --------------------------------- | ----------------- | --------- | ------------------------------------------ |
-| **R-1** | Super-admin crea tenant + licenze | G1                | 1.5g      | **DONE 18/04/2026 (vedi §0.9)**            |
-| **R-2** | Lemon Squeezy webhook + email     | G2                | 2g        | **DONE 18/04/2026 (vedi §0.10)**           |
-| **R-3** | PC sala upload speaker check-in   | G3                | 2g        | **DONE 18/04/2026 (vedi §0.11)**           |
-| **S**   | OneDrive-style file management    | G4 + G5 + G6 + G7 | 5g        | pending (evento DHS reale > 3 sale)        |
-| **T**   | Performance + competitor parity   | G8 + G9 + G10     | 4g        | pending (match feature PreSeria/Slidecrew) |
+| Sprint  | Focus                                     | Gap addressati  | Tempo dev | Stato                                      |
+| ------- | ----------------------------------------- | --------------- | --------- | ------------------------------------------ |
+| **R-1** | Super-admin crea tenant + licenze         | G1              | 1.5g      | **DONE 18/04/2026 (vedi §0.9)**            |
+| **R-2** | Lemon Squeezy webhook + email             | G2              | 2g        | **DONE 18/04/2026 (vedi §0.10)**           |
+| **R-3** | PC sala upload speaker check-in           | G3              | 2g        | **DONE 18/04/2026 (vedi §0.11)**           |
+| **S-1** | Drag&drop folder admin OneDrive-style     | G4              | 1g        | **DONE 18/04/2026 (vedi §0.12)**           |
+| **S-2** | Drag&drop visivo PC ↔ sale                | G5              | 1g        | next (board allocation visuale)            |
+| **S-3** | Export ZIP ordinato per sala/sessione     | G6              | 0.5g      | pending                                    |
+| **S-4** | Ruolo device "Centro Slide" multi-room    | G7              | 1.5g      | pending                                    |
+| **T**   | Performance + competitor parity           | G8 + G9 + G10   | 4g        | pending (match feature PreSeria/Slidecrew) |
 
 **Dettaglio dei 10 GAP, file coinvolti, soluzione tecnica, decisioni richieste ad Andrea:** `docs/STATO_E_TODO.md` § 0.
 
@@ -276,6 +279,35 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 - Multi-file batch upload da PC sala → R-3.b deferred (95% relatori caricano 1 file, +0.5g).
 - Selettore manuale di sessione (oggi sempre sulla `current_session`) → R-3.c deferred (+0.5g).
 - Dialog conferma "stai sostituendo file dell'admin" → versioning DB gia' gestisce, UI futura (+0.5g).
+
+### Sprint S-1 (G4) — Drag&drop folder admin OneDrive-style (DONE 18/04/2026)
+
+**Stato:** **completato e verde.** L'admin puo' trascinare una **cartella intera** (con sotto-cartelle) sulla zona drop di una sessione → tutti i file vengono uploadati in coda mantenendo la struttura come prefisso del filename. UX "OneDrive-style" senza modifiche di schema DB.
+
+| Area              | Cosa                                                                                                                                                                                                                                                                                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Utility           | `apps/web/src/features/presentations/lib/folder-traversal.ts` — `extractFilesFromDataTransfer` (drop) + `extractFilesFromInputDirectory` (file picker). Traversal ricorsivo BFS via `webkitGetAsEntry` + `FileSystemDirectoryEntry.createReader().readEntries()` in batch. Limiti hard 500 file / 10 livelli depth / 255 char filename. Dedup + skip vuoti. |
+| UI dropzone       | `apps/web/src/features/presentations/components/SessionFilesPanel.tsx` — bottone "Sfoglia cartella" (icona `Folder`) + secondo input `<input webkitdirectory directory>` (cast Record<string,string> per types React 19). `onDrop` riscritto: chiama sempre `extractFilesFromDataTransfer`, branch su `containedFolders`.                                  |
+| Feedback UX       | Box transient (5s) sotto dropzone: "{{count}} file aggiunti dalla cartella «{{folder}}»" + warning aggregati (vuoti/duplicati/nameTooLong/truncated). Caso empty: "La cartella «X» e' vuota o non contiene file validi".                                                                                                                                       |
+| Filename strategy | Path relativo preservato come prefisso (`Conferenza-2026/Sala-1/intro.pptx`). Se path > 255 char, tronca segmenti iniziali con `.../` + nome+estensione finale. Se anche solo basename > 255, scarta il file e conta in `folderWarnNameLen`.                                                                                                                  |
+| Schema DB         | **Invariato.** RPC `init_upload_version_for_session` accettava gia' filename con "/". Sanitizzazione regex `[^A-Za-z0-9._-]` applicata solo a `storage_key`, `file_name` viaggia trasparente.                                                                                                                                                                |
+| i18n              | 10 nuove chiavi `sessionFiles.*` IT/EN parity (1217/1217 totali).                                                                                                                                                                                                                                                                                            |
+
+**Quality gates verdi:** `pnpm --filter @slidecenter/web typecheck` (0 err), `lint` (0 err), `build` (1.28s). i18n parity script PowerShell PASS.
+
+**Sicurezza/Performance:**
+
+- `MAX_FILES_PER_DROP=500` previene freeze da drop accidentale (es. "Documents/" intera).
+- `MAX_TRAVERSAL_DEPTH=10` previene cycle infiniti (anche se browser non segue symlink).
+- Sovereign rule #2 rispettata: file partono dal disco locale dell'admin, vanno a Storage via TUS, poi sync ai PC sala.
+- Idempotenza: ogni file = 1 `version_id` distinto in coda (concurrency=1), no race possibile.
+
+**Setup manuale Andrea:** **NESSUNO**. Modifica solo client-side, nessuna migration, nessun deploy Edge.
+
+**Cosa NON e' incluso:**
+
+- Tree-view preview pre-upload (anteprima struttura cartella prima di confermare) → S-1.b deferred (+0.5g).
+- Filtro estensione file (oggi tutti i tipi vanno in coda) → S-1.c deferred (+0.2g, banale).
 
 ### Hardening Supabase + Vercel (Sprint Q+1) — DONE 18/04/2026
 

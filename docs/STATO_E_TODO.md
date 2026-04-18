@@ -3,11 +3,11 @@
 > **Documento operativo gemello di `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare, in ordine di priorita. Per "cosa fa il prodotto" e "come e fatto" → architettura.
 >
-> **Versione:** 2.4 — 18 aprile 2026 (post-Sprint R-3)
+> **Versione:** 2.5 — 18 aprile 2026 (post-Sprint S-1)
 > **Owner:** Andrea Rizzari
-> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**.
+> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**.
 >
-> **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 3/10 chiusi (G1 in R-1, G2 in R-2, G3 in R-3) → completata FAMIGLIA R commercial readiness.**
+> **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 4/10 chiusi (G1 in R-1, G2 in R-2, G3 in R-3, G4 in S-1) → completata FAMIGLIA R + avviata FAMIGLIA S.**
 >
 > **Hardening Sprint Q+1 (§ 0.8):** completato hardening backend (Supabase RLS least-privilege + 7 indici hot-path + PKCE + CSP + CI types drift + auto-deploy Edge Functions).
 >
@@ -15,7 +15,9 @@
 >
 > **Sprint R-2 (§ 0.10):** integrazione bidirezionale Lemon Squeezy → cliente paga su Live WORKS APP, webhook crea AUTOMATICAMENTE il tenant Slide Center + invia email all'admin (template `admin-invite` IT/EN). Idempotenza con `lemon_squeezy_event_log`, mapping configurabile `lemon_squeezy_plan_mapping`.
 >
-> **Sprint R-3 (§ 0.11):** relatore last-minute carica/sostituisce file dal PC sala. Auth via `device_token` (no JWT), upload diretto a Storage via signed URL (bypass limite 6MB Edge), broadcast realtime → admin live view aggiornata in <1s, activity_log con `actor='device'` + `actor_name='PC sala N'`. Verde per Sprint S-1 (drag&drop folder admin, G4) quando vuoi.
+> **Sprint R-3 (§ 0.11):** relatore last-minute carica/sostituisce file dal PC sala. Auth via `device_token` (no JWT), upload diretto a Storage via signed URL (bypass limite 6MB Edge), broadcast realtime → admin live view aggiornata in <1s, activity_log con `actor='device'` + `actor_name='PC sala N'`.
+>
+> **Sprint S-1 (§ 0.12):** admin puo' droppare cartelle intere (con sotto-cartelle) in upload sessione, OneDrive-style. Traversal ricorsivo `webkitGetAsEntry` + `<input webkitdirectory>`, max 500 file/depth 10, struttura preservata come prefisso filename. Zero modifiche schema DB. Verde per Sprint S-2 (drag&drop visivo PC ↔ sale, G5) quando vuoi.
 
 ---
 
@@ -26,6 +28,7 @@
    - 0.9 [Sprint R-1 — Super-admin crea tenant + licenze (DONE)](#09-sprint-r-1--super-admin-crea-tenant--licenze-done-18042026)
    - 0.10 [Sprint R-2 — Lemon Squeezy webhook + email admin-invite (DONE)](#010-sprint-r-2--lemon-squeezy-webhook--email-admin-invite-done-18042026)
    - 0.11 [Sprint R-3 — PC sala upload speaker check-in (DONE)](#011-sprint-r-3--pc-sala-upload-speaker-check-in-done-18042026)
+   - 0.12 [Sprint S-1 — Drag&drop folder intera in upload admin (DONE)](#012-sprint-s-1--dragdrop-folder-intera-in-upload-admin-done-18042026)
 1. [Stato attuale (tutto DONE)](#1-stato-attuale-tutto-done)
 2. [Cose da fare ORA (azioni esterne Andrea, NON automatizzabili)](#2-cose-da-fare-ora-azioni-esterne-andrea-non-automatizzabili)
 3. [Field test desktop (quando vorrai farlo)](#3-field-test-desktop-quando-vorrai-farlo)
@@ -59,7 +62,7 @@
 | G1  | Super-admin non puo' creare licenze tenant da app                 | **HIGH**   | `apps/web/src/features/admin/` + RPC SECURITY DEFINER                               | **R-1** | **DONE** ✅ |
 | G2  | Live WORKS APP integrazione = solo link esterno (no parita dati)  | **HIGH**   | `apps/web/src/features/billing/` + webhook Lemon Squeezy condiviso                  | **R-2** | **DONE** ✅ |
 | G3  | PC sala NON puo' caricare/sovrascrivere file (read-only)          | **HIGH**   | `apps/web/src/features/devices/RoomPlayerView.tsx`                                  | **R-3** | **DONE** ✅ |
-| G4  | Drag&drop di **folder intera** in upload admin assente            | **MEDIUM** | `apps/web/src/features/presentations/components/SessionFilesPanel.tsx`              | **S-1** | pending     |
+| G4  | Drag&drop di **folder intera** in upload admin assente            | **MEDIUM** | `apps/web/src/features/presentations/components/SessionFilesPanel.tsx`              | **S-1** | **DONE** ✅ |
 | G5  | Drag&drop visivo PC ↔ sale assente (solo dropdown)                | **MEDIUM** | `apps/web/src/features/devices/components/DeviceList.tsx` + nuova `RoomAssignBoard` | **S-2** | pending     |
 | G6  | Export ZIP fine evento piatto (no struttura sala/sessione)        | **MEDIUM** | `apps/web/src/features/events/lib/event-export.ts` `buildEventSlidesZip`            | **S-3** | pending     |
 | G7  | "Centro Slide" multi-room = ruolo device assente                  | **MEDIUM** | DB schema `paired_devices.role` + `useFileSync` multi-room manifest                 | **S-4** | pending     |
@@ -752,30 +755,30 @@ GREEN LIGHT → R-2 DONE. R-3 anch'esso DONE: vedi §0.11.
 
 #### 0.11.1 Cosa ho fatto (codice committato)
 
-| Layer            | File                                                                                                | Cosa fa                                                                                                                                                                                                |
-| ---------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **DB enum**      | `supabase/migrations/20260418080000_room_device_upload_enum.sql`                                    | Aggiunge `'room_device'` a `upload_source` enum + `'device'` a `actor_type`. Migration separata per vincolo PostgreSQL: ADD VALUE non puo' coesistere con DDL che lo usa nella stessa transazione.     |
-| **DB RPC**       | `supabase/migrations/20260418080100_room_device_upload_rpcs.sql`                                    | 3 RPC `SECURITY DEFINER` `init/finalize/abort_upload_version_for_room_device(p_token, ...)`: auth via hash token, validazione cross-room, quota tenant, file size. `GRANT EXECUTE` solo a service_role.|
-| **Edge init**    | `supabase/functions/room-device-upload-init/index.ts`                                               | Riceve device_token + metadata file → chiama RPC init → genera signed upload URL Storage (validita 2h). Returns `signed_url` al client.                                                                |
-| **Edge finalize**| `supabase/functions/room-device-upload-finalize/index.ts`                                           | Riceve device_token + version_id + sha256 → chiama RPC finalize → broadcast Realtime `room_device_upload_completed` su `room:<id>`.                                                                    |
-| **Edge abort**   | `supabase/functions/room-device-upload-abort/index.ts`                                              | Cleanup version 'uploading' → 'failed' su cancellazione client/errore network.                                                                                                                         |
-| **Config**       | `supabase/config.toml`                                                                              | Registra le 3 nuove Edge Functions con `verify_jwt = false` (auth e' via device_token, no JWT utente).                                                                                                 |
-| **Types**        | `packages/shared/src/types/database.ts`                                                             | Aggiunti `room_device`/`device` agli enum + signature delle 3 RPC.                                                                                                                                     |
-| **Client SDK**   | `apps/web/src/features/devices/repository.ts`                                                       | `invokeRoomDeviceUploadInit/Finalize/Abort` — wrapper fetch verso Edge Functions.                                                                                                                      |
-| **React hook**   | `apps/web/src/features/devices/hooks/useRoomDeviceUpload.ts`                                        | Orchestratore: init → PUT XHR diretto a Storage (con progress tracking) → SHA-256 in parallelo via `computeFileSha256` → finalize. Cancellazione + cleanup orfani su unmount.                          |
-| **UI dropzone**  | `apps/web/src/features/devices/components/RoomDeviceUploadDropzone.tsx`                             | Componente: drag&drop overlay + button "Seleziona file" + progress bar + toast success/error. Visibile solo se `room_state.current_session != null`.                                                   |
-| **UI integrazione** | `apps/web/src/features/devices/RoomPlayerView.tsx`                                               | Inserisce `<RoomDeviceUploadDropzone>` sotto `<StorageUsagePanel>`. On success → `refreshNow()` → file appare in lista locale.                                                                         |
-| **i18n**         | `packages/shared/src/i18n/locales/{it,en}.json`                                                     | 18 nuove chiavi sotto `roomPlayer.upload.*` (title, hint, button, errori mappati IT/EN). Parita ~1153 chiavi totali.                                                                                   |
+| Layer               | File                                                                    | Cosa fa                                                                                                                                                                                                 |
+| ------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **DB enum**         | `supabase/migrations/20260418080000_room_device_upload_enum.sql`        | Aggiunge `'room_device'` a `upload_source` enum + `'device'` a `actor_type`. Migration separata per vincolo PostgreSQL: ADD VALUE non puo' coesistere con DDL che lo usa nella stessa transazione.      |
+| **DB RPC**          | `supabase/migrations/20260418080100_room_device_upload_rpcs.sql`        | 3 RPC `SECURITY DEFINER` `init/finalize/abort_upload_version_for_room_device(p_token, ...)`: auth via hash token, validazione cross-room, quota tenant, file size. `GRANT EXECUTE` solo a service_role. |
+| **Edge init**       | `supabase/functions/room-device-upload-init/index.ts`                   | Riceve device_token + metadata file → chiama RPC init → genera signed upload URL Storage (validita 2h). Returns `signed_url` al client.                                                                 |
+| **Edge finalize**   | `supabase/functions/room-device-upload-finalize/index.ts`               | Riceve device_token + version_id + sha256 → chiama RPC finalize → broadcast Realtime `room_device_upload_completed` su `room:<id>`.                                                                     |
+| **Edge abort**      | `supabase/functions/room-device-upload-abort/index.ts`                  | Cleanup version 'uploading' → 'failed' su cancellazione client/errore network.                                                                                                                          |
+| **Config**          | `supabase/config.toml`                                                  | Registra le 3 nuove Edge Functions con `verify_jwt = false` (auth e' via device_token, no JWT utente).                                                                                                  |
+| **Types**           | `packages/shared/src/types/database.ts`                                 | Aggiunti `room_device`/`device` agli enum + signature delle 3 RPC.                                                                                                                                      |
+| **Client SDK**      | `apps/web/src/features/devices/repository.ts`                           | `invokeRoomDeviceUploadInit/Finalize/Abort` — wrapper fetch verso Edge Functions.                                                                                                                       |
+| **React hook**      | `apps/web/src/features/devices/hooks/useRoomDeviceUpload.ts`            | Orchestratore: init → PUT XHR diretto a Storage (con progress tracking) → SHA-256 in parallelo via `computeFileSha256` → finalize. Cancellazione + cleanup orfani su unmount.                           |
+| **UI dropzone**     | `apps/web/src/features/devices/components/RoomDeviceUploadDropzone.tsx` | Componente: drag&drop overlay + button "Seleziona file" + progress bar + toast success/error. Visibile solo se `room_state.current_session != null`.                                                    |
+| **UI integrazione** | `apps/web/src/features/devices/RoomPlayerView.tsx`                      | Inserisce `<RoomDeviceUploadDropzone>` sotto `<StorageUsagePanel>`. On success → `refreshNow()` → file appare in lista locale.                                                                          |
+| **i18n**            | `packages/shared/src/i18n/locales/{it,en}.json`                         | 18 nuove chiavi sotto `roomPlayer.upload.*` (title, hint, button, errori mappati IT/EN). Parita ~1153 chiavi totali.                                                                                    |
 
 #### 0.11.2 Quality gates verdi
 
-| Check                                | Risultato | Note                                                                                                                |
-| ------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------- |
-| `pnpm --filter @slidecenter/web typecheck` | ✅ 0 err   | `tsc --noEmit -p tsconfig.app.json` clean.                                                                           |
-| `pnpm --filter @slidecenter/web lint`      | ✅ 0 err   | ESLint flat config, 0 warning.                                                                                       |
-| `pnpm --filter @slidecenter/web build`     | ✅ OK      | Bundle `RoomPlayerView` = 52.24 kB (gzip 14 kB), +6 kB rispetto a pre-R3. PWA precache 99 entries / 3.28 MB.        |
-| Migration syntax check               | ✅ OK      | Migration enum + RPC compatibili con PostgreSQL 16 Supabase managed.                                                 |
-| i18n parity IT/EN                    | ✅ OK      | Tutte le 18 chiavi nuove presenti in entrambi i locale.                                                              |
+| Check                                      | Risultato | Note                                                                                                         |
+| ------------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------ |
+| `pnpm --filter @slidecenter/web typecheck` | ✅ 0 err  | `tsc --noEmit -p tsconfig.app.json` clean.                                                                   |
+| `pnpm --filter @slidecenter/web lint`      | ✅ 0 err  | ESLint flat config, 0 warning.                                                                               |
+| `pnpm --filter @slidecenter/web build`     | ✅ OK     | Bundle `RoomPlayerView` = 52.24 kB (gzip 14 kB), +6 kB rispetto a pre-R3. PWA precache 99 entries / 3.28 MB. |
+| Migration syntax check                     | ✅ OK     | Migration enum + RPC compatibili con PostgreSQL 16 Supabase managed.                                         |
+| i18n parity IT/EN                          | ✅ OK     | Tutte le 18 chiavi nuove presenti in entrambi i locale.                                                      |
 
 #### 0.11.3 Flusso end-to-end (relatore ultimo-minuto)
 
@@ -808,21 +811,21 @@ GREEN LIGHT → R-2 DONE. R-3 anch'esso DONE: vedi §0.11.
 
 #### 0.11.4 Sicurezza & invarianti
 
-| Invariante                                                                                                                         | Implementato in                                                                          |
-| ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Solo PC sala con `device_token` valido puo' chiamare le Edge.                                                                      | RPC `init/finalize/abort` validano `pair_token_hash`. Edge `verify_jwt = false`.        |
-| Solo PC con `room_id NOT NULL` puo' caricare (no device "spaiati").                                                                | RPC init: `IF v_device.room_id IS NULL THEN RAISE 'device_no_room_assigned'`.           |
-| Cross-room non ammesso (PC sala A non puo' caricare per sala B).                                                                  | RPC init: `IF v_session.room_id IS DISTINCT FROM v_device.room_id THEN RAISE`.          |
-| Cross-tenant non ammesso.                                                                                                          | RPC init: tutte le SELECT joined su `tenant_id = v_device.tenant_id`.                    |
-| Tenant sospeso non puo' caricare.                                                                                                  | RPC init+finalize: `IF v_tenant_suspended THEN RAISE 'tenant_suspended'`.                |
-| Evento closed/archived non puo' ricevere upload.                                                                                   | RPC init: `IF v_event_status IN ('closed','archived') THEN RAISE 'event_closed'`.        |
-| File size rispettato (cap del piano tenant).                                                                                       | RPC init: `tenant_max_file_size(v_device.tenant_id)`.                                    |
-| Quota storage tenant rispettata.                                                                                                   | RPC init: `IF (storage_used + p_size) > storage_limit THEN RAISE 'storage_quota_exceeded'`. |
-| Service-role-only RPCs (client web NON puo' chiamarle direttamente, solo via Edge Function).                                       | `REVOKE ALL FROM PUBLIC; GRANT EXECUTE TO service_role;`                                 |
-| Cleanup orfani su cancel/error/unmount.                                                                                            | Hook `useRoomDeviceUpload`: chiama `invokeRoomDeviceUploadAbort` in tutti i cleanup paths.|
-| Audit log attribuibile: `actor='device'`, `actor_id=device_id`, `actor_name='PC sala N'`.                                          | RPC init+finalize: insert in `activity_log` con tutti i campi.                          |
-| Hash SHA-256 validato lato server.                                                                                                 | RPC finalize: regex `'^[0-9a-f]{64}$'` su `p_sha256`.                                    |
-| File "fantasma" impossibile (verifica oggetto Storage esistente prima di promuovere version a 'ready').                            | RPC finalize: `SELECT FROM storage.objects WHERE bucket='presentations' AND name=storage_key`. |
+| Invariante                                                                                              | Implementato in                                                                                |
+| ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Solo PC sala con `device_token` valido puo' chiamare le Edge.                                           | RPC `init/finalize/abort` validano `pair_token_hash`. Edge `verify_jwt = false`.               |
+| Solo PC con `room_id NOT NULL` puo' caricare (no device "spaiati").                                     | RPC init: `IF v_device.room_id IS NULL THEN RAISE 'device_no_room_assigned'`.                  |
+| Cross-room non ammesso (PC sala A non puo' caricare per sala B).                                        | RPC init: `IF v_session.room_id IS DISTINCT FROM v_device.room_id THEN RAISE`.                 |
+| Cross-tenant non ammesso.                                                                               | RPC init: tutte le SELECT joined su `tenant_id = v_device.tenant_id`.                          |
+| Tenant sospeso non puo' caricare.                                                                       | RPC init+finalize: `IF v_tenant_suspended THEN RAISE 'tenant_suspended'`.                      |
+| Evento closed/archived non puo' ricevere upload.                                                        | RPC init: `IF v_event_status IN ('closed','archived') THEN RAISE 'event_closed'`.              |
+| File size rispettato (cap del piano tenant).                                                            | RPC init: `tenant_max_file_size(v_device.tenant_id)`.                                          |
+| Quota storage tenant rispettata.                                                                        | RPC init: `IF (storage_used + p_size) > storage_limit THEN RAISE 'storage_quota_exceeded'`.    |
+| Service-role-only RPCs (client web NON puo' chiamarle direttamente, solo via Edge Function).            | `REVOKE ALL FROM PUBLIC; GRANT EXECUTE TO service_role;`                                       |
+| Cleanup orfani su cancel/error/unmount.                                                                 | Hook `useRoomDeviceUpload`: chiama `invokeRoomDeviceUploadAbort` in tutti i cleanup paths.     |
+| Audit log attribuibile: `actor='device'`, `actor_id=device_id`, `actor_name='PC sala N'`.               | RPC init+finalize: insert in `activity_log` con tutti i campi.                                 |
+| Hash SHA-256 validato lato server.                                                                      | RPC finalize: regex `'^[0-9a-f]{64}$'` su `p_sha256`.                                          |
+| File "fantasma" impossibile (verifica oggetto Storage esistente prima di promuovere version a 'ready'). | RPC finalize: `SELECT FROM storage.objects WHERE bucket='presentations' AND name=storage_key`. |
 
 #### 0.11.5 Osservazioni architetturali
 
@@ -842,13 +845,13 @@ GREEN LIGHT → R-2 DONE. R-3 anch'esso DONE: vedi §0.11.
 
 > **Solo dopo aver fatto deploy delle Edge Function:**
 
-| #   | Azione                                                                                                                                | Tempo |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| 1   | Apri terminale nella root del progetto.                                                                                               | -     |
-| 2   | Login Supabase: `supabase login` (se non gia' loggato).                                                                               | 1 min |
-| 3   | Apply migrations: `supabase db push` → applica le 2 nuove migration (enum + RPC).                                                     | 1 min |
-| 4   | Deploy Edge: `supabase functions deploy room-device-upload-init room-device-upload-finalize room-device-upload-abort`                | 2 min |
-| 5   | (Opzionale) Test: apri `RoomPlayerView` su un PC sala paired, verifica che sia visibile la dropzone "Carica file in sessione".         | 1 min |
+| #   | Azione                                                                                                                         | Tempo |
+| --- | ------------------------------------------------------------------------------------------------------------------------------ | ----- |
+| 1   | Apri terminale nella root del progetto.                                                                                        | -     |
+| 2   | Login Supabase: `supabase login` (se non gia' loggato).                                                                        | 1 min |
+| 3   | Apply migrations: `supabase db push` → applica le 2 nuove migration (enum + RPC).                                              | 1 min |
+| 4   | Deploy Edge: `supabase functions deploy room-device-upload-init room-device-upload-finalize room-device-upload-abort`          | 2 min |
+| 5   | (Opzionale) Test: apri `RoomPlayerView` su un PC sala paired, verifica che sia visibile la dropzone "Carica file in sessione". | 1 min |
 
 #### 0.11.8 Semaforo VERDE per Sprint S-1
 
@@ -865,6 +868,68 @@ S-1 obiettivo: l'admin puo' droppare in `SessionFilesPanel` una **cartella inter
 - **Notifica realtime regia** in <1s (zero polling extra).
 - **Resilienza network drop** (cleanup orfani, retry idempotente).
 - **Scalabilita** (file 500MB+ via signed URL Storage, no bottleneck Edge).
+
+---
+
+### 0.12 Sprint S-1 — Drag&drop folder intera in upload admin (DONE 18/04/2026)
+
+**Obiettivo prodotto:** chiudere G4 — l'admin del centro slide deve poter trascinare una **cartella intera** (con sotto-cartelle) nel pannello upload di una sessione, e tutti i file vengono caricati in coda mantenendo la struttura come prefisso del filename. UX "OneDrive style" senza modifiche di schema DB. Prima si potevano droppare solo file singoli o multipli (no cartelle).
+
+#### 0.12.1 Cosa ho fatto (codice committato)
+
+**Nuova utility client** `apps/web/src/features/presentations/lib/folder-traversal.ts`:
+
+- `extractFilesFromDataTransfer(dt: DataTransfer): Promise<FolderTraversalResult>` — gestisce drop misti (file + cartelle nello stesso drop). Step 1 SINCRONO raccoglie tutti gli `webkitGetAsEntry()` (devono essere letti subito o il browser invalida gli items dopo il primo microtask). Step 2 ASYNC traversal ricorsivo BFS via `FileSystemDirectoryEntry.createReader()` con `readEntries()` in batch (~100 entry per chiamata, loop fino a empty).
+- `extractFilesFromInputDirectory(files: FileList): FolderTraversalResult` — gestisce il selettore `<input webkitdirectory>` (i `File` arrivano gia' con `webkitRelativePath` impostato).
+- `rebuildFileWithRelativePath(file, relativePath)` — ricostruisce un nuovo `File` con `name = relativePath` (es. "Conferenza-2026/Sala-1/Mario-Rossi.pptx") preservando bytes/type/lastModified. Se il path supera 255 char, tronca i segmenti dall'inizio mantenendo nome+estensione finale (con prefisso `.../`); se anche solo il filename finale supera 255 char, scarta il file.
+- **Safety limits**: `MAX_FILES_PER_DROP=500`, `MAX_TRAVERSAL_DEPTH=10`, `MAX_FILENAME_LEN=255`. Limiti UI esposti via `FOLDER_TRAVERSAL_LIMITS` per messaggi utente.
+- **Dedup** su `relativePath.toLowerCase()`, skip file `size=0`, conteggi separati per UI (vuoti/duplicati/nameTooLong/truncated).
+
+**UI `apps/web/src/features/presentations/components/SessionFilesPanel.tsx`**:
+
+- Nuovo bottone **"Sfoglia cartella"** (icona `Folder`) accanto a "Scegli file", con `<input type="file" webkitdirectory directory>` (entrambi gli attributi attivi via spread cast a `Record<string,string>` perche' i types React 19 non includono `webkitdirectory`).
+- `onDrop` riscritto: chiama SEMPRE `extractFilesFromDataTransfer(dt)` (gestisce sia file che cartelle in un'unica utility). Se `containedFolders === true` mostra feedback verboso, altrimenti accoda silenziosamente come prima.
+- Nuovo box **feedback transient** (5s) sotto la dropzone: mostra "{{count}} file aggiunti dalla cartella «{{folder}}»" + sub-list di warning aggregati (vuoti/duplicati/nameTooLong/truncated). Caso `empty`: "La cartella «X» e' vuota o non contiene file validi".
+- Hint zona drop aggiornato: "Trascina file o cartelle intere (max 500 file per drop). La struttura delle sottocartelle viene preservata nei nomi file."
+
+**i18n IT/EN** (parita 1217/1217 keys, +10 nuove sotto `sessionFiles`):
+
+- `dropHintFolder`, `pickFolder`, `folderEnqueued`, `folderEnqueuedNoName`, `folderEmpty`, `folderEmptyNoName`, `folderWarnEmpty`, `folderWarnDup`, `folderWarnNameLen`, `folderWarnTruncated`.
+
+**Schema DB invariato**: nessuna migration. La RPC `init_upload_version_for_session` accettava gia' filename con "/" (la sanitizzazione regex `[^A-Za-z0-9._-]` viene applicata solo alla `storage_key`, non a `file_name`). Quindi il path relativo viaggia trasparente come metadata e appare nella UI come "Conferenza-2026/Sala-1/intro.pptx".
+
+#### 0.12.2 Quality gates
+
+- `pnpm --filter @slidecenter/web typecheck` — **0 errori** (tsc strict).
+- `pnpm --filter @slidecenter/web lint` — **0 errori, 0 warning** (eslint).
+- `pnpm --filter @slidecenter/web build` — **OK**, bundle delta trascurabile (folder-traversal e' code-split nel chunk EventDetailView/SessionFilesPanel).
+- i18n parity script PowerShell — **PASS** (1217 = 1217).
+- Manual: drop di cartella `TestFolder/sub1/file1.pptx` + `TestFolder/sub2/file2.pdf` → la coda mostra "TestFolder/sub1/file1.pptx" e "TestFolder/sub2/file2.pdf" come riga di upload, file caricati su Storage con storage_key sanitizzata e file_name preservato.
+
+#### 0.12.3 Browser compatibility
+
+- **Chrome/Edge/Safari/Firefox** moderni: drag&drop folder OK via `webkitGetAsEntry()` + `<input webkitdirectory>`.
+- **Browser legacy** (IE/vecchi mobile): fallback automatico a `dt.files` (file singoli, no cartelle). Nessuna regressione.
+- **Mobile**: `webkitdirectory` e' supportato solo su alcuni browser desktop; su mobile si vede comunque "Scegli file" (selettore standard) e "Sfoglia cartella" (apre file browser standard senza filtro). Non e' un caso d'uso primario (admin desktop).
+
+#### 0.12.4 Limiti dichiarati e roadmap
+
+- **Hard limit 500 file per drop**: scelta deliberata per evitare freeze del browser su drop accidentale di "Documents/" (milioni di file). Se si supera, l'utente vede "Solo i primi 500 file accodati. Riprova in batch piu' piccoli." e puo' droppare i restanti in piu' tornate.
+- **Hard limit 10 livelli depth**: protezione anti-cycle (anche se i FS API browser non seguono symlink). Cartelle piu' profonde vengono troncate silenziosamente sotto il livello 10.
+- **Filename max 255 char**: vincolo schema DB (`presentation_versions.file_name TEXT 255`, check RPC `filename_too_long`). La utility tronca segmenti iniziali con prefisso `.../`. Se anche solo il filename base supera 255 char (rarissimo), il file viene scartato e contato in `folderWarnNameLen`.
+- **No tree-view preview pre-upload**: scelta MVP. Per ora si carica subito e si vede in coda. **R-1 deferred** se Andrea vorra' un dialog "anteprima struttura cartella prima di confermare" → richiede ~0.5g extra.
+- **No filtro estensione**: tutti i file vanno in coda (la RPC accetta qualsiasi MIME). Se si vuole filtrare solo `.pptx/.pdf/.key` si puo' fare lato client; per ora lasciamo aperto perche' i centri slide usano spesso anche video MP4 / immagini PNG.
+
+#### 0.12.5 Architectural observations
+
+- **Sovereign rule #2** rispettata: i file partono dal disco locale (drag dal filesystem dell'admin), passano via TUS upload diretto a Supabase Storage, e vengono poi sincronizzati nei PC sala via il flusso esistente `useFileSync`. Nessuna modifica al pattern "file partono SEMPRE da locale".
+- **Idempotenza upload**: ogni file droppato genera un `version_id` distinto in coda (concurrency=1 in `useUploadQueue`), quindi il drop di cartella e' equivalente a N drag&drop sequenziali — niente race possibile.
+- **Compatibilita backend**: zero modifiche a Supabase (no migrations, no Edge Functions). L'unica novita' e' il filename con "/" salvato come metadata.
+- **Osservabilita**: i file caricati da cartella appaiono nell'`activity_log` con `action='upload_init_session'` e `metadata.file_name` contiene il path completo, quindi audit trail e' completo.
+
+#### 0.12.6 Setup manuale richiesto
+
+**Nessuno**. Modifica solo client; non servono variabili env ne migration ne deploy Edge.
 
 ---
 
