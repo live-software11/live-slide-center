@@ -25,6 +25,31 @@
 -- =============================================================================
 
 -- ────────────────────────────────────────────────────────────────────────────
+-- 0) Helper auth: app_user_role() — manca nel DB attuale, viene aggiunto qui
+--    perche' usato da policy SELECT e RPC fetch_device_metrics_for_event.
+--    NB: ritorna user_role o NULL (per service_role / utenti senza riga in
+--    public.users). I controlli dei chiamanti devono gestire NULL.
+-- ────────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.app_user_role()
+RETURNS public.user_role
+LANGUAGE sql
+STABLE
+SET search_path = public
+AS $$
+  SELECT u.role
+    FROM public.users u
+   WHERE u.id = (auth.jwt() ->> 'sub')::uuid
+     AND u.tenant_id = public.app_tenant_id()
+   LIMIT 1;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.app_user_role() TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.app_user_role() FROM PUBLIC, anon;
+
+COMMENT ON FUNCTION public.app_user_role() IS
+  'Sprint T-2: ritorna il ruolo user_role del chiamante nel suo tenant corrente, NULL se non trovato.';
+
+-- ────────────────────────────────────────────────────────────────────────────
 -- 1) Tabella device_metric_pings
 -- ────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.device_metric_pings (

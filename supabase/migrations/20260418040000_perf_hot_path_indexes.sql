@@ -60,9 +60,11 @@ CREATE INDEX IF NOT EXISTS idx_activity_tenant_entity_date ON public.activity_lo
 -- Idempotente: il token e' UNIQUE gia' a livello colonna in init_slide_center.
 -- Quindi questo INDEX e' un duplicato logico, lo skippo per non sprecare disco.
 -- ── 8) Tenant data exports: storico per tenant ──────────────────────────────
--- Query: SELECT * FROM tenant_data_exports WHERE tenant_id=$1 ORDER BY created_at DESC LIMIT 10
+-- Query: SELECT * FROM tenant_data_exports WHERE tenant_id=$1 ORDER BY requested_at DESC LIMIT 10
 -- File: supabase/migrations/20260417140000_sprint7_operations.sql RPC list_tenant_data_exports
-CREATE INDEX IF NOT EXISTS idx_tenant_data_exports_tenant_created ON public.tenant_data_exports(tenant_id, created_at DESC);
+-- Schema reale (vedi 20260417140000_sprint7_operations.sql): la colonna timestamp e' `requested_at`,
+-- non `created_at`. Fix audit Q+1.5 18/04/2026.
+CREATE INDEX IF NOT EXISTS idx_tenant_data_exports_tenant_requested ON public.tenant_data_exports(tenant_id, requested_at DESC);
 -- ── 9) Email log: idempotency lookup ────────────────────────────────────────
 -- Query: SELECT 1 FROM email_log WHERE idempotency_key=$1
 -- File: supabase/functions/email-send/index.ts
@@ -78,4 +80,4 @@ COMMENT ON INDEX public.idx_events_tenant_status_date IS 'Hot path: dashboard ev
 COMMENT ON INDEX public.idx_paired_devices_online_seen IS 'Hot path: heartbeat conta device online (Sprint hardening Q+1).';
 COMMENT ON INDEX public.idx_pairing_codes_tenant_active IS 'Hot path: dashboard codici pairing attivi per tenant (Sprint hardening Q+1).';
 COMMENT ON INDEX public.idx_activity_tenant_entity_date IS 'Hot path: AdminAuditView paginazione per entity_type (Sprint hardening Q+1).';
-COMMENT ON INDEX public.idx_tenant_data_exports_tenant_created IS 'Hot path: storico GDPR export per tenant (Sprint hardening Q+1).';
+COMMENT ON INDEX public.idx_tenant_data_exports_tenant_requested IS 'Hot path: storico GDPR export per tenant (Sprint hardening Q+1).';

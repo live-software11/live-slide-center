@@ -334,7 +334,7 @@ BEGIN
   WHERE id = v_pairing.id;
 
   SELECT name INTO v_room_name FROM public.rooms WHERE id = v_pairing.room_id LIMIT 1;
-  SELECT title INTO v_event_title FROM public.events WHERE id = v_pairing.event_id LIMIT 1;
+  SELECT name INTO v_event_title FROM public.events WHERE id = v_pairing.event_id LIMIT 1;
 
   RETURN jsonb_build_object(
     'ok', true,
