@@ -5,6 +5,7 @@ import { Calendar, HardDrive, ShieldCheck, Activity, ArrowRight } from 'lucide-r
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { useAuth } from '@/app/use-auth';
 import { useTenantWarnings } from '@/features/notifications/hooks/useTenantWarnings';
+import { formatBytes } from '@/features/upload-portal/lib/format-bytes';
 import type { EventRow } from '@/features/events/repository';
 
 type EventSummary = Pick<EventRow, 'id' | 'name' | 'status' | 'start_date' | 'end_date'>;
@@ -105,7 +106,7 @@ export default function DashboardView() {
           value={
             warningsLoading || !storage
               ? '—'
-              : `${Math.round(storage.used_bytes / 1024 / 1024)} MB`
+              : formatBytes(storage.used_bytes, locale)
           }
           hint={
             warningsLoading || !storage
@@ -113,7 +114,7 @@ export default function DashboardView() {
               : storage.limit_bytes > 0
                 ? t('dashboard.storage.usage', {
                   percent: storage.percent?.toFixed(0) ?? '0',
-                  limit: Math.round(storage.limit_bytes / 1024 / 1024),
+                  limit: formatBytes(storage.limit_bytes, locale),
                 })
                 : t('dashboard.storage.unlimited')
           }

@@ -46,7 +46,8 @@ import { RemoteControlPairingsPanel } from '@/features/remote-control/components
 import { EventSearchBar } from './components/EventSearchBar';
 import type { EventFileSearchResult } from './lib/event-file-search';
 import { EventFoldersPanel } from '@/features/folders/components/EventFoldersPanel';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@slidecenter/ui';
+import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from '@slidecenter/ui';
+import { FolderOpen } from 'lucide-react';
 const EventExportPanel = lazy(async () => {
   const m = await import('@/features/events/components/EventExportPanel');
   return { default: m.EventExportPanel };
@@ -895,6 +896,33 @@ export default function EventDetailView() {
         </TabsList>
 
         <TabsContent value="production" className="mt-6 space-y-8">
+          {/* QA fix Apr 2026: la `ProductionView` (route `/events/:id/production`)
+              esiste ma era orfana — nessun link la raggiungeva. Andrea non
+              riusciva a trovare il file manager (cartelle + grid file + drag
+              tra cartelle). Banner CTA in cima alla tab Produzione, prima del
+              CRUD cartelle "leggero" che mostra solo la struttura senza file. */}
+          <div className="rounded-xl border border-sc-primary/30 bg-sc-primary/8 p-4 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="rounded-lg bg-sc-primary/15 p-2 text-sc-primary">
+                  <FolderOpen className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-sc-text">
+                    {t('event.production.fileManagerTitle')}
+                  </h3>
+                  <p className="mt-0.5 text-xs text-sc-text-dim">
+                    {t('event.production.fileManagerHint')}
+                  </p>
+                </div>
+              </div>
+              <Button asChild size="sm" variant="accent" className="shrink-0">
+                <Link to={`/events/${event.id}/production`}>
+                  {t('event.production.openFileManager')}
+                </Link>
+              </Button>
+            </div>
+          </div>
           <EventFoldersPanel eventId={event.id} tenantId={event.tenant_id} />
           <section aria-labelledby="export-section-title">
             <h2 id="export-section-title" className="text-lg font-semibold text-sc-text">

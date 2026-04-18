@@ -142,7 +142,9 @@
     "onAir": "In Onda",
     "privacy": "Privacy",
     "noEvents": "Nessun evento",
-    "noDevices": "Nessun PC sala collegato"
+    "noDevices": "Nessun PC sala collegato",
+    "loadingEvents": "Caricamento eventi…",
+    "loadingDevices": "Caricamento PC sala…"
   },
   "auth": {
     "login": "Accedi",
@@ -155,7 +157,7 @@
     "inviteUser": "Invita utente",
     "role": "Ruolo",
     "fullName": "Nome organizzazione / Nome completo",
-    "loginPageTitle": "Accedi al Slide Center",
+    "loginPageTitle": "Accedi a Live Slide Center",
     "signupPageTitle": "Crea il tuo tenant",
     "submitLogin": "Entra",
     "submitSignup": "Crea account",
@@ -169,12 +171,12 @@
     "signupCheckEmailBody": "Abbiamo inviato un link di conferma all’indirizzo indicato. Dopo aver confermato l’email, accedi per completare l’attivazione del tenant e del profilo JWT.",
     "signupCheckEmailCta": "Vai al login",
     "errorLoginRefresh": "Impossibile confermare il profilo di accesso dopo il login. Riprova.",
-    "errorTenantMissingLogin": "Il profilo non include l’organizzazione (tenant) richiesta per il Centro Slide. Contatta l’amministratore o usa un account corretto.",
+    "errorTenantMissingLogin": "Il profilo non include l’organizzazione (tenant) richiesta per Live Slide Center. Contatta l’amministratore o usa un account corretto.",
     "errorTenantSuspendedLogin": "Questa organizzazione è stata sospesa. Contatta il supporto Live Slide Center.",
     "tenantSuspendedTitle": "Organizzazione sospesa",
-    "tenantSuspendedBody": "L'accesso al Centro Slide per il tuo tenant è stato disattivato dall'amministratore di piattaforma. Contatta il supporto se ritieni sia un errore.",
+    "tenantSuspendedBody": "L'accesso a Live Slide Center per il tuo tenant è stato disattivato dall'amministratore di piattaforma. Contatta il supporto se ritieni sia un errore.",
     "loadingSession": "Verifica sessione…",
-    "a11yLoginTitle": "Accesso al Centro Slide",
+    "a11yLoginTitle": "Accesso a Live Slide Center",
     "a11ySignupTitle": "Registrazione nuovo tenant",
     "forgotPasswordPageTitle": "Recupero password",
     "forgotPasswordLabel": "La tua email",
@@ -211,6 +213,11 @@
       "sessions": "Sessioni",
       "speakers": "Relatori",
       "rooms": "Sale & PC"
+    },
+    "production": {
+      "fileManagerTitle": "Gestione file completa (vista cartelle)",
+      "fileManagerHint": "Apri il file manager dell'evento: cartelle gerarchiche, sposta file con drag&drop, multi-selezione e azioni rapide.",
+      "openFileManager": "Apri gestione file"
     },
     "title": "Evento",
     "titlePlural": "Eventi",
@@ -857,6 +864,8 @@
     "import": "Importa",
     "refresh": "Aggiorna",
     "loading": "Caricamento...",
+    "errorTitle": "Si è verificato un errore",
+    "retry": "Riprova",
     "noResults": "Nessun risultato",
     "confirm": "Conferma",
     "back": "Indietro",
@@ -1639,6 +1648,7 @@
     "title": "Benvenuto in Slide Center, {{tenantName}}",
     "stepIndicator": "Step {{current}} di {{total}}",
     "skipAll": "Salta tour",
+    "close": "Chiudi",
     "back": "Indietro",
     "next": "Avanti",
     "finish": "Inizia subito",
@@ -1715,7 +1725,7 @@
     },
     "storage": {
       "title": "Spazio di archiviazione",
-      "usage": "Usato {{percent}}% di {{limit}} MB",
+      "usage": "Usato {{percent}}% di {{limit}}",
       "unlimited": "Quota illimitata",
       "cta": "Gestisci piano"
     },

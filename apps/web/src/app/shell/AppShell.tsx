@@ -178,6 +178,7 @@ function ShellSidebarContent({ variant }: { variant: 'tenant' | 'admin' }) {
 
   const events = state.status === 'ready' ? state.data.events : [];
   const devices = state.status === 'ready' ? state.data.devices : [];
+  const isSidebarLoading = state.status === 'loading' || state.status === 'idle';
 
   const role = session?.user?.app_metadata?.role;
   const isSuperAdmin = role === 'super_admin';
@@ -210,6 +211,7 @@ function ShellSidebarContent({ variant }: { variant: 'tenant' | 'admin' }) {
           <TenantSidebarSections
             events={events}
             devices={devices}
+            isLoading={isSidebarLoading}
             isTenantAdmin={isTenantAdmin}
             isSuperAdmin={isSuperAdmin}
           />
@@ -220,7 +222,7 @@ function ShellSidebarContent({ variant }: { variant: 'tenant' | 'admin' }) {
 
       <SidebarFooter>
         <BackendModeBadge />
-        <UserFooter variant={variant} />
+        <UserFooter />
       </SidebarFooter>
 
       {variant === 'tenant' ? (
@@ -237,6 +239,7 @@ function ShellSidebarContent({ variant }: { variant: 'tenant' | 'admin' }) {
 function TenantSidebarSections({
   events,
   devices,
+  isLoading,
   isTenantAdmin,
   isSuperAdmin,
 }: {
@@ -244,6 +247,7 @@ function TenantSidebarSections({
   ? E
   : Array<{ id: string; name: string; status: string }>;
   devices: SidebarDeviceLite[];
+  isLoading: boolean;
   isTenantAdmin: boolean;
   isSuperAdmin: boolean;
 }) {
@@ -280,10 +284,16 @@ function TenantSidebarSections({
               >
                 <CalendarDays />
                 <span>{t('nav.events')}</span>
-                <SidebarMenuBadge>{events.length}</SidebarMenuBadge>
+                {isLoading ? null : <SidebarMenuBadge>{events.length}</SidebarMenuBadge>}
               </SidebarMenuButton>
             </SidebarMenuItem>
-            {events.length === 0 ? (
+            {isLoading ? (
+              <SidebarMenuItem>
+                <p className="px-2 py-2 text-xs italic text-sidebar-foreground/40">
+                  {t('appShell.loadingEvents')}
+                </p>
+              </SidebarMenuItem>
+            ) : events.length === 0 ? (
               <SidebarMenuItem>
                 <p className="px-2 py-2 text-xs italic text-sidebar-foreground/40">
                   {t('appShell.noEvents')}
@@ -310,7 +320,13 @@ function TenantSidebarSections({
         <SidebarGroupLabel>{t('appShell.sectionRoomPCs')}</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            {devices.length === 0 ? (
+            {isLoading ? (
+              <SidebarMenuItem>
+                <p className="px-2 py-2 text-xs italic text-sidebar-foreground/40">
+                  {t('appShell.loadingDevices')}
+                </p>
+              </SidebarMenuItem>
+            ) : devices.length === 0 ? (
               <SidebarMenuItem>
                 <p className="px-2 py-2 text-xs italic text-sidebar-foreground/40">
                   {t('appShell.noDevices')}
@@ -593,7 +609,7 @@ function DeviceStatusDot({ status }: { status: SidebarDeviceLite['status'] }) {
   );
 }
 
-function UserFooter({ variant }: { variant: 'tenant' | 'admin' }): ReactNode {
+function UserFooter(): ReactNode {
   const { t } = useTranslation();
   const { session } = useAuth();
   const navigate = useNavigate();
@@ -615,7 +631,7 @@ function UserFooter({ variant }: { variant: 'tenant' | 'admin' }): ReactNode {
           <span className="min-w-0 flex-1 truncate text-sidebar-foreground/80">{userEmail}</span>
         </div>
       ) : null}
-      {variant === 'admin' ? null : !isDesktop && userEmail ? (
+      {!isDesktop && userEmail ? (
         <Button
           variant="ghost"
           size="sm"

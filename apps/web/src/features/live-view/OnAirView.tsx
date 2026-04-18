@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNowMs } from '@/lib/use-now-ms';
+import { useMediaQuery, BREAKPOINTS } from '@/lib/use-media-query';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import {
@@ -103,6 +104,13 @@ export default function OnAirView() {
   // Refresh ogni 5s — sufficiente per il granularita' "1s/2s/3s..." senza
   // sprecare CPU (e l'header timer e' best-effort).
   const nowMs = useNowMs(5000);
+
+  // QA fix Bug 9: l'ActivityFeed era duplicato nel DOM (un'istanza desktop
+  // hidden via `lg:block`, una mobile hidden via `lg:hidden`). I due aside
+  // venivano letti entrambi dagli screen reader (duplicazione del landmark
+  // <h3 "Activity">). Render condizionale via media query: una sola istanza
+  // nel DOM, posizionata in colonna a destra (lg+) o in fondo (mobile).
+  const isLgUp = useMediaQuery(BREAKPOINTS.lg);
 
   const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) return;
@@ -271,16 +279,19 @@ export default function OnAirView() {
           )}
         </main>
 
-        {/* Pane 3: activity feed (lg+) */}
-        <aside className="hidden w-80 shrink-0 border-l border-sc-border lg:block">
-          <ActivityFeed entries={activityEntries} loading={activityLoading} />
-        </aside>
+        {/* Pane 3: activity feed — render condizionale per evitare duplicazione DOM (vedi nota su useMediaQuery sopra) */}
+        {isLgUp ? (
+          <aside className="w-80 shrink-0 border-l border-sc-border">
+            <ActivityFeed entries={activityEntries} loading={activityLoading} />
+          </aside>
+        ) : null}
       </div>
 
-      {/* Activity feed mobile (<lg): sotto */}
-      <div className="border-t border-sc-border lg:hidden">
-        <ActivityFeed entries={activityEntries} loading={activityLoading} />
-      </div>
+      {!isLgUp ? (
+        <div className="border-t border-sc-border">
+          <ActivityFeed entries={activityEntries} loading={activityLoading} />
+        </div>
+      ) : null}
     </div>
   );
 }

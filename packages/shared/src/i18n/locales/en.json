@@ -142,7 +142,9 @@
     "onAir": "On Air",
     "privacy": "Privacy",
     "noEvents": "No events yet",
-    "noDevices": "No room PCs paired"
+    "noDevices": "No room PCs paired",
+    "loadingEvents": "Loading events…",
+    "loadingDevices": "Loading room PCs…"
   },
   "auth": {
     "login": "Sign in",
@@ -211,6 +213,11 @@
       "sessions": "Sessions",
       "speakers": "Speakers",
       "rooms": "Rooms & PCs"
+    },
+    "production": {
+      "fileManagerTitle": "Full file manager (folder view)",
+      "fileManagerHint": "Open the event file manager: hierarchical folders, drag-and-drop move, multi-select and quick actions.",
+      "openFileManager": "Open file manager"
     },
     "title": "Event",
     "titlePlural": "Events",
@@ -857,6 +864,8 @@
     "import": "Import",
     "refresh": "Refresh",
     "loading": "Loading...",
+    "errorTitle": "Something went wrong",
+    "retry": "Retry",
     "noResults": "No results",
     "confirm": "Confirm",
     "back": "Back",
@@ -1639,6 +1648,7 @@
     "title": "Welcome to Slide Center, {{tenantName}}",
     "stepIndicator": "Step {{current}} of {{total}}",
     "skipAll": "Skip tour",
+    "close": "Close",
     "back": "Back",
     "next": "Next",
     "finish": "Get started",
@@ -1715,7 +1725,7 @@
     },
     "storage": {
       "title": "Storage",
-      "usage": "Using {{percent}}% of {{limit}} MB",
+      "usage": "Using {{percent}}% of {{limit}}",
       "unlimited": "Unlimited quota",
       "cta": "Manage plan"
     },

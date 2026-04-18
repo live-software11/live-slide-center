@@ -164,8 +164,8 @@ export default function OnboardingWizard({ supabase, tenantId, tenantName, onClo
             onClick={handleSkipAll}
             disabled={submitting}
             className="rounded-lg p-2 text-sc-text-muted transition-colors hover:bg-sc-primary/8 hover:text-sc-text disabled:opacity-50"
-            aria-label={t('onboarding.skipAll')}
-            title={t('onboarding.skipAll')}
+            aria-label={t('onboarding.close')}
+            title={t('onboarding.close')}
           >
             <X className="h-5 w-5" aria-hidden />
           </button>
@@ -175,9 +175,8 @@ export default function OnboardingWizard({ supabase, tenantId, tenantName, onClo
           {[1, 2, 3].map((n) => (
             <div
               key={n}
-              className={`h-1.5 flex-1 rounded-full transition-colors ${
-                n <= step ? 'bg-sc-primary' : 'bg-sc-primary/15'
-              }`}
+              className={`h-1.5 flex-1 rounded-full transition-colors ${n <= step ? 'bg-sc-primary' : 'bg-sc-primary/15'
+                }`}
               aria-hidden
             />
           ))}

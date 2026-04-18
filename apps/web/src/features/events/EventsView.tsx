@@ -274,16 +274,34 @@ export default function EventsView() {
                     {ev.name}
                   </Link>
                   <p className="text-xs text-sc-text-dim">
-                    {ev.start_date} → {ev.end_date} · {eventStatusLabel(t, ev.status)}
+                    {ev.start_date} → {ev.end_date}
                   </p>
                 </div>
-                <span className="text-xs uppercase text-sc-text-dim">{ev.status}</span>
+                <EventStatusBadge status={ev.status} label={eventStatusLabel(t, ev.status)} />
               </li>
             ))}
           </ul>
         )}
       </section>
     </div>
+  );
+}
+
+function EventStatusBadge({ status, label }: { status: string; label: string }) {
+  const tone =
+    status === 'active'
+      ? 'border-sc-primary/40 bg-sc-primary/10 text-sc-primary'
+      : status === 'setup'
+        ? 'border-sc-warning/40 bg-sc-warning/10 text-sc-warning'
+        : status === 'closed' || status === 'archived'
+          ? 'border-sc-text-dim/30 bg-sc-elevated/40 text-sc-text-dim'
+          : 'border-sc-primary/20 bg-sc-surface/60 text-sc-text-muted';
+  return (
+    <span
+      className={`inline-flex w-fit items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${tone}`}
+    >
+      {label}
+    </span>
   );
 }
 
