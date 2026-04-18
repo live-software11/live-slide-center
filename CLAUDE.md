@@ -7,7 +7,7 @@
 > **Per regole AI:** `.cursor/rules/*.mdc`.
 > **Per quotidianita':** comandi qui sotto.
 >
-> **Versione CLAUDE.md:** 2.0 — 18 aprile 2026.
+> **Versione CLAUDE.md:** 2.1 — 18 aprile 2026 sera (post fix deploy Vercel + MCP Vercel ufficiale, vedi `STATO_E_TODO.md` §0.26).
 
 ## Cos'e'
 
@@ -22,8 +22,8 @@ SaaS multi-tenant per **gestione presentazioni in eventi live**. Nome commercial
 | Servizio | Account                                        | Verifica         |
 | -------- | ---------------------------------------------- | ---------------- |
 | GitHub   | **live-software11**                            | `gh auth status` |
-| Supabase | live.software11@gmail.com                      | Dashboard        |
-| Vercel   | live.software11@gmail.com                      | Dashboard        |
+| Supabase | live.software11@gmail.com (project `cdjxxxkrhgdkcpkkozdl`) | Dashboard |
+| Vercel   | live.software11@gmail.com (scope `livesoftware11-3449s-projects`, project `live-slide-center`) | `vercel whoami` |
 | Repo     | `github.com/live-software11/live-slide-center` | `git remote -v`  |
 
 Mai operare con account `Andraven11` (e' per Preventivi DHS / Gestionale FREELANCE).
@@ -88,6 +88,13 @@ supabase gen types typescript --project-id cdjxxxkrhgdkcpkkozdl > packages/share
 # Git (account live-software11)
 gh auth status                                 # verifica account
 git status; git add <file>; git commit -m "feat: msg"; git push
+
+# Vercel (account livesoftware11-3449, project live-slide-center)
+vercel whoami                                  # verifica account
+vercel --prod --yes --archive=tgz              # SBLOCCO MANUALE: deploy production
+                                               # --archive=tgz OBBLIGATORIO (monorepo > 15k file)
+                                               # Usare solo se auto-deploy GitHub->Vercel e' rotto
+                                               # vedi ARCHITETTURA §20.3.1 + STATO_E_TODO §0.26
 ```
 
 Per messaggi commit multilinea (PowerShell NON supporta heredoc bash): scrivere il messaggio con `Write` tool in `.commit-msg-tmp.txt`, poi `git commit -F .commit-msg-tmp.txt` + delete file.
@@ -98,14 +105,15 @@ Per messaggi commit multilinea (PowerShell NON supporta heredoc bash): scrivere 
 
 ### alwaysApply (sempre attive — ~12K totali)
 
-| File                      | Cosa garantisce                                                      |
-| ------------------------- | -------------------------------------------------------------------- |
-| `00-project-identity.mdc` | Identita progetto, fonti di verita, account, vincoli sovrani         |
-| `01-data-isolation.mdc`   | Tenant isolation + RLS pattern obbligatori + RBAC + Storage path     |
-| `02-quality-gate.mdc`     | Workflow chiusura task: typecheck/lint/build + standard senior       |
-| `03-i18n.mdc`             | i18n IT/EN obbligatorio + terminologia dominio eventi live           |
-| `04-git-workflow.mdc`     | Account live-software11, format commit, deploy Vercel/Supabase/Tauri |
-| `mcp-supabase.mdc`        | Uso server MCP Supabase (project_id, capabilities)                   |
+| File                      | Cosa garantisce                                                              |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| `00-project-identity.mdc` | Identita progetto, fonti di verita, account, vincoli sovrani                 |
+| `01-data-isolation.mdc`   | Tenant isolation + RLS pattern obbligatori + RBAC + Storage path             |
+| `02-quality-gate.mdc`     | Workflow chiusura task: typecheck/lint/build + standard senior               |
+| `03-i18n.mdc`             | i18n IT/EN obbligatorio + terminologia dominio eventi live                   |
+| `04-git-workflow.mdc`     | Account live-software11, format commit, deploy Vercel/Supabase/Tauri         |
+| `mcp-supabase.mdc`        | Uso server MCP Supabase (project_id, capabilities)                           |
+| `mcp-vercel.mdc`          | Uso server MCP Vercel (deploy + build/runtime logs + workflow CLI fallback)  |
 
 ### Globs mirati (caricati solo quando matchi i file)
 

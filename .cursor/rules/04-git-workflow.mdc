@@ -60,6 +60,17 @@ gh repo create live-software11/live-slide-center --public --source=. --remote=or
 
 Auto-deploy su push a `main`. Per preview: push su branch feature → Vercel crea preview URL.
 
+**Caveat (incidente 18/04/2026):** l'integrazione GitHub→Vercel puo' disconnettersi silenziosamente. Sintomi: Vercel dashboard mostra "Updated Nd ago" mentre `git log main` ha commit recenti; bundle servito ha hash vecchio (`curl -s https://live-slide-center.vercel.app/ | grep "index-"`).
+
+**Sblocco manuale via Vercel CLI** (account `livesoftware11-3449`, scope `livesoftware11-3449s-projects`, project `live-slide-center`):
+
+```powershell
+vercel whoami                              # deve stampare livesoftware11-3449
+vercel --prod --yes --archive=tgz          # --archive=tgz OBBLIGATORIO (monorepo > 15k file)
+```
+
+**MCP Vercel:** server `vercel` ufficiale (`https://mcp.vercel.com`, OAuth) configurato in `~/.cursor/mcp.json`. Tool utili: `list_deployments`, `get_deployment_build_logs`, `get_deployment_runtime_logs`. Vedi `.cursor/rules/mcp-vercel.mdc`.
+
 ### Supabase (schema + functions)
 
 ```powershell

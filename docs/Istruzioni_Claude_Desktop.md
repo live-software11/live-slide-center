@@ -200,7 +200,8 @@ Mai committare con quality gate rosso. Se rosso -> fix prima di push.
 2. **Per task complessi** (architettura, debug runtime cross-system, decision design): usa MCP `sequential-thinking` per strutturare il piano, poi esegui.
 3. **Per librerie/framework** (sintassi, API, configurazione): consulta SEMPRE MCP `context7` PRIMA di scrivere codice (la memoria puo' essere obsoleta).
 4. **Per debug dati** in produzione: usa MCP `supabase-hosted` per query dirette + verifica RLS con query come tenant diverso.
-5. **Per task lunghi**: aggiorna `docs/STATO_E_TODO.md` man mano che completi step.
+5. **Per debug deploy cloud** (`live-slide-center.vercel.app`): usa MCP `vercel` (`list_deployments`, `get_deployment_build_logs`, `get_deployment_runtime_logs`). Se l'auto-deploy GitHub→Vercel sembra rotto, fallback CLI: `vercel --prod --yes --archive=tgz` dalla root (vedi `ARCHITETTURA.md` §20.3.1 + `STATO_E_TODO.md` §0.26).
+6. **Per task lunghi**: aggiorna `docs/STATO_E_TODO.md` man mano che completi step.
 
 ---
 

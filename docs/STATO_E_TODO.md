@@ -3,7 +3,7 @@
 > **Documento operativo gemello di `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare, in ordine di priorita. Per "cosa fa il prodotto" e "come e fatto" → architettura.
 >
-> **Versione:** 2.16 — 18 aprile 2026 sera (post Sprint D1 → D8 parita cloud/desktop §0.25)
+> **Versione:** 2.18 — 18 aprile 2026 sera tardi (post fix definitivo 404 SPA Vercel + SW hardening §0.27)
 > **Owner:** Andrea Rizzari
 > **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**. **Sprint T-1 (G8, badge versione "in onda" sempre visibile in sala + toast cambio versione, §0.16) DONE**. **Sprint T-2 (G9, telemetria perf live PC sala — CPU/RAM/heap/disco/FPS/battery, §0.17) DONE**. **Audit completo + bugfix Q+1.5 (§0.18) DONE — semaforo VERDE su tutto**. **Sprint T-3 (G10) COMPLETO: T-3-A (file validator warn-only, §0.20) DONE → T-3-E (Next-Up file preview, §0.21) DONE → T-3-G (remote control tablet, §0.22) DONE — TUTTE E TRE LE FEATURE COMPETITOR VERDE.**
 >
@@ -36,6 +36,8 @@
 > **Chiusura backlog AU-01 → AU-09 (§ 0.23.3 — DONE 18/04/2026):** 9/9 issue MEDIUM risolte in sessione singola. **DB:** migration `20260418230000_audit_medium_fixes.sql` applicata in produzione → `pg_cron` abilitato, 4 job schedulati (`cleanup_lemon_squeezy_event_log` daily 04:00 UTC retention 90gg, `cleanup_device_metric_pings` daily 03:00 UTC retention 24h, `cleanup_pair_claim_rate_events` ogni 30min, `cleanup_edge_function_rate_events` ogni 30min retention 1h), nuova tabella `edge_function_rate_events` + RPC `check_and_record_edge_rate` per rate-limit generico, `search_path` hardening su tutte le `SECURITY DEFINER` (~40 funzioni standardizzate a `pg_catalog, public, pg_temp, extensions, realtime, auth`). **Edge Functions:** nuovi shared `_shared/cors.ts` (whitelist admin con regex Vercel preview) + `_shared/rate-limit.ts` (`checkAndRecordEdgeRate` + `clientIpFromRequest` + `hashIp` salt-aware), applicati a `room-device-upload-init` (30 req/5min/IP) e `remote-control-dispatch` (120 req/min/IP), entrambi ridistribuiti. **Frontend:** `useEventLiveData` debounce reload 200ms (no reload-storm su burst Realtime), `event-export.ts` + `thumbnail-pptx.ts` lazy-import jszip (chunk separato `jszip.min` ~28KB gzip), nuovo `apps/web/src/lib/outbox-queue.ts` IndexedDB con retry exponential backoff integrato in `RoomPlayerView` per `room-player-set-current` (retry 15s + on `online` event, max 8 tentativi). **E2E:** 3 nuove fixture Playwright in `apps/web/e2e/`: `pairing-race.spec.ts` (verifica race TOCTOU `claim_pairing_code_atomic`), `move-presentation.spec.ts` (verifica `activity_log` post-fix), `remote-control.spec.ts` (verifica dispatch + rate limit). Quality gate verde: typecheck + lint + build + i18n parity 1398/1398.
 >
 > **Sprint D1 → D8 — Parita cloud/desktop + licensing unificato (§ 0.25 — DONE 18/04/2026 sera):** chiusa parita totale tra cloud SaaS e PC desktop offline. **D1:** sistema licenze unificato (Supabase tabelle `desktop_devices` + `desktop_provision_tokens`, 3 Edge Functions `desktop-provision-create`/`-bind`/`-verify`, Rust crate `license/{manager,storage,client,heartbeat}` con AES-256-GCM `~/.slidecenter/license.enc`, Tauri commands, RPC `update_device_role`, UI cloud `DesktopLicenseView` + banner sticky). **D2:** installer NSIS vendor-grade (lingua IT/EN, EULA, hooks pre/post install + uninstall, firewall + Defender exclusion automatici, profilo rete forzato a Privato, prompt "conservare dati evento" in disinstallazione). **D3:** Tauri updater Ed25519 + GitHub Actions `desktop-release.yml` (trigger tag `desktop-v*` + `workflow_dispatch` manuale, upsert release `--clobber`). **D4:** port Sprint S-4 ruolo `control_center` su SQLite locale (filesystem `~/SlideCenter/<event>/<sala>/<sessione>/<file>`). **D5:** pannello admin `/centri-slide` (3 sezioni: PC server collegati con badge online + magic-link attivi con QR/stampa + toggle ruolo PC sala), rotta deep-link `/centro-slide/bind?t=...` con auto-detect cloud/desktop, 53 nuove i18n keys IT/EN. **D6:** heartbeat automatico licenza desktop (background `tokio` loop, 6h release / 60s debug, refresh `last_seen_at` + grace offline 30gg). **D7:** scripts PowerShell `setup-signing-keys.ps1` (gen Ed25519 + GH secrets) + `tag-release.ps1` (bump version + tag + push trigger). **D8:** `docs/Setup_PC_Centro_Slide.md` (guida operativa IT non-tech 10 sezioni) + `docs/Smoke_Test_Centro_Slide.md` (checklist QA 12 sezioni / 120 checkbox). Quality gate verde: typecheck/lint/cargo check/cargo test, migration applicata in prod, 3 Edge Functions deployate, i18n parity, 0 nuovi advisor.
+>
+> **Fix deploy Vercel + onboarding MCP Vercel ufficiale (§ 0.26 — DONE 18/04/2026 sera):** `live-slide-center.vercel.app` serviva ancora il bundle pre-refactor (`index-CaPy7X91.js`) nonostante 6+ commit pushati. Causa: integrazione GitHub→Vercel disconnessa (no auto-deploy webhook). Sblocco: installato Vercel CLI globale (51.7.0) + `vercel link` + `vercel --prod --yes --archive=tgz` (tarball obbligatorio: monorepo 17.619 file > limite 15k API). Build remoto `iad1` 42s, deploy `READY`, alias automatico. Verificato live tutti i chunk Sprint U-1 → U-5 + D1 → D8 (`DesktopDevicesView`, `OnAirView`, `ProductionView`, `DesktopBindAutoView`). Onboardato server MCP **`vercel`** ufficiale (endpoint `https://mcp.vercel.com` OAuth, supportato Cursor da agosto 2025) in `~/.cursor/mcp.json`: tool `list_deployments`/`get_deployment_build_logs`/`get_deployment_runtime_logs` per debug futuri. Fix manuale residuo per Andrea: dashboard Vercel → Settings → Git → riconnettere repo `live-software11/live-slide-center` su `main` per ripristinare auto-deploy (alternativa long-term: workflow GitHub Actions con `VERCEL_TOKEN`). Documentazione completa in `docs/Setup_Strumenti_e_MCP.md` §2c + `.cursor/rules/mcp-vercel.mdc`.
 
 ---
 
@@ -61,6 +63,7 @@
    - 0.23.3 [Chiusura backlog AU-01 → AU-09 (DONE — 18/04/2026 sera)](#0233-chiusura-backlog-au-01--au-09-done--18042026-sera)
    - 0.24 [UX Redesign V2.0 — Sprint U-1 Foundation (DONE — 18/04/2026 sera)](#024-ux-redesign-v20--sprint-u-1-foundation-done--18042026-sera)
    - 0.25 [Sprint D1 → D8 — Parita cloud/desktop + licensing unificato (DONE — 18/04/2026 sera)](#025-sprint-d1--d8--parita-clouddesktop--licensing-unificato-done--18042026-sera)
+   - 0.26 [Fix deploy Vercel + onboarding MCP Vercel ufficiale (DONE — 18/04/2026 sera)](#026-fix-deploy-vercel--onboarding-mcp-vercel-ufficiale-done--18042026-sera)
 1. [Stato attuale (tutto DONE)](#1-stato-attuale-tutto-done)
 2. [Cose da fare ORA (azioni esterne Andrea, NON automatizzabili)](#2-cose-da-fare-ora-azioni-esterne-andrea-non-automatizzabili)
 3. [Field test desktop (quando vorrai farlo)](#3-field-test-desktop-quando-vorrai-farlo)
@@ -2307,6 +2310,170 @@ L'evoluzione "next/prev SLIDE reale" rimane **fattibile in futuro** come Sprint 
 - Code-signing certificato EV per installer (~300 EUR/anno) — al momento installer self-signed con SmartScreen warning bypassabile.
 - Tauri build cross-platform Linux/macOS — solo Windows x64 per ora.
 - Telemetria desktop verso cloud (logs centralizzati) — solo log locali in `%LOCALAPPDATA%\Live SLIDE CENTER\logs\`.
+
+---
+
+### 0.26 Fix deploy Vercel + onboarding MCP Vercel ufficiale (DONE — 18/04/2026 sera)
+
+**Contesto.** Andrea segnala che `https://live-slide-center.vercel.app/` continua a servire il bundle UI **pre-refactor** (vecchio `index-CaPy7X91.js`) nonostante 6+ commit pushati a `main` durante la sessione (Sprint U-1 → U-5 + Sprint D1 → D8). Diagnosi:
+
+- `gh api repos/live-software11/live-slide-center/deployments` → vuoto.
+- `vercel projects ls` → `live-slide-center`, ultimo aggiornamento "1d" (1 giorno fa).
+- Bundle live `index-CaPy7X91.js` ispezionato: 0 occorrenze di `centri-slide`/`DesktopDevices`/`OnAir`/`ProductionView`.
+
+**Causa root.** L'integrazione **GitHub → Vercel** del progetto `live-slide-center` era disconnessa o sospesa (probabile causa: piano free + repo riconnesso o branch production cambiato). Vercel non riceveva piu' i webhook GitHub → niente auto-deploy.
+
+**Soluzione applicata (sblocco immediato).**
+
+1. Installato Vercel CLI globalmente (`npm i -g vercel`) → 51.7.0.
+2. `vercel whoami` confermava auth attiva come `livesoftware11-3449` (no auth interattiva richiesta).
+3. `vercel link --yes --project live-slide-center` → linkato workspace al progetto, creato `.vercel/` (aggiunto a `.gitignore`).
+4. `vercel --prod --yes --archive=tgz` → deploy production. **`--archive=tgz` obbligatorio** perche' il monorepo ha 17.619 file (oltre il limite 15k di Vercel API standard); Vercel comprime in tarball locale (1.8GB) e lo carica.
+5. Build remoto Vercel su `iad1` in 42s, deploy `READY`, alias automatico su `live-slide-center.vercel.app`.
+
+**Verifica live (chunk presenti dopo il deploy).**
+
+| Chunk emesso da Vite                       | Sprint di provenienza |
+| ------------------------------------------ | --------------------- |
+| `index-BbTBYiPX.js` (era `CaPy7X91.js`)    | entry refactor V2.0   |
+| `DesktopDevicesView-gkjHK3os.js` (22.3 KB) | Sprint D5             |
+| `DesktopBindAutoView-rGEmlxHa.js` (4.85 KB)| Sprint D5/D6          |
+| `DesktopLicenseView-CYciIfAk.js` (10.8 KB) | Sprint D2             |
+| `OnAirView-CAqJsGN2.js` (15.7 KB)          | Sprint U-3            |
+| `ProductionView-BXn85x7K.js` (18.0 KB)     | Sprint U-2            |
+| `EventDetailView-Cb-e03iC.js` (221 KB)     | refactor U-2 tabs     |
+
+**Onboarding MCP Vercel ufficiale (per il futuro).**
+
+Aggiunto al file `C:\Users\andre\.cursor\mcp.json` il server MCP **`vercel`** (endpoint hosted ufficiale, OAuth, supportato per Cursor da agosto 2025):
+
+```json
+"vercel": {
+  "type": "http",
+  "url": "https://mcp.vercel.com"
+}
+```
+
+Procedura attivazione: dopo riavvio Cursor → Settings → Tools & MCP → click "Needs login" su `vercel` → OAuth browser con `live.software11@gmail.com` → connesso. Tool disponibili dal MCP: `list_projects`, `list_deployments`, `get_deployment`, `get_deployment_build_logs`, `get_deployment_runtime_logs`, `get_project`, `search_documentation`, `list_teams`. Vedi `docs/Setup_Strumenti_e_MCP.md` §2c per dettagli.
+
+**Cosa rimane in capo ad Andrea (azione manuale dashboard).**
+
+> Il fix CLI sblocca **questo** deploy ma **non risolve la causa root**. Al prossimo `git push origin main`, Vercel continuera' a NON rideployare automaticamente.
+>
+> **Da fare** (5 minuti, dashboard Vercel):
+>
+> 1. Andare su [vercel.com/dashboard](https://vercel.com/dashboard) → progetto `live-slide-center` → **Settings → Git**.
+> 2. Verificare che il repo connesso sia `live-software11/live-slide-center` su branch **`main`**.
+> 3. Se mostra "Disconnected" → click **Connect Git Repository** → autorizza Vercel sul GitHub `live-software11`.
+> 4. Salvare e fare un push trivial (`git commit --allow-empty -m "test ci"` poi `git push`) per verificare il webhook.
+>
+> **Alternativa long-term (raccomandata):** workflow GitHub Actions `.github/workflows/vercel-deploy.yml` che fa deploy via Vercel CLI con un `VERCEL_TOKEN` (segreto generato dalla dashboard una tantum). Toglie il single-point-of-failure dell'integrazione webhook. Implementabile in <30 minuti se Andrea decide di andare in questa direzione.
+
+**Quality gate.**
+
+- Vercel deploy `READY` su `https://live-slide-center.vercel.app/` con bundle `index-BbTBYiPX.js`.
+- Tutti i chunk Sprint U-1 → U-5 + D1 → D8 verificati live (curl + grep).
+- 130 entries PWA precaching aggiornate (4174 KiB).
+- Headers `cache-control: no-cache` su `/index.html` (HTML mai cachato), `max-age=31536000 immutable` su `/assets/*` (chunk hash-based eternally cached).
+- Commit `59e004d` push: aggiornato `.gitignore` con `.vercel/` (effetto collaterale di `vercel link`).
+
+**File toccati / aggiornati (oltre al deploy).**
+
+- `C:\Users\andre\.cursor\mcp.json` → aggiunta entry `vercel` MCP.
+- `.gitignore` → +`.vercel/` (commit `59e004d`).
+- `docs/Setup_Strumenti_e_MCP.md` v2.0 → v2.1 con sezione §2c MCP Vercel + Vercel CLI in tabella prerequisiti.
+- `docs/STATO_E_TODO.md` v2.16 → v2.17 (questa sezione §0.26).
+- `.cursor/rules/mcp-vercel.mdc` (NEW) → guida operativa MCP Vercel + workflow deploy.
+- `.cursor/rules/cross-project-ecosystem.mdc` (workspace ecosistema) → riga MCP Vercel in disposizione.
+- `CLAUDE.md` workspace → nota MCP Vercel + caveat fix manuale GitHub integration.
+
+---
+
+### 0.27 Fix definitivo 404 NOT_FOUND su route SPA Vercel + SW hardening (DONE — 18/04/2026 sera tardi)
+
+**Contesto.** Andrea segnala (post fix §0.26): "sito sembra ancora versione vecchia e navigando ogni tanto esce questo errore 404: NOT_FOUND Code: NOT_FOUND ID: fra1::z9rs5-1776538230044-73ae5ebfc717". L'ID `fra1::` indica edge Frankfurt, errore Vercel (non React Router).
+
+**Diagnosi via MCP Vercel ufficiale.**
+
+Sequenza chiamate MCP `web_fetch_vercel_url`:
+
+| Path                       | Status                       | x-vercel-id                                 |
+| -------------------------- | ---------------------------- | ------------------------------------------- |
+| `/`                        | 200 OK (HTML)                | `cdg1:iad1::98t4k-...`                      |
+| `/centri-slide`            | **404 NOT_FOUND**            | `cdg1:iad1::bskz7-...` ← stesso pattern     |
+| `/centro-slide/bind`       | **404 NOT_FOUND**            | `cdg1:iad1::7865x-...` ← stesso pattern     |
+| `/admin/tenants`           | **404 NOT_FOUND**            | `cdg1:iad1::...`                            |
+
+Header `x-vercel-error: NOT_FOUND` su tutte le route SPA → fallback `/index.html` non si attivava lato Vercel.
+
+**Causa root.** Combinazione tossica nel `vercel.json`:
+
+```json
+"framework": null,
+"cleanUrls": true,
+"rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+```
+
+`cleanUrls: true` + `framework: null` fa eseguire al pipeline Vercel:
+1. URL request `/centri-slide` → Vercel cerca `/centri-slide.html` (cleanUrls).
+2. Non trovato → ritorna **404 immediatamente**, senza valutare `rewrites`.
+3. Il rewrite catch-all `/(.*) → /index.html` non si attiva mai per route non corrispondenti a file `.html`.
+
+Conseguenza: tutte le route React Router accessibili con URL diretto (link condiviso, F5, deep link da Lemon Squeezy email) ritornavano 404.
+
+**Fix `vercel.json`.**
+
+```diff
+-  "framework": null,
+-  "cleanUrls": true,
++  "framework": "vite",
+   "trailingSlash": false,
+   "rewrites": [
+-    { "source": "/(.*)", "destination": "/index.html" }
++    { "source": "/((?!assets/|icons/|workbox-|registerSW\\.js|sw\\.js|manifest\\.webmanifest|favicon|apple-touch-icon|pwa-|logo-live-slide-center).*)", "destination": "/index.html" }
+   ],
+```
+
+- `framework: "vite"` → Vercel applica preset SPA (sa che asset bundle hashed sono in `/assets/`).
+- Rimosso `cleanUrls` → niente più short-circuit 404 prima del rewrite.
+- Rewrite ora **esclude esplicitamente** asset statici (`/assets/`, `/icons/`, files PWA: workbox/sw/manifest/favicon/apple-touch/pwa-icons/logo) → tutto il resto cade su `/index.html` → React Router gestisce client-side.
+
+**SW hardening (`apps/web/src/main.tsx`).** Per coprire il caso "utente con SW vecchio cached vede UI vecchia anche dopo fix server" → aggiunti due meccanismi:
+
+1. **Listener `controllerchange`**: quando Vite PWA installa nuovo SW e prende controllo (`clientsClaim: true`), reload one-shot automatico.
+2. **`registration.update()` su `window.focus`**: chi lascia il browser aperto per giorni vede comunque le nuove versioni quando torna sul tab (Workbox di default controlla solo all'install).
+
+Combinato con lo `STALE_CHUNK_RELOAD_KEY` esistente (one-shot reload su `Failed to fetch dynamically imported module`) → utente non vede mai UI broken: ogni cambio versione triggera reload trasparente.
+
+**Verifica post-deploy (CLI `vercel --prod --yes --archive=tgz`).**
+
+| Path                       | Status (prima) | Status (dopo) | x-vercel-cache | Bundle servito        |
+| -------------------------- | -------------- | ------------- | -------------- | --------------------- |
+| `/`                        | 200 OK         | 200 OK        | -              | `index-DSuzouWT.js`   |
+| `/centri-slide`            | **404**        | **200 OK**    | HIT            | `index-DSuzouWT.js`   |
+| `/centro-slide/bind`       | **404**        | **200 OK**    | HIT            | `index-DSuzouWT.js`   |
+| `/admin/tenants`           | **404**        | **200 OK**    | HIT            | `index-DSuzouWT.js`   |
+
+Build remoto Vercel: 47s (130 PWA precache entries, 4174 KiB). Deploy `READY` su `https://live-slide-center.vercel.app/`.
+
+**Quality gate.**
+
+- 0 errori lint/typecheck (`apps/web/src/main.tsx`, `vercel.json`).
+- Tutte le route SPA verificate via MCP `web_fetch_vercel_url`.
+- Bundle nuovo (`index-DSuzouWT.js`) include sprint U-1 → U-5 + D5 → D8 (verifica dei chunk presenti nel preload).
+
+**File toccati.**
+
+- `vercel.json` → `framework: "vite"`, rimosso `cleanUrls`, rewrite con esclusioni esplicite per asset statici.
+- `apps/web/src/main.tsx` → SW hardening (`controllerchange` reload + `update()` su focus).
+- `docs/STATO_E_TODO.md` v2.17 → v2.18 (questa sezione §0.27).
+- `.cursor/rules/mcp-vercel.mdc` → aggiornato preset framework + nuovo workflow "404 NOT_FOUND su route SPA" con diagnosi e fix.
+
+**Lesson learned per il futuro.**
+
+> Su Vercel con SPA + monorepo: **NON** combinare `framework: null` + `cleanUrls: true` + rewrite catch-all. Sempre usare `framework: "vite"` (o equivalente) che gestisce internamente il fallback SPA, oppure se serve `framework: null` allora rewrite con esclusioni esplicite degli asset statici. La regola `/(.*) → /index.html` da sola non basta perche' `cleanUrls` la bypassa.
+>
+> **Diagnosi rapida via MCP Vercel:** `web_fetch_vercel_url("/route-sospetta")` → se ritorna `x-vercel-error: NOT_FOUND` allora il rewrite SPA non si attiva → controllare `vercel.json` per conflitto `cleanUrls`/`framework`/rewrites.
 
 ---
 

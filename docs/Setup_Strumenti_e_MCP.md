@@ -2,7 +2,7 @@
 
 > Guida completa per configurare l'ambiente di sviluppo ottimale.
 >
-> **Versione:** 2.0 — 18 aprile 2026
+> **Versione:** 2.1 — 18 aprile 2026 sera (post-aggiunta MCP Vercel ufficiale §2c)
 > **Status:** allineata con `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` e `docs/STATO_E_TODO.md`.
 
 ---
@@ -60,6 +60,7 @@ A partire dalla v2.0 di questo file, la documentazione di **Live SLIDE CENTER** 
 | `field-test-fase15.mdc`   | Mappa sprint, verifica, codice coinvolto + framework GO/NO-GO Sprint Q.  |
 | `legacy-agents.mdc`       | Pattern per `apps/agent` e `apps/room-agent` (Tauri storici).            |
 | `mcp-supabase.mdc`        | Uso del server MCP Supabase con PAT.                                     |
+| `mcp-vercel.mdc`          | Uso del server MCP Vercel ufficiale (OAuth) per deploy + logs + projects.|
 | `supabase-db.mdc`         | Pattern per migrations + RPC SECURITY DEFINER.                           |
 | `web-react.mdc`           | Pattern React 19 + TypeScript strict.                                    |
 | `web-supabase-client.mdc` | Pattern client Supabase JS / `getBackendClient()`.                       |
@@ -83,6 +84,7 @@ Riepilogo per AI assistant. Da leggere come prima cosa quando si apre il progett
 | **Tauri CLI**    | `pnpm add -D @tauri-apps/cli`      | 2.x             | Build desktop apps           |
 | **Git**          | gia installato                     | latest          | Version control              |
 | **GitHub CLI**   | `winget install GitHub.cli`        | latest          | `gh auth`, PR, issues        |
+| **Vercel CLI**   | `npm install -g vercel`            | 51+             | Deploy `apps/web` cloud SaaS |
 
 ### Opzionali ma raccomandati
 
@@ -191,11 +193,74 @@ Se preferisci non usare l’HTTP hosted:
 
 `npx -y @supabase/mcp-server-supabase@latest --project-ref TUO_REF` con env **`SUPABASE_ACCESS_TOKEN`** (stesso PAT).
 
+---
+
+## 2c. Server MCP — Vercel ufficiale (deploy + logs + projects)
+
+A partire da v2.1 il file `C:\Users\andre\.cursor\mcp.json` include il server MCP **`vercel`** ufficiale di Vercel (endpoint hosted con OAuth, supportato ufficialmente per Cursor da agosto 2025).
+
+### Config in `mcp.json` (gia attiva)
+
+```json
+"vercel": {
+  "type": "http",
+  "url": "https://mcp.vercel.com"
+}
+```
+
+Nessun token / variabile d'ambiente. L'auth e' OAuth via browser.
+
+### Procedura una tantum (dopo riavvio Cursor)
+
+1. **Esci del tutto da Cursor** (anche dalla tray) e riapri.
+2. **Settings → Tools & MCP**: la voce **`vercel`** appare con etichetta **"Needs login"**.
+3. Click su **Needs login** → si apre il browser → login con `live.software11@gmail.com` (lo stesso account del progetto `live-slide-center`) → Authorize Cursor.
+4. Tornato in Cursor, lo stato diventa connesso (lista tool visibile).
+
+### Tool disponibili (selezione utile per SLIDE CENTER)
+
+| Tool                          | Uso operativo                                                                                       |
+| ----------------------------- | --------------------------------------------------------------------------------------------------- |
+| `list_projects`               | Verificare che `live-slide-center` esista nello scope `livesoftware11-3449s-projects`.              |
+| `list_deployments`            | Storico deploy del progetto (production + preview), per capire se l'ultimo push e' stato deployato. |
+| `get_deployment`              | Dettagli singolo deploy (status, URL alias, build duration).                                        |
+| `get_deployment_build_logs`   | Log build (per debug fallimenti pnpm install / Vite build / postbuild Sentry).                      |
+| `get_deployment_runtime_logs` | Log runtime (errori 500, edge functions). Utile post-incidente.                                     |
+| `get_project`                 | Settings progetto, framework preset, build command, env vars (nome, non valore).                    |
+| `search_documentation`        | Cerca nei docs Vercel direttamente da chat (es. "vercel monorepo build").                           |
+| `list_teams`                  | Switch tra scope se in futuro Andrea aggiunge team aziendale.                                       |
+
+### Workflow consigliato post-incidente "deploy non aggiornato"
+
+```
+1. Chiedi al MCP vercel: list_deployments per progetto live-slide-center, ultimi 5
+   -> verifica readyState e creator (Git vs CLI manuale)
+
+2. Se l'ultimo deploy e' di giorni fa nonostante push recenti:
+   -> integrazione GitHub probabilmente disconnessa
+   -> apri https://vercel.com/dashboard -> Settings -> Git -> Reconnect
+
+3. Per sblocco rapido senza dashboard:
+   -> Vercel CLI: `vercel --prod --yes --archive=tgz` dalla root del monorepo
+   (l'archive=tgz e' obbligatorio: il monorepo ha 17k+ file, oltre il limite 15k)
+```
+
+### Riferimento procedura completa
+
+Vedi `.cursor/rules/mcp-vercel.mdc` per:
+
+- Naming progetti Vercel per ogni app dell'ecosistema.
+- Quando usare CLI vs MCP vs dashboard.
+- Cosa fare quando il deploy automatico GitHub e' rotto (= storia 18/04/2026 sera, vedi `STATO_E_TODO.md` §0.26).
+
+---
+
 ### Gia configurati nel workspace (verificare siano attivi)
 
 | Server MCP                     | Priorita | Uso per SLIDE CENTER                                                                                                                                                                          |
 | ------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **supabase-hosted**            | CRITICO  | Query DB, RLS, auth, storage (endpoint ufficiale Supabase MCP)                                                                                                                                |
+| **vercel**                     | CRITICO  | Deploy + build logs + projects mgmt (endpoint ufficiale Vercel MCP, OAuth)                                                                                                                    |
 | **user-context7**              | ALTO     | Documentazione aggiornata per TUTTE le librerie: React 19, Supabase, Tailwind 4, shadcn/ui, Tauri v2, i18next, Zustand, TanStack, Zod. Usalo SEMPRE prima di scrivere codice con una libreria |
 | **user-sequential-thinking**   | ALTO     | Ragionamento step-by-step per task complessi (architettura, debug, sync logic)                                                                                                                |
 | **user-GitHub**                | MEDIO    | Operazioni repo, PR, issues, review                                                                                                                                                           |
@@ -219,6 +284,11 @@ Per task complessi:
 Per debug dati Supabase:
 1. Usa **supabase-hosted** (MCP Supabase) per query dirette
 2. Verifica RLS con query diverse per tenant
+
+Per debug deploy cloud (live-slide-center.vercel.app):
+1. Usa **vercel** MCP -> list_deployments per vedere ultimo deploy + readyState
+2. Se fallisce -> get_deployment_build_logs per leggere errori build
+3. Se runtime 5xx -> get_deployment_runtime_logs per stack trace
 
 Per ricerche su pattern/best practices:
 1. duckduckgo-mcp-server per cercare
@@ -443,8 +513,9 @@ VITE_APP_VERSION=0.0.1
 - [ ] Supabase CLI installata e autenticata
 - [ ] Docker Desktop installato e avviato (per `supabase start`)
 - [ ] GitHub CLI autenticata (`gh auth status` → live-software11)
+- [ ] Vercel CLI autenticata (`vercel whoami` → livesoftware11-3449)
 - [ ] Estensioni Cursor installate (Tailwind, ESLint, Prettier, rust-analyzer)
-- [ ] MCP servers attivi in Cursor (Supabase, context7, sequential-thinking)
+- [ ] MCP servers attivi in Cursor (Supabase, **Vercel**, context7, sequential-thinking)
 - [ ] `.env` creato dalla `.env.example` con credenziali reali
 - [ ] `supabase start` funziona correttamente
 - [ ] Repository git inizializzato e collegato a GitHub

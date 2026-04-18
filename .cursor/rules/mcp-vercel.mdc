@@ -1,0 +1,195 @@
+---
+description: MCP Vercel — deploy, build/runtime logs e gestione progetto live-slide-center
+alwaysApply: true
+---
+
+# MCP Vercel — Accesso al progetto cloud (Live SLIDE CENTER)
+
+## Progetto Vercel di riferimento
+
+- **Nome progetto:** `live-slide-center`
+- **Scope / team slug:** `livesoftware11-3449s-projects`
+- **Production URL:** `https://live-slide-center.vercel.app`
+- **Account Vercel:** `live.software11@gmail.com` (lo stesso del repo GitHub `live-software11/live-slide-center`)
+- **Framework preset:** `vite` (set in `vercel.json` — necessario per SPA fallback corretto, vedi sezione "Workflow operativo: 404 NOT_FOUND su route SPA")
+- **Build command:** `pnpm run build`
+- **Output directory:** `apps/web/dist`
+- **Install command:** `pnpm install`
+- **Region build:** `iad1` (Washington DC)
+- **Region edge:** auto (closest to user)
+
+## Server per questo workspace
+
+| Nome in Cursor (`mcp.json`) | Tipo                          | Note                                                                                                                                                                  |
+| --------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **vercel**                  | HTTP + OAuth browser flow     | Endpoint ufficiale `https://mcp.vercel.com`, auth via OAuth (al primo avvio Cursor mostra "Needs login" → click → browser → authorize). Nessun token in env vars.    |
+
+### Perche' OAuth (e non un token)
+
+Vercel MCP usa OAuth gestito da Vercel stesso (a differenza di Supabase che richiede PAT). Non serve impostare nessuna variabile d'ambiente. La sessione persiste finche' Cursor mantiene la connessione (refresh automatico).
+
+**Vincolo:** Vercel approva un client list di AI tool — Cursor e' supportato ufficialmente da agosto 2025. Se in futuro serve aggiungere altri client (Claude.ai, Codex CLI, ecc) la procedura e' la stessa endpoint + OAuth.
+
+## Tool MCP disponibili (selezione utile per SLIDE CENTER)
+
+Verifica sempre lo schema completo del tool con `ListMcpResources` o leggendo `C:\Users\andre\.cursor\projects\<workspace>/mcps/vercel/tools/<tool>.json` PRIMA di chiamarlo.
+
+### Lettura / debug (uso quotidiano)
+
+| Tool                          | Quando usarlo                                                                                                                                              |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `list_projects`               | Verificare che `live-slide-center` esista nello scope corretto.                                                                                            |
+| `list_deployments`            | Sospetti che il deploy automatico GitHub→Vercel sia rotto. Filtra per `target=production`. Se l'ultimo deploy ha data molto piu' vecchia degli ultimi commit `main` → integrazione disconnessa. |
+| `get_deployment`              | Dettagli singolo deploy: `readyState` (`READY`/`ERROR`/`BUILDING`), URL alias finale, build duration, creator (Git vs CLI manuale). |
+| `get_deployment_build_logs`   | Build fallita: leggi i log per capire il punto di rottura (pnpm install, Vite build, postbuild Sentry, cache miss, ecc).                                  |
+| `get_deployment_runtime_logs` | Errori runtime (5xx, edge function exception). Postmortem incidenti produzione.                                                                            |
+| `get_project`                 | Settings progetto: framework preset, build command, env vars (nomi visibili, valori mascherati per sicurezza).                                             |
+| `search_documentation`        | Domande veloci sui docs Vercel (es. "vercel monorepo build", "rewrite trailing slash") senza alt-tab al browser.                                           |
+| `list_teams`                  | Switch tra scope se in futuro Andrea aggiunge team aziendale.                                                                                              |
+
+### Scrittura (con cautela)
+
+Vercel MCP espone anche tool di scrittura (es. `cancel_deployment`, gestione env vars). Per questo progetto:
+
+- **NON** modificare env vars del progetto via MCP — fai sempre via dashboard Vercel UI per audit trail.
+- **NON** cancellare deployments di production senza conferma esplicita di Andrea.
+- Per **deploy nuovo**: usa Vercel CLI da terminale (`vercel --prod --yes --archive=tgz`) — piu' diretto e visibile.
+
+## Workflow operativo: "404 NOT_FOUND su route SPA" (es. `/centri-slide`, `/admin/*`, `/sala/:token`)
+
+Caso documentato in produzione (18/04/2026 sera tardi, vedi `docs/STATO_E_TODO.md` §0.27): tutte le route React Router accessibili con URL diretto (link condiviso, F5, deep link) ritornavano `x-vercel-error: NOT_FOUND` con ID tipo `fra1::z9rs5-...`. Solo la home `/` funzionava.
+
+### Step 1 — diagnosi via MCP
+
+```
+Chiedi al MCP vercel:
+- web_fetch_vercel_url("https://live-slide-center.vercel.app/centri-slide")
+- web_fetch_vercel_url("https://live-slide-center.vercel.app/admin/tenants")
+
+Se status = 404 + header `x-vercel-error: NOT_FOUND`:
+  → il rewrite SPA fallback non si attiva su Vercel.
+  → quasi sicuramente colpa di `cleanUrls: true` + `framework: null` in `vercel.json`.
+```
+
+### Step 2 — fix `vercel.json`
+
+Combinazione **vietata** (genera 404 su tutte le route non-statiche):
+
+```json
+{
+  "framework": null,
+  "cleanUrls": true,
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
+```
+
+Combinazione **corretta**:
+
+```json
+{
+  "framework": "vite",
+  "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/((?!assets/|icons/|workbox-|registerSW\\.js|sw\\.js|manifest\\.webmanifest|favicon|apple-touch-icon|pwa-|logo-live-slide-center).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+```
+
+Perche':
+
+- `framework: "vite"` fa applicare a Vercel il preset SPA (asset hashed in `/assets/` serviti staticamente, route route fallback su `/index.html`).
+- Rimuovere `cleanUrls: true` → Vercel non short-circuita 404 prima del rewrite.
+- Rewrite con **esclusioni esplicite** per gli asset statici reali del progetto (non solo `/assets/`, ma anche files PWA: workbox, sw, manifest, favicon, apple-touch, pwa-icons, logo brand). Cosi' richieste a file inesistenti (es. chunk vecchio cached) ritornano 404 vero invece di servire HTML con MIME mismatch.
+
+### Step 3 — deploy + verifica
+
+Da terminale (vedi sezione successiva per dettagli `--archive=tgz`):
+
+```powershell
+git add vercel.json
+git commit -m "fix(vercel): rimuove cleanUrls + framework vite per fix 404 SPA"
+git push origin main
+vercel --prod --yes --archive=tgz
+```
+
+Dopo deploy, verifica via MCP che le route ritornino 200:
+
+```
+web_fetch_vercel_url("https://live-slide-center.vercel.app/centri-slide")
+  → status 200, content-type text/html, content-disposition `inline; filename="index.html"`
+```
+
+Tutto OK.
+
+---
+
+## Workflow operativo: "il deploy cloud non e' aggiornato"
+
+Caso documentato in produzione (18/04/2026 sera, vedi `docs/STATO_E_TODO.md` §0.26): bundle live serviva ancora UI pre-refactor nonostante 6+ commit pushati a `main`.
+
+### Step 1 — diagnosi via MCP
+
+```
+Chiedi al MCP vercel:
+- list_deployments(project="live-slide-center", limit=5, target="production")
+
+Se l'ultimo deploy ha createdAt > 1h piu' vecchio dell'ultimo commit `main` su GitHub
+  → integrazione webhook GitHub→Vercel probabilmente rotta o disconnessa.
+```
+
+### Step 2 — sblocco rapido (deploy CLI)
+
+Da terminale PowerShell, root del monorepo:
+
+```powershell
+# Una tantum se non installato
+npm install -g vercel
+vercel whoami       # deve stampare livesoftware11-3449
+vercel link --yes --project live-slide-center
+
+# Deploy production
+vercel --prod --yes --archive=tgz
+```
+
+**`--archive=tgz` e' OBBLIGATORIO**: il monorepo Live SLIDE CENTER ha 17.619 file (oltre il limite 15.000 file/upload di Vercel API standard). Il flag forza la compressione locale in tarball (~1.8GB) e l'upload come singolo archivio. Senza il flag il deploy fallisce con `missing_archive` immediatamente.
+
+Build remoto Vercel: ~40-50 secondi su `iad1`. Output finale: `Production: https://live-slide-center.vercel.app`.
+
+### Step 3 — risoluzione root (richiede Andrea)
+
+Il fix CLI sblocca **questo** deploy ma **non** ripristina l'auto-deploy. Per la risoluzione root serve Andrea con accesso dashboard:
+
+> 1. [vercel.com/dashboard](https://vercel.com/dashboard) → progetto `live-slide-center` → Settings → Git.
+> 2. Verificare che il repo connesso sia `live-software11/live-slide-center` su branch `main`.
+> 3. Se appare "Disconnected" → click **Connect Git Repository** → autorizza Vercel sul GitHub `live-software11`.
+> 4. Push trivial (`git commit --allow-empty -m "test ci" && git push`) per validare che il webhook funzioni.
+
+**Long-term raccomandato:** workflow GitHub Actions `.github/workflows/vercel-deploy.yml` con `VERCEL_TOKEN` segreto. Toglie il single-point-of-failure dell'integrazione webhook. Quando Andrea decide, implementabile in <30 minuti (richiede solo che Andrea generi il `VERCEL_TOKEN` da Settings → Tokens nella dashboard una tantum).
+
+## Account: regola sacra
+
+| Risorsa            | Account           | Verifica                       |
+| ------------------ | ----------------- | ------------------------------ |
+| GitHub repo        | `live-software11` | `gh auth status`               |
+| Vercel account     | `livesoftware11-3449` | `vercel whoami`                |
+| Supabase project   | `live.software11@gmail.com` | `cdjxxxkrhgdkcpkkozdl` |
+
+**MAI** confondere con account dei progetti DHS (`Andraven11` su GitHub, `info.dhsroma@gmail.com` o `dhs.sede.roma@gmail.com` su Firebase). Live SLIDE CENTER e' interamente sotto l'account `live-software11` / `live.software11@gmail.com`.
+
+## Vincoli e best practice
+
+- **Mai** committare token Vercel o file `.vercel/` (gia' in `.gitignore`).
+- **Sempre** verificare che `vercel.json` punti correttamente a `apps/web/dist` come outputDirectory (monorepo).
+- **Sempre** usare `--archive=tgz` da CLI per evitare il limite 15k file.
+- **Verificare l'aggiornamento del bundle** dopo un deploy: `curl -s "https://live-slide-center.vercel.app/" | grep "index-"` deve mostrare un hash JS/CSS diverso dal precedente.
+- **Headers cache:** `/index.html` `no-cache, must-revalidate` (HTML mai cachato), `/assets/*` `max-age=31536000 immutable` (chunk hash-based eternally cached) — gestiti da `vercel.json`.
+
+## Riferimenti
+
+- Setup completo: `docs/Setup_Strumenti_e_MCP.md` §2c.
+- Architettura deploy: `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` §20.3 / §20.3.1 / §20.3.2.
+- Storia incidente 18/04/2026: `docs/STATO_E_TODO.md` §0.26.
+- Tool reference Vercel MCP: [vercel.com/docs/agent-resources/vercel-mcp](https://vercel.com/docs/agent-resources/vercel-mcp).

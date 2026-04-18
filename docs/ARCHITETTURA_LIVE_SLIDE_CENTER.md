@@ -1175,11 +1175,58 @@ Secret server-side (Supabase Edge Functions secrets, NON nel repo):
 
 | Componente       | Strategia                                                                                 |
 | ---------------- | ----------------------------------------------------------------------------------------- |
-| `apps/web`       | Vercel auto-deploy su push `main`. Preview URL su PR.                                     |
+| `apps/web`       | Vercel auto-deploy su push `main`. Preview URL su PR. **Fallback CLI** (vedi §20.3.1).    |
 | Edge Functions   | `supabase functions deploy <nome>` da CLI; CI manuale (no auto-deploy intenzionale)       |
 | Migrations       | `supabase db push` in produzione (manuale, dopo PR review). NESSUN auto-deploy migration. |
 | Tauri Desktop    | Build NSIS → upload manuale a Tauri updater manifest (Vercel)                             |
 | Local/Room Agent | Build NSIS → consegna manuale al cliente con licenza                                      |
+
+#### 20.3.1 Vercel — fallback CLI quando l'auto-deploy si blocca
+
+L'integrazione webhook GitHub → Vercel **puo' disconnettersi silenziosamente** (visto in produzione 18/04/2026 — vedi `STATO_E_TODO.md` §0.26). Sintomi: Vercel dashboard mostra "Updated Nd ago" mentre `git log` ha commit recenti; `gh api repos/.../deployments` ritorna vuoto; bundle servito ha hash vecchio.
+
+**Sblocco manuale (1 deploy)** — preferibile dalla root del monorepo, account `livesoftware11-3449`:
+
+```bash
+# Una tantum (se Vercel CLI non installato)
+npm install -g vercel
+vercel whoami       # deve mostrare livesoftware11-3449
+vercel link --yes --project live-slide-center
+
+# Per ogni deploy manuale
+vercel --prod --yes --archive=tgz
+```
+
+**Importante:** `--archive=tgz` e' **obbligatorio** perche' il monorepo ha 17.619 file (oltre il limite 15k file/upload di Vercel API). Il flag fa creare un tarball locale (~1.8GB) e lo carica come archivio singolo. Senza il flag il deploy fallisce con `missing_archive`.
+
+**Risoluzione root** (richiede dashboard Vercel — non automatizzabile via CLI/MCP):
+
+1. [vercel.com/dashboard](https://vercel.com/dashboard) → progetto `live-slide-center` → Settings → Git.
+2. Verificare repo connesso `live-software11/live-slide-center` su branch `main`.
+3. Se "Disconnected" → click **Connect Git Repository** → autorizzare Vercel sul GitHub `live-software11`.
+4. Push trivial (`git commit --allow-empty -m "test ci" && git push`) per validare il webhook.
+
+**Long-term (raccomandato):** workflow GitHub Actions `.github/workflows/vercel-deploy.yml` con `VERCEL_TOKEN` segreto → toglie il single-point-of-failure dell'integrazione webhook.
+
+#### 20.3.2 MCP Vercel ufficiale (debug & monitoring da Cursor)
+
+Aggiunto al file utente `C:\Users\andre\.cursor\mcp.json` il server MCP **`vercel`** (endpoint hosted ufficiale `https://mcp.vercel.com`, OAuth, supportato per Cursor da agosto 2025):
+
+```json
+"vercel": {
+  "type": "http",
+  "url": "https://mcp.vercel.com"
+}
+```
+
+Tool utili in caso di dubbi su deploy:
+
+- `list_deployments` — verifica readyState ultimi 5 deploy del progetto.
+- `get_deployment_build_logs` — log completo build (debug fail pnpm install / Vite / postbuild Sentry).
+- `get_deployment_runtime_logs` — runtime errors (5xx, edge functions).
+- `get_project` — settings progetto (env vars nome, framework preset, build command).
+
+Procedura attivazione: vedi `docs/Setup_Strumenti_e_MCP.md` §2c. Dettagli operativi: `.cursor/rules/mcp-vercel.mdc`.
 
 ### 20.4 Healthcheck
 

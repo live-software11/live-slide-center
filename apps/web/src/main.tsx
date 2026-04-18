@@ -71,6 +71,34 @@ window.addEventListener('error', (event) => {
   }
 });
 
+// SW hardening (Sprint U-6): quando Vite PWA installa un nuovo SW e prende
+// controllo via `clientsClaim: true`, il browser emette `controllerchange`.
+// Forziamo un reload one-shot: cosi' utenti con SW vecchio cached vedono
+// la nuova UI senza dover fare manualmente Ctrl+F5.
+// In aggiunta: ad ogni `focus` sulla pagina chiediamo al SW di controllare
+// aggiornamenti (default Workbox controlla solo all'install). Cosi' chi
+// lascia il browser aperto per giorni vede comunque le nuove versioni
+// quando torna sul tab.
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+  let swReloadInFlight = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (swReloadInFlight) return;
+    swReloadInFlight = true;
+    try {
+      sessionStorage.removeItem(STALE_CHUNK_RELOAD_KEY);
+    } catch {
+      /* ignore */
+    }
+    window.location.reload();
+  });
+
+  window.addEventListener('focus', () => {
+    void navigator.serviceWorker.getRegistration().then((reg) => {
+      if (reg) void reg.update();
+    });
+  });
+}
+
 // Sprint O2 (GUIDA_OPERATIVA_v3 §4.G): in modalita desktop il client Supabase JS
 // e' configurato per parlare al backend Rust locale. Il `base_url` + `admin_token`
 // arrivano da `cmd_backend_info` (async). Aspettiamo l'init prima di renderizzare
