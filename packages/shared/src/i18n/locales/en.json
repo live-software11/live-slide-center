@@ -159,7 +159,23 @@
       "pdfEmptySpeakers": "No speakers recorded.",
       "pdfEmptySlides": "No ready presentations to list.",
       "pdfActivityRows": "Log rows also available as CSV: {{count}}.",
-      "pdfFooter": "Live Slide Center — metadata export. Original slide binaries are in the dedicated ZIP."
+      "pdfFooter": "Live Slide Center — metadata export. Original slide binaries are in the dedicated ZIP.",
+      "zip": {
+        "readmeTitle": "Live SLIDE CENTER — End-of-event export",
+        "readmeEvent": "Event",
+        "readmeDateRange": "Dates",
+        "readmeStatus": "Status",
+        "readmeNetworkMode": "Network mode",
+        "readmeRoomsCount": "Total rooms",
+        "readmeSessionsCount": "Total sessions",
+        "readmeSlidesCount": "Files included",
+        "readmeTotalBytes": "Total file size",
+        "readmeStructureHint": "Archive layout: each file lives in <Room>/<Session>/<Speaker>_v<version>_<original-name>.",
+        "readmeBreakdownTitle": "File count per room:",
+        "readmeNoRoom": "(no room)",
+        "readmeGeneratedAt": "Generated at",
+        "readmeFooter": "Generated automatically by Live SLIDE CENTER. Support: support@liveworksapp.com"
+      }
     }
   },
   "tenantQuota": {

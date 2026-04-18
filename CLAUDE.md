@@ -177,7 +177,7 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 
 ### Audit chirurgico 18/04/2026 (Sprint R / S / T pianificati)
 
-**Stato:** **audit completato, famiglia Sprint R DONE + S-1 + S-2 DONE (5/10 GAP chiusi: G1+G2+G3+G4+G5), S-3 next.**
+**Stato:** **audit completato, famiglia Sprint R DONE + S-1 + S-2 + S-3 DONE (6/10 GAP chiusi: G1+G2+G3+G4+G5+G6), S-4 next.**
 
 **Sintesi 10 GAP rilevati** rispetto agli obiettivi prodotto sovrani (parita cloud/desktop, file da locale, versioning chiaro, perf zero impatto, super-admin licenze, OneDrive-style, drag PC, upload da sala, export ordinato, competitor parity):
 
@@ -188,8 +188,8 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 | **R-3** | PC sala upload speaker check-in        | G3             | 2g        | **DONE 18/04/2026 (vedi §0.11)**           |
 | **S-1** | Drag&drop folder admin OneDrive-style  | G4             | 1g        | **DONE 18/04/2026 (vedi §0.12)**           |
 | **S-2** | Drag&drop visivo PC ↔ sale             | G5             | 1g        | **DONE 18/04/2026 (vedi §0.13)**           |
-| **S-3** | Export ZIP ordinato per sala/sessione  | G6             | 0.5g      | next (zip nested per sala/sessione)        |
-| **S-4** | Ruolo device "Centro Slide" multi-room | G7             | 1.5g      | pending                                    |
+| **S-3** | Export ZIP ordinato per sala/sessione  | G6             | 0.5g      | **DONE 18/04/2026 (vedi §0.14)**           |
+| **S-4** | Ruolo device "Centro Slide" multi-room | G7             | 1.5g      | next                                       |
 | **T**   | Performance + competitor parity        | G8 + G9 + G10  | 4g        | pending (match feature PreSeria/Slidecrew) |
 
 **Dettaglio dei 10 GAP, file coinvolti, soluzione tecnica, decisioni richieste ad Andrea:** `docs/STATO_E_TODO.md` § 0.
@@ -313,15 +313,15 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 
 **Stato:** **completato e verde.** L'admin puo' assegnare i PC alle sale tramite **lavagna drag&drop** Kanban-style (colonna "Non assegnati" + N colonne sala). Toggle persistente "Lista | Lavagna" affianca la vista classica senza rimpiazzarla. HTML5 DnD nativo, aggiornamento ottimistico, realtime listener gia' attivo allinea altri admin in <1s.
 
-| Area              | Cosa                                                                                                                                                                                                                                                                                                                                                                                  |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Componente        | `apps/web/src/features/devices/components/RoomAssignBoard.tsx` (nuovo) — grid responsive `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`, colonne con header (icona + nome + count), drop zone con ring/colore feedback, card device draggable con grip + Monitor + connectivity dot + Wifi/WifiOff. MIME custom `application/x-sc-device-id` per validare drop (ignora drop esterni). |
-| Integrazione UI   | `DevicesPanel.tsx` — toggle a 2 tab "Lista | Lavagna" (icone `List` e `LayoutGrid`) con persistenza `localStorage:sc:devices:viewMode`. Default `list` per retro-compatibilita.                                                                                                                                                                                                  |
-| State management  | Optimistic dictionary `optimisticRoom: Record<deviceId, roomId|null>`. Drop → UI aggiornata immediatamente → `updateDeviceRoom(deviceId, targetRoomId)` (esistente) → `onRefresh()`. Errore → rollback automatico + banner `errors.move_failed` (5s). Busy-state `Loader2` per device durante mutation, `pointer-events: none` per evitare doppi drop.                              |
-| Schema DB         | **Invariato.** Mutation usa `updateDeviceRoom` (UPDATE su `paired_devices.room_id` + `updated_at`). RLS `tenant_isolation` permette gia' la mutazione all'admin del tenant.                                                                                                                                                                                                          |
-| Realtime          | **Zero broadcast custom.** `usePairedDevices` ha gia' un listener `postgres_changes` su `paired_devices` filtered by `event_id`, quindi un drop su Browser A propaga automaticamente a Browser B in <1s.                                                                                                                                                                            |
-| i18n              | 12 nuove chiavi `devices.panel.viewModeLabel/viewList/viewBoard` + `devices.board.*` IT/EN parity (1229/1229 totali).                                                                                                                                                                                                                                                                |
-| Accessibilita     | Vista Lista (con dropdown nel kebab menu) resta invariata come fallback per touch/keyboard users. La lavagna e' mouse-only per scelta MVP.                                                                                                                                                                                                                                            |
+| Area             | Cosa                                                                                                                                                                                                                                                                                                                                                                               |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Componente       | `apps/web/src/features/devices/components/RoomAssignBoard.tsx` (nuovo) — grid responsive `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`, colonne con header (icona + nome + count), drop zone con ring/colore feedback, card device draggable con grip + Monitor + connectivity dot + Wifi/WifiOff. MIME custom `application/x-sc-device-id` per validare drop (ignora drop esterni). |
+| Integrazione UI  | `DevicesPanel.tsx` — toggle a 2 tab "Lista                                                                                                                                                                                                                                                                                                                                         | Lavagna" (icone `List` e `LayoutGrid`) con persistenza `localStorage:sc:devices:viewMode`. Default `list` per retro-compatibilita.                                                                                                                                                |
+| State management | Optimistic dictionary `optimisticRoom: Record<deviceId, roomId                                                                                                                                                                                                                                                                                                                     | null>`. Drop → UI aggiornata immediatamente → `updateDeviceRoom(deviceId, targetRoomId)`(esistente) →`onRefresh()`. Errore → rollback automatico + banner `errors.move_failed`(5s). Busy-state`Loader2`per device durante mutation,`pointer-events: none` per evitare doppi drop. |
+| Schema DB        | **Invariato.** Mutation usa `updateDeviceRoom` (UPDATE su `paired_devices.room_id` + `updated_at`). RLS `tenant_isolation` permette gia' la mutazione all'admin del tenant.                                                                                                                                                                                                        |
+| Realtime         | **Zero broadcast custom.** `usePairedDevices` ha gia' un listener `postgres_changes` su `paired_devices` filtered by `event_id`, quindi un drop su Browser A propaga automaticamente a Browser B in <1s.                                                                                                                                                                           |
+| i18n             | 12 nuove chiavi `devices.panel.viewModeLabel/viewList/viewBoard` + `devices.board.*` IT/EN parity (1229/1229 totali).                                                                                                                                                                                                                                                              |
+| Accessibilita    | Vista Lista (con dropdown nel kebab menu) resta invariata come fallback per touch/keyboard users. La lavagna e' mouse-only per scelta MVP.                                                                                                                                                                                                                                         |
 
 **Quality gates verdi:** `pnpm --filter @slidecenter/web typecheck` (0 err), `lint` (0 err), `build` (2.0s, +negligible bundle in chunk EventDetailView). i18n parity script Node PASS.
 
@@ -338,6 +338,35 @@ Schema PostgreSQL maturo (RLS + custom claims JWT + 25+ migration), 15 Edge Func
 - Multi-select drag (shift+click + drag bundle) → S-2.b deferred (+0.5g, raro: i centri slide hanno 5-15 PC totali).
 - Touch device support (tablet drag&drop): fallback intenzionale a vista Lista. Per supportare nativamente touch servirebbe `@dnd-kit/core` con touch backend (+1g + 1 dep).
 - Animazioni transizione card (framer-motion) → S-2.c deferred (+0.3g, scelta MVP zero-deps).
+
+### Sprint S-3 (G6) — Export ZIP fine evento ordinato sala/sessione (DONE 18/04/2026)
+
+**Stato:** **completato e verde.** Lo ZIP fine evento (download admin da `EventExportPanel`) e' ora **nested per Sala/Sessione** con `info.txt` UTF-8 in root contenente metadata evento, sostituendo il vecchio formato piatto `slides/Speaker_vN_file.ext`. Andrea ha richiesto esplicitamente "in modo ordinato" → niente toggle UI, default unico.
+
+| Area              | Cosa                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Refactor          | `apps/web/src/features/events/lib/event-export.ts` — `CurrentSlideExportRow` esteso con `roomId/roomName/sessionId`. `listCurrentReadySlidesForExport` ora richiede `rooms: RoomRow[]`. `buildEventSlidesZip` accetta `EventSlidesZipOptions` (event, rooms, sessions, t, locale, generatedAtIso, onProgress, includeReadme). 2 nuove pure-function: `buildSlidePathSegments`, `buildEventInfoReadme`.       |
+| UI integrazione   | `apps/web/src/features/events/components/EventExportPanel.tsx` — passa `rooms` (gia' disponibile come prop) e i nuovi parametri al refactor. Nessun cambiamento UI visibile (Andrea ha chiesto "in modo ordinato" → semplifichiamo, no toggle).                                                                                                                                                                  |
+| Output ZIP        | `<evento>_slides.zip / Sala/Sessione/Speaker_vN_filename.ext` + `info.txt` (UTF-8 BOM) con header, metadata evento, conteggio file per sala, totale bytes, ora generazione, footer support. Slide orfane → `_senza-sala_/_senza-sessione_/...` (cartelle marker visibili).                                                                                                                                       |
+| Schema DB         | **Invariato.** Refactor pure-function client-side, zero migrations.                                                                                                                                                                                                                                                                                                                                            |
+| i18n              | 14 nuove chiavi sotto `event.export.zip.*` (readmeTitle, readmeEvent, readmeDateRange, readmeStatus, readmeNetworkMode, readmeRoomsCount, readmeSessionsCount, readmeSlidesCount, readmeTotalBytes, readmeStructureHint, readmeBreakdownTitle, readmeNoRoom, readmeGeneratedAt, readmeFooter). Parity 1243/1243.                                                                                            |
+
+**Quality gates verdi:** `pnpm --filter @slidecenter/web typecheck` (0 err), `lint` (0 err), `build` (1.3s, EventExportPanel 412KB → 412KB +1KB ininfluente). i18n parity script Node PASS.
+
+**Sicurezza/Performance:**
+
+- Path sanitization: `sanitizeExportSegment` (gia' esistente) applicato a roomName/sessionTitle/speakerName/fileName con regex stretta `[/\\?%*:|"<>]→_`.
+- Storage URL signed via `createVersionDownloadUrlWithClient` (gia' esistente, scadenza 1h).
+- Compression: `DEFLATE level 6` invariata.
+- Memory: l'intero ZIP viene buildato in memoria browser (come prima) — limite pratico ~500MB su Chrome desktop. Per eventi piu' grandi serve streaming server-side (S-3.b deferred).
+
+**Setup manuale Andrea:** **NESSUNO**. Refactor pure-function client-side. Niente migrations DB, niente env vars, niente deploy Edge Functions. Al primo nuovo export ZIP, Andrea trovera' lo ZIP nella nuova struttura.
+
+**Cosa NON e' incluso:**
+
+- Toggle UI "ordinato | piatto" → omesso (richiesta esplicita Andrea: "in modo ordinato").
+- README localizzato per nomi cartella (sale/sessioni dal DB) → solo le label di `info.txt` sono i18n IT/EN (in base alla lingua dell'admin che esporta).
+- Streaming server-side (Edge Function ZIP builder) per eventi >500MB → S-3.b deferred (+1g + 1 nuova Edge Function).
 
 ### Hardening Supabase + Vercel (Sprint Q+1) — DONE 18/04/2026
 

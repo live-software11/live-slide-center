@@ -18,7 +18,12 @@ export type ActivityLogExportRow = Pick<
 export interface CurrentSlideExportRow {
   speakerId: string;
   speakerName: string;
+  sessionId: string;
   sessionTitle: string;
+  /** Sprint S-3 (G6): id sala dello speaker, derivato via session→room. Puo' essere `null` se sessione orfana (fallback "_no-room_"). */
+  roomId: string | null;
+  /** Sprint S-3 (G6): nome sala leggibile per il path nested "Sala/Sessione/file". */
+  roomName: string;
   presentationId: string;
   presentationStatus: string;
   versionNumber: number;
@@ -74,6 +79,7 @@ export async function listCurrentReadySlidesForExport(
   eventId: string,
   speakers: SpeakerRow[],
   sessions: SessionRow[],
+  rooms: RoomRow[],
 ): Promise<{ rows: CurrentSlideExportRow[]; error: string | null }> {
   const { data: presentations, error: pErr } = await supabase
     .from('presentations')
@@ -83,6 +89,7 @@ export async function listCurrentReadySlidesForExport(
 
   const speakerById = new Map(speakers.map((s) => [s.id, s]));
   const sessionById = new Map(sessions.map((s) => [s.id, s]));
+  const roomById = new Map(rooms.map((r) => [r.id, r]));
 
   const versionIds = (presentations ?? [])
     .map((p) => p.current_version_id)
@@ -109,10 +116,14 @@ export async function listCurrentReadySlidesForExport(
     const sp = speakerById.get(p.speaker_id);
     if (!sp) continue;
     const sess = sessionById.get(sp.session_id);
+    const room = sess?.room_id ? roomById.get(sess.room_id) ?? null : null;
     rows.push({
       speakerId: sp.id,
       speakerName: sp.full_name,
+      sessionId: sess?.id ?? '',
       sessionTitle: sess?.title ?? '',
+      roomId: room?.id ?? null,
+      roomName: room?.name ?? '',
       presentationId: p.id,
       presentationStatus: p.status,
       versionNumber: ver.version_number,
@@ -364,14 +375,156 @@ export function buildEventReportPdf(params: {
   return doc.output('blob');
 }
 
+/**
+ * Sprint S-3 (G6) — opzioni per `buildEventSlidesZip` con struttura nested
+ * "Sala/Sessione/Speaker_vN_filename.ext" + README `info.txt` con metadata
+ * evento. Sostituisce il vecchio ZIP piatto `slides/Speaker_vN_file.ext`.
+ */
+export interface EventSlidesZipOptions {
+  event: Pick<EventRow, 'id' | 'name' | 'start_date' | 'end_date' | 'status' | 'network_mode'>;
+  rooms: RoomRow[];
+  sessions: SessionRow[];
+  /** i18next per le label del README e i nomi sezione. */
+  t: TFunction;
+  /** Locale per `Intl.DateTimeFormat` nel README (`it`/`en`). */
+  locale: string;
+  /** ISO timestamp generato lato chiamante (preferibile a `new Date()` dentro pure function). */
+  generatedAtIso: string;
+  /** Callback progress per UI. */
+  onProgress?: (done: number, total: number) => void;
+  /** Optional: include il README `info.txt` (default `true`). Per debug/test. */
+  includeReadme?: boolean;
+}
+
+const ZIP_NO_ROOM_FOLDER = '_senza-sala_';
+const ZIP_NO_SESSION_FOLDER = '_senza-sessione_';
+
+function buildSlidePathSegments(row: CurrentSlideExportRow): {
+  roomFolder: string;
+  sessionFolder: string;
+  fileName: string;
+} {
+  const roomFolder = row.roomName.trim()
+    ? sanitizeExportSegment(row.roomName, 60).replace(/\s/g, '_')
+    : ZIP_NO_ROOM_FOLDER;
+  const sessionFolder = row.sessionTitle.trim()
+    ? sanitizeExportSegment(row.sessionTitle, 60).replace(/\s/g, '_')
+    : ZIP_NO_SESSION_FOLDER;
+  const speakerSlug = sanitizeExportSegment(row.speakerName, 40).replace(/\s/g, '_');
+  const fileSlug = sanitizeExportSegment(row.fileName, 120);
+  return {
+    roomFolder,
+    sessionFolder,
+    fileName: `${speakerSlug}_v${row.versionNumber}_${fileSlug}`,
+  };
+}
+
+function buildEventInfoReadme(opts: {
+  event: EventSlidesZipOptions['event'];
+  rooms: RoomRow[];
+  sessions: SessionRow[];
+  slides: CurrentSlideExportRow[];
+  t: TFunction;
+  locale: string;
+  generatedAtIso: string;
+}): string {
+  const { event, rooms, sessions, slides, t, locale, generatedAtIso } = opts;
+  const localeTag = locale.startsWith('en') ? 'en-GB' : 'it-IT';
+  const dateFmt = new Intl.DateTimeFormat(localeTag, { dateStyle: 'short', timeStyle: 'short' });
+  const generatedAtLabel = (() => {
+    try {
+      return dateFmt.format(new Date(generatedAtIso));
+    } catch {
+      return generatedAtIso;
+    }
+  })();
+
+  const totalBytes = slides.reduce((sum, s) => sum + (s.fileSizeBytes || 0), 0);
+  const slidesByRoom = new Map<string, number>();
+  for (const s of slides) {
+    const k = s.roomName || t('event.export.zip.readmeNoRoom');
+    slidesByRoom.set(k, (slidesByRoom.get(k) ?? 0) + 1);
+  }
+
+  const lines: string[] = [];
+  lines.push(t('event.export.zip.readmeTitle'));
+  lines.push('='.repeat(60));
+  lines.push('');
+  lines.push(`${t('event.export.zip.readmeEvent')}: ${event.name}`);
+  lines.push(
+    `${t('event.export.zip.readmeDateRange')}: ${event.start_date} -> ${event.end_date}`,
+  );
+  lines.push(`${t('event.export.zip.readmeStatus')}: ${event.status}`);
+  lines.push(`${t('event.export.zip.readmeNetworkMode')}: ${event.network_mode ?? 'cloud'}`);
+  lines.push('');
+  lines.push(`${t('event.export.zip.readmeRoomsCount')}: ${rooms.length}`);
+  lines.push(`${t('event.export.zip.readmeSessionsCount')}: ${sessions.length}`);
+  lines.push(`${t('event.export.zip.readmeSlidesCount')}: ${slides.length}`);
+  lines.push(
+    `${t('event.export.zip.readmeTotalBytes')}: ${formatBytes(totalBytes, localeTag)}`,
+  );
+  lines.push('');
+  lines.push(t('event.export.zip.readmeStructureHint'));
+  lines.push('');
+  if (slidesByRoom.size > 0) {
+    lines.push(t('event.export.zip.readmeBreakdownTitle'));
+    const sortedRooms = Array.from(slidesByRoom.entries()).sort((a, b) =>
+      a[0].localeCompare(b[0], localeTag),
+    );
+    for (const [roomName, count] of sortedRooms) {
+      lines.push(`  - ${roomName}: ${count}`);
+    }
+    lines.push('');
+  }
+  lines.push(`${t('event.export.zip.readmeGeneratedAt')}: ${generatedAtLabel}`);
+  lines.push('');
+  lines.push(t('event.export.zip.readmeFooter'));
+
+  return lines.join('\r\n');
+}
+
+/**
+ * Sprint S-3 (G6) — Build ZIP nested ordinato per sala/sessione +
+ * README `info.txt` con metadata evento.
+ *
+ * Output struttura:
+ *
+ *   <evento>_slides.zip
+ *     info.txt                                  # README metadata UTF-8
+ *     Sala-Plenaria/
+ *       Apertura/
+ *         Mario_Rossi_v3_intro.pptx
+ *       Keynote/
+ *         Anna_Bianchi_v1_keynote.pdf
+ *     Sala-Workshop/
+ *       Sessione-Pomeriggio/
+ *         Luca_Verdi_v2_demo.pptx
+ *
+ * Cambiamento rispetto a Sprint pre-S-3: prima era `slides/Speaker_vN_file.ext`
+ * piatto, senza struttura, senza metadata. Andrea richiesta esplicita
+ * 18/04/2026: "i pc assegganti al centro slide devono avere i dati di
+ * tutte le sale e a fine evento devo poter scaricare tutto in modo ordinato".
+ *
+ * Sicurezza:
+ *  - Path segments sanitizzati via `sanitizeExportSegment` (regex stretta).
+ *  - Slide senza sala -> `_senza-sala_/<sessione>/...`, slide senza sessione
+ *    -> `<sala>/_senza-sessione_/...` (cartelle marker visibili).
+ *  - Storage URL signed via `createVersionDownloadUrlWithClient` (scadenza
+ *    server-side 1 ora, sufficiente per fetch immediato).
+ */
 export async function buildEventSlidesZip(
   supabase: SupabaseClient<Database>,
   slides: CurrentSlideExportRow[],
-  onProgress?: (done: number, total: number) => void,
+  options: EventSlidesZipOptions,
 ): Promise<Blob> {
+  const { event, rooms, sessions, t, locale, generatedAtIso, onProgress, includeReadme = true } =
+    options;
   const zip = new JSZip();
-  const folder = zip.folder('slides');
-  if (!folder) throw new Error('zip_folder_failed');
+
+  if (includeReadme) {
+    const readme = buildEventInfoReadme({ event, rooms, sessions, slides, t, locale, generatedAtIso });
+    zip.file('info.txt', `\ufeff${readme}`);
+  }
 
   let i = 0;
   for (const row of slides) {
@@ -379,10 +532,9 @@ export async function buildEventSlidesZip(
     const res = await fetch(url);
     if (!res.ok) throw new Error(`fetch_failed_${res.status}`);
     const buf = await res.arrayBuffer();
-    const base = sanitizeExportSegment(row.speakerName, 40);
-    const fname = sanitizeExportSegment(row.fileName, 120);
-    const path = `${base}_v${row.versionNumber}_${fname}`;
-    folder.file(path, buf);
+    const seg = buildSlidePathSegments(row);
+    const path = `${seg.roomFolder}/${seg.sessionFolder}/${seg.fileName}`;
+    zip.file(path, buf);
     i += 1;
     onProgress?.(i, slides.length);
   }

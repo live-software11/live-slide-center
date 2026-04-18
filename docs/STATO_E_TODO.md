@@ -3,11 +3,11 @@
 > **Documento operativo gemello di `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare, in ordine di priorita. Per "cosa fa il prodotto" e "come e fatto" → architettura.
 >
-> **Versione:** 2.6 — 18 aprile 2026 (post-Sprint S-2)
+> **Versione:** 2.7 — 18 aprile 2026 (post-Sprint S-3)
 > **Owner:** Andrea Rizzari
-> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**.
+> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**.
 >
-> **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 5/10 chiusi (G1 in R-1, G2 in R-2, G3 in R-3, G4 in S-1, G5 in S-2) → completata FAMIGLIA R + avanzata FAMIGLIA S (1/4 → 2/4).**
+> **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 6/10 chiusi (G1 in R-1, G2 in R-2, G3 in R-3, G4 in S-1, G5 in S-2, G6 in S-3) → completata FAMIGLIA R + avanzata FAMIGLIA S (3/4).**
 >
 > **Hardening Sprint Q+1 (§ 0.8):** completato hardening backend (Supabase RLS least-privilege + 7 indici hot-path + PKCE + CSP + CI types drift + auto-deploy Edge Functions).
 >
@@ -19,7 +19,9 @@
 >
 > **Sprint S-1 (§ 0.12):** admin puo' droppare cartelle intere (con sotto-cartelle) in upload sessione, OneDrive-style. Traversal ricorsivo `webkitGetAsEntry` + `<input webkitdirectory>`, max 500 file/depth 10, struttura preservata come prefisso filename. Zero modifiche schema DB.
 >
-> **Sprint S-2 (§ 0.13):** admin puo' assegnare PC alle sale tramite **lavagna drag&drop visiva** (Kanban-style con colonne sala + "Non assegnati"). Toggle persistente "Lista | Lavagna" in `DevicesPanel`. HTML5 DnD nativo, aggiornamento ottimistico, realtime listener `paired_devices` gia' attivo allinea altri admin in <1s. Zero modifiche schema DB. Verde per Sprint S-3 (export ZIP fine evento per sala/sessione, G6) quando vuoi.
+> **Sprint S-2 (§ 0.13):** admin puo' assegnare PC alle sale tramite **lavagna drag&drop visiva** (Kanban-style con colonne sala + "Non assegnati"). Toggle persistente "Lista | Lavagna" in `DevicesPanel`. HTML5 DnD nativo, aggiornamento ottimistico, realtime listener `paired_devices` gia' attivo allinea altri admin in <1s. Zero modifiche schema DB.
+>
+> **Sprint S-3 (§ 0.14):** export ZIP fine evento ora **ordinato** in struttura nested `Sala/Sessione/Speaker_vN_filename.ext` (prima era piatto `slides/...`) + README `info.txt` UTF-8 in root con metadata evento (nome, date, sale, sessioni, conteggio per sala, totale bytes, generato_a). Zero modifiche schema DB, refactor pure-function `event-export.ts`. Verde per Sprint S-4 (Centro Slide multi-room device role, G7) quando vuoi.
 
 ---
 
@@ -32,6 +34,7 @@
    - 0.11 [Sprint R-3 — PC sala upload speaker check-in (DONE)](#011-sprint-r-3--pc-sala-upload-speaker-check-in-done-18042026)
    - 0.12 [Sprint S-1 — Drag&drop folder intera in upload admin (DONE)](#012-sprint-s-1--dragdrop-folder-intera-in-upload-admin-done-18042026)
    - 0.13 [Sprint S-2 — Drag&drop visivo PC ↔ sale (DONE)](#013-sprint-s-2--dragdrop-visivo-pc--sale-done-18042026)
+   - 0.14 [Sprint S-3 — Export ZIP fine evento ordinato sala/sessione (DONE)](#014-sprint-s-3--export-zip-fine-evento-ordinato-salasessione-done-18042026)
 1. [Stato attuale (tutto DONE)](#1-stato-attuale-tutto-done)
 2. [Cose da fare ORA (azioni esterne Andrea, NON automatizzabili)](#2-cose-da-fare-ora-azioni-esterne-andrea-non-automatizzabili)
 3. [Field test desktop (quando vorrai farlo)](#3-field-test-desktop-quando-vorrai-farlo)
@@ -67,7 +70,7 @@
 | G3  | PC sala NON puo' caricare/sovrascrivere file (read-only)          | **HIGH**   | `apps/web/src/features/devices/RoomPlayerView.tsx`                                  | **R-3** | **DONE** ✅ |
 | G4  | Drag&drop di **folder intera** in upload admin assente            | **MEDIUM** | `apps/web/src/features/presentations/components/SessionFilesPanel.tsx`              | **S-1** | **DONE** ✅ |
 | G5  | Drag&drop visivo PC ↔ sale assente (solo dropdown)                | **MEDIUM** | `apps/web/src/features/devices/components/DeviceList.tsx` + nuova `RoomAssignBoard` | **S-2** | **DONE** ✅ |
-| G6  | Export ZIP fine evento piatto (no struttura sala/sessione)        | **MEDIUM** | `apps/web/src/features/events/lib/event-export.ts` `buildEventSlidesZip`            | **S-3** | pending     |
+| G6  | Export ZIP fine evento piatto (no struttura sala/sessione)        | **MEDIUM** | `apps/web/src/features/events/lib/event-export.ts` `buildEventSlidesZip`            | **S-3** | **DONE** ✅ |
 | G7  | "Centro Slide" multi-room = ruolo device assente                  | **MEDIUM** | DB schema `paired_devices.role` + `useFileSync` multi-room manifest                 | **S-4** | pending     |
 | G8  | Versione "in onda" non visibile a colpo d'occhio in sala          | **LOW**    | `apps/web/src/features/devices/RoomPlayerView.tsx` overlay badge `vN/M`             | **T-1** | pending     |
 | G9  | Telemetria perf live PC sala (CPU/RAM/disco) non aggregata        | **LOW**    | `room_state` schema + `<RoomCard>` overlay realtime                                 | **T-2** | pending     |
@@ -997,6 +1000,95 @@ S-1 obiettivo: l'admin puo' droppare in `SessionFilesPanel` una **cartella inter
 #### 0.13.6 Setup manuale richiesto
 
 **Nessuno**. Modifica solo client; non servono migrations, env vars, deploy Edge Functions. L'admin trova il toggle "Lista | Lavagna" automaticamente al prossimo refresh dell'app.
+
+---
+
+### 0.14 Sprint S-3 — Export ZIP fine evento ordinato sala/sessione (DONE 18/04/2026)
+
+**Goal**: chiudere il gap **G6** (export ZIP fine evento piatto, no struttura per sala/sessione).
+
+> Andrea 18/04/2026 (citato): _"i pc assegnati al centro slide devono avere i dati di tutte le sale e a fine evento devo poter scaricare tutto in modo ordinato"_.
+
+#### 0.14.1 Cosa cambia per l'admin
+
+| Prima (≤ Sprint S-2)                                                | Dopo (Sprint S-3 DONE)                                                                                              |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| ZIP piatto: `<evento>_slides.zip / slides/Mario_Rossi_v3_intro.pptx` | ZIP nested: `<evento>_slides.zip / Sala-Plenaria/Apertura/Mario_Rossi_v3_intro.pptx`                                |
+| Nessun README                                                       | `info.txt` UTF-8 in root con metadata evento (nome, date, sale, sessioni, conteggio per sala, totale bytes, ora generazione) |
+| Difficile capire quale file appartiene a quale sala in sfoglia      | Apri lo ZIP → vedi cartelle per sala → drill-down sessione → file con relatore_vN_originale                         |
+
+#### 0.14.2 File modificati (commit unico, NO breaking changes esterni)
+
+| File                                                                                          | Cambio                                                                                                                                                  |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/src/features/events/lib/event-export.ts`                                            | `CurrentSlideExportRow` esteso con `roomId`, `roomName`, `sessionId`. `listCurrentReadySlidesForExport` ora richiede `rooms: RoomRow[]`. `buildEventSlidesZip` refactor con `EventSlidesZipOptions` (event, rooms, sessions, t, locale, generatedAtIso, onProgress, includeReadme). Nuove pure-function `buildSlidePathSegments` e `buildEventInfoReadme`. |
+| `apps/web/src/features/events/components/EventExportPanel.tsx`                                | Passa `rooms` a `listCurrentReadySlidesForExport` (sia in `runZip` sia in `runPdf`) e `event/rooms/sessions/t/locale/generatedAtIso` al nuovo `buildEventSlidesZip`. Zero modifiche UI visibili.                                                                                              |
+| `packages/shared/src/i18n/locales/it.json` + `en.json`                                        | +14 chiavi sotto `event.export.zip.*` (readmeTitle, readmeEvent, readmeDateRange, readmeStatus, readmeNetworkMode, readmeRoomsCount, readmeSessionsCount, readmeSlidesCount, readmeTotalBytes, readmeStructureHint, readmeBreakdownTitle, readmeNoRoom, readmeGeneratedAt, readmeFooter). Parity 1243/1243.                                              |
+
+#### 0.14.3 Esempio output ZIP
+
+```
+EventoAcme_2026_slides.zip
+├── info.txt                                           # README UTF-8
+├── Sala-Plenaria/
+│   ├── Apertura/
+│   │   ├── Mario_Rossi_v3_intro.pptx
+│   │   └── Anna_Bianchi_v1_keynote.pdf
+│   └── Tavola-Rotonda/
+│       └── Luca_Verdi_v2_panel.pptx
+├── Sala-Workshop/
+│   └── Sessione-Pomeriggio/
+│       └── Giulia_Neri_v1_demo.pptx
+└── _senza-sala_/                                      # fallback se sessione orfana (raro)
+    └── _senza-sessione_/
+        └── Speaker_v1_file.pptx
+```
+
+`info.txt` (esempio IT):
+
+```
+Live SLIDE CENTER — Esportazione fine evento
+============================================================
+
+Evento: Convegno Acme 2026
+Date: 2026-04-20 -> 2026-04-22
+Stato: closed
+Modalità rete: cloud
+
+Sale totali: 3
+Sessioni totali: 12
+File inclusi: 47
+Dimensione totale file: 312.4 MB
+
+Struttura archivio: ogni file è in <Sala>/<Sessione>/<Relatore>_v<versione>_<nome-originale>.
+
+Conteggio file per sala:
+  - Sala Plenaria: 28
+  - Sala Workshop: 14
+  - Sala Poster: 5
+
+Generato il: 18/04/2026, 18:32
+
+Generato automaticamente da Live SLIDE CENTER. Per assistenza: support@liveworksapp.com
+```
+
+#### 0.14.4 Quality gates
+
+- ✅ `pnpm --filter @slidecenter/web typecheck` (0 errori).
+- ✅ `pnpm --filter @slidecenter/web lint` (0 errori).
+- ✅ `pnpm --filter @slidecenter/web build` (OK, `EventExportPanel-*.js` 412KB → +1KB ininfluente; `info.txt` UTF-8 BOM corretto).
+- ✅ i18n parity 1243/1243 (era 1229 prima di S-3, +14 chiavi `event.export.zip.*`).
+
+#### 0.14.5 Limiti noti / scelte di design
+
+- **Toggle "ordinato | piatto" UI omesso**: Andrea ha richiesto esplicitamente "in modo ordinato" → semplifichiamo l'UX rimuovendo il vecchio formato piatto. Se in futuro serve un export piatto (es. integrazione con sistemi esterni), si puo' aggiungere `EventSlidesZipOptions.layout: 'nested' | 'flat'` come opzione futura senza breaking change.
+- **README non localizzato per i nomi cartella**: i nomi cartella (`Sala-Plenaria`, `_senza-sala_`) sono derivati direttamente dai dati DB (sanitizzati con `sanitizeExportSegment`); non sono tradotti. Solo le label DEL README `info.txt` sono i18n IT/EN (in base alla `i18n.language` dell'admin che esporta).
+- **Speaker fuori sessione**: se uno speaker non ha `session_id`, finisce in `_senza-sala_/_senza-sessione_/...`. Cartelle marker visibili (con underscore prefisso/suffisso) per non confondere admin con sale reali.
+- **Hash SHA-256 non mostrati nel README**: per non gonfiare info.txt; sono gia' nel report PDF (`event.export.pdfSectionSlides`).
+
+#### 0.14.6 Setup manuale richiesto
+
+**Nessuno**. Refactor pure-function client-side. Niente migrations DB, niente env vars, niente deploy Edge Functions. Al primo nuovo export ZIP da `EventDetailView → EventExportPanel`, Andrea trovera' lo ZIP nella nuova struttura.
 
 ---
 

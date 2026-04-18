@@ -65,14 +65,26 @@ export function EventExportPanel({ supabase, event, rooms, sessions, speakers }:
     setBusy('zip');
     setZipProgress(null);
     try {
-      const { rows, error: qErr } = await listCurrentReadySlidesForExport(supabase, event.id, speakers, sessions);
+      const { rows, error: qErr } = await listCurrentReadySlidesForExport(
+        supabase,
+        event.id,
+        speakers,
+        sessions,
+        rooms,
+      );
       if (qErr) throw new Error(qErr);
       if (!rows.length) {
         setError(t('event.export.errorZipEmpty'));
         return;
       }
-      const blob = await buildEventSlidesZip(supabase, rows, (done, total) => {
-        setZipProgress({ done, total });
+      const blob = await buildEventSlidesZip(supabase, rows, {
+        event,
+        rooms,
+        sessions,
+        t,
+        locale: i18n.language,
+        generatedAtIso: new Date().toISOString(),
+        onProgress: (done, total) => setZipProgress({ done, total }),
       });
       downloadBlobFile(blob, `${baseName}_slides.zip`);
     } catch (e) {
@@ -81,7 +93,7 @@ export function EventExportPanel({ supabase, event, rooms, sessions, speakers }:
       setBusy(null);
       setZipProgress(null);
     }
-  }, [supabase, event.id, speakers, sessions, baseName, t]);
+  }, [supabase, event, speakers, sessions, rooms, baseName, t, i18n.language]);
 
   const runCsv = useCallback(async () => {
     setError(null);
@@ -108,6 +120,7 @@ export function EventExportPanel({ supabase, event, rooms, sessions, speakers }:
         event.id,
         speakers,
         sessions,
+        rooms,
       );
       if (sErr) throw new Error(sErr);
       const { rows: activityRows, error: aErr } = await listActivityLogForEventExport(supabase, event.id);
