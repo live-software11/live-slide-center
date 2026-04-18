@@ -41,6 +41,7 @@ import { PlaybackModeBadge } from '@/features/devices/components/PlaybackModeBad
 import { NowPlayingBadge } from '@/features/devices/components/NowPlayingBadge';
 import { NextUpPreview } from '@/features/devices/components/NextUpPreview';
 import { RoomDevicesPanel } from '@/features/devices/components/RoomDevicesPanel';
+import { RemoteControlPairingsPanel } from '@/features/remote-control/components/RemoteControlPairingsPanel';
 import { EventSearchBar } from './components/EventSearchBar';
 import type { EventFileSearchResult } from './lib/event-file-search';
 const EventExportPanel = lazy(async () => {
@@ -1123,6 +1124,9 @@ export default function EventDetailView() {
                   locale={i18n.language}
                   onMutated={refreshRoomDevices}
                 />
+                {/* Sprint T-3-G (G10): pannello collassato per gestire i token
+                    del telecomando remoto via tablet (PWA `/remote/<token>`). */}
+                <RemoteControlPairingsPanel roomId={r.id} locale={i18n.language} />
               </li>
             ))}
           </ul>

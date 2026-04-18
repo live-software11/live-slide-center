@@ -1634,5 +1634,71 @@
         "down": "Non disponibile"
       }
     }
+  },
+  "remoteControl": {
+    "validating": "Verifica del telecomando in corso…",
+    "invalidTitle": "Telecomando non disponibile",
+    "invalidHelp": "Chiedi al regista di generare un nuovo link telecomando dal Centro Slide.",
+    "reason": {
+      "token_invalid": "Il codice del telecomando non è valido.",
+      "token_revoked": "Questo telecomando è stato revocato dal regista.",
+      "token_expired": "Questo telecomando è scaduto."
+    },
+    "untitledRoom": "Sala senza nome",
+    "noActiveSession": "Nessuna sessione attiva al momento",
+    "realtimeOn": "Connessione realtime attiva",
+    "realtimeOff": "Realtime non disponibile — uso polling 15s",
+    "refresh": "Aggiorna scaletta",
+    "live": "In onda",
+    "blankLive": "Schermo nero",
+    "noFileLive": "Nessun file in onda",
+    "scheduleTitle": "Scaletta sessione",
+    "scheduleCount_one": "{{count}} file",
+    "scheduleCount_other": "{{count}} file",
+    "scheduleEmpty": "Nessun file",
+    "scheduleEmptyHelp": "La scaletta è vuota. I file caricati dal regista appariranno qui.",
+    "cmd": {
+      "prev": "Precedente",
+      "next": "Successivo",
+      "blank": "Schermo nero",
+      "unblank": "Riprendi",
+      "first": "Primo file"
+    },
+    "error": {
+      "rate_limited": "Stai inviando troppi comandi. Aspetta qualche secondo.",
+      "no_active_session": "Non c'è una sessione attiva su questa sala.",
+      "empty_schedule": "La scaletta della sessione è vuota.",
+      "end_of_schedule": "Sei già all'ultimo file della scaletta.",
+      "start_of_schedule": "Sei già al primo file della scaletta.",
+      "target_not_ready": "Il file selezionato non è ancora pronto."
+    },
+    "admin": {
+      "title": "Telecomando remoto (tablet)",
+      "intro": "Genera un link da aprire su tablet/smartphone per pilotare scaletta, schermo nero e ritorno al primo file. Il token è personale e copiabile UNA volta sola al momento della generazione.",
+      "create": "Genera",
+      "creating": "Genero…",
+      "loading": "Caricamento telecomandi…",
+      "namePlaceholder": "Nome telecomando",
+      "nameExample": "Es. Tablet regista",
+      "nameRequired": "Inserisci un nome riconoscibile.",
+      "ttlLabel": "Validità",
+      "ttl": {
+        "1h": "1 ora",
+        "24h": "24 ore",
+        "7d": "7 giorni"
+      },
+      "empty": "Nessun telecomando attivo per questa sala.",
+      "expiresAt": "Scade {{date}}",
+      "lastUsedAt": "Ultimo uso {{date}}",
+      "commandsCount_one": "{{count}} comando inviato",
+      "commandsCount_other": "{{count}} comandi inviati",
+      "revoke": "Revoca",
+      "tokenCreatedTitle": "Telecomando pronto — copia subito il link",
+      "tokenCreatedHelp": "Per sicurezza il link non sarà più recuperabile. Inviato/copiato? Allora puoi chiudere questo riquadro.",
+      "copyUrl": "Copia link",
+      "copied": "Copiato!",
+      "openInNewTab": "Apri",
+      "dismiss": "Chiudi"
+    }
   }
 }

@@ -14,3 +14,12 @@ export type {
   ActorType,
   UploadSource,
 } from './types/enums.js';
+export type {
+  RemoteControlCommand,
+  RemoteControlPairingSummary,
+  RemoteControlPairingCreated,
+  RemoteControlValidatedToken,
+  RemoteControlScheduleItem,
+  RemoteControlSchedule,
+  RemoteControlDispatchResult,
+} from './types/remote-control.js';

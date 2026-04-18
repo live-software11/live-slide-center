@@ -27,6 +27,12 @@ export const router = createBrowserRouter([
         path: '/sala/:token',
         lazy: () => import('@/features/devices/RoomPlayerView'),
       },
+      // Sprint T-3-G (G10): telecomando remoto via tablet. Rotta pubblica
+      // (auth via token nel path), nessun JWT richiesto.
+      {
+        path: '/remote/:token',
+        lazy: () => import('@/features/remote-control/RemoteControlView'),
+      },
       {
         path: '/login',
         lazy: () => import('@/features/auth/LoginView'),

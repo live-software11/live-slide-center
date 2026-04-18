@@ -403,6 +403,41 @@ export type Database = {
         };
         Relationships: [];
       };
+      /**
+       * Sprint T-3-G (G10) — pairing token per telecomando remoto via tablet.
+       * Hash SHA-256 del token UUID (token in chiaro mostrato all'admin SOLO
+       * al momento della creazione). TTL 5min-7gg, revoca via revoked_at.
+       */
+      remote_control_pairings: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          event_id: string;
+          room_id: string;
+          name: string;
+          token_hash: string;
+          created_by_user_id: string | null;
+          created_at: string;
+          expires_at: string;
+          last_used_at: string | null;
+          revoked_at: string | null;
+          commands_count: number;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      /** Sprint T-3-G — rate-limit eventi per pairing telecomando (60 cmd/min). */
+      remote_control_rate_events: {
+        Row: {
+          id: number;
+          pairing_id: string;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       presentation_versions: {
         Row: {
           id: string;
@@ -1227,6 +1262,90 @@ export type Database = {
           file_name: string;
           storage_key: string;
         }>;
+      };
+      /**
+       * Sprint T-3-G (G10) — crea un pairing telecomando. TTL minutes 5..10080
+       * (5min..7gg, default 1440 = 24h). Solo tenant_admin del tenant target.
+       * Ritorna il TOKEN IN CHIARO una sola volta — l'admin deve copiarlo
+       * subito (DB conserva solo l'hash SHA-256).
+       */
+      rpc_create_remote_control_pairing: {
+        Args: { p_room_id: string; p_name: string; p_ttl_minutes?: number };
+        Returns: {
+          ok: boolean;
+          pairing_id: string;
+          token: string;
+          expires_at: string;
+          room_id: string;
+          event_id: string;
+        };
+      };
+      /** Sprint T-3-G — revoca pairing (set revoked_at). Idempotente. */
+      rpc_revoke_remote_control_pairing: {
+        Args: { p_pairing_id: string };
+        Returns: { ok: boolean; revoked_at?: string; already_revoked?: boolean };
+      };
+      /**
+       * Sprint T-3-G — valida token telecomando. Anon-callable. Aggiorna
+       * last_used_at. Lancia eccezione se token invalido/revocato/scaduto.
+       */
+      rpc_validate_remote_control_token: {
+        Args: { p_token: string };
+        Returns: {
+          ok: boolean;
+          pairing_id: string;
+          tenant_id: string;
+          event_id: string;
+          room_id: string;
+          name: string;
+          expires_at: string;
+          room_name: string | null;
+          event_title: string | null;
+        };
+      };
+      /**
+       * Sprint T-3-G — scaletta sessione corrente per UI tablet remote.
+       * Auth via token (anon-callable). Ordering allineato a getNextUpForRoom.
+       */
+      rpc_get_room_schedule_remote: {
+        Args: { p_token: string };
+        Returns: {
+          ok: boolean;
+          session_id: string | null;
+          session_title: string | null;
+          current_presentation_id: string | null;
+          schedule: Array<{
+            presentation_id: string;
+            version_id: string;
+            file_name: string;
+            speaker_name: string | null;
+            display_order: number | null;
+          }>;
+        };
+      };
+      /**
+       * Sprint T-3-G — dispatch comando telecomando. Comandi: next | prev |
+       * goto | blank | first. Rate-limit 60/min/pairing. Solo service_role
+       * (chiamata da Edge Function `remote-control-dispatch`).
+       */
+      rpc_dispatch_remote_command: {
+        Args: {
+          p_token: string;
+          p_command: 'next' | 'prev' | 'goto' | 'blank' | 'first';
+          p_target_presentation_id?: string | null;
+        };
+        Returns: {
+          ok: boolean;
+          room_id: string;
+          command: string;
+          presentation_id: string | null;
+          started_at: string | null;
+        };
+      };
+      /** Sprint T-3-G — cleanup pairings scaduti da > N giorni. Solo super_admin. */
+      purge_old_remote_control_pairings: {
+        Args: { p_older_than_days?: number };
+        Returns: { ok: boolean; deleted: number; cutoff: string };
       };
     };
     Enums: {

@@ -1634,5 +1634,71 @@
         "down": "Unavailable"
       }
     }
+  },
+  "remoteControl": {
+    "validating": "Validating remote…",
+    "invalidTitle": "Remote unavailable",
+    "invalidHelp": "Ask the operator to generate a new remote link from the Slide Center.",
+    "reason": {
+      "token_invalid": "The remote code is not valid.",
+      "token_revoked": "This remote has been revoked by the operator.",
+      "token_expired": "This remote has expired."
+    },
+    "untitledRoom": "Unnamed room",
+    "noActiveSession": "No active session right now",
+    "realtimeOn": "Realtime connection active",
+    "realtimeOff": "Realtime unavailable — using 15s polling",
+    "refresh": "Refresh schedule",
+    "live": "Live",
+    "blankLive": "Blank screen",
+    "noFileLive": "No file on screen",
+    "scheduleTitle": "Session schedule",
+    "scheduleCount_one": "{{count}} file",
+    "scheduleCount_other": "{{count}} files",
+    "scheduleEmpty": "No files",
+    "scheduleEmptyHelp": "The schedule is empty. Files uploaded by the operator will appear here.",
+    "cmd": {
+      "prev": "Previous",
+      "next": "Next",
+      "blank": "Blank screen",
+      "unblank": "Resume",
+      "first": "First file"
+    },
+    "error": {
+      "rate_limited": "You are sending too many commands. Wait a few seconds.",
+      "no_active_session": "There is no active session in this room.",
+      "empty_schedule": "The session schedule is empty.",
+      "end_of_schedule": "You are already on the last file in the schedule.",
+      "start_of_schedule": "You are already on the first file in the schedule.",
+      "target_not_ready": "The selected file is not ready yet."
+    },
+    "admin": {
+      "title": "Tablet remote control",
+      "intro": "Generate a link to open on a tablet/smartphone to drive the schedule, blank screen and back-to-first. The token is shown ONCE on creation and cannot be retrieved later.",
+      "create": "Generate",
+      "creating": "Generating…",
+      "loading": "Loading remotes…",
+      "namePlaceholder": "Remote name",
+      "nameExample": "e.g. Director's tablet",
+      "nameRequired": "Enter a recognisable name.",
+      "ttlLabel": "Validity",
+      "ttl": {
+        "1h": "1 hour",
+        "24h": "24 hours",
+        "7d": "7 days"
+      },
+      "empty": "No active remote for this room.",
+      "expiresAt": "Expires {{date}}",
+      "lastUsedAt": "Last used {{date}}",
+      "commandsCount_one": "{{count}} command sent",
+      "commandsCount_other": "{{count}} commands sent",
+      "revoke": "Revoke",
+      "tokenCreatedTitle": "Remote ready — copy the link now",
+      "tokenCreatedHelp": "For security the link cannot be retrieved later. Copied/sent? You can close this box.",
+      "copyUrl": "Copy link",
+      "copied": "Copied!",
+      "openInNewTab": "Open",
+      "dismiss": "Close"
+    }
   }
 }

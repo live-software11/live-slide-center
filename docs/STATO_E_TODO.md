@@ -3,11 +3,11 @@
 > **Documento operativo gemello di `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare, in ordine di priorita. Per "cosa fa il prodotto" e "come e fatto" → architettura.
 >
-> **Versione:** 2.11 — 18 aprile 2026 (post-Audit Q+1.5)
+> **Versione:** 2.12 — 18 aprile 2026 (post-Sprint T-3 completo)
 > **Owner:** Andrea Rizzari
-> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**. **Sprint T-1 (G8, badge versione "in onda" sempre visibile in sala + toast cambio versione, §0.16) DONE**. **Sprint T-2 (G9, telemetria perf live PC sala — CPU/RAM/heap/disco/FPS/battery, §0.17) DONE**. **Audit completo + bugfix Q+1.5 (§0.18) DONE — semaforo VERDE su tutto**. **Sprint T-3 (G10) PIANO §0.19 → T-3-A (file validator warn-only, §0.20) DONE → T-3-E (Next-Up file preview, §0.21) DONE — entrambi VERDE. T-3-G (remote slide control) in coda dopo conferma Andrea**.
+> **Stato globale:** Tutti gli sprint A→I (cloud) + J→P + FT (desktop) + 1→8 (operativita commerciale) sono **DONE**. **Hardening Supabase + Vercel Sprint Q+1 (§0.8) DONE**. **Sprint R-1 (G1, super-admin crea tenant + licenze, §0.9) DONE**. **Sprint R-2 (G2, Lemon Squeezy webhook + email automatica admin invitato, §0.10) DONE**. **Sprint R-3 (G3, PC sala upload speaker check-in, §0.11) DONE**. **Sprint S-1 (G4, drag&drop folder admin OneDrive-style, §0.12) DONE**. **Sprint S-2 (G5, drag&drop visivo PC ↔ sale, §0.13) DONE**. **Sprint S-3 (G6, export ZIP fine evento ordinato sala/sessione, §0.14) DONE**. **Sprint S-4 (G7, ruolo device "Centro Slide" multi-room, §0.15) DONE**. **Sprint T-1 (G8, badge versione "in onda" sempre visibile in sala + toast cambio versione, §0.16) DONE**. **Sprint T-2 (G9, telemetria perf live PC sala — CPU/RAM/heap/disco/FPS/battery, §0.17) DONE**. **Audit completo + bugfix Q+1.5 (§0.18) DONE — semaforo VERDE su tutto**. **Sprint T-3 (G10) COMPLETO: T-3-A (file validator warn-only, §0.20) DONE → T-3-E (Next-Up file preview, §0.21) DONE → T-3-G (remote control tablet, §0.22) DONE — TUTTE E TRE LE FEATURE COMPETITOR VERDE.**
 >
-> **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 9/10 chiusi (G1 in R-1, G2 in R-2, G3 in R-3, G4 in S-1, G5 in S-2, G6 in S-3, G7 in S-4, G8 in T-1, G9 in T-2) → completata FAMIGLIA R + completata FAMIGLIA S → famiglia T 2/3 (resta G10 features competitor).**
+> **Audit chirurgico 18/04/2026 (§ 0):** identificati **10 GAP funzionali** rispetto agli obiettivi di prodotto dichiarati da Andrea (parita cloud/desktop, versioning, performance impatto-zero, super-admin licenze, file management OneDrive-style, drag&drop PC, upload da sala, export ordinato, competitivita PreSeria/Slidecrew/SLIDEbit). I gap sono raggruppati in 3 macro-sprint **R / S / T** con ordine di priorita. **Stato chiusura: 10/10 chiusi → famiglia R completa, famiglia S completa, famiglia T completa (T-1, T-2, T-3-A+E+G).**
 >
 > **Hardening Sprint Q+1 (§ 0.8):** completato hardening backend (Supabase RLS least-privilege + 7 indici hot-path + PKCE + CSP + CI types drift + auto-deploy Edge Functions).
 >
@@ -48,6 +48,7 @@
    - 0.19 [Sprint T-3 (G10) — Piano implementazione](#019-sprint-t-3-g10--piano-implementazione-decisione-18042026)
    - 0.20 [Sprint T-3-A — File error checking automatico (DONE)](#020-sprint-t-3-a--file-error-checking-automatico-done-18042026)
    - 0.21 [Sprint T-3-E — Preview "Prossimo file" su PC tecnico (DONE)](#021-sprint-t-3-e--preview-prossimo-file-su-pc-tecnico-done-18042026)
+   - 0.22 [Sprint T-3-G — Remote slide control da tablet (DONE)](#022-sprint-t-3-g--remote-slide-control-da-tablet-done-18042026)
 1. [Stato attuale (tutto DONE)](#1-stato-attuale-tutto-done)
 2. [Cose da fare ORA (azioni esterne Andrea, NON automatizzabili)](#2-cose-da-fare-ora-azioni-esterne-andrea-non-automatizzabili)
 3. [Field test desktop (quando vorrai farlo)](#3-field-test-desktop-quando-vorrai-farlo)
@@ -87,7 +88,7 @@
 | G7  | "Centro Slide" multi-room = ruolo device assente                  | **MEDIUM** | DB schema `paired_devices.role` + `useFileSync` multi-room manifest                 | **S-4** | **DONE** ✅ |
 | G8  | Versione "in onda" non visibile a colpo d'occhio in sala          | **LOW**    | `apps/web/src/features/devices/RoomPlayerView.tsx` overlay badge `vN/M`             | **T-1** | **DONE** ✅ |
 | G9  | Telemetria perf live PC sala (CPU/RAM/disco) non aggregata        | **LOW**    | `device_metric_pings` + `LivePerfTelemetryPanel`                                    | **T-2** | **DONE** ✅ |
-| G10 | Features competitor mancanti (file checking, ePoster, mobile SRR) | **LOW**    | Vari (vedi §0.4)                                                                    | **T-3** | pending     |
+| G10 | Features competitor mancanti (file checking, preview next, remote tablet) | **LOW**    | Vari (vedi §0.20-0.22)                                                              | **T-3** | **DONE** ✅ |
 
 ### 0.2 Cosa funziona GIA' bene (non toccare)
 
@@ -1555,7 +1556,7 @@ Trovati **2 bug logici** nel widget `LivePerfTelemetryPanel` durante audit chiru
 > **Tempo totale stimato:** ~6.5g dev + 2.5g test = **~9 giorni**.
 > **Esecuzione chirurgica:** uno sprint alla volta, semaforo verde Andrea fra uno e il successivo.
 
-#### 0.19.1 T-3-A — File error checking automatico (warn-only) — IN CORSO
+#### 0.19.1 T-3-A — File error checking automatico (warn-only) — DONE (vedi §0.20)
 
 **Cosa fa il sistema:**
 
@@ -1637,13 +1638,13 @@ Modificati:
 
 **SLA implementazione:** 1.5g dev + 0.5g test = **2 giorni totali** (target: chiusura entro fine settimana).
 
-#### 0.19.2 T-3-E — Preview slide successiva (PENDING, parte dopo semaforo verde T-3-A)
+#### 0.19.2 T-3-E — Preview slide successiva — DONE (vedi §0.21)
 
-Architettura provvisoria: pdf.js Worker render thumbnail page+1 con cache LRU. Solo per PDF nativi nella v1; per `.pptx` serve pre-conversione (decisione: piggyback su slide-validator se converte, altrimenti placeholder).
+Implementazione finale ha **deviato consapevolmente** dal piano: invece di "preview slide N+1 dello stesso file" (irrealizzabile senza sostituire il viewer iframe Chrome del PC sala) → "**preview prossimo file in scaletta** + thumbnail prima slide" sul PC tecnico, valore di regia equivalente, zero impatto sul PC sala. Vedi §0.21.1 per la motivazione tecnica completa.
 
-#### 0.19.3 T-3-G — Remote slide control da tablet (PENDING, parte dopo semaforo verde T-3-E)
+#### 0.19.3 T-3-G — Remote slide control da tablet — DONE (vedi §0.22)
 
-Architettura provvisoria: PWA route `/remote/<token>` + pairing 6-digit + Realtime broadcast `room:<id>:remote` con eventi `next/prev/goto/blank`. PC sala traduce in keydown via Tauri global keybind (desktop) o DOM event (web).
+Implementazione finale ha **deviato consapevolmente** dal piano: invece di "next/prev SLIDE" (stesso vincolo iframe del PC sala) → comandi a livello **scaletta/file** (next/prev/goto/blank/first), riusa la stessa pipeline `rpc_room_player_set_current` → broadcast `room_state_changed` gia' sottoscritta dal PC sala. Zero modifiche al `RoomPlayerView`. Vedi §0.22.1 per la motivazione e §0.22.2 per l'architettura finale (token UUID + hash SHA-256, TTL configurabile, rate-limit 60/min, audit log).
 
 ---
 
@@ -1772,11 +1773,13 @@ Il piano originale parlava di "preview slide N+1 dello stesso file in onda". Esp
 2. **Iframe PDF cross-origin:** il browser **NON espone l'evento "page changed"** ai content script padre per ragioni di sicurezza/sandbox. Quindi non possiamo sapere "a che pagina e' arrivato il relatore" senza sostituire totalmente il viewer.
 
 Sostituire il viewer Chrome con `pdf.js` full sul PC sala richiederebbe:
+
 - ~2 settimane di lavoro (controlli zoom/pan/fullscreen, F11, gesture touch, hotkey, hotkey custom Companion, performance su PC modesti);
 - regression test esteso con Andrea su sale reali;
 - **rischio diretto su software in produzione live** durante eventi medici.
 
 **Decisione (CTO autonomo):** cambio l'interpretazione del feature in modo che fornisca **valore di regia equivalente o superiore senza toccare il PC sala**:
+
 > "Preview prossimo file in scaletta sul PC tecnico" = anticipare al regista quale file partira' DOPO quello in onda, con thumbnail della prima slide. Stesso valore d'uso (regia non si fa cogliere impreparata), zero rischio sulla sala.
 
 L'evoluzione "preview slide N+1 reale" rimane **fattibile in futuro** quando/se passeremo a un viewer pdf.js custom anche in sala (Sprint dedicato, candidato a v2).
@@ -1786,6 +1789,7 @@ L'evoluzione "preview slide N+1 reale" rimane **fattibile in futuro** quando/se 
 **Frontend-only:** zero migrazioni DB, zero Edge Functions nuove. Tutto e' orchestrato in `apps/web` sfruttando dati gia' esistenti (`room_state.current_session_id`, `room_state.current_presentation_id`, `presentations.current_version_id`).
 
 **Flow:**
+
 ```
 [admin apre EventDetailView]
    → useRoomStates (gia' presente, polling 30s) ottiene current_presentation_id per ogni room
@@ -1808,6 +1812,7 @@ L'evoluzione "preview slide N+1 reale" rimane **fattibile in futuro** quando/se 
 ```
 
 **Refresh trigger:**
+
 - polling interno `useNextUp` a 30s (allineato a `useRoomStates`).
 - `versionTrigger` cambia quando il PC sala apre un nuovo file → refetch immediato (nessuna attesa fino al prossimo poll).
 
@@ -1824,6 +1829,7 @@ L'evoluzione "preview slide N+1 reale" rimane **fattibile in futuro** quando/se 
 #### 0.21.4 File creati/modificati
 
 **Web client (NEW):**
+
 - `apps/web/src/lib/lru-cache.ts` — LRU cache generica TypeScript, zero dipendenze, basata su `Map` insertion order.
 - `apps/web/src/lib/thumbnail-pdf.ts` — `renderFirstPagePngBlob` con import dinamico `pdfjs-dist` + worker URL hashato Vite. OffscreenCanvas con fallback canvas DOM.
 - `apps/web/src/lib/thumbnail-pptx.ts` — `extractPptxThumbnailBlob` via JSZip, scan `docProps/thumbnail.{jpeg,jpg,png}`. Limit 50 MB.
@@ -1832,13 +1838,16 @@ L'evoluzione "preview slide N+1 reale" rimane **fattibile in futuro** quando/se 
 - `apps/web/src/features/devices/components/NextUpPreview.tsx` — UI compatta sotto `NowPlayingBadge`, thumbnail box 56x32 (16:9 mini), 4 stati visivi (loading / ok / unsupported / failed).
 
 **Web client (MOD):**
+
 - `apps/web/src/features/presentations/repository.ts` — `getNextUpForRoom(roomId)` con embed PostgREST single-roundtrip, ordinamento canonico (`speakers.display_order` → `created_at`), filtro per `current_version.status === 'ready'`.
 - `apps/web/src/features/events/EventDetailView.tsx` — import + render di `<NextUpPreview>` sotto `<NowPlayingBadge>` per ogni room, `enabled` condizionato a `current_presentation_id`.
 
 **Dipendenze:**
+
 - `apps/web/package.json` — `+pdfjs-dist@^5.6.205` (jszip era gia' presente).
 
 **i18n (MOD):**
+
 - `packages/shared/src/i18n/locales/it.json` + `en.json` — namespace `roomPlayer.nextUp.*` con 6 chiavi (label, aria, position, thumbLoading, thumbUnsupported, thumbFailed). Parita' confermata 1344/1344.
 
 #### 0.21.5 Quality gates
@@ -1862,16 +1871,185 @@ L'evoluzione "preview slide N+1 reale" rimane **fattibile in futuro** quando/se 
 #### 0.21.7 Limitazioni e roadmap futura
 
 **Limitazione consapevole T-3-E v1:**
+
 - Mostriamo solo la **prima slide** del file successivo. Se l'utente vuole vedere "tutta" la presentazione successiva apre `FilePreviewDialog` come prima.
 - Non sappiamo (e non possiamo sapere senza cambiare il viewer del PC sala) la slide N corrente, quindi nessuna preview "slide N+1 della stessa presentation".
 
 **Evoluzione naturale (futuro Sprint dedicato, NON in T-3-E):**
+
 - T-3-E-bis: sostituire `<iframe>` PDF sul PC sala con viewer pdf.js custom + emit "page changed" via Realtime broadcast → abilita preview slide-by-slide reale e telecomando da remoto piu' fine.
 - Costo stimato: ~2 settimane + regression test su sale reali.
 
 #### 0.21.8 Conclusione T-3-E
 
 **SEMAFORO VERDE su T-3-E.** Pronto a partire con T-3-G (Remote slide control da tablet) appena Andrea conferma.
+
+---
+
+### 0.22 Sprint T-3-G — Remote slide control da tablet (DONE 18/04/2026)
+
+**Implementato:** PWA telecomando regista accessibile da qualunque tablet/smartphone via URL pubblico `/remote/<token>` — comanda **next / prev / goto / blank / first** sulla scaletta della sessione attiva di una sala. Token monouso (mostrato 1 volta, hash SHA-256 in DB), TTL configurabile (1h / 24h / 7gg), revoca istantanea, rate-limit 60 cmd/min/pairing.
+
+#### 0.22.1 Decisione architetturale (deviazione consapevole dal piano §0.19.4)
+
+Il piano originale parlava di "telecomando next/prev SLIDE su PC sala". Esplorando il codice ho dovuto accettare due **vincoli identici a T-3-E** sul viewer del PC sala:
+
+1. **Iframe PDF cross-origin:** Chrome NON espone API "go to page N" ai content script padre. Mandare un evento "next slide" da remoto richiederebbe un viewer pdf.js custom + Realtime broadcast bidirezionale.
+2. **Stabilita' produzione:** sostituire il viewer PDF in `RoomPlayerView` (in produzione live da settimane) e' un rischio alto per zero valore aggiuntivo: in regia il telecomando NON serve a "andare avanti slide", **serve a cambiare FILE** (apertura presentazione del prossimo speaker, blank fra interventi).
+
+**Decisione (CTO autonomo):** il telecomando opera sulla **scaletta** non sulle slide.
+
+> Comandi reali: passa al file successivo nella scaletta della sessione, torna al file precedente, vai a un file specifico (tap sulla lista), schermo nero (`blank`), torna al primo file (`first`).
+
+Tutta l'integrazione e' **zero-modifiche al PC sala**. Il telecomando chiama gli stessi RPC che usa l'admin nel pannello regia (`rpc_room_player_set_current`), che a sua volta emette il broadcast `room_state_changed` gia' sottoscritto da `useFileSync` lato `RoomPlayerView`. Il PC sala "vede" semplicemente che current_presentation_id e' cambiato e apre il nuovo file → identico comportamento al click umano dell'admin.
+
+L'evoluzione "next/prev SLIDE reale" rimane **fattibile in futuro** come Sprint dedicato T-3-G-bis (insieme a T-3-E-bis: viewer pdf.js custom).
+
+#### 0.22.2 Architettura
+
+```
+[Admin web]                                [Tablet PWA /remote/<token>]
+    │                                            │
+    │ rpc_create_remote_control_pairing          │
+    ├───────────────────► Postgres ─────────────►│ token in chiaro (1 volta)
+    │ (genera UUID v4, hash SHA-256)             │
+    │                                            │
+    │                                            │ apre URL → validateRemoteControlToken
+    │                                            ├──► rpc_validate_remote_control_token (anon)
+    │                                            │       (hash + check expiry/revoked)
+    │                                            │
+    │                                            │ getRemoteControlSchedule (polling 15s + Realtime)
+    │                                            ├──► rpc_get_room_schedule_remote (anon)
+    │                                            │
+    │                                            │ tap "next" → dispatchRemoteCommand
+    │                                            ├──► Edge Function remote-control-dispatch
+    │                                            │       (anon-callable, rate-limit, audit)
+    │                                            │       │
+    │                                            │       └──► rpc_dispatch_remote_command
+    │                                            │              (service_role only)
+    │                                            │              ├─ valida token + rate (60/min)
+    │                                            │              ├─ calcola target presentation_id
+    │                                            │              │   (next = idx+1, prev = idx-1,
+    │                                            │              │    blank = NULL, first = ready[0])
+    │                                            │              └─ rpc_room_player_set_current
+    │                                            │                    │
+    │                                            │                    ├─► UPDATE room_state
+    │                                            │                    └─► broadcast room_state_changed
+    │                                            │                            │
+[PC sala RoomPlayerView] ◄─────────────────── Realtime ────────────────────────┘
+   useFileSync sottoscrive room_state_changed → apre nuovo file (identico click admin)
+```
+
+**Sicurezza:**
+
+- Token = UUID v4 (122 bit entropia) generato server-side via `gen_random_uuid()`.
+- DB conserva solo l'**hash SHA-256** (`pgcrypto.digest`). Il chiaro NON e' recuperabile.
+- TTL min 5min, max 7gg, default 24h. `expires_at` confrontato con `now()` su ogni call.
+- Revoca = `revoked_at` non NULL. Idempotente. RLS: solo `tenant_admin` del tenant target.
+- Rate-limit: tabella `remote_control_rate_events`, 60 inserimenti/min/pairing massimo. Cleanup eventi >5min in coda alla prima call.
+- Cross-tenant/cross-room: validato in ogni RPC (token apre solo la sala per cui e' stato creato).
+- Audit: ogni create/revoke/dispatch loggato in `activity_log` con `actor_type='agent'`, `entity_type='remote_control_pairing'`.
+- Tutte le RPC `SECURITY DEFINER` con `SET search_path = public, pg_catalog`.
+
+**Performance:**
+
+- PWA bundle: 10.53 KB / 3.18 KB gzip (lazy chunk separato).
+- Polling scaletta 15s + Realtime broadcast → latenza tap→sala ≈ 200-500ms.
+- Wake-lock screen API (best-effort, fallback silenzioso su Safari iOS).
+- Optimistic UI sul tap → conferma realtime quando arriva.
+
+#### 0.22.3 File creati/modificati
+
+**Database (NEW migration):**
+
+- `supabase/migrations/20260418210000_remote_control_pairings.sql` — tabelle `remote_control_pairings` + `remote_control_rate_events` con RLS; RPC `rpc_create_remote_control_pairing`, `rpc_revoke_remote_control_pairing`, `rpc_validate_remote_control_token`, `rpc_get_room_schedule_remote`, `rpc_dispatch_remote_command`, `purge_old_remote_control_pairings`.
+
+**Edge Function (NEW):**
+
+- `supabase/functions/remote-control-dispatch/index.ts` — proxy anon-callable verso `rpc_dispatch_remote_command` (service_role). Mappa errori RPC a status HTTP coerenti (401 token invalid/revoked/expired, 429 rate limited, 400 invalid command/end of schedule).
+- `supabase/config.toml` — `[functions.remote-control-dispatch] verify_jwt = false`.
+
+**Shared types (NEW + MOD):**
+
+- `packages/shared/src/types/remote-control.ts` — `RemoteControlCommand`, `RemoteControlPairingSummary`, `RemoteControlPairingCreated`, `RemoteControlValidatedToken`, `RemoteControlScheduleItem`, `RemoteControlSchedule`, `RemoteControlDispatchResult`.
+- `packages/shared/src/types/database.ts` — definizioni Row/Args/Returns delle 6 RPC nuove + 2 tabelle.
+- `packages/shared/src/index.ts` — re-export tipi pubblici.
+
+**Web client (NEW):**
+
+- `apps/web/src/features/remote-control/repository.ts` — funzioni admin (`createRemoteControlPairing`, `revokeRemoteControlPairing`, `listActiveRemoteControlPairingsForRoom`) + remote (`validateRemoteControlToken`, `getRemoteControlSchedule`, `dispatchRemoteCommand`) + helper `buildRemoteControlUrl`.
+- `apps/web/src/features/remote-control/RemoteControlView.tsx` — PWA UI tablet, route `/remote/:token`, polling 15s + Realtime, wake-lock, optimistic update, error banner i18n-aware.
+- `apps/web/src/features/remote-control/components/RemoteControlPairingsPanel.tsx` — pannello admin collassabile sotto ogni card sala in `EventDetailView`: form crea token (nome + TTL 1h/24h/7gg) → mostra link 1 volta + copy + "apri", lista pairings attivi con last_used + commands_count + revoca con conferma inline.
+
+**Web client (MOD):**
+
+- `apps/web/src/app/routes.tsx` — rotta pubblica `/remote/:token` (prima di `/login`), bypassa `RequireAuth`.
+- `apps/web/src/features/events/EventDetailView.tsx` — render `<RemoteControlPairingsPanel>` per ogni room.
+
+**i18n (MOD):**
+
+- `packages/shared/src/i18n/locales/it.json` + `en.json` — namespace `remoteControl.*` con 54 chiavi (validating, invalidTitle, reason.*, cmd.*, error.*, schedule*, admin.*). Parita' confermata 1398/1398.
+
+#### 0.22.4 Quality gates
+
+- typecheck: VERDE (5/5 pacchetti, 0 errori). Errore iniziale `LazyRouteFunction` risolto aggiungendo `export { RemoteControlView as Component }` (pattern usato da tutte le altre route lazy).
+- lint: VERDE (0 warning).
+- build: VERDE (2560 modules transformed, +3 vs T-3-E. Lazy chunk `RemoteControlView-*.js` 10.53 KB / 3.18 KB gzip. Bundle totale aumenta solo per chi visita `/remote/<token>`).
+- ReadLints: 0 errori.
+- i18n parity: 1398/1398.
+
+#### 0.22.5 Test funzionali consigliati
+
+**Admin (PC regia):**
+
+- Apri `EventDetailView` → espandi "Telecomando remoto (tablet)" sotto una sala → genera con nome "Tablet regista" e TTL 24h → copia link → apri in nuova scheda incognito.
+- Genera 2 token consecutivi → revoca il primo → verifica che la lista mostri solo il secondo.
+- Verifica che dopo revoca `commands_count` non aumenti piu'.
+
+**Tablet PWA:**
+
+- Apri URL su tablet/smartphone → vedi titolo sala + sessione, indicatore Realtime (Wifi verde).
+- Nessuna sessione attiva → "Nessuna sessione attiva al momento" + comandi disabilitati.
+- Sessione con 5 file ready → "Schedule" mostra 5 file numerati, file in onda evidenziato verde con badge "Live".
+- Tap "Successivo" → file in onda passa al N+1 (sul PC sala l'iframe carica nuova URL entro ~1s).
+- Tap "Schermo nero" → PC sala mostra splash vuoto (current_presentation_id = NULL).
+- Tap "Riprendi" (visibile solo se blank) → ritorna al primo file della scaletta.
+- Tap su un item della scaletta non corrente → goto immediato.
+- Tap rapido 70 volte in 60s → 60° tap restituisce errore "Stai inviando troppi comandi" (rate-limit 429).
+- Token revocato durante sessione → al prossimo comando appare banner "Telecomando revocato".
+
+**Cross-tenant security:**
+
+- Tenant A genera token per Sala A1 → tenant B prova a usare lo stesso token → RPC ritorna `token_invalid` (hash non trova match nella sua RLS scope).
+
+#### 0.22.6 Limitazioni e roadmap futura
+
+**Limitazione consapevole T-3-G v1:**
+
+- Granularita' = file, non slide singola. Per "next slide reale" serve T-3-G-bis (vedi sotto).
+- Wake-lock non supportato Safari iOS pre-16.4 → l'utente deve toccare lo schermo periodicamente o disattivare auto-lock manualmente.
+- "Riprendi" da blank ritorna SEMPRE al primo file della scaletta. Per "ripristina ultimo non-null" serve persistenza extra (oggi non aggiunge valore).
+
+**Evoluzione naturale (Sprint dedicato, NON in T-3-G):**
+
+- T-3-G-bis: integrazione con viewer pdf.js custom (T-3-E-bis) → comandi `next-slide` / `prev-slide` / `goto-slide` aggiuntivi.
+- T-3-G-multi: piu' tablet attivi sulla stessa sala con ruoli diversi (es. regista + assistant view-only).
+
+#### 0.22.7 Conclusione T-3-G — Sprint T-3 chiuso
+
+**SEMAFORO VERDE su T-3-G.** Tutte e tre le feature competitor scelte da Andrea (A=file validator, E=preview prossimo file, G=remote control tablet) sono **DONE**. Sprint T-3 completato in giornata 18/04/2026.
+
+**Stato Sprint T (10 GAP audit-driven):**
+
+| ID  | Feature                                               | Stato | Sprint  |
+| --- | ----------------------------------------------------- | ----- | ------- |
+| G8  | Badge versione "in onda" + toast cambio               | DONE  | T-1     |
+| G9  | Telemetria perf live PC sala                          | DONE  | T-2     |
+| T-3-A | File error checking automatico (warn-only)         | DONE  | T-3-A   |
+| T-3-E | Preview "Prossimo file" su PC tecnico              | DONE  | T-3-E   |
+| T-3-G | Remote slide control da tablet                     | DONE  | T-3-G   |
+
+**Prossimo sprint candidato:** Q (sync hybrid cloud↔desktop) quando un cliente lo richiede esplicitamente, oppure attivita' commerciali (Sprint R/S/T sono completi end-to-end per la vendita esterna).
 
 ---
 
