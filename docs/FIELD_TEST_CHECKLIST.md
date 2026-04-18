@@ -35,10 +35,10 @@
 
 ### Tenant + utenti + evento demo
 
-- [ ] Esegui `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Setup-Field-Test-Env.ps1`.
-- [ ] Output atteso: 2 tenant (`field-test-alpha`, `field-test-beta`) + 8 utenti totali + 1 evento "Field Test Aprile 2026" con 2 sale, 3 sessioni, 2 speaker, in entrambi i tenant.
-- [ ] Verifica login funziona per ognuno dei 4 ruoli (almeno 1 sample): `super.alpha@fieldtest.local`, `admin.alpha@fieldtest.local`, `coord.alpha@fieldtest.local`, `tech.alpha@fieldtest.local`.
-- [ ] Annota qui le credenziali stampate dallo script (password temp 16 char): _______________
+- [x] **Ambiente già provisionato il 2026-04-18 via MCP Supabase.** Tutte le credenziali, ID tenant/event/room/session/speaker e procedura di reset sono in `docs/FIELD_TEST_CREDENTIALS.md`.
+- [ ] (Solo se serve riprovisionare da zero) Esegui `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Setup-Field-Test-Env.ps1` con `$env:SUPABASE_URL` + `$env:SUPABASE_SERVICE_ROLE_KEY` validi (script idempotente, password identiche al provisioning corrente).
+- [ ] Verifica login per almeno 1 utente per ruolo: `admin.alpha@fieldtest.local` / `FieldTest!AlphaAdmin2026`, `coord.alpha`, `tech.alpha`, `super.alpha`. Pattern password: `FieldTest!<Tenant><Role>2026`.
+- [ ] Verifica isolamento RLS (T6 in anticipo): login `admin.beta`, controlla che NON veda l'evento di Alpha (event_id `7e3af553-abd8-401f-bfd3-c81c1e90a9d2`).
 
 ### Hardware fisico
 
@@ -68,10 +68,10 @@
 
 **Passi:**
 
-1. Browser principale: login come `admin.alpha@fieldtest.local` → vai a `/eventi`. Annota: vedi solo evento "Field Test Aprile 2026 — Alpha".
-2. Browser incognito: login come `admin.beta@fieldtest.local` → vai a `/eventi`. Annota: vedi solo "Field Test Aprile 2026 — Beta".
-3. Dal browser principale (Alpha), copia URL `/eventi/<UUID>` di Alpha. Sostituisci `<UUID>` con quello di Beta (recuperato dal browser incognito o da Supabase). Premi invio.
-4. Browser incognito: login come `super.alpha@fieldtest.local` → vai a `/admin/tenants`. Annota: vedi entrambi i tenant.
+1. Browser principale: login come `admin.alpha@fieldtest.local` (`FieldTest!AlphaAdmin2026`) → vai a `/eventi`. Annota: vedi solo evento "Field Test Aprile 2026" del tenant Alpha (event_id `7e3af553-abd8-401f-bfd3-c81c1e90a9d2`).
+2. Browser incognito: login come `admin.beta@fieldtest.local` (`FieldTest!BetaAdmin2026`) → vai a `/eventi`. Annota: vedi solo "Field Test Aprile 2026" del tenant Beta (event_id `cb6b01a2-0a04-4b16-924a-b71dbe790265`).
+3. Dal browser principale (Alpha), naviga a `/eventi/cb6b01a2-0a04-4b16-924a-b71dbe790265` (event di Beta, copiato da `docs/FIELD_TEST_CREDENTIALS.md`).
+4. Browser incognito: login come `super.alpha@fieldtest.local` (`FieldTest!AlphaSuper2026`) → vai a `/admin/tenants`. Annota: vedi entrambi i tenant.
 
 **Output atteso:** step 3 mostra **404 / forbidden** (NON i dati di Beta). Step 4 mostra entrambi i tenant.
 
@@ -130,7 +130,7 @@
 2. Click "Aggiungi PC sala" → "Codice 6 cifre". Annota codice generato.
 3. Su laptop sala 1: apri `/pair`, digita codice, conferma.
 4. Cronometra: tempo da step 2 a "PC connesso" visibile in dashboard regia.
-5. Drag PC nella board → assegna a "Sala A" (sala creata dallo script setup).
+5. Drag PC nella board → assegna a "Sala Plenaria" (sala creata dal provisioning).
 6. Riavvia laptop sala 1 (chiudi browser, riapri Live SLIDE CENTER).
 7. Verifica: app si riapre nella sala assegnata SENZA chiedere re-pairing (cookie/localStorage `pair_token` persistente).
 
@@ -186,11 +186,11 @@
 
 **Passi:**
 
-1. Evento Field Test Alpha attivo, 2 sale create dallo script ("Sala A — Auditorium", "Sala B — Workshop").
-2. Pair laptop sala 1 (codice 6 cifre, T4) → assegna a Sala A.
-3. Pair laptop sala 2 (magic link, T5) → assegna a Sala B.
-4. Da regia EventDetailView board: drag PC1 da Sala A → Sala B.
-5. Cronometra: tempo da drop → notifica realtime su PC1 (vista cambia, mostra Sala B).
+1. Evento "Field Test Aprile 2026" del tenant Alpha attivo, 2 sale gia presenti ("Sala Plenaria", "Sala Workshop").
+2. Pair laptop sala 1 (codice 6 cifre, T4) → assegna a Sala Plenaria.
+3. Pair laptop sala 2 (magic link, T5) → assegna a Sala Workshop.
+4. Da regia EventDetailView board: drag PC1 da Sala Plenaria → Sala Workshop.
+5. Cronometra: tempo da drop → notifica realtime su PC1 (vista cambia, mostra Sala Workshop).
 
 **Output atteso:** `paired_devices.room_id` aggiornato + realtime notify sul PC entro 1s.
 
@@ -205,10 +205,10 @@
 
 **Passi:**
 
-1. Su PC sala 1 (paired, già in Sala A): kebab menu → "Promuovi a Centro Slide".
+1. Su PC sala 1 (paired, già in Sala Plenaria): kebab menu → "Promuovi a Centro Slide".
 2. Verifica conferma + `paired_devices.role = 'control_center'` + `room_id = NULL`.
-3. Carica nuovo file su Sala B → verifica che PC1 (ora control_center) riceva push del file.
-4. Demuove a `room` da kebab → verifica torna single-room (riceve solo Sala A).
+3. Carica nuovo file su Sala Workshop → verifica che PC1 (ora control_center) riceva push del file.
+4. Demuove a `room` da kebab → verifica torna single-room (riceve solo Sala Plenaria).
 
 **Output atteso:** promote/demote funziona senza errori, fan-out file corretto.
 
@@ -245,9 +245,9 @@
 
 1. 2 sale attive con PC sala paired (T4 + T5 completati).
 2. Regia: vai a `/eventi/<id>/on-air`.
-3. Seleziona Sala A → mostra grid versioni speaker. Click "Manda in onda" su versione X.
+3. Seleziona Sala Plenaria → mostra grid versioni speaker. Click "Manda in onda" su versione X.
 4. Cronometra: tempo da click → vista cambia su laptop sala 1.
-5. Ripeti su Sala B con versione Y → verifica laptop sala 2 cambia, sala 1 invariato.
+5. Ripeti su Sala Workshop con versione Y → verifica laptop sala 2 cambia, sala 1 invariato.
 6. Stacca cavo rete laptop sala 1 → verifica status diventa "offline" entro 15s nel widget telemetria regia.
 
 **Output atteso:** latenza cambio versione < 2s P95. Status offline rilevato in 15s.
@@ -531,8 +531,9 @@ _________________________________________________________
 
 ## RIFERIMENTI
 
+- **Credenziali ambiente field test** (email + password + ID tenant/event/room/session): `docs/FIELD_TEST_CREDENTIALS.md`.
 - Procedura test originale: `docs/AUDIT_FINALE_E_PIANO_TEST_v1.md` §4 (T1-T19 + acceptance criteria).
 - Disaster recovery in caso di problemi durante l'evento: `docs/DISASTER_RECOVERY.md`.
-- Setup ambiente test automatico: `scripts/Setup-Field-Test-Env.ps1`.
+- Setup ambiente test automatico (idempotente, da rilanciare se l'ambiente viene cancellato): `scripts/Setup-Field-Test-Env.ps1`.
 - Architettura: `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.
 - Storico stato sprint: `docs/STATO_E_TODO.md`.
