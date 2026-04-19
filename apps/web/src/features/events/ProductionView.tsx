@@ -192,6 +192,27 @@ type FolderSelection = string | null | typeof ALL_FILES_VIEW;
 type ViewMode = 'grid' | 'list';
 type SortBy = 'name' | 'date' | 'size' | 'type';
 
+/**
+ * Converte una `FolderSelection` (UI state) in un vero `folder_id` UUID o
+ * `null` per "root". La vista speciale "Tutti i file" (`ALL_FILES_VIEW =
+ * '__all__'`) NON e' una folder reale e quindi va sempre tradotta in `null`
+ * (= upload/create in root) prima di essere passata a qualunque RPC server,
+ * che si aspetta `uuid | null`.
+ *
+ * BUGFIX 2026-04-19 sera: il pattern `typeof selectedFolder === 'string' ?
+ * selectedFolder : null` lasciava passare `'__all__'` (e' una stringa
+ * literal!), causando l'errore Postgres `invalid input syntax for type uuid:
+ * "__all__"` quando l'utente caricava un file dalla vista "Tutti i file"
+ * (che e' la vista di default/comune): il mismatch finiva nella coda FIFO
+ * `pendingFolderQueueRef` e poi nell'RPC `move_presentations_to_folder`
+ * tramite `onJobDone`. Stessa cosa per "Nuova cartella" (parent_id) e per i
+ * drop PC sul pannello centrale.
+ */
+function folderIdFromSelection(sel: FolderSelection): string | null {
+  if (sel === ALL_FILES_VIEW || sel === null) return null;
+  return sel;
+}
+
 // ============================================================================
 // UTILITIES
 // ============================================================================
@@ -998,7 +1019,7 @@ export function ProductionView() {
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
       if (!files || files.length === 0) return;
-      const baseFolder = typeof selectedFolder === 'string' ? selectedFolder : null;
+      const baseFolder = folderIdFromSelection(selectedFolder);
       await startUpload(Array.from(files), baseFolder);
       // Reset input per permettere stessa selezione di nuovo
       e.target.value = '';
@@ -1010,7 +1031,7 @@ export function ProductionView() {
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
       if (!files || files.length === 0) return;
-      const baseFolder = typeof selectedFolder === 'string' ? selectedFolder : null;
+      const baseFolder = folderIdFromSelection(selectedFolder);
       const result = extractFilesFromInputDirectory(files);
       await startUpload(result.files, baseFolder, result);
       e.target.value = '';
@@ -1140,7 +1161,7 @@ export function ProductionView() {
           canNavigateUp={selectedFolder !== null && selectedFolder !== ALL_FILES_VIEW}
           onNavigateUp={handleNavigateUp}
           onNewFolder={() => {
-            const parentId = typeof selectedFolder === 'string' ? selectedFolder : null;
+            const parentId = folderIdFromSelection(selectedFolder);
             setCreatingChild(parentId ?? 'root');
             setDraftName('');
           }}
@@ -1305,7 +1326,7 @@ export function ProductionView() {
           onPcDragEnter={() => setPcDropZone('center')}
           onPcDragLeave={() => setPcDropZone((cur) => (cur === 'center' ? null : cur))}
           onPcDrop={(e) => {
-            const baseFolder = typeof selectedFolder === 'string' ? selectedFolder : null;
+            const baseFolder = folderIdFromSelection(selectedFolder);
             void handlePcDrop(e, baseFolder);
           }}
           // File context menu actions
