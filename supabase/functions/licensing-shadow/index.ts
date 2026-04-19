@@ -61,7 +61,11 @@ interface TenantShadowRow {
   storage_used_bytes: number | string | null;
   storage_limit_bytes: number | string | null;
   max_rooms_per_event: number | null;
+  // Audit UI nomenclatura quote 2026-04-20.
+  // Entrambi letti per backward compat: la DB migration mantiene le due colonne
+  // sincronizzate finche' non sara' rimossa la vecchia.
   max_devices_per_room: number | null;
+  max_devices_per_event: number | null;
   max_active_events: number | null;
   license_key: string | null;
 }
@@ -192,9 +196,12 @@ Deno.serve(async (req: Request) => {
   // SELECT minimo dei campi shadow. service_role bypassa RLS — accesso
   // ristretto perche' la function richiede HMAC firma con secret condiviso
   // solo con il control plane WORKS.
+  // Audit UI nomenclatura quote 2026-04-20: includiamo entrambe le colonne
+  // device cap (vecchia + nuova) finche' WORKS non smette di leggere la vecchia.
   const SELECT_COLS =
     'id,plan,suspended,expires_at,storage_used_bytes,storage_limit_bytes,' +
-    'max_rooms_per_event,max_devices_per_room,max_active_events,license_key';
+    'max_rooms_per_event,max_devices_per_room,max_devices_per_event,' +
+    'max_active_events,license_key';
 
   let query = supabaseAdmin
     .from('tenants')
@@ -221,13 +228,20 @@ Deno.serve(async (req: Request) => {
     return jsonResponse(404, { error: 'tenant_not_found' });
   }
 
+  // Audit UI nomenclatura quote 2026-04-20: la nuova UI usa
+  // maxDevicesPerEvent; manteniamo maxDevicesPerRoom nel payload con lo
+  // stesso valore per non rompere consumatori legacy (es. WORKS Functions
+  // pre-rinomina). Nuova logica deve preferire maxDevicesPerEvent.
+  const devicesPerEvent =
+    num(data.max_devices_per_event) ?? num(data.max_devices_per_room);
   const shadow = {
     plan: typeof data.plan === 'string' && data.plan.length > 0 ? data.plan : 'unknown',
     status: data.suspended === true ? 'suspended' : 'active',
     storageUsedBytes: num(data.storage_used_bytes),
     storageLimitBytes: num(data.storage_limit_bytes),
     maxRoomsPerEvent: num(data.max_rooms_per_event),
-    maxDevicesPerRoom: num(data.max_devices_per_room),
+    maxDevicesPerRoom: devicesPerEvent,
+    maxDevicesPerEvent: devicesPerEvent,
     maxActiveEvents: num(data.max_active_events),
     expiresAt: typeof data.expires_at === 'string' ? data.expires_at : null,
     lastObservedAt: Date.now(),

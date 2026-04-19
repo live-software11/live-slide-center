@@ -194,6 +194,7 @@ function TenantQuotaForm({
         value={storageLimitStr}
         onChange={(e) => setStorageLimitStr(e.target.value)}
         disabled={disabled || saving}
+        placeholder={t('admin.tenantDetailStorageLimitPlaceholder')}
         className="mt-1.5 w-full rounded-xl border border-sc-primary/15 bg-sc-bg px-3 py-2 font-mono text-sm text-sc-text outline-none focus:border-sc-primary/40 focus:ring-2 focus:ring-sc-ring/25 disabled:opacity-50"
       />
       <p className="mt-1 text-[11px] text-sc-text-dim">{t('admin.tenantDetailStorageLimitHint')}</p>
@@ -225,7 +226,7 @@ function TenantQuotaForm({
       />
 
       <label className="mt-4 block text-xs font-medium text-sc-text-muted" htmlFor="adm-dev">
-        {t('admin.tenantDetailMaxDevicesPerRoom')} ({t('admin.tenantDetailMaxNumericHint')})
+        {t('admin.tenantDetailMaxDevicesPerEvent')} ({t('admin.tenantDetailMaxNumericHint')})
       </label>
       <input
         id="adm-dev"
@@ -236,6 +237,7 @@ function TenantQuotaForm({
         disabled={disabled || saving}
         className="mt-1.5 w-full rounded-xl border border-sc-primary/15 bg-sc-bg px-3 py-2 font-mono text-sm text-sc-text outline-none focus:border-sc-primary/40 focus:ring-2 focus:ring-sc-ring/25 disabled:opacity-50"
       />
+      <p className="mt-1 text-[11px] text-sc-text-dim">{t('admin.tenantDetailMaxDevicesPerEventHint')}</p>
 
       <label className="mt-4 block text-xs font-medium text-sc-text-muted" htmlFor="adm-active-ev">
         {t('admin.tenantDetailMaxActiveEvents')}

@@ -60,8 +60,11 @@ interface TenantRow {
   storage_limit_bytes: number | null;
   storage_used_bytes: number | null;
   max_rooms_per_event: number | null;
+  // Audit UI nomenclatura quote 2026-04-20: entrambe presenti durante la
+  // finestra coesistenza colonne (la migration tiene allineata la vecchia
+  // alla nuova via licensing_apply_quota).
   max_devices_per_room: number | null;
-  // Audit edit-policy-per-software 2026-04-19: nuovo campo riportato a WORKS.
+  max_devices_per_event: number | null;
   max_active_events: number | null;
   license_synced_at: string | null;
   updated_at: string | null;
@@ -75,8 +78,11 @@ interface SlideCenterShadowPayload {
   storageLimitBytes: number | null;
   storageUsedBytes: number | null;
   maxRoomsPerEvent: number | null;
+  // Audit UI nomenclatura quote 2026-04-20: maxDevicesPerEvent e' il nuovo
+  // canonico; maxDevicesPerRoom resta nel payload per backward compat con
+  // sync-from-backend WORKS pre-rinomina (stesso valore numerico).
   maxDevicesPerRoom: number | null;
-  // Audit edit-policy-per-software 2026-04-19.
+  maxDevicesPerEvent: number | null;
   maxActiveEvents: number | null;
   licenseSyncedAt: string | null;
   observedAt: string;
@@ -243,6 +249,11 @@ function deriveStatus(t: TenantRow): 'active' | 'suspended' | 'expired' {
 }
 
 function buildShadow(t: TenantRow): SlideCenterShadowPayload {
+  // Audit UI nomenclatura quote 2026-04-20: prefer la colonna nuova; in
+  // assenza fallback alla vecchia (caso impossibile post-migration ma
+  // safety net). Stesso valore in entrambi i field del payload.
+  const devicesPerEvent =
+    t.max_devices_per_event ?? t.max_devices_per_room ?? null;
   return {
     plan: t.plan,
     status: deriveStatus(t),
@@ -251,7 +262,8 @@ function buildShadow(t: TenantRow): SlideCenterShadowPayload {
     storageLimitBytes: t.storage_limit_bytes,
     storageUsedBytes: t.storage_used_bytes,
     maxRoomsPerEvent: t.max_rooms_per_event,
-    maxDevicesPerRoom: t.max_devices_per_room,
+    maxDevicesPerRoom: devicesPerEvent,
+    maxDevicesPerEvent: devicesPerEvent,
     maxActiveEvents: t.max_active_events,
     licenseSyncedAt: t.license_synced_at,
     observedAt: new Date().toISOString(),
@@ -326,7 +338,8 @@ Deno.serve(async (req: Request) => {
   const { data: tenant, error } = await supabaseAdmin
     .from('tenants')
     .select(
-      'id, license_key, plan, suspended, expires_at, storage_limit_bytes, storage_used_bytes, max_rooms_per_event, max_devices_per_room, max_active_events, license_synced_at, updated_at',
+      // Audit UI nomenclatura quote 2026-04-20: include max_devices_per_event.
+      'id, license_key, plan, suspended, expires_at, storage_limit_bytes, storage_used_bytes, max_rooms_per_event, max_devices_per_room, max_devices_per_event, max_active_events, license_synced_at, updated_at',
     )
     .eq('id', tenantId)
     .maybeSingle();

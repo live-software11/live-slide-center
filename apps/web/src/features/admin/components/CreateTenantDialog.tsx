@@ -368,6 +368,7 @@ export function CreateTenantDialog({ supabase, onClose, onCreated }: CreateTenan
               value={storageGbStr}
               onChange={(e) => setStorageGbStr(e.target.value)}
               disabled={busy}
+              placeholder={t('admin.createTenant.fieldStoragePlaceholder')}
               className="mt-1.5 w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 font-mono text-sm text-sc-text outline-none focus:border-sc-primary/40 focus:ring-2 focus:ring-sc-ring/25 disabled:opacity-50"
             />
             <p className="mt-1 text-[11px] text-sc-text-dim">
@@ -421,6 +422,7 @@ export function CreateTenantDialog({ supabase, onClose, onCreated }: CreateTenan
               value={maxDevicesStr}
               onChange={(e) => setMaxDevicesStr(e.target.value)}
               disabled={busy}
+              placeholder={t('admin.createTenant.fieldMaxDevicesPlaceholder')}
               className="mt-1.5 w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 font-mono text-sm text-sc-text outline-none focus:border-sc-primary/40 focus:ring-2 focus:ring-sc-ring/25 disabled:opacity-50"
             />
             <p className="mt-1 text-[11px] text-sc-text-dim">{t('admin.createTenant.fieldMaxDevicesHint')}</p>

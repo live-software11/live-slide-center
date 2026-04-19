@@ -38,7 +38,13 @@ interface SyncBody {
   plan?: TenantPlan;
   storage_limit_bytes?: number | null;
   max_rooms_per_event?: number | null;
+  // Audit UI nomenclatura quote 2026-04-20: rinomina semantica.
+  // - max_devices_per_room: DEPRECATED, mantenuto in lettura per retro-
+  //   compatibilita con WORKS Functions non ancora deployate.
+  // - max_devices_per_event: nuovo nome ufficiale (limite totale per evento).
+  // Se entrambi presenti vince max_devices_per_event.
   max_devices_per_room?: number | null;
+  max_devices_per_event?: number | null;
   max_active_events?: number | null;
   expires_at?: string | null;
   status?: LicenseStatus;
@@ -191,7 +197,11 @@ Deno.serve(async (req: Request) => {
       return jsonResponse(400, { error: 'invalid_max_rooms' });
     }
   }
-  const devices = payload.max_devices_per_room;
+  // Audit UI nomenclatura quote 2026-04-20: prefer max_devices_per_event.
+  const devices =
+    payload.max_devices_per_event !== undefined
+      ? payload.max_devices_per_event
+      : payload.max_devices_per_room;
   if (devices != null) {
     if (!Number.isInteger(devices) || devices < DEVICES_MIN || devices > DEVICES_MAX) {
       return jsonResponse(400, { error: 'invalid_max_devices' });
@@ -229,16 +239,18 @@ Deno.serve(async (req: Request) => {
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
 
+  // Audit UI nomenclatura quote 2026-04-20: la RPC ora si aspetta
+  // p_max_devices_per_event; la migration scrive su entrambe le colonne
+  // DB (vecchia + nuova) per safe coesistenza con consumatori non aggiornati.
   const { data, error } = await supabaseAdmin.rpc('licensing_apply_quota', {
     p_license_key: licenseKey,
     p_tenant_id: tenantId ?? null,
     p_plan: plan,
     p_storage_limit_bytes: storage ?? null,
     p_max_rooms_per_event: rooms ?? null,
-    p_max_devices_per_room: devices ?? null,
+    p_max_devices_per_event: devices ?? null,
     p_expires_at: expiresAt ?? null,
     p_status: status,
-    // Audit edit-policy-per-software 2026-04-19: nuovo 9° parametro RPC.
     p_max_active_events: activeEvents ?? null,
   });
 
