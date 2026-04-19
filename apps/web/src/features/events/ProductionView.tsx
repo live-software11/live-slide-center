@@ -84,6 +84,11 @@ import {
   ContextMenuSub,
   ContextMenuSubContent,
   ContextMenuSubTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   ScrollArea,
   cn,
 } from '@slidecenter/ui';
@@ -1477,28 +1482,28 @@ function ExplorerToolbar({
           {t('explorer.toolbar.noSessionsHint')}
         </span>
       ) : (
-        <ContextMenu>
-          <ContextMenuSub>
-            <ContextMenuSubTrigger className="flex h-8 items-center gap-1.5 rounded-md border border-sc-border bg-sc-surface px-2 text-xs text-sc-text hover:bg-sc-surface/70">
-              <span className="text-sc-text-dim">{t('explorer.toolbar.uploadInto')}</span>
-              <span className="font-medium">
-                {targetSession?.title ?? t('explorer.toolbar.pickSession')}
-              </span>
-              <ChevronRight className="size-3" />
-            </ContextMenuSubTrigger>
-            <ContextMenuSubContent className="max-h-72 w-64 overflow-y-auto">
-              {sessions.map((s) => (
-                <ContextMenuItem
-                  key={s.id}
-                  onSelect={() => onPickSession(s.id)}
-                  className={cn(s.id === targetSessionId && 'bg-sc-accent/15 text-sc-text')}
-                >
-                  <span className="truncate">{s.title}</span>
-                </ContextMenuItem>
-              ))}
-            </ContextMenuSubContent>
-          </ContextMenuSub>
-        </ContextMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className="flex h-8 items-center gap-1.5 rounded-md border border-sc-border bg-sc-surface px-2 text-xs text-sc-text hover:bg-sc-surface/70"
+          >
+            <span className="text-sc-text-dim">{t('explorer.toolbar.uploadInto')}</span>
+            <span className="font-medium">
+              {targetSession?.title ?? t('explorer.toolbar.pickSession')}
+            </span>
+            <ChevronRight className="size-3" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="max-h-72 w-64 overflow-y-auto">
+            {sessions.map((s) => (
+              <DropdownMenuItem
+                key={s.id}
+                onSelect={() => onPickSession(s.id)}
+                className={cn(s.id === targetSessionId && 'bg-sc-accent/15 text-sc-text')}
+              >
+                <span className="truncate">{s.title}</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
 
       <div className="mx-1 h-5 w-px bg-sc-border/60" />
@@ -2517,27 +2522,25 @@ function SelectionBar({ count, busy, folders, onClear, onMoveTo, onDelete }: Sel
       <span className="font-medium text-sc-text">
         {t('production.selectedCount', { count })}
       </span>
-      <ContextMenu>
-        <ContextMenuSub>
-          <ContextMenuSubTrigger className="flex h-7 items-center gap-1 rounded-md border border-sc-border bg-sc-surface px-2 text-xs text-sc-text">
-            <MoveRight className="size-3.5" />
-            {t('production.moveTo')}
-          </ContextMenuSubTrigger>
-          <ContextMenuSubContent className="max-h-72 w-56 overflow-y-auto">
-            <ContextMenuItem onSelect={() => onMoveTo(null)}>
-              <Home />
-              {t('production.rootLabel')}
-            </ContextMenuItem>
-            {folders.length > 0 ? <ContextMenuSeparator /> : null}
-            {folders.map((f) => (
-              <ContextMenuItem key={f.id} onSelect={() => onMoveTo(f.id)}>
-                <Folder />
-                {f.name}
-              </ContextMenuItem>
-            ))}
-          </ContextMenuSubContent>
-        </ContextMenuSub>
-      </ContextMenu>
+      <DropdownMenu>
+        <DropdownMenuTrigger className="flex h-7 items-center gap-1 rounded-md border border-sc-border bg-sc-surface px-2 text-xs text-sc-text hover:bg-sc-surface/70">
+          <MoveRight className="size-3.5" />
+          {t('production.moveTo')}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="max-h-72 w-56 overflow-y-auto">
+          <DropdownMenuItem onSelect={() => onMoveTo(null)}>
+            <Home />
+            {t('production.rootLabel')}
+          </DropdownMenuItem>
+          {folders.length > 0 ? <DropdownMenuSeparator /> : null}
+          {folders.map((f) => (
+            <DropdownMenuItem key={f.id} onSelect={() => onMoveTo(f.id)}>
+              <Folder />
+              {f.name}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
       <Button size="sm" variant="ghost" onClick={onDelete} disabled={busy}>
         <Trash2 className="text-sc-danger" />
         <span className="text-sc-danger">{t('explorer.context.delete')}</span>
@@ -2664,30 +2667,28 @@ function ExplorerRightPane(props: ExplorerRightPaneProps) {
               <Pencil />
               {t('explorer.action.rename')}
             </Button>
-            <ContextMenu>
-              <ContextMenuSub>
-                <ContextMenuSubTrigger className="flex h-8 w-full items-center gap-2 rounded-md border border-sc-border bg-sc-surface px-3 text-xs text-sc-text hover:bg-sc-surface/70">
-                  <MoveRight className="size-3.5" />
-                  <span>{t('production.moveTo')}</span>
-                </ContextMenuSubTrigger>
-                <ContextMenuSubContent className="max-h-72 w-56 overflow-y-auto">
-                  <ContextMenuItem onSelect={() => props.onMoveTo(p.id, null)}>
-                    <Home />
-                    {t('production.rootLabel')}
-                  </ContextMenuItem>
-                  {props.folders.length > 0 ? <ContextMenuSeparator /> : null}
-                  {props.folders.map((f) => (
-                    <ContextMenuItem
-                      key={f.id}
-                      onSelect={() => props.onMoveTo(p.id, f.id)}
-                    >
-                      <Folder />
-                      {f.name}
-                    </ContextMenuItem>
-                  ))}
-                </ContextMenuSubContent>
-              </ContextMenuSub>
-            </ContextMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex h-8 w-full items-center gap-2 rounded-md border border-sc-border bg-sc-surface px-3 text-xs text-sc-text hover:bg-sc-surface/70">
+                <MoveRight className="size-3.5" />
+                <span>{t('production.moveTo')}</span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="max-h-72 w-56 overflow-y-auto">
+                <DropdownMenuItem onSelect={() => props.onMoveTo(p.id, null)}>
+                  <Home />
+                  {t('production.rootLabel')}
+                </DropdownMenuItem>
+                {props.folders.length > 0 ? <DropdownMenuSeparator /> : null}
+                {props.folders.map((f) => (
+                  <DropdownMenuItem
+                    key={f.id}
+                    onSelect={() => props.onMoveTo(p.id, f.id)}
+                  >
+                    <Folder />
+                    {f.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               size="sm"
               variant="ghost"
