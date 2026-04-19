@@ -15,7 +15,7 @@ export function useTenantQuotaRow(supabase: SupabaseClient<Database>, tenantId: 
   const load = useCallback(async () => {
     if (!tenantId) return;
     setState((s) => (s.status === 'ready' ? s : { status: 'loading' }));
-    const { data, error } = await fetchTenantQuotaRow(supabase);
+    const { data, error } = await fetchTenantQuotaRow(supabase, tenantId);
     if (error) {
       setState({ status: 'error', message: error.message });
       return;
