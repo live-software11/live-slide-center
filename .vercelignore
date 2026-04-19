@@ -1,65 +1,100 @@
-# File esclusi dall'upload Vercel.
-# Vercel builda dalla root tramite pnpm + Turborepo: serve l'intera workspace
-# (apps/* e packages/*) ma non gli artefatti di build locale.
+# =============================================================================
+# Live SLIDE CENTER — .vercelignore
+# Vercel buildra SOLO `apps/web` (vedi vercel.json -> outputDirectory).
+# Tutto il resto del monorepo (apps Tauri desktop/agent/room-agent, docs, ecc.)
+# NON serve in produzione cloud e va escluso per accelerare l'upload.
+#
+# Vercel applica gia' default exclusions (vedi
+# https://vercel.com/docs/builds/build-features#ignored-files-and-folders):
+#   .git .vercel .gitignore .npmignore .dockerignore .env.local .env.*.local
+#   node_modules .next .cache .DS_Store npm-debug.log venv __pycache__
+# Per cui in questo file ci concentriamo sulle esclusioni specifiche del
+# nostro monorepo che NON sono coperte da default.
+# =============================================================================
 
-# --- Build artifacts (rigenerati in remoto) ---
-**/node_modules/
+# -----------------------------------------------------------------------------
+# Apps Tauri (desktop / agent / room-agent): NON servono per build cloud.
+# Includono target/ Rust giganteschi (ogni cartella >2-6 GB) che bloccano
+# l'upload di Vercel CLI quando si usa --archive=tgz.
+# -----------------------------------------------------------------------------
+apps/desktop/
+apps/agent/
+apps/room-agent/
+
+# -----------------------------------------------------------------------------
+# Build artifacts / cache (rigenerati lato remoto da pnpm + turbo)
+# -----------------------------------------------------------------------------
 **/dist/
+**/dist-desktop/
+**/build/
 **/target/
 **/.next/
-**/build/
 **/.turbo/
 **/coverage/
+**/.tsbuildinfo
+**/*.tsbuildinfo
 
-# --- IDE / editor ---
+# -----------------------------------------------------------------------------
+# IDE / editor (default exclusion non copre .vscode/.idea/.cursor)
+# -----------------------------------------------------------------------------
 .vscode/
 .idea/
 .cursor/
 .codium/
+.claude/
 
-# --- Cache lint/test ---
+# -----------------------------------------------------------------------------
+# Cache lint / test
+# -----------------------------------------------------------------------------
 **/.eslintcache
 **/.cache/
 
-# --- Logs e temp ---
+# -----------------------------------------------------------------------------
+# Logs e file temporanei
+# -----------------------------------------------------------------------------
 *.log
 **/*.log
 logs/
 tmp/
 temp/
+.tmp/
+.tmp-*.txt
 
-# --- Docs e test artifacts (non in produzione) ---
+# -----------------------------------------------------------------------------
+# Documentazione e materiale di test (non in produzione)
+# -----------------------------------------------------------------------------
 docs/
 field-test/
 diagnostics-output/
 
-# --- Git ---
-.git/
-.gitattributes
-
-# --- Backup ---
+# -----------------------------------------------------------------------------
+# Backup / scratch
+# -----------------------------------------------------------------------------
 *.bak
 *.tmp
 *.swp
+.commit-msg.txt
+.commit-msg-*.txt
 COMMIT_MSG_TMP.txt
 
-# --- Tauri build artefatti specifici ---
-apps/desktop/src-tauri/target/
-apps/desktop/src-tauri/gen/
-apps/desktop/dist/
-apps/desktop/build/
-
-# --- Agent legacy / installer artifacts ---
-apps/agent/dist/
-apps/agent/build/
-apps/room-agent/dist/
-apps/room-agent/build/
-**/installer/
-**/release/
-
-# --- Test snapshots e fixture pesanti ---
+# -----------------------------------------------------------------------------
+# Test snapshots e fixture pesanti
+# -----------------------------------------------------------------------------
 **/__snapshots__/
 **/*.snap
 e2e-results/
 playwright-report/
 test-results/
+
+# -----------------------------------------------------------------------------
+# Installer / release artifacts
+# -----------------------------------------------------------------------------
+**/installer/
+**/release/
+release/
+
+# -----------------------------------------------------------------------------
+# Supabase: solo migrations/config va lato cloud (per Edge Functions deploy
+# manuale). Per Vercel build escludiamo: e' completamente runtime-side.
+# -----------------------------------------------------------------------------
+supabase/

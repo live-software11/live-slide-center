@@ -1,73 +1,101 @@
-# Dependencies
-node_modules
+# =============================================================================
+# Live SLIDE CENTER — .gitignore
+# Monorepo: apps/web (cloud) + apps/desktop|agent|room-agent (Tauri 2 / Rust)
+# + packages/* (shared, ui)
+# =============================================================================
 
-# Build output
+# --- Node / pnpm ---
+node_modules
+**/node_modules/
+.pnpm-store/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Build output: web (Vite) ---
 dist
-packages/shared/dist
-packages/ui/dist
+**/dist/
+**/dist-desktop/
 .turbo
+**/.turbo/
 **/.tsbuildinfo
 *.tsbuildinfo
 
-# tsc -b emit (non servono nel repo, Vite bundla i .ts direttamente)
+# --- Build output: shared / ui ---
+packages/shared/dist
+packages/ui/dist
+
+# --- Build output: Rust / Cargo / Tauri (universale: copre desktop, agent, room-agent, futuri) ---
+**/target/
+**/Cargo.lock.bak
+apps/desktop/src-tauri/gen/
+apps/agent/src-tauri/gen/
+apps/room-agent/src-tauri/gen/
+
+# --- tsc -b emit (non servono nel repo: Vite bundla i .ts direttamente) ---
 apps/web/src/**/*.js
 apps/web/src/**/*.d.ts
 !apps/web/src/vite-env.d.ts
 apps/web/*.js
 apps/web/*.d.ts
 
-# Env
+# --- Env / secrets ---
 .env
 .env.local
 .env.*.local
 *.local
 
-# IDE
+# --- IDE / editor ---
 .vscode/settings.json
 !.vscode/extensions.json
+.idea/
+.codium/
 
-# OS
+# --- Cursor / AI assistants ---
+.claude/
+
+# --- OS junk ---
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Logs
+# --- Logs ---
 *.log
-npm-debug.log*
-pnpm-debug.log*
+logs/
 
-# Test
+# --- Test ---
 coverage
+**/coverage/
+playwright-report/
+test-results/
+e2e-results/
 
-# Supabase local
+# --- Supabase local ---
 supabase/.branches
 supabase/.temp
 
-# Tauri build (fasi successive)
-apps/agent/src-tauri/target
-apps/room-agent/src-tauri/target
-apps/player/src-tauri/target
+# --- Vercel CLI link/cache ---
+.vercel
+.vercel-deploy.log
+.vercel-smoke.log
 
-# Sprint 3 - artefatti di distribuzione (NSIS installer + portable ZIP per i due Agent)
+# --- Sprint 3: artefatti di distribuzione (NSIS installer + portable ZIP) ---
 release/
 
-# Sprint 5 - manuali operatore PDF generati da pandoc (sorgenti MD versionati, PDF no)
+# --- Sprint 5: manuali operatore PDF generati da pandoc (sorgenti MD versionati) ---
 docs/Manuali/pdf/
 
-# Claude Code impostazioni locali
-.claude/
-
-.vercel
-
-# Cartelle temporanee di build/scripting locale
+# --- Cartelle / file temporanei build/scripting locale ---
 .tmp/
 .tmp-*.txt
 .commit-msg.txt
 .commit-msg-*.txt
 COMMIT_MSG_TMP.txt
+*.bak
+*.swp
 
-# Build output desktop (Vite per app desktop Tauri)
-**/dist-desktop/
-
-.vercel
-
-.env*.local
+# --- Tauri sidecar binaries (se esistono) ---
+**/sidecar/*.exe
+**/sidecar/*.dylib
+**/sidecar/*.so

@@ -6,14 +6,14 @@
 
 ## Indice rapido
 
-| Scenario                              | Severita | RTO target | Sezione                                       |
-| ------------------------------------- | -------- | ---------- | --------------------------------------------- |
-| 0. Hotfix rotto in produzione         | Critica  | 2-5 min    | [§0](#0-rollback-rapido-deploy-vercel-rotto)  |
-| 1. Supabase down < 1h                 | Bassa    | passive    | [§1](#1-supabase-down--1h)                    |
-| 2. Supabase down > 1h                 | Media    | 30 min     | [§2](#2-supabase-down--1h-prolungato)         |
-| 3. Supabase down > 24h o data-loss    | Critica  | 2-4h       | [§3](#3-supabase-down--24h-o-data-loss)       |
-| 4. Vercel down                        | Media    | 15 min     | [§4](#4-vercel-down)                          |
-| 5. Perdita parziale DB / file storage | Critica  | 1-3h       | [§5](#5-perdita-parziale-db--storage)         |
+| Scenario                              | Severita | RTO target | Sezione                                      |
+| ------------------------------------- | -------- | ---------- | -------------------------------------------- |
+| 0. Hotfix rotto in produzione         | Critica  | 2-5 min    | [§0](#0-rollback-rapido-deploy-vercel-rotto) |
+| 1. Supabase down < 1h                 | Bassa    | passive    | [§1](#1-supabase-down--1h)                   |
+| 2. Supabase down > 1h                 | Media    | 30 min     | [§2](#2-supabase-down--1h-prolungato)        |
+| 3. Supabase down > 24h o data-loss    | Critica  | 2-4h       | [§3](#3-supabase-down--24h-o-data-loss)      |
+| 4. Vercel down                        | Media    | 15 min     | [§4](#4-vercel-down)                         |
+| 5. Perdita parziale DB / file storage | Critica  | 1-3h       | [§5](#5-perdita-parziale-db--storage)        |
 
 > **RTO** = Recovery Time Objective (tempo target per ripristino servizio).
 > **RPO** = Recovery Point Objective (massima perdita di dati accettabile).
@@ -459,17 +459,17 @@ Dopo:
 
 ### Coordinate progetto
 
-| Campo | Valore |
-|-------|--------|
-| Sentry org slug | `live-work-app` |
-| Sentry region | **EU** (`https://de.sentry.io`) |
-| Project slug | `live-slide-center-web` |
-| Platform | `javascript-react` |
-| Dashboard | <https://live-work-app.sentry.io/issues/?project=live-slide-center-web> |
-| Vercel env | `VITE_SENTRY_DSN` (Production) |
-| File init | `apps/web/src/lib/init-sentry.ts` (lazy import, no-op senza DSN) |
-| Error boundary | `apps/web/src/app/error-boundary.tsx` |
-| Helper warning | `apps/web/src/lib/telemetry.ts` (`reportError(...)`) |
+| Campo           | Valore                                                                  |
+| --------------- | ----------------------------------------------------------------------- |
+| Sentry org slug | `live-work-app`                                                         |
+| Sentry region   | **EU** (`https://de.sentry.io`)                                         |
+| Project slug    | `live-slide-center-web`                                                 |
+| Platform        | `javascript-react`                                                      |
+| Dashboard       | <https://live-work-app.sentry.io/issues/?project=live-slide-center-web> |
+| Vercel env      | `VITE_SENTRY_DSN` (Production)                                          |
+| File init       | `apps/web/src/lib/init-sentry.ts` (lazy import, no-op senza DSN)        |
+| Error boundary  | `apps/web/src/app/error-boundary.tsx`                                   |
+| Helper warning  | `apps/web/src/lib/telemetry.ts` (`reportError(...)`)                    |
 
 > **Region EU = importante**: il DSN finisce con `.ingest.de.sentry.io` (NON
 > `.ingest.sentry.io`). La CSP in `vercel.json` usa `https://*.sentry.io`
@@ -600,6 +600,96 @@ Setup token:
 
 ---
 
+## Workspace cleanup (manutenzione periodica)
+
+> Il monorepo accumula nel tempo cache Cargo (target/) ed altri artefatti
+> rigenerabili che possono raggiungere 10+ GB. Questo rallenta deploy Vercel
+> (upload monorepo > 3 GB), indexing Cursor e backup locali. Cleanup
+> consigliato ogni 2-3 settimane o prima di un deploy importante.
+
+### Quando farlo
+
+- Deploy Vercel CLI > 5 minuti (upload pesante)
+- Cursor sidebar lenta / autocomplete lag
+- Spazio disco basso sulla macchina di lavoro
+- Prima di un commit storico (release importante)
+
+### Cosa pulire (SAFE — tutto rigenerabile)
+
+| Path | Tipico peso | Rigenerato da |
+|------|-------------|---------------|
+| `apps/desktop/src-tauri/target/` | 5-7 GB | `cargo build` o `pnpm --filter @slidecenter/desktop build:tauri` |
+| `apps/agent/src-tauri/target/` | 2-4 GB | `cargo build` o `pnpm --filter @slidecenter/agent-build build:tauri` |
+| `apps/room-agent/src-tauri/target/` | 2-4 GB | `cargo build` o `pnpm --filter @slidecenter/room-agent-build build:tauri` |
+| `apps/web/dist/` | 17-25 MB | `pnpm --filter @slidecenter/web build` (1.7s) |
+| `apps/web/dist-desktop/` | 17 MB | rigenerato da Tauri build |
+| `**/.turbo/` | 5-50 MB | TurboRepo cache |
+| `packages/*/dist/` | < 1 MB | TurboRepo build |
+
+### Cosa NON pulire
+
+- **`release/`** — installer NSIS .exe / .zip pronti per distribuzione (24 MB).
+  Sono artefatti DI CONSEGNA, non rigenerabili senza rebuild Tauri (15-30 min/app).
+- **`node_modules/`** — gestito da pnpm. Non cancellare a mano: usa
+  `pnpm install --force` o `pnpm prune` se serve. Cancellazione brutale
+  rompe i symlink workspace.
+- **`.vercel/`** — contiene `project.json` con il link Vercel CLI. Se cancelli
+  serve rifare `vercel link --project live-slide-center`.
+- **`.git/`** — storico git, ovviamente.
+
+### Procedura cleanup (PowerShell)
+
+```powershell
+$paths = @(
+  "apps/desktop/src-tauri/target",
+  "apps/agent/src-tauri/target",
+  "apps/room-agent/src-tauri/target",
+  "apps/web/dist", "apps/web/dist-desktop", "apps/web/.turbo",
+  "packages/shared/dist", "packages/ui/dist",
+  ".turbo", "node_modules/.cache",
+  ".vercel-deploy.log", ".vercel-smoke.log"
+)
+foreach ($p in $paths) {
+  if (Test-Path $p) {
+    $mb = [math]::Round((Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum/1MB, 1)
+    Remove-Item -Recurse -Force $p -ErrorAction SilentlyContinue
+    Write-Host "Cleaned $p ($mb MB)"
+  }
+}
+```
+
+### Verifica post-cleanup
+
+```powershell
+pnpm --filter @slidecenter/web typecheck   # deve passare
+pnpm --filter @slidecenter/web build       # deve fare build in < 5s
+pnpm smoke:cloud                            # deve restare 21/21 verde
+```
+
+### File ignore di workspace (gia' configurati)
+
+- **`.gitignore`** — esclude tutti i `**/target/`, `**/dist/`, `**/.turbo/`,
+  build artifacts. Garantisce zero artefatti tracciati.
+- **`.vercelignore`** — esclude le 3 app Tauri (`apps/desktop`, `apps/agent`,
+  `apps/room-agent`), supabase/, docs/, perche' Vercel buildra solo `apps/web`.
+  Riduce upload da 3+ GB a < 100 MB.
+- **`.cursorindexingignore`** — esclude binari, lockfile, target/, dist/,
+  source maps dall'indicizzazione semantica di Cursor (ma restano leggibili
+  on-demand). Velocizza enormemente sidebar e autocomplete.
+
+> **Differenza importante**: `.cursorindexingignore` NON impedisce all'agente
+> AI di leggere i file su richiesta (a differenza di `.cursorignore` che blocca
+> tutto). E' la scelta corretta per artefatti rigenerabili: l'AI puo' comunque
+> investigarli se serve, ma non li indicizza per impostazione predefinita.
+
+### Storico cleanup
+
+| Data | Da | A | Liberato | Note |
+|------|----|----|----------|------|
+| 2026-04-19 | 12.6 GB | 492 MB | 11.83 GB (-96%) | Cleanup iniziale + ignore files riscritti |
+
+---
+
 ## Riferimenti
 
 - `scripts/verify-supabase-backup.ps1` — verifica backup giornaliero
@@ -610,3 +700,4 @@ Setup token:
 - `docs/AUDIT_FINALE_E_PIANO_TEST_v1.md` — audit completo cloud + desktop
 - `docs/STATO_E_TODO.md` — stato sprint corrente
 - `.cursor/rules/01-data-isolation.mdc` — policy account & tenant isolation
+- `.gitignore` / `.vercelignore` / `.cursorindexingignore` — workspace cleanup config

@@ -1,0 +1,118 @@
+# =============================================================================
+# Live SLIDE CENTER — .cursorindexingignore
+# Esclude file dall'INDEXING semantico di Cursor (codebase index + @-references
+# automatici). I file restano accessibili via Read/Glob/Grep su richiesta
+# esplicita dell'agente, ma non appesantiscono la sidebar di indicizzazione
+# ne' compaiono nei risultati semantici automatici.
+#
+# Differenza chiave da .cursorignore:
+#  - .cursorignore        = blocca COMPLETAMENTE accesso AI (best-effort).
+#                            Per credenziali / segreti.
+#  - .cursorindexingignore = solo no-index. Per artefatti rigenerabili / pesanti.
+#
+# Perche' serve in questo workspace:
+#  - 3 app Tauri/Rust possono accumulare 12+ GB di target/ binari Cargo
+#  - node_modules ~400 MB di pacchetti gia' tipizzati (no valore semantico)
+#  - dist / dist-desktop / .turbo / release sono rigenerabili
+#  - icons / installer / file binari non hanno semantica utile
+# =============================================================================
+
+# --- Dependencies (huge, no semantic value) ---
+node_modules/
+**/node_modules/
+.pnpm-store/
+
+# --- Rust / Cargo / Tauri build artifacts (gigabytes) ---
+**/target/
+**/Cargo.lock.bak
+apps/desktop/src-tauri/gen/
+apps/agent/src-tauri/gen/
+apps/room-agent/src-tauri/gen/
+
+# --- Web build output (rigenerabile) ---
+**/dist/
+**/dist-desktop/
+**/build/
+**/.next/
+**/.turbo/
+**/.tsbuildinfo
+**/*.tsbuildinfo
+packages/shared/dist/
+packages/ui/dist/
+
+# --- Coverage / test artifacts ---
+**/coverage/
+**/__snapshots__/
+**/*.snap
+e2e-results/
+playwright-report/
+test-results/
+
+# --- Release artifacts (NSIS installer, ZIP portable) ---
+release/
+**/release/
+**/installer/
+*.exe
+*.msi
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+
+# --- Lockfiles (pesanti, no valore semantico per agent) ---
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+Cargo.lock
+
+# --- Vercel cache ---
+.vercel/
+.vercel-deploy.log
+.vercel-smoke.log
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Backup git ---
+COMMIT_MSG_TMP.txt
+.commit-msg*.txt
+*.bak
+*.tmp
+
+# --- Source maps (peso elevato, info raramente utile vs codice sorgente) ---
+**/*.map
+**/*.js.map
+
+# --- Binary assets (icone, font, immagini grandi) ---
+**/*.woff
+**/*.woff2
+**/*.ttf
+**/*.otf
+**/*.eot
+**/*.ico
+**/*.icns
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.webp
+**/*.bmp
+**/*.tiff
+**/*.psd
+**/*.svg
+# Eccezione: index.html del web ha riferimenti SVG inline che possono
+# essere utili. Cursor indicizza comunque tutti gli HTML.
+
+# --- Audio / video / archivi ---
+**/*.mp3
+**/*.wav
+**/*.mp4
+**/*.mov
+**/*.zip
+**/*.tar.gz
+**/*.tgz
+
+# --- Documenti generati / PDF ---
+**/*.pdf
+docs/Manuali/pdf/
