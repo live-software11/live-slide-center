@@ -428,6 +428,19 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
           // (mai usato in questa coda admin) sarebbe `null`.
           const supabaseClient = getSupabaseBrowserClient();
           supabaseClient.auth.getSession().then(({ data: sessionData }) => {
+            // BUGFIX 2026-04-19 (race condition cancel): durante l'await asincrono
+            // di `getSession()` l'utente puo' aver cliccato "Cancel" sul job. Senza
+            // questo check, `startTusUpload` partirebbe comunque e occuperebbe
+            // bandwidth (potenzialmente 100MB+ su 4G) prima che il handle .abort()
+            // possa arrivare. Il `cancel()` setta gia' `job.cancelled = true` e
+            // chiama `abortAdminUpload(versionId)` sul backend, quindi qui basta
+            // rejectare con un errore riconoscibile: il `catch` upper vede
+            // `job.cancelled` e marca il job come 'cancelled' senza riportare
+            // un finto errore di rete all'UI.
+            if (job.cancelled) {
+              reject(new Error('upload_cancelled'));
+              return;
+            }
             const accessToken = sessionData.session?.access_token ?? null;
             job.uploadHandle = startTusUpload({
               supabaseUrl,

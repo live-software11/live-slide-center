@@ -70,12 +70,20 @@ export function AdminUploaderInline({
   const startingRef = useRef(false);
   // Tracker mount: evita warning "setState on unmounted" se l'utente naviga via.
   const mountedRef = useRef(true);
+  // BUGFIX 2026-04-19 (race condition cancel cloud): nel branch cloud l'await
+  // su `getSession()` lascia una finestra di ms-secondi in cui `uploadHandleRef`
+  // e' ancora null. Se l'utente clicca Cancel in quella finestra,
+  // `cancelEverything()` non puo' abortire (handle null) e poi `startTusUpload`
+  // parte comunque sprecando bandwidth + finalizzando un upload non desiderato.
+  // Questo flag viene controllato dentro il `.then()` PRIMA di startTusUpload.
+  const uploadCancelledRef = useRef(false);
 
   const supabaseUrl = useMemo(() => import.meta.env.VITE_SUPABASE_URL as string, []);
   const anonKey = useMemo(() => import.meta.env.VITE_SUPABASE_ANON_KEY as string, []);
   const backendMode = useMemo(() => getBackendMode(), []);
 
   const cancelEverything = useCallback(() => {
+    uploadCancelledRef.current = true;
     uploadHandleRef.current?.abort();
     uploadHandleRef.current = null;
     hashAbortRef.current?.abort();
@@ -131,6 +139,9 @@ export function AdminUploaderInline({
     // Guard anti-doppio-click: blocca prima che lo state-setter propaghi.
     if (startingRef.current) return;
     startingRef.current = true;
+    // Reset del flag di cancellazione: ogni nuovo startUpload e' una sessione
+    // pulita. Cancel precedenti non devono "contaminare" il nuovo upload.
+    uploadCancelledRef.current = false;
     try {
       // Sprint X-1: validazione config differenziata cloud vs desktop.
       // - cloud: serve VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY (build Vercel)
@@ -198,6 +209,16 @@ export function AdminUploaderInline({
           // Cloud: JWT authenticated come Bearer TUS (vedi tus-upload.ts).
           const supabaseClient = getSupabaseBrowserClient();
           supabaseClient.auth.getSession().then(({ data: sessionData }) => {
+            // BUGFIX 2026-04-19 (race condition cancel): vedi `uploadCancelledRef`
+            // sopra. Senza questo check, in cloud, dopo che l'utente clicca Cancel
+            // durante l'attesa di getSession, `startTusUpload` partiva ugualmente,
+            // sprecava bandwidth, e il flow proseguiva fino a `finalizeAdminUpload`
+            // sovrascrivendo lo state idle impostato da onCancel con kind:'finalizing'
+            // → finale kind:'error' (perche' la version era gia' stata abortita).
+            if (uploadCancelledRef.current) {
+              reject(new Error('upload_cancelled'));
+              return;
+            }
             const accessToken = sessionData.session?.access_token ?? null;
             uploadHandleRef.current = startTusUpload({
               supabaseUrl,
@@ -216,12 +237,31 @@ export function AdminUploaderInline({
 
       try {
         await uploadPromise;
-      } catch {
+      } catch (err) {
+        // Cancel deliberato → onCancel ha gia' resettato state a idle e abortato
+        // la version sul backend. NON dobbiamo riportare un finto "errore di rete".
+        if ((err as Error)?.message === 'upload_cancelled') {
+          versionIdRef.current = null;
+          return;
+        }
         safeSetState({ kind: 'error', messageKey: 'presentation.adminUpload.errorNetwork' });
         try {
           await abortAdminUpload(init.version_id);
         } catch {
           // best-effort
+        }
+        versionIdRef.current = null;
+        return;
+      }
+
+      // Seconda finestra di race: l'utente puo' cancellare proprio mentre
+      // l'upload TUS finiva (resolve gia' chiamato, ma cancelEverything settato
+      // dopo). Se proseguiamo a hashing/finalize ignoreremmo l'intento.
+      if (uploadCancelledRef.current) {
+        try {
+          await abortAdminUpload(init.version_id);
+        } catch {
+          // best-effort: la version potrebbe essere gia' stata abortita da onCancel.
         }
         versionIdRef.current = null;
         return;
