@@ -10,6 +10,7 @@
 --
 -- ALTER TABLE non supporta IF NOT EXISTS su SQLite → tolleranza
 -- "duplicate column name" gestita in `db.rs::run_migrations`.
-
-ALTER TABLE presentation_versions ADD COLUMN validation_warnings TEXT;
-ALTER TABLE presentation_versions ADD COLUMN validated_at TEXT;
+ALTER TABLE presentation_versions
+ADD COLUMN validation_warnings TEXT;
+ALTER TABLE presentation_versions
+ADD COLUMN validated_at TEXT;

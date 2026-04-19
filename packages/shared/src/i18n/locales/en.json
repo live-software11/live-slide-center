@@ -1571,6 +1571,7 @@
       "error": {
         "generic": "Upload failed. Please retry or contact the admin.",
         "invalidToken": "Room PC session expired. Sign out and re-pair the device.",
+        "deviceOffline": "This PC has been disconnected from the event. Re-pair it to upload again.",
         "noRoomAssigned": "This PC is not assigned to a room yet. Notify the admin.",
         "sessionCrossRoom": "The selected session does not belong to this room. Only the admin can upload to other rooms.",
         "sessionNotFound": "Session not found. It may have been removed.",

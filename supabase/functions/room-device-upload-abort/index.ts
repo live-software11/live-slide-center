@@ -45,13 +45,18 @@ Deno.serve(async (req: Request) => {
       if (msg.includes('device_not_found') || msg.includes('invalid_token')) {
         return jsonRes({ error: 'invalid_token' }, 401);
       }
-      return jsonRes({ error: msg }, 400);
+      // BUGFIX 2026-04-19: non leakare il messaggio grezzo DB.
+      console.error('[room-device-upload-abort] unmapped rpc error', msg);
+      return jsonRes({ error: 'abort_failed' }, 400);
     }
 
     return jsonRes(data ?? { ok: true }, 200);
   } catch (err) {
+    // BUGFIX 2026-04-19: non leakare il messaggio dell'eccezione (potrebbe
+    // contenere stack JSON, env vars, info backend).
     const message = err instanceof Error ? err.message : 'Internal error';
-    return jsonRes({ error: message }, 500);
+    console.error('[room-device-upload-abort] unhandled', message);
+    return jsonRes({ error: 'internal_error' }, 500);
   }
 });
 

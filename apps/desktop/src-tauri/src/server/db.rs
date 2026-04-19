@@ -32,29 +32,35 @@ pub(crate) const MIGRATION_0001: &str = include_str!("../../migrations/0001_init
 
 /// Sprint M3 — `paired_devices.lan_base_url` per il pair-revoke via LAN.
 #[allow(dead_code)]
-pub(crate) const MIGRATION_0002: &str = include_str!("../../migrations/0002_paired_devices_lan_url.sql");
+pub(crate) const MIGRATION_0002: &str =
+    include_str!("../../migrations/0002_paired_devices_lan_url.sql");
 
 /// Sprint D4 (port S-4 cloud) — `paired_devices.role` per Centro Slide multi-room.
 #[allow(dead_code)]
-pub(crate) const MIGRATION_0003: &str = include_str!("../../migrations/0003_paired_devices_role.sql");
+pub(crate) const MIGRATION_0003: &str =
+    include_str!("../../migrations/0003_paired_devices_role.sql");
 
 /// Sprint W B1 — `event_folders` + `presentations.folder_id` (File Explorer V2).
 pub(crate) const MIGRATION_0004: &str = include_str!("../../migrations/0004_event_folders.sql");
 
 /// Sprint W B1 — `presentation_versions.validation_warnings/validated_at`.
-pub(crate) const MIGRATION_0005: &str = include_str!("../../migrations/0005_validation_warnings.sql");
+pub(crate) const MIGRATION_0005: &str =
+    include_str!("../../migrations/0005_validation_warnings.sql");
 
 /// Sprint W B1 — `remote_control_pairings` + rate events (telecomando tablet).
 #[allow(dead_code)]
-pub(crate) const MIGRATION_0006: &str = include_str!("../../migrations/0006_remote_control_pairings.sql");
+pub(crate) const MIGRATION_0006: &str =
+    include_str!("../../migrations/0006_remote_control_pairings.sql");
 
 /// Sprint W B1 — `room_provision_tokens` (zero-friction room PCs magic-link).
 #[allow(dead_code)]
-pub(crate) const MIGRATION_0007: &str = include_str!("../../migrations/0007_room_provision_tokens.sql");
+pub(crate) const MIGRATION_0007: &str =
+    include_str!("../../migrations/0007_room_provision_tokens.sql");
 
 /// Sprint W B1 — `room_state.current_slide_index/current_slide_total`.
 #[allow(dead_code)]
-pub(crate) const MIGRATION_0008: &str = include_str!("../../migrations/0008_room_state_slide_index.sql");
+pub(crate) const MIGRATION_0008: &str =
+    include_str!("../../migrations/0008_room_state_slide_index.sql");
 
 /// Sprint W B1 — Estensione enum CHECK su `presentation_versions.upload_source`
 /// + `activity_log.actor` (port di cloud R-3 G3 + T-3-G).
@@ -63,7 +69,8 @@ pub(crate) const MIGRATION_0009: &str = include_str!("../../migrations/0009_exte
 
 /// Sprint W B1 — `device_metric_pings` (telemetria PC sala, retention 24h).
 #[allow(dead_code)]
-pub(crate) const MIGRATION_0010: &str = include_str!("../../migrations/0010_device_metric_pings.sql");
+pub(crate) const MIGRATION_0010: &str =
+    include_str!("../../migrations/0010_device_metric_pings.sql");
 
 #[derive(Debug, thiserror::Error)]
 pub enum DbError {
@@ -113,14 +120,20 @@ pub fn init_pool(db_path: &Path) -> Result<DbPool, DbError> {
         run_migrations(&conn)?;
     }
 
-    info!(?db_path, "Database SQLite inizializzato (WAL, FK, migrations applicate)");
+    info!(
+        ?db_path,
+        "Database SQLite inizializzato (WAL, FK, migrations applicate)"
+    );
     Ok(pool)
 }
 
 fn run_migrations(conn: &Connection) -> Result<(), DbError> {
     // Idempotente: tutte le DDL della migration usano IF NOT EXISTS.
     if let Err(err) = conn.execute_batch(MIGRATION_0001) {
-        warn!(?err, "errore esecuzione migrazione 0001 (potrebbe essere gia' applicata)");
+        warn!(
+            ?err,
+            "errore esecuzione migrazione 0001 (potrebbe essere gia' applicata)"
+        );
         return Err(DbError::Sqlite(err));
     }
     // Sprint M3: `ALTER TABLE ADD COLUMN` non supporta `IF NOT EXISTS` su SQLite.
@@ -206,7 +219,10 @@ fn run_migrations(conn: &Connection) -> Result<(), DbError> {
         // `table xxx_new already exists` → migrazione interrotta a meta'; non
         // possiamo riprenderla in automatico, segnaliamo all'admin.
         if msg.contains("already exists") {
-            warn!(?err, "migrazione 0009 in stato inconsistente (tabella _new gia' presente)");
+            warn!(
+                ?err,
+                "migrazione 0009 in stato inconsistente (tabella _new gia' presente)"
+            );
             return Err(DbError::Sqlite(err));
         }
         warn!(?err, "errore esecuzione migrazione 0009");

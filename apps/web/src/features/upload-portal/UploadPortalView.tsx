@@ -55,6 +55,11 @@ export default function UploadPortalView() {
 
   const tusRef = useRef<TusHandle | null>(null);
   const hashAbortRef = useRef<AbortController | null>(null);
+  // Conserva il version_id corrente per cleanup su cancel/unmount.
+  // Se non chiamiamo abort_upload_version la riga resta 'uploading' eterna,
+  // tenant.storage_used_bytes "prenota" la quota e l'orfano puo' essere
+  // ripreso erroneamente da un futuro upload con stesso fingerprint TUS.
+  const currentVersionIdRef = useRef<string | null>(null);
 
   const locale = i18n.language?.startsWith('en') ? 'en-US' : 'it-IT';
 
@@ -118,7 +123,25 @@ export default function UploadPortalView() {
     tusRef.current = null;
     hashAbortRef.current?.abort();
     hashAbortRef.current = null;
-  }, []);
+    // Best-effort: chiama abort_upload_version per liberare la version
+    // 'uploading' lato DB. Non blocca la UI, errore ignorato (nel worst
+    // case rimane orfana e verra' marcata 'failed' dal cleanup periodico).
+    const versionToAbort = currentVersionIdRef.current;
+    const tokenToUse = token;
+    if (versionToAbort && tokenToUse) {
+      currentVersionIdRef.current = null;
+      void supabase
+        .rpc('abort_upload_version', {
+          p_token: tokenToUse,
+          p_version_id: versionToAbort,
+        })
+        .then(({ error }) => {
+          if (error) {
+            console.warn('[UploadPortal] abort_upload_version failed', error.message);
+          }
+        });
+    }
+  }, [supabase, token]);
 
   useEffect(() => () => cancelEverything(), [cancelEverything]);
 
@@ -137,6 +160,7 @@ export default function UploadPortalView() {
       });
       if (error || !data) throw error ?? new Error('init_failed');
       init = data as unknown as InitResult;
+      currentVersionIdRef.current = init.version_id;
     } catch (err) {
       const msg = (err as { message?: string })?.message ?? '';
       if (msg.includes('file_too_large')) {
@@ -186,6 +210,7 @@ export default function UploadPortalView() {
       await uploadPromise;
     } catch {
       setState({ kind: 'error', messageKey: 'uploadPortal.errorNetwork' });
+      currentVersionIdRef.current = null;
       // best-effort cleanup server-side
       await supabase.rpc('abort_upload_version', {
         p_token: token,
@@ -211,6 +236,7 @@ export default function UploadPortalView() {
         p_sha256: sha256,
       });
       if (error) throw error;
+      currentVersionIdRef.current = null;
     } catch {
       setState({ kind: 'error', messageKey: 'uploadPortal.errorFinalizeFailed' });
       return;

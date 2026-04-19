@@ -1571,6 +1571,7 @@
       "error": {
         "generic": "Caricamento non riuscito. Riprova o contatta l'admin.",
         "invalidToken": "Sessione PC sala scaduta. Esci e riassocia il PC.",
+        "deviceOffline": "Questo PC è stato disconnesso dall'evento. Riassocialo per ricaricare.",
         "noRoomAssigned": "Questo PC non è ancora assegnato a una sala. Avvisa l'admin.",
         "sessionCrossRoom": "La sessione selezionata non appartiene a questa sala. Solo l'admin può caricare per altre sale.",
         "sessionNotFound": "Sessione non trovata. Probabilmente è stata rimossa.",

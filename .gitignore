@@ -63,6 +63,7 @@ docs/Manuali/pdf/
 .tmp-*.txt
 .commit-msg.txt
 .commit-msg-*.txt
+COMMIT_MSG_TMP.txt
 
 # Build output desktop (Vite per app desktop Tauri)
 **/dist-desktop/

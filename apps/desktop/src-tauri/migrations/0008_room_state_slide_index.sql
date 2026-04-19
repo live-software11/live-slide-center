@@ -11,6 +11,7 @@
 --
 -- ALTER TABLE non supporta IF NOT EXISTS su SQLite → tolleranza
 -- "duplicate column name" gestita in `db.rs::run_migrations`.
-
-ALTER TABLE room_state ADD COLUMN current_slide_index INTEGER;
-ALTER TABLE room_state ADD COLUMN current_slide_total INTEGER;
+ALTER TABLE room_state
+ADD COLUMN current_slide_index INTEGER;
+ALTER TABLE room_state
+ADD COLUMN current_slide_total INTEGER;

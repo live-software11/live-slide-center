@@ -117,6 +117,11 @@ Deno.serve(async (req: Request) => {
         return jsonRes({ error: 'invalid_token' }, 401);
       }
       if (msg.includes('tenant_suspended')) return jsonRes({ error: 'tenant_suspended' }, 403);
+      if (msg.includes('device_offline')) {
+        // Audit-fix 2026-04-19: device esplicitamente revocato/disconnesso
+        // dal pannello admin. L'utente deve ri-pairing prima di uploadare.
+        return jsonRes({ error: 'device_offline' }, 403);
+      }
       if (msg.includes('device_no_room_assigned')) {
         return jsonRes({ error: 'device_no_room_assigned' }, 409);
       }
@@ -133,7 +138,11 @@ Deno.serve(async (req: Request) => {
       if (msg.includes('storage_quota_exceeded')) {
         return jsonRes({ error: 'storage_quota_exceeded' }, 507);
       }
-      return jsonRes({ error: msg }, 400);
+      // BUGFIX 2026-04-19: non leakare il messaggio grezzo DB al client (info
+      // disclosure: nomi tabelle, colonne, hint Postgres). Logghiamo lato
+      // server e ritorniamo errore generico mappabile per i18n.
+      console.error('[room-device-upload-init] unmapped rpc error', msg);
+      return jsonRes({ error: 'init_failed' }, 400);
     }
 
     const init = rpcData as InitRpcResult;
@@ -159,7 +168,11 @@ Deno.serve(async (req: Request) => {
       } catch {
         /* best-effort */
       }
-      return jsonRes({ error: signedError?.message ?? 'signed_url_failed' }, 500);
+      console.error(
+        '[room-device-upload-init] signed_url_failed',
+        signedError?.message ?? 'unknown',
+      );
+      return jsonRes({ error: 'signed_url_failed' }, 500);
     }
 
     return jsonRes(

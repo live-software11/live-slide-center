@@ -332,12 +332,15 @@ export function ProductionView() {
     sourceError: null,
   });
 
-  // Mappa per ricordare in quale folder spostare ogni file appena uploadato
-  // (se l'utente droppa su tree non-corrente, ogni job punta alla SUA folder).
-  const pendingFolderByJobRef = useRef<Map<string, string | null>>(new Map());
-  // Per drop di una CARTELLA dal PC: il primo segment (rootFolderName) viene
-  // ricreato come sotto-folder; pendingFolderByJobRef contiene gia' l'ID
-  // finale per ogni file caricato.
+  // FIFO destinazioni file: shiftata da onJobDone in ordine di completamento.
+  // BUGFIX 2026-04-19: in passato esisteva una `pendingFolderByJobRef` Map
+  // indicizzata per versionId che NON veniva mai popolata (versionId noto solo
+  // dopo init server-side, post-enqueue): risultato → tutti i file caricati
+  // restavano in root anche se l'utente li droppava in una sotto-cartella.
+  // Sostituita da una coda FIFO popolata in `startUpload` PRIMA di enqueue,
+  // consumata da onJobDone nello stesso ordine (concurrency=1 nell'hook
+  // garantisce che onJobDone arriva nello stesso ordine di enqueue).
+  const pendingFolderQueueRef = useRef<Array<string | null>>([]);
 
   // ---------- DATA LOADING -------------------------------------------------
   const reload = useCallback(async () => {
@@ -549,13 +552,13 @@ export function ProductionView() {
 
   const onJobDone = useCallback(
     async (info: UploadJobDoneInfo) => {
-      // Sposta la presentation appena creata nella folder pendingForJob[info.versionId]
-      // (default = root NULL).
-      const targetFolder = pendingFolderByJobRef.current.get(info.versionId) ?? null;
-      pendingFolderByJobRef.current.delete(info.versionId);
+      // Shift FIFO: prendi la destinazione del prossimo job completato.
+      // L'ordine e' garantito perche' useUploadQueue ha MAX_PARALLEL=1 e
+      // onJobDone viene invocato dopo finalize, nello stesso ordine di enqueue.
+      const dest = pendingFolderQueueRef.current.shift();
       try {
-        if (targetFolder !== null) {
-          await movePresentationsToFolder([info.presentationId], targetFolder);
+        if (dest != null) {
+          await movePresentationsToFolder([info.presentationId], dest);
         }
       } catch (err) {
         setActionError(err instanceof Error ? err.message : 'move_after_upload_failed');
@@ -566,7 +569,7 @@ export function ProductionView() {
   );
 
   const onAllDone = useCallback(() => {
-    pendingFolderByJobRef.current.clear();
+    pendingFolderQueueRef.current = [];
   }, []);
 
   const queue = useUploadQueue({
@@ -868,13 +871,11 @@ export function ProductionView() {
   /**
    * Avvia upload di File[] verso una specifica folder. Per ogni file calcoliamo
    * la destinazione (folder droppata + eventuale sotto-folder ricreata da
-   * `webkitRelativePath`) e usiamo una mappa `pendingFolderByJobRef` perche'
-   * il versionId viene assegnato dall'init server-side e arriva via `onJobDone`.
-   *
-   * NB: `useUploadQueue` non espone l'init.version_id PRIMA del done, ma
-   * possiamo riconoscere ogni job perche' enqueue restituisce gli stessi `File`
-   * in ordine. Strategia: assegniamo le destinazioni nell'ordine `enqueue`,
-   * usando un'array `pendingDestinationsRef` shiftata al primo done.
+   * `webkitRelativePath`) e usiamo la coda FIFO `pendingFolderQueueRef`:
+   * `useUploadQueue` non espone `init.version_id` PRIMA del done, ma essendo
+   * single-job (MAX_PARALLEL=1) i job vengono processati in ordine di enqueue
+   * e onJobDone arriva nello stesso ordine — quindi shift FIFO da
+   * pendingFolderQueueRef coincide con la destinazione del job appena fatto.
    */
   const startUpload = useCallback(
     async (
@@ -890,12 +891,10 @@ export function ProductionView() {
       if (!state.event) return;
 
       // Per ogni file, calcola folder finale: se file.name contiene "/" =>
-      // ensureFolderPath; altrimenti baseFolderId.
-      // Pre-computiamo IL VERO presentation_id dopo done (tramite onJobDone),
-      // ma per associare destinazione → versionId useremo la mappa indicizzata
-      // per (fileName + size). Approccio piu' robusto: pre-creazione folders +
-      // memorizziamo destinazione per ogni File (il job conserva
-      // `file.name = relativePath`, lo possiamo usare come chiave).
+      // ensureFolderPath (crea sotto-folder); altrimenti baseFolderId.
+      // Pre-creiamo le folder UNA volta deduplicando, poi pushiamo la
+      // destinazione di ciascun file in pendingFolderQueueRef (FIFO),
+      // e infine enqueue: onJobDone consumera' la coda nello stesso ordine.
       setBusy(true);
       try {
         // Pre-crea tutte le sotto-cartelle UNA volta (deduplica per directory path).
@@ -919,10 +918,8 @@ export function ProductionView() {
         }
         await reload(); // refresh tree per mostrare le nuove folders subito
 
-        // Mappa fileName -> folderId (ogni file).
-        // Useremo una "destinazioni queue" che il callback onJobDone consuma in
-        // ordine: assumiamo che `enqueue` processa in ordine e onJobDone arriva
-        // in ordine (concurrency=1 nell'hook).
+        // Push destinazione FIFO per OGNI file, nello stesso ordine di enqueue.
+        // onJobDone shifta una destinazione per job completato.
         const destQueue: Array<string | null> = [];
         for (const f of files) {
           const last = f.name.lastIndexOf('/');
@@ -931,11 +928,7 @@ export function ProductionView() {
         }
         pendingFolderQueueRef.current.push(...destQueue);
 
-        // Enqueue
         queue.enqueue(files);
-
-        // Nota: pendingFolderByJobRef viene popolata dal handler onJobDone (sotto)
-        // shifting da pendingFolderQueueRef.
 
         if (result) {
           const messages: string[] = [];
@@ -957,54 +950,6 @@ export function ProductionView() {
     },
     [queue, reload, state.event, t, targetSessionId],
   );
-
-  // FIFO destinazioni file: viene shiftata da onJobDone.
-  // Non possiamo usare Map<versionId, folder> perche' versionId si conosce solo
-  // dopo init, e onJobDone arriva DOPO la finalize: serve la coda FIFO.
-  const pendingFolderQueueRef = useRef<Array<string | null>>([]);
-
-  // Sovrascriviamo la callback onJobDone per leggere dalla queue FIFO.
-  // Approccio: aggiungiamo il presentationId direttamente al refmap.
-  useEffect(() => {
-    // Nota: il handler onJobDone viene gia' registrato nell'hook tramite il
-    // closure callback `onJobDone`. Qui solo consumiamo pendingFolderQueueRef
-    // per ricavare la dest del prossimo done e popolare pendingFolderByJobRef
-    // PRIMA che onJobDone venga chiamato. Trick: lo facciamo "lazy" dentro la
-    // callback stessa, leggendo dalla queue.
-  }, []);
-
-  // Ridefiniamo onJobDone per usare la coda
-  // NB: il useUploadQueue gia' tiene il riferimento aggiornato in onJobDoneRef
-  // tramite useEffect interno; questo ridefinire e' "no-op" — la closure
-  // `onJobDone` sopra e' gia' stabile. Sostituiamo internamente:
-  // (eseguito ad ogni render, ma idempotente).
-  const onJobDoneActual = useCallback(
-    async (info: UploadJobDoneInfo) => {
-      // shift FIFO destinazione
-      const dest = pendingFolderQueueRef.current.shift();
-      try {
-        if (dest != null && dest !== undefined) {
-          await movePresentationsToFolder([info.presentationId], dest);
-        }
-      } catch (err) {
-        setActionError(err instanceof Error ? err.message : 'move_after_upload_failed');
-      }
-      void reload();
-    },
-    [reload],
-  );
-
-  // Sovrascriviamo la callback nel ref interno dell'hook ad ogni render.
-  // (Gia' fatto dall'hook, ma per essere espliciti registriamo onJobDoneActual).
-  // In realta' basta passarlo nel options; lo facciamo via ricreazione hook.
-  // Nota: useUploadQueue gia' cattura `onJobDone` via ref.
-  // Quindi sostituiamo in `useUploadQueue` direttamente:
-  // (vedi binding sopra). Per chiarezza, manteniamo la closure semplice:
-  // Ho usato `onJobDone` (definito sopra) ma il vero handler che consuma la
-  // queue e' `onJobDoneActual`. Riconcilio rimuovendo l'altro:
-  useEffect(() => {
-    // Nessun side-effect: la sostituzione e' avvenuta a livello di hook ref.
-  }, [onJobDoneActual]);
 
   // ---------- SESSION PICKER ------------------------------------------------
 

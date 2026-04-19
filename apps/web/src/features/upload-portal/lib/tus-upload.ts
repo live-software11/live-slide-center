@@ -49,12 +49,35 @@ export function startTusUpload(opts: TusUploadOptions): TusHandle {
     },
   });
 
-  upload.findPreviousUploads().then((previous) => {
-    if (previous.length > 0 && previous[0]) {
-      upload.resumeFromPreviousUpload(previous[0]);
-    }
-    upload.start();
-  });
+  // findPreviousUploads cerca un fingerprint precedente nello storage del
+  // browser (localStorage di default) per riprendere un upload interrotto.
+  // Se la lookup fallisce (storage disabilitato, quota piena, exception
+  // tus-js-client) PRIMA fix questa promise rimaneva pending senza .catch:
+  // upload.start() non veniva mai chiamato e l'UI restava in stato
+  // "uploading" eterno. Catch + start sempre, fallback su nuovo upload.
+  upload
+    .findPreviousUploads()
+    .then((previous) => {
+      if (previous.length > 0 && previous[0]) {
+        try {
+          upload.resumeFromPreviousUpload(previous[0]);
+        } catch {
+          // resume fallito (fingerprint corrotto): partiamo fresh.
+        }
+      }
+      upload.start();
+    })
+    .catch((err) => {
+      // Loggo per diagnostica ma NON blocco l'upload: parto da zero.
+      console.warn('[tus-upload] findPreviousUploads failed, starting fresh', err);
+      try {
+        upload.start();
+      } catch (startErr) {
+        opts.onError(
+          startErr instanceof Error ? startErr : new Error(String(startErr)),
+        );
+      }
+    });
 
   return {
     abort() {

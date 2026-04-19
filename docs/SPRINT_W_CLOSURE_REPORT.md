@@ -7,14 +7,14 @@
 
 ## 1. Esito sintetico
 
-| Fase | Descrizione | Stato |
-| ---- | ----------- | ----- |
-| A | Chiusura cloud (types, UX cartelle, backup, DR) | OK |
-| B | Mirror schema SQLite desktop ↔ Postgres cloud (7 migrazioni) | OK |
-| C | Endpoint REST/RPC mancanti su backend Rust desktop | OK |
-| D | UI condizionale SPA per modalità desktop (`isCloudFeatureAvailable`) | OK |
-| E | Quality gate + deploy cloud + build desktop NSIS + smoke | OK |
-| F | Documentazione finale | OK (questo file) |
+| Fase | Descrizione                                                          | Stato            |
+| ---- | -------------------------------------------------------------------- | ---------------- |
+| A    | Chiusura cloud (types, UX cartelle, backup, DR)                      | OK               |
+| B    | Mirror schema SQLite desktop ↔ Postgres cloud (7 migrazioni)         | OK               |
+| C    | Endpoint REST/RPC mancanti su backend Rust desktop                   | OK               |
+| D    | UI condizionale SPA per modalità desktop (`isCloudFeatureAvailable`) | OK               |
+| E    | Quality gate + deploy cloud + build desktop NSIS + smoke             | OK               |
+| F    | Documentazione finale                                                | OK (questo file) |
 
 **Quality gate finale (E1):**
 
@@ -30,27 +30,27 @@
 
 ### 2.1 Cloud SPA (Vercel produzione)
 
-| Voce | Valore |
-| ---- | ------ |
-| URL produzione | <https://live-slide-center.vercel.app> |
-| Deployment ID | `dpl_8mMJ8xrSV1mbkuBbyzKSCQj1EAFU` |
-| Comando | `vercel --prod --archive=tgz` da root monorepo |
-| Account Vercel | `livesoftware11-3449` (live.software11@gmail.com) |
-| Build SPA | Vite 8 + Turbopack monorepo, 32s build, 136 entries PWA precache (~4.2 MB) |
-| Postbuild | sourcemaps Sentry skip (token non settato in locale) |
+| Voce           | Valore                                                                     |
+| -------------- | -------------------------------------------------------------------------- |
+| URL produzione | <https://live-slide-center.vercel.app>                                     |
+| Deployment ID  | `dpl_8mMJ8xrSV1mbkuBbyzKSCQj1EAFU`                                         |
+| Comando        | `vercel --prod --archive=tgz` da root monorepo                             |
+| Account Vercel | `livesoftware11-3449` (live.software11@gmail.com)                          |
+| Build SPA      | Vite 8 + Turbopack monorepo, 32s build, 136 entries PWA precache (~4.2 MB) |
+| Postbuild      | sourcemaps Sentry skip (token non settato in locale)                       |
 
 ### 2.2 Desktop NSIS installer
 
-| Voce | Valore |
-| ---- | ------ |
-| File | `Live SLIDE CENTER Desktop_0.1.1_x64-setup.exe` |
-| Path | `apps/desktop/src-tauri/target/release/bundle/nsis/` |
-| Versione | **0.1.1** (bump da 0.1.0) |
-| Size | 10.70 MB (11 218 143 byte) |
-| SHA-256 | `8c64c96ea5bf37c3b8e3ff60943457fd145bf60326b23bf882b45b9409f8d6c7` |
-| Tauri CLI | 2.10.1 |
-| Updater | non firmato (vedi §4.4) |
-| Manifest JSON | `apps/desktop/release-output.json` |
+| Voce          | Valore                                                             |
+| ------------- | ------------------------------------------------------------------ |
+| File          | `Live SLIDE CENTER Desktop_0.1.1_x64-setup.exe`                    |
+| Path          | `apps/desktop/src-tauri/target/release/bundle/nsis/`               |
+| Versione      | **0.1.1** (bump da 0.1.0)                                          |
+| Size          | 10.70 MB (11 218 143 byte)                                         |
+| SHA-256       | `8c64c96ea5bf37c3b8e3ff60943457fd145bf60326b23bf882b45b9409f8d6c7` |
+| Tauri CLI     | 2.10.1                                                             |
+| Updater       | non firmato (vedi §4.4)                                            |
+| Manifest JSON | `apps/desktop/release-output.json`                                 |
 
 ---
 

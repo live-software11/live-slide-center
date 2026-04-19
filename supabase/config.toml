@@ -462,6 +462,18 @@ verify_jwt = false
 [functions.email-cron-desktop-tokens]
 verify_jwt = false
 
+# Audit-fix 2026-04-19: dichiarazione esplicita di slide-validator.
+# La function richiede JWT utente (legge presentation_versions cross-tenant
+# filter via metadata.tenant_id). Lasciare il default platform e' stato
+# storicamente fonte di confusione audit (default cambiato in passato).
+[functions.slide-validator]
+verify_jwt = true
+
+# Audit-fix 2026-04-19: cleanup-expired-codes (cron pulizia pairing_codes
+# scaduti). Schedulato via pg_cron interno; Authorization opzionale.
+[functions.cleanup-expired-codes]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

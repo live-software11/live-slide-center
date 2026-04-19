@@ -312,12 +312,12 @@ function FolderNodeRow(props: FolderNodeRowProps) {
           ) : null}
           {isExpanded
             ? node.children.map((child) => (
-                <FolderNodeRow
-                  key={child.id}
-                  {...props}
-                  node={child}
-                />
-              ))
+              <FolderNodeRow
+                key={child.id}
+                {...props}
+                node={child}
+              />
+            ))
             : null}
         </ul>
       )}

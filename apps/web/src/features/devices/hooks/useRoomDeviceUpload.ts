@@ -89,6 +89,7 @@ export interface UseRoomDeviceUploadResult {
 
 const ERROR_MAP: Record<string, string> = {
   invalid_token: 'roomPlayer.upload.error.invalidToken',
+  device_offline: 'roomPlayer.upload.error.deviceOffline',
   device_no_room_assigned: 'roomPlayer.upload.error.noRoomAssigned',
   session_cross_room: 'roomPlayer.upload.error.sessionCrossRoom',
   session_not_found: 'roomPlayer.upload.error.sessionNotFound',
@@ -234,9 +235,7 @@ export function useRoomDeviceUpload(opts: UseRoomDeviceUploadOptions): UseRoomDe
       // 2) Upload PUT diretto su Storage (signed URL) + 3) Hash in parallelo
       safeSetJob((prev) => (prev ? { ...prev, status: 'uploading', progress: 0, uploaded: 0 } : null));
 
-      const supabase = getSupabaseBrowserClient();
       const hashAbort = new AbortController();
-      // Se cancella l'utente, abortiamo anche l'hash worker.
       controller.signal.addEventListener('abort', () => hashAbort.abort(), { once: true });
 
       const sha256Promise = computeFileSha256(file, undefined, hashAbort.signal).catch((err) => {
@@ -244,37 +243,73 @@ export function useRoomDeviceUpload(opts: UseRoomDeviceUploadOptions): UseRoomDe
         throw err;
       });
 
-      // Upload con progress: usiamo `uploadToSignedUrl` di supabase-js v2.
-      // Pero' supabase-js NON espone progress nativo: replichiamo con fetch
-      // PUT + ReadableStream/upload-progress polyfill. Soluzione: uso fetch
-      // direttamente sul signedUrl. Schema noto: PUT con header
-      // `Authorization: Bearer <token>` e body file.
+      // Upload PUT diretto al signed URL Storage. Pattern Supabase Storage v3:
+      //   PUT <SUPABASE_URL>/storage/v1/object/upload/sign/<bucket>/<path>?token=<jwt>
+      // Headers necessari: SOLO Content-Type e cache-control (cosi' come fa
+      // supabase.storage.uploadToSignedUrl internamente).
+      //
+      // BUGFIX 2026-04-19: rimossi header parassiti che facevano fallire il PUT:
+      //   - 'x-upsert': 'false' → Storage rifiutava perche' il signed URL ha
+      //     gia' upsert=false di default, e accetta SOLO 'x-upsert: true'.
+      //   - assenza di 'cache-control' → in alcuni casi Storage rifiutava
+      //     l'oggetto perche' i metadati non erano coerenti col signed token.
+      //
+      // Usiamo XHR per mantenere upload progress (fetch standard non lo espone
+      // sul body PUT). In caso di fallimento generico, fallback a
+      // supabase.storage.from(bucket).uploadToSignedUrl(path, token, file).
       const uploadPromise = (async () => {
-        // Pattern signed URL Supabase Storage v3:
-        // PUT https://...sign.../?token=<jwt>  body=<file bytes>
-        // header: x-upsert: false, content-type, cache-control opzionale.
-        // Fetch supporta upload progress solo via stream, ma su PUT body=File
-        // non c'e' callback. Fallback: split in chunk via XHR (XMLHttpRequest)
-        // che ha `upload.onprogress` nativo.
-        return await new Promise<void>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.open('PUT', init.signed_url, true);
-          xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-          xhr.setRequestHeader('x-upsert', 'false');
-          xhr.upload.onprogress = (ev) => {
-            if (!ev.lengthComputable || controller.signal.aborted) return;
-            const pct = ev.total > 0 ? ev.loaded / ev.total : 0;
-            safeSetJob((prev) => prev ? { ...prev, progress: pct, uploaded: ev.loaded } : null);
-          };
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) resolve();
-            else reject(new Error(`storage_put_${xhr.status}`));
-          };
-          xhr.onerror = () => reject(new Error('storage_put_network'));
-          xhr.onabort = () => reject(new DOMException('Aborted', 'AbortError'));
-          controller.signal.addEventListener('abort', () => xhr.abort(), { once: true });
-          xhr.send(file);
-        });
+        try {
+          await new Promise<void>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('PUT', init.signed_url, true);
+            xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+            xhr.setRequestHeader('cache-control', 'max-age=3600');
+            xhr.upload.onprogress = (ev) => {
+              if (!ev.lengthComputable || controller.signal.aborted) return;
+              const pct = ev.total > 0 ? ev.loaded / ev.total : 0;
+              safeSetJob((prev) => prev ? { ...prev, progress: pct, uploaded: ev.loaded } : null);
+            };
+            xhr.onload = () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                resolve();
+              } else {
+                reject(new Error(`storage_put_${xhr.status}`));
+              }
+            };
+            xhr.onerror = () => reject(new Error('storage_put_network'));
+            xhr.onabort = () => reject(new DOMException('Aborted', 'AbortError'));
+            controller.signal.addEventListener('abort', () => xhr.abort(), { once: true });
+            xhr.send(file);
+          });
+        } catch (xhrErr) {
+          if (
+            controller.signal.aborted ||
+            (xhrErr as DOMException)?.name === 'AbortError'
+          ) {
+            throw xhrErr;
+          }
+          // Fallback ufficiale: supabase-js uploadToSignedUrl.
+          // Garantisce headers/path/token nel formato esatto richiesto da Storage.
+          // Trade-off: niente progress tracking durante questa via.
+          console.warn(
+            '[useRoomDeviceUpload] XHR PUT signed URL failed, falling back to uploadToSignedUrl',
+            xhrErr,
+          );
+          const supabase = getSupabaseBrowserClient();
+          const { error: fallbackErr } = await supabase.storage
+            .from(init.bucket)
+            .uploadToSignedUrl(init.path, init.token, file, {
+              contentType: file.type || 'application/octet-stream',
+              upsert: false,
+            });
+          if (fallbackErr) {
+            throw new Error(`storage_put_fallback_${fallbackErr.message}`);
+          }
+          // Forza progress al 100% perche' il fallback non lo espone.
+          safeSetJob((prev) =>
+            prev ? { ...prev, progress: 1, uploaded: file.size } : null,
+          );
+        }
       })();
 
       try {
@@ -340,16 +375,22 @@ export function useRoomDeviceUpload(opts: UseRoomDeviceUploadOptions): UseRoomDe
           sessionId: result.session_id,
         });
       } catch (err) {
-        const errorKey = mapErrorKey((err as Error).message);
-        // Su finalize fallita, version rimane 'uploading' lato DB. Tentiamo
-        // abort esplicito cosi' non resta in stato sospeso.
-        await invokeRoomDeviceUploadAbort({ deviceToken, versionId: init.version_id }).catch(() => undefined);
+        const rawMsg = String((err as Error).message ?? '');
+        const errorKey = mapErrorKey(rawMsg);
+        // BUGFIX 2026-04-19 (fix7 audit): NON chiamare abort_upload_version se
+        // l'errore indica che la version e' gia' in uno stato non-uploading
+        // o non esiste piu' (abort sarebbe un no-op che genera traffico inutile
+        // e rumore nei log RPC). In tutti gli altri casi la version e' rimasta
+        // 'uploading' nel DB e va effettivamente abortita.
+        const skipAbort =
+          rawMsg.includes('version_not_found') ||
+          rawMsg.includes('version_not_uploading');
+        if (!skipAbort) {
+          await invokeRoomDeviceUploadAbort({ deviceToken, versionId: init.version_id }).catch(() => undefined);
+        }
         versionIdRef.current = null;
         safeSetJob((prev) => prev ? { ...prev, status: 'error', errorKey } : null);
       }
-
-      // Reference unused per futuro riuso
-      void supabase;
     },
     [deviceToken, job, safeSetJob],
   );

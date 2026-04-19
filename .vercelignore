@@ -1,0 +1,65 @@
+# File esclusi dall'upload Vercel.
+# Vercel builda dalla root tramite pnpm + Turborepo: serve l'intera workspace
+# (apps/* e packages/*) ma non gli artefatti di build locale.
+
+# --- Build artifacts (rigenerati in remoto) ---
+**/node_modules/
+**/dist/
+**/target/
+**/.next/
+**/build/
+**/.turbo/
+**/coverage/
+
+# --- IDE / editor ---
+.vscode/
+.idea/
+.cursor/
+.codium/
+
+# --- Cache lint/test ---
+**/.eslintcache
+**/.cache/
+
+# --- Logs e temp ---
+*.log
+**/*.log
+logs/
+tmp/
+temp/
+
+# --- Docs e test artifacts (non in produzione) ---
+docs/
+field-test/
+diagnostics-output/
+
+# --- Git ---
+.git/
+.gitattributes
+
+# --- Backup ---
+*.bak
+*.tmp
+*.swp
+COMMIT_MSG_TMP.txt
+
+# --- Tauri build artefatti specifici ---
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+apps/desktop/dist/
+apps/desktop/build/
+
+# --- Agent legacy / installer artifacts ---
+apps/agent/dist/
+apps/agent/build/
+apps/room-agent/dist/
+apps/room-agent/build/
+**/installer/
+**/release/
+
+# --- Test snapshots e fixture pesanti ---
+**/__snapshots__/
+**/*.snap
+e2e-results/
+playwright-report/
+test-results/

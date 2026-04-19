@@ -140,7 +140,9 @@ Deno.serve(async (req: Request) => {
       .in('id', limited);
 
     if (vErr) {
-      return jsonRes({ error: 'lookup_failed', detail: vErr.message }, 500);
+      // BUGFIX 2026-04-19: non leakare il messaggio DB grezzo (info disclosure).
+      console.error('[slide-validator] lookup error', vErr.message);
+      return jsonRes({ error: 'lookup_failed' }, 500);
     }
 
     const results: ValidatorResult[] = [];
@@ -193,10 +195,13 @@ Deno.serve(async (req: Request) => {
       });
 
       if (rpcErr) {
+        // BUGFIX 2026-04-19: non leakare il messaggio DB grezzo nel payload
+        // di risposta. Loghiamo lato server, ritorniamo reason generico.
+        console.error('[slide-validator] record_warnings rpc error', v.id, rpcErr.message);
         results.push({
           version_id: v.id,
           ok: false,
-          reason: `record_failed:${rpcErr.message}`,
+          reason: 'record_failed',
         });
         continue;
       }
@@ -206,8 +211,11 @@ Deno.serve(async (req: Request) => {
 
     return jsonRes({ ok: true, processed: results.length, results }, 200);
   } catch (err) {
+    // BUGFIX 2026-04-19: non leakare l'eccezione raw (potrebbe contenere
+    // stack/env/path interni). Log server-side, error generico al client.
     const message = err instanceof Error ? err.message : 'internal_error';
-    return jsonRes({ error: message }, 500);
+    console.error('[slide-validator] unhandled', message);
+    return jsonRes({ error: 'internal_error' }, 500);
   }
 });
 

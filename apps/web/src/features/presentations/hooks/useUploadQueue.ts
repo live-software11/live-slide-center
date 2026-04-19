@@ -269,7 +269,26 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
   useEffect(() => {
     if (!mountedRef.current) return;
     if (runningJobIdRef.current !== null) return; // gia' in upload
-    if (!supabaseUrl || !anonKey) return;
+    if (!supabaseUrl || !anonKey) {
+      // BUGFIX 2026-04-19: in passato il worker usciva silenziosamente
+      // lasciando i job in 'pending' eterno senza segnalare l'errore in UI
+      // (il caller incolpava il backend). Ora marchiamo TUTTI i pending come
+      // 'error' con messageKey dedicata cosi' l'utente sa che manca la config.
+      const pendingJobs = internalJobsRef.current.filter(
+        (j) => j.status === 'pending' && !j.cancelled,
+      );
+      if (pendingJobs.length > 0) {
+        for (const job of pendingJobs) {
+          job.status = 'error';
+          job.errorKey = 'presentation.adminUpload.errorConfig';
+        }
+        syncPublic();
+        console.error(
+          '[useUploadQueue] VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY missing — upload disabled',
+        );
+      }
+      return;
+    }
     if (MAX_PARALLEL !== 1) {
       // Guard di sicurezza: il loop attuale e' single-job; se cambi
       // MAX_PARALLEL > 1 devi rifattorizzare in un Set di running.

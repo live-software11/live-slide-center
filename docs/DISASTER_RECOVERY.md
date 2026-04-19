@@ -6,13 +6,13 @@
 
 ## Indice rapido
 
-| Scenario                                | Severita | RTO target | Sezione                                 |
-| --------------------------------------- | -------- | ---------- | --------------------------------------- |
-| 1. Supabase down < 1h                   | Bassa    | passive    | [§1](#1-supabase-down--1h)              |
-| 2. Supabase down > 1h                   | Media    | 30 min     | [§2](#2-supabase-down--1h-prolungato)   |
-| 3. Supabase down > 24h o data-loss      | Critica  | 2-4h       | [§3](#3-supabase-down--24h-o-data-loss) |
-| 4. Vercel down                          | Media    | 15 min     | [§4](#4-vercel-down)                    |
-| 5. Perdita parziale DB / file storage   | Critica  | 1-3h       | [§5](#5-perdita-parziale-db--storage)   |
+| Scenario                              | Severita | RTO target | Sezione                                 |
+| ------------------------------------- | -------- | ---------- | --------------------------------------- |
+| 1. Supabase down < 1h                 | Bassa    | passive    | [§1](#1-supabase-down--1h)              |
+| 2. Supabase down > 1h                 | Media    | 30 min     | [§2](#2-supabase-down--1h-prolungato)   |
+| 3. Supabase down > 24h o data-loss    | Critica  | 2-4h       | [§3](#3-supabase-down--24h-o-data-loss) |
+| 4. Vercel down                        | Media    | 15 min     | [§4](#4-vercel-down)                    |
+| 5. Perdita parziale DB / file storage | Critica  | 1-3h       | [§5](#5-perdita-parziale-db--storage)   |
 
 > **RTO** = Recovery Time Objective (tempo target per ripristino servizio).
 > **RPO** = Recovery Point Objective (massima perdita di dati accettabile).
@@ -45,14 +45,14 @@ Prima di intervenire su uno scenario serve:
 
 ## Monitoraggio e detection
 
-| Sorgente                                                                   | Cosa segnalare                                            | Dove arriva                                                                |
-| -------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------- |
-| GitHub Actions `Supabase Backup Verify (daily)`                            | Backup mancante > 26h                                     | Issue automatica `bug-backup` → email Andrea                               |
-| GitHub Actions `DB Types Drift Check`                                      | Migration senza rigenerazione types                       | Fail PR (no merge possibile)                                               |
-| [Supabase Status Page](https://status.supabase.com)                        | Incident regionale eu-west-1                              | RSS + bookmark Andrea                                                      |
-| [Vercel Status Page](https://www.vercel-status.com)                        | Incident edge / deploy                                    | RSS + bookmark Andrea                                                      |
-| Sentry web (cloud project Sentry)                                          | Spike di errori 500 / 5xx                                 | Email immediata Andrea                                                     |
-| `https://app.liveslidecenter.com/healthz` (TODO Sprint X1, non ancora attivo) | Probe esterno UptimeRobot 5min                       | SMS Andrea                                                                 |
+| Sorgente                                                                      | Cosa segnalare                      | Dove arriva                                  |
+| ----------------------------------------------------------------------------- | ----------------------------------- | -------------------------------------------- |
+| GitHub Actions `Supabase Backup Verify (daily)`                               | Backup mancante > 26h               | Issue automatica `bug-backup` → email Andrea |
+| GitHub Actions `DB Types Drift Check`                                         | Migration senza rigenerazione types | Fail PR (no merge possibile)                 |
+| [Supabase Status Page](https://status.supabase.com)                           | Incident regionale eu-west-1        | RSS + bookmark Andrea                        |
+| [Vercel Status Page](https://www.vercel-status.com)                           | Incident edge / deploy              | RSS + bookmark Andrea                        |
+| Sentry web (cloud project Sentry)                                             | Spike di errori 500 / 5xx           | Email immediata Andrea                       |
+| `https://app.liveslidecenter.com/healthz` (TODO Sprint X1, non ancora attivo) | Probe esterno UptimeRobot 5min      | SMS Andrea                                   |
 
 Tutti gli scenari sotto **partono dal presupposto** che almeno una delle
 sorgenti sopra abbia confermato l'incident (no falsi positivi da rete domestica
@@ -114,9 +114,7 @@ gli eventi in corso. Le installazioni desktop offline LAN restano operative.
 
      ```json
      {
-       "rewrites": [
-         { "source": "/(.*)", "destination": "/maintenance.html" }
-       ]
+       "rewrites": [{ "source": "/(.*)", "destination": "/maintenance.html" }]
      }
      ```
 
@@ -356,9 +354,9 @@ Dopo:
 
 > Aggiornare a ogni intervento DR per accumulare conoscenza.
 
-| Data       | Scenario  | Durata | Note                                                    |
-| ---------- | --------- | ------ | ------------------------------------------------------- |
-| _(nessuno)_| _(n/a)_   | _(n/a)_| Documento creato in Sprint W A4, no incidenti reali ancora. |
+| Data        | Scenario | Durata  | Note                                                        |
+| ----------- | -------- | ------- | ----------------------------------------------------------- |
+| _(nessuno)_ | _(n/a)_  | _(n/a)_ | Documento creato in Sprint W A4, no incidenti reali ancora. |
 
 ---
 
