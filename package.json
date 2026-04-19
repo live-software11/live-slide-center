@@ -22,7 +22,9 @@
     "db:push": "supabase db push",
     "fn:deploy": "supabase functions deploy --project-ref $env:SUPABASE_PROJECT_REF",
     "vercel:env:pull": "vercel env pull .env.local",
-    "vercel:deploy:prod": "vercel deploy --prod"
+    "vercel:deploy:prod": "vercel deploy --prod",
+    "smoke:cloud": "pnpm --filter @slidecenter/web smoke:cloud",
+    "smoke:cloud:json": "pnpm --filter @slidecenter/web smoke:cloud:json"
   },
   "devDependencies": {
     "eslint-config-prettier": "^10.1.8",

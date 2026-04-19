@@ -177,7 +177,7 @@ export function useRoomDeviceUpload(opts: UseRoomDeviceUploadOptions): UseRoomDe
       }
       // Single-job guard: se gia' attivo, ignora.
       if (job && (job.status === 'preparing' || job.status === 'uploading' ||
-                  job.status === 'hashing' || job.status === 'finalizing')) {
+        job.status === 'hashing' || job.status === 'finalizing')) {
         return;
       }
       if (file.size <= 0) {
@@ -396,7 +396,7 @@ export function useRoomDeviceUpload(opts: UseRoomDeviceUploadOptions): UseRoomDe
   );
 
   const busy = job?.status === 'preparing' || job?.status === 'uploading' ||
-               job?.status === 'hashing' || job?.status === 'finalizing';
+    job?.status === 'hashing' || job?.status === 'finalizing';
 
   return { job, busy: !!busy, upload, cancel, reset };
 }

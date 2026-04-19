@@ -6,13 +6,14 @@
 
 ## Indice rapido
 
-| Scenario                              | Severita | RTO target | Sezione                                 |
-| ------------------------------------- | -------- | ---------- | --------------------------------------- |
-| 1. Supabase down < 1h                 | Bassa    | passive    | [§1](#1-supabase-down--1h)              |
-| 2. Supabase down > 1h                 | Media    | 30 min     | [§2](#2-supabase-down--1h-prolungato)   |
-| 3. Supabase down > 24h o data-loss    | Critica  | 2-4h       | [§3](#3-supabase-down--24h-o-data-loss) |
-| 4. Vercel down                        | Media    | 15 min     | [§4](#4-vercel-down)                    |
-| 5. Perdita parziale DB / file storage | Critica  | 1-3h       | [§5](#5-perdita-parziale-db--storage)   |
+| Scenario                              | Severita | RTO target | Sezione                                       |
+| ------------------------------------- | -------- | ---------- | --------------------------------------------- |
+| 0. Hotfix rotto in produzione         | Critica  | 2-5 min    | [§0](#0-rollback-rapido-deploy-vercel-rotto)  |
+| 1. Supabase down < 1h                 | Bassa    | passive    | [§1](#1-supabase-down--1h)                    |
+| 2. Supabase down > 1h                 | Media    | 30 min     | [§2](#2-supabase-down--1h-prolungato)         |
+| 3. Supabase down > 24h o data-loss    | Critica  | 2-4h       | [§3](#3-supabase-down--24h-o-data-loss)       |
+| 4. Vercel down                        | Media    | 15 min     | [§4](#4-vercel-down)                          |
+| 5. Perdita parziale DB / file storage | Critica  | 1-3h       | [§5](#5-perdita-parziale-db--storage)         |
 
 > **RTO** = Recovery Time Objective (tempo target per ripristino servizio).
 > **RPO** = Recovery Point Objective (massima perdita di dati accettabile).
@@ -52,11 +53,101 @@ Prima di intervenire su uno scenario serve:
 | [Supabase Status Page](https://status.supabase.com)                           | Incident regionale eu-west-1        | RSS + bookmark Andrea                        |
 | [Vercel Status Page](https://www.vercel-status.com)                           | Incident edge / deploy              | RSS + bookmark Andrea                        |
 | Sentry web (cloud project Sentry)                                             | Spike di errori 500 / 5xx           | Email immediata Andrea                       |
+| `pnpm smoke:cloud` (T-1h evento)                                              | Smoke test pre-evento manuale       | Output console + exit code                   |
 | `https://app.liveslidecenter.com/healthz` (TODO Sprint X1, non ancora attivo) | Probe esterno UptimeRobot 5min      | SMS Andrea                                   |
 
 Tutti gli scenari sotto **partono dal presupposto** che almeno una delle
 sorgenti sopra abbia confermato l'incident (no falsi positivi da rete domestica
 o VPN).
+
+---
+
+## 0. Rollback rapido (deploy Vercel rotto)
+
+**Severita:** critica. Un deploy appena promosso a produzione ha rotto qualcosa
+di essenziale (login, upload, route). Tutti i tenant vedono un'app inutilizzabile
+o con errori 5xx. Si tratta del caso piu' frequente in real-world: bug
+introdotto da un fix, dipendenza che non builda, env-var mancante.
+
+### Sintomi
+
+- Smoke test cloud fallisce (`pnpm smoke:cloud`).
+- Errori 5xx generici sulla homepage o sulle route principali.
+- Utenti tenant segnalano "app non si apre" subito dopo un push GitHub.
+- Sentry (se attivo) mostra spike di errori `[release=slidecenter-web@N+1]`.
+
+### Procedura veloce (2-5 min, ZERO codice)
+
+Vercel mantiene tutti i deploy precedenti come immutabili e permette di
+ri-promuoverli istantaneamente. Non serve `git revert` ne' redeploy: si
+ri-aliasea il dominio produzione su un deploy precedente sano.
+
+#### Opzione A — Da CLI (preferita, 60 secondi)
+
+```powershell
+# 1. Lista i 10 deploy piu' recenti del progetto live-slide-center.
+#    Ti serve il PROJECT_NAME = "live-slide-center" e il TEAM_SCOPE
+#    (di solito "livesoftware11-3449s-projects").
+vercel ls live-slide-center --scope livesoftware11-3449s-projects | Select-Object -First 15
+
+# Output esempio:
+#  Age   Deployment                                         Status     Environment
+#  3m    https://live-slide-center-abc123.vercel.app        Ready      Production    <-- rotto, in alias ora
+#  2h    https://live-slide-center-xyz789.vercel.app        Ready      Preview       <-- ultimo verde
+#  3h    https://live-slide-center-def456.vercel.app        Ready      Production    <-- precedente verde
+
+# 2. Identifica l'ULTIMO deploy "Production" verde (il penultimo Production di norma).
+#    Copia la URL completa (https://live-slide-center-def456.vercel.app).
+
+# 3. Promuoviloa produzione (rimappa app.liveslidecenter.com).
+vercel promote https://live-slide-center-def456.vercel.app --scope livesoftware11-3449s-projects --yes
+
+# 4. Verifica.
+pnpm smoke:cloud
+```
+
+> **Tempo totale:** 60-120 secondi. Nessuna build, nessun rebuild Vercel:
+> `vercel promote` cambia solo il routing edge.
+
+#### Opzione B — Da dashboard Vercel (90 secondi, funziona da telefono)
+
+1. Apri <https://vercel.com/livesoftware11-3449s-projects/live-slide-center/deployments>.
+2. Trova la riga del deploy **precedente** marcato **Production / Ready**
+   (NON quello attuale, ma il penultimo).
+3. Click sui tre puntini "..." a destra → **"Promote to Production"**.
+4. Conferma. La rotazione DNS edge avviene in 5-10 secondi.
+5. `pnpm smoke:cloud` per verifica.
+
+### Cosa NON fare
+
+- **NO** `git revert HEAD && git push`: dura 3-5 minuti per buildare e ridepoyare,
+  e ti lascia senza la modifica anche per gli ambienti `preview`. Usa il revert
+  solo DOPO aver fatto il rollback CLI/dashboard, per allineare il repo.
+- **NO** `vercel rollback`: il comando esiste ma e' deprecato e in alcuni
+  contesti non rispetta lo scope team. `promote <url>` e' piu' affidabile.
+- **NO** togliere `vercel.json` per "tornare al default": lascia gli header
+  di sicurezza fuori, e' un'altra emergenza.
+
+### Dopo il rollback
+
+1. Apri una issue GitHub `incident: rollback {data} ` con:
+   - SHA del commit incriminato (`git log --oneline -5`).
+   - Output dello smoke test fallito.
+   - Causa root identificata.
+2. Crea un branch `hotfix/{descrizione}` con il fix corretto.
+3. **Verifica in preview** prima di rimergiare a `main`:
+   `pnpm smoke:cloud --url https://live-slide-center-{preview-hash}.vercel.app`.
+4. Promuovi a produzione solo dopo smoke verde.
+
+### Perche' funziona
+
+I deploy Vercel sono **immutabili**: ogni push genera un nuovo URL univoco
+(`live-slide-center-{hash}.vercel.app`) che resta vivo per sempre. L'alias
+produzione (`live-slide-center.vercel.app`) e' solo un puntatore mutabile.
+`vercel promote` riassegna il puntatore senza ricostruire nulla.
+
+> **TODO Sprint X3:** automazione "auto-rollback se smoke fail" via GitHub
+> Action post-deploy. Per ora resta manuale ma documentato qui.
 
 ---
 
@@ -360,10 +451,70 @@ Dopo:
 
 ---
 
+## Setup Sentry (runtime error monitoring)
+
+Senza Sentry siamo "ciechi" rispetto agli errori in produzione: scopriamo i bug
+solo quando un tenant chiama o quando li riproduciamo a posteriori. Setup
+una-tantum di 5 minuti, gratis fino a 5k eventi/mese.
+
+### Step 1 — Crea progetto Sentry
+
+1. <https://sentry.io/signup/> (account gratuito; o GitHub login con
+   `live-software11`).
+2. **Create Project** → Platform: **React** → Project name: `live-slide-center-web`.
+3. Copia il DSN dalla schermata setup. Formato:
+   `https://<key>@o<org-id>.ingest.sentry.io/<project-id>`.
+
+### Step 2 — Aggiungi env-var su Vercel
+
+```powershell
+vercel env add VITE_SENTRY_DSN production
+# Incolla il DSN quando richiesto.
+
+# (opzionale ma consigliato)
+vercel env add VITE_SENTRY_DSN preview
+vercel env add VITE_SENTRY_DSN development
+```
+
+### Step 3 — Redeploy produzione
+
+```powershell
+vercel deploy --prod --yes --archive=tgz
+```
+
+### Step 4 — Verifica
+
+```powershell
+pnpm smoke:cloud
+# Cerca la riga: [OK]   ~ Sentry runtime configurato
+```
+
+In alternativa: apri devtools del browser su <https://app.liveslidecenter.com>,
+network tab, filtra per "sentry.io" → al primo errore vedrai una richiesta
+POST verso `ingest.sentry.io`.
+
+### Cosa NON fare
+
+- **NO** mettere il DSN nel repo: e' env-var pubblica ma comunque preferibile
+  passarla solo via Vercel env per poterla ruotare.
+- **NO** alzare `tracesSampleRate` sopra 0.1 senza monitorare il consumo: la
+  performance tracing consuma quota in fretta su un'app con molti `useEffect`.
+
+### Quota gratuita
+
+Sentry free: 5k errori/mese + 10k transactions. Per Live Slide Center attuale
+(~10 tenant test, evento da 50-100 speakers) bastano largamente. Se la quota
+satura → upgrade a Team ($26/mese) o passare a Sentry self-hosted.
+
+---
+
 ## Riferimenti
 
 - `scripts/verify-supabase-backup.ps1` — verifica backup giornaliero
 - `.github/workflows/supabase-backup-verify.yml` — cron daily verify
+- `apps/web/scripts/smoke-test-cloud.mjs` — smoke test cloud production
+  (`pnpm smoke:cloud`)
+- `apps/desktop/scripts/smoke-test.mjs` — smoke test desktop offline pre-evento
 - `docs/AUDIT_FINALE_E_PIANO_TEST_v1.md` — audit completo cloud + desktop
 - `docs/STATO_E_TODO.md` — stato sprint corrente
 - `.cursor/rules/01-data-isolation.mdc` — policy account & tenant isolation

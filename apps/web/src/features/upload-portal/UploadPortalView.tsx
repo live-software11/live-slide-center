@@ -12,20 +12,20 @@ import { startTusUpload, type TusHandle } from './lib/tus-upload';
 
 type ValidateResult =
   | {
-      valid: true;
-      speaker_id: string;
-      speaker_name: string;
-      session_id: string;
-      session_title: string;
-      scheduled_start: string | null;
-      event_id: string;
-      event_name: string;
-      event_start_date: string | null;
-      event_end_date: string | null;
-      max_file_size_bytes: number | null;
-      storage_remaining_bytes: number | null;
-      expires_at: string | null;
-    }
+    valid: true;
+    speaker_id: string;
+    speaker_name: string;
+    session_id: string;
+    session_title: string;
+    scheduled_start: string | null;
+    event_id: string;
+    event_name: string;
+    event_start_date: string | null;
+    event_end_date: string | null;
+    max_file_size_bytes: number | null;
+    storage_remaining_bytes: number | null;
+    expires_at: string | null;
+  }
   | { valid: false; reason?: 'invalid_token' | 'not_found' | 'expired' };
 
 interface InitResult {
@@ -483,9 +483,8 @@ function DropZone({
         const dropped = e.dataTransfer.files?.[0] ?? null;
         onPick(dropped);
       }}
-      className={`rounded-xl border-2 border-dashed p-6 text-center transition ${
-        dragOver ? 'border-sc-primary bg-sc-primary/20' : 'border-sc-primary/20 bg-sc-bg/40'
-      } ${disabled ? 'opacity-60' : ''}`}
+      className={`rounded-xl border-2 border-dashed p-6 text-center transition ${dragOver ? 'border-sc-primary bg-sc-primary/20' : 'border-sc-primary/20 bg-sc-bg/40'
+        } ${disabled ? 'opacity-60' : ''}`}
     >
       {file ? (
         <div className="space-y-1 text-sm">

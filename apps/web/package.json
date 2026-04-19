@@ -16,7 +16,9 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "smoke:cloud": "node ./scripts/smoke-test-cloud.mjs",
+    "smoke:cloud:json": "node ./scripts/smoke-test-cloud.mjs --json"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

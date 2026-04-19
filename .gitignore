@@ -69,3 +69,5 @@ COMMIT_MSG_TMP.txt
 **/dist-desktop/
 
 .vercel
+
+.env*.local
