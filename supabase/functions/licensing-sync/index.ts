@@ -25,6 +25,9 @@ const ROOMS_MIN = 0;
 const ROOMS_MAX = 1024;
 const DEVICES_MIN = 0;
 const DEVICES_MAX = 1024;
+// Audit edit-policy-per-software 2026-04-19: -1 = unlimited; 0 vietato.
+const ACTIVE_EVENTS_MIN = -1;
+const ACTIVE_EVENTS_MAX = 1024;
 
 type TenantPlan = (typeof TENANT_PLANS)[number];
 type LicenseStatus = (typeof LICENSE_STATUSES)[number];
@@ -36,6 +39,7 @@ interface SyncBody {
   storage_limit_bytes?: number | null;
   max_rooms_per_event?: number | null;
   max_devices_per_room?: number | null;
+  max_active_events?: number | null;
   expires_at?: string | null;
   status?: LicenseStatus;
 }
@@ -92,6 +96,7 @@ function sanitizedRpcError(message: string | undefined): string {
     'invalid_storage_limit',
     'invalid_max_rooms',
     'invalid_max_devices',
+    'invalid_max_active_events',
   ];
   for (const code of known) {
     if (message.includes(code)) return code;
@@ -192,6 +197,18 @@ Deno.serve(async (req: Request) => {
       return jsonResponse(400, { error: 'invalid_max_devices' });
     }
   }
+  // Audit edit-policy-per-software 2026-04-19: -1 unlimited; 0 invalido; range 1..1024.
+  const activeEvents = payload.max_active_events;
+  if (activeEvents != null) {
+    if (
+      !Number.isInteger(activeEvents) ||
+      activeEvents < ACTIVE_EVENTS_MIN ||
+      activeEvents === 0 ||
+      activeEvents > ACTIVE_EVENTS_MAX
+    ) {
+      return jsonResponse(400, { error: 'invalid_max_active_events' });
+    }
+  }
 
   const tenantId = payload.tenant_id;
   if (tenantId != null && !isValidUuid(tenantId)) {
@@ -221,6 +238,8 @@ Deno.serve(async (req: Request) => {
     p_max_devices_per_room: devices ?? null,
     p_expires_at: expiresAt ?? null,
     p_status: status,
+    // Audit edit-policy-per-software 2026-04-19: nuovo 9° parametro RPC.
+    p_max_active_events: activeEvents ?? null,
   });
 
   if (error) {

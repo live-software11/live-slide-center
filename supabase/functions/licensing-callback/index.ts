@@ -61,6 +61,8 @@ interface TenantRow {
   storage_used_bytes: number | null;
   max_rooms_per_event: number | null;
   max_devices_per_room: number | null;
+  // Audit edit-policy-per-software 2026-04-19: nuovo campo riportato a WORKS.
+  max_active_events: number | null;
   license_synced_at: string | null;
   updated_at: string | null;
 }
@@ -74,6 +76,8 @@ interface SlideCenterShadowPayload {
   storageUsedBytes: number | null;
   maxRoomsPerEvent: number | null;
   maxDevicesPerRoom: number | null;
+  // Audit edit-policy-per-software 2026-04-19.
+  maxActiveEvents: number | null;
   licenseSyncedAt: string | null;
   observedAt: string;
 }
@@ -248,6 +252,7 @@ function buildShadow(t: TenantRow): SlideCenterShadowPayload {
     storageUsedBytes: t.storage_used_bytes,
     maxRoomsPerEvent: t.max_rooms_per_event,
     maxDevicesPerRoom: t.max_devices_per_room,
+    maxActiveEvents: t.max_active_events,
     licenseSyncedAt: t.license_synced_at,
     observedAt: new Date().toISOString(),
   };
@@ -321,7 +326,7 @@ Deno.serve(async (req: Request) => {
   const { data: tenant, error } = await supabaseAdmin
     .from('tenants')
     .select(
-      'id, license_key, plan, suspended, expires_at, storage_limit_bytes, storage_used_bytes, max_rooms_per_event, max_devices_per_room, license_synced_at, updated_at',
+      'id, license_key, plan, suspended, expires_at, storage_limit_bytes, storage_used_bytes, max_rooms_per_event, max_devices_per_room, max_active_events, license_synced_at, updated_at',
     )
     .eq('id', tenantId)
     .maybeSingle();

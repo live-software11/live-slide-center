@@ -91,6 +91,8 @@ docs/Manuali/pdf/
 .tmp-*.txt
 .commit-msg.txt
 .commit-msg-*.txt
+.commit-msg.tmp
+.commit-msg-*.tmp
 COMMIT_MSG_TMP.txt
 *.bak
 *.swp
