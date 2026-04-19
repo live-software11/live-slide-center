@@ -616,15 +616,15 @@ Setup token:
 
 ### Cosa pulire (SAFE — tutto rigenerabile)
 
-| Path | Tipico peso | Rigenerato da |
-|------|-------------|---------------|
-| `apps/desktop/src-tauri/target/` | 5-7 GB | `cargo build` o `pnpm --filter @slidecenter/desktop build:tauri` |
-| `apps/agent/src-tauri/target/` | 2-4 GB | `cargo build` o `pnpm --filter @slidecenter/agent-build build:tauri` |
-| `apps/room-agent/src-tauri/target/` | 2-4 GB | `cargo build` o `pnpm --filter @slidecenter/room-agent-build build:tauri` |
-| `apps/web/dist/` | 17-25 MB | `pnpm --filter @slidecenter/web build` (1.7s) |
-| `apps/web/dist-desktop/` | 17 MB | rigenerato da Tauri build |
-| `**/.turbo/` | 5-50 MB | TurboRepo cache |
-| `packages/*/dist/` | < 1 MB | TurboRepo build |
+| Path                                | Tipico peso | Rigenerato da                                                             |
+| ----------------------------------- | ----------- | ------------------------------------------------------------------------- |
+| `apps/desktop/src-tauri/target/`    | 5-7 GB      | `cargo build` o `pnpm --filter @slidecenter/desktop build:tauri`          |
+| `apps/agent/src-tauri/target/`      | 2-4 GB      | `cargo build` o `pnpm --filter @slidecenter/agent-build build:tauri`      |
+| `apps/room-agent/src-tauri/target/` | 2-4 GB      | `cargo build` o `pnpm --filter @slidecenter/room-agent-build build:tauri` |
+| `apps/web/dist/`                    | 17-25 MB    | `pnpm --filter @slidecenter/web build` (1.7s)                             |
+| `apps/web/dist-desktop/`            | 17 MB       | rigenerato da Tauri build                                                 |
+| `**/.turbo/`                        | 5-50 MB     | TurboRepo cache                                                           |
+| `packages/*/dist/`                  | < 1 MB      | TurboRepo build                                                           |
 
 ### Cosa NON pulire
 
@@ -684,9 +684,97 @@ pnpm smoke:cloud                            # deve restare 21/21 verde
 
 ### Storico cleanup
 
-| Data | Da | A | Liberato | Note |
-|------|----|----|----------|------|
+| Data       | Da      | A      | Liberato        | Note                                      |
+| ---------- | ------- | ------ | --------------- | ----------------------------------------- |
 | 2026-04-19 | 12.6 GB | 492 MB | 11.83 GB (-96%) | Cleanup iniziale + ignore files riscritti |
+
+---
+
+## Appendice — Edge Functions warm-keep (cron-job.org)
+
+> **Stato**: documento operativo. Procedura **NON** attivata di default.
+> Applicare solo se i log Sentry/Supabase mostrano cold-start sostenuti
+> > 500ms su una funzione hot-path (vedi "Quando attivare" sotto).
+
+### Perché serve
+
+Le Supabase Edge Functions girano su Deno Deploy. Quando una funzione non riceve traffico per ~5 minuti, il container viene spento; alla prossima chiamata Deno deve fare boot del v8, leggere il bundle, eseguire `Deno.serve(...)` → tipicamente **150-400ms** in più sulla prima richiesta.
+
+Per gli endpoint usati durante un evento live (cambio versione, upload file, verifica licenza desktop), un cold-start sporadico è invisibile. Diventa percettibile (≥ 1s di lag) quando un cold-start coincide con un'azione critica osservata da molte sale contemporaneamente.
+
+Mitigazione standard: **fare un GET ogni 5 minuti** su ciascuna funzione hot-path. Il container resta caldo, il primo evento dopo il ping risponde in < 50ms.
+
+### Quando attivare
+
+Attivare il warm-keep **solo** se almeno UNA delle condizioni seguenti è vera per ≥ 7 giorni consecutivi in produzione:
+
+1. **Sentry** (`tag: edge_function`) mostra p95 latency > 500ms su una delle funzioni hot-path elencate sotto.
+2. Logs Supabase Edge Functions (Dashboard → Edge Functions → `<name>` → Logs) hanno > 5% di richieste con `cold_start: true` e durata > 300ms.
+3. Tester sul campo riporta lag visibile sul cambio slide / cambio versione / upload non spiegato da rete LAN.
+
+Se nessuna condizione è vera dopo il primo mese di field-test: **non attivare**, è 5€/mese di costo evitabile.
+
+### Funzioni hot-path da tenere warm
+
+Lista ordinata per criticità live:
+
+| #   | Funzione                      | Frequenza chiamata reale         | Ping warm-keep  |
+| --- | ----------------------------- | -------------------------------- | --------------- |
+| 1   | `room-player-bootstrap`       | 1x al join, 1x ogni 12s polling  | sì              |
+| 2   | `room-player-set-current`     | ogni cambio slide/versione admin | sì              |
+| 3   | `room-device-upload-init`     | ogni upload file (PC sala/admin) | sì              |
+| 4   | `room-device-upload-finalize` | ogni upload file completato      | sì              |
+| 5   | `desktop-license-verify`      | 1x ogni 6h per PC desktop bound  | facoltativa     |
+| 6   | `desktop-license-renew`       | 1x ogni 12 mesi per PC bound     | NO (rara)       |
+| 7   | `email-cron-licenses`         | cron interno 1x/giorno           | NO (cron pgsql) |
+| 8   | `email-cron-desktop-tokens`   | cron interno 1x/giorno           | NO (cron pgsql) |
+
+> **Regola:** ping le funzioni 1-4 sempre; aggiungi `desktop-license-verify` se il fleet di PC desktop bound supera ~10 unità.
+
+### Endpoint di ping
+
+URL pattern (sostituire `<func>` col nome funzione):
+
+```
+https://cdjxxxkrhgdkcpkkozdl.supabase.co/functions/v1/<func>
+```
+
+Header obbligatorio: nessuno. Alcune funzioni rispondono `405 method_not_allowed` al GET — è OK, il container resta caldo lo stesso. Non serve fare POST con body reali (sprecherebbe rate-limit RPC).
+
+### Setup operativo cron-job.org
+
+1. Account su <https://console.cron-job.org/signup>. Tier free: 50 jobs/account.
+2. Per ogni funzione hot-path, crea job:
+
+   | Campo                  | Valore                                                                |
+   | ---------------------- | --------------------------------------------------------------------- |
+   | **Title**              | `Slide Center warm — <func>`                                          |
+   | **URL**                | `https://cdjxxxkrhgdkcpkkozdl.supabase.co/functions/v1/<func>`        |
+   | **Schedule**           | Every 5 minutes (`*/5 * * * *`)                                       |
+   | **Method**             | `GET`                                                                 |
+   | **Headers**            | (nessuno)                                                             |
+   | **Save responses**     | NO (saturerebbe lo storage)                                           |
+   | **Notification**       | Email solo se 3 fallimenti consecutivi                                |
+   | **Treat as failure**   | HTTP 5xx / timeout. **NON** trattare 404/405 come failure (sono OK).  |
+   | **Max execution time** | 10s                                                                   |
+
+3. Raggruppa i job in folder `live-slide-center` per ordine.
+4. **Verifica primo run**: dopo 5 minuti, Supabase Dashboard → Edge Functions → `<func>` → Logs deve mostrare GET ogni 5 min con status 200/405/404. Se 401/403, aggiungi header `apikey: <SUPABASE_ANON_KEY>` (anon key è pubblica per design, vedi `apps/web/src/lib/supabaseClient.ts`).
+
+### Costo previsto
+
+- **Free tier cron-job.org:** sufficiente (50 jobs, 1 min minimo).
+- **Tier Plus 5€/mese:** 200 jobs + 30s intervallo + report email + SLA. Solo se serve monitoring formale.
+- **Lato Supabase:** 6 funzioni × 12 ping/h × 24h × 30gg = **51.840 invocazioni/mese**. Rientra nei 500.000 inclusi nel piano Pro Supabase. Costo marginale ZERO.
+
+### Disattivazione
+
+cron-job.org → folder `live-slide-center` → bulk action **Pause** (o **Delete** dopo 30gg). Nessuna modifica codice/DB richiesta lato Live SLIDE CENTER: i ping cessano, le funzioni tornano a fare cold-start on-demand. Comportamento invariato vs oggi.
+
+### Riferimenti esterni
+
+- [Supabase Edge Functions cold start docs](https://supabase.com/docs/guides/functions/cold-starts)
+- [cron-job.org docs](https://docs.cron-job.org/)
 
 ---
 
@@ -697,7 +785,8 @@ pnpm smoke:cloud                            # deve restare 21/21 verde
 - `apps/web/scripts/smoke-test-cloud.mjs` — smoke test cloud production
   (`pnpm smoke:cloud`)
 - `apps/desktop/scripts/smoke-test.mjs` — smoke test desktop offline pre-evento
-- `docs/AUDIT_FINALE_E_PIANO_TEST_v1.md` — audit completo cloud + desktop
-- `docs/STATO_E_TODO.md` — stato sprint corrente
+- `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` — architettura tecnica + § 22 storia sprint
+- `docs/STATO_E_TODO.md` — stato sprint corrente + TODO operativi
+- `docs/Manuali/Manuale_Centro_Slide_Desktop.md` — setup + smoke test desktop
 - `.cursor/rules/01-data-isolation.mdc` — policy account & tenant isolation
 - `.gitignore` / `.vercelignore` / `.cursorindexingignore` — workspace cleanup config

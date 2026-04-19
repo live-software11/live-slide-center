@@ -197,43 +197,94 @@ Deno.serve(async (req) => {
 
 **SECURITY DEFINER RPC chiamabili SOLO da Edge Function (mai da client):** `GRANT EXECUTE ON FUNCTION ... TO service_role` (no `authenticated`/`anon`). Esempio: `rpc_room_player_set_current` (Sprint I, autentica `device_token` e fa cross-room check anti-tampering).
 
-## Edge Functions attive (15)
+## Edge Functions attive (26 — post Sprint W)
 
-| Function                  | Auth               | Scopo                                                                |
-| ------------------------- | ------------------ | -------------------------------------------------------------------- |
-| `health`                  | nessuna            | Healthcheck ambiente                                                 |
-| `pair-init`               | JWT tenant         | Genera codice 6 cifre + scadenza 10 min, INSERT `pairing_codes`      |
-| `pair-claim`              | nessuna (tecnico)  | Valida codice → INSERT `paired_devices` + token sha256               |
-| `pair-poll`               | JWT tenant         | Polling stato pairing: pending / consumed / expired                  |
-| `cleanup-expired-codes`   | cron               | DELETE `pairing_codes` scaduti                                       |
-| `room-player-bootstrap`   | device_token       | Sala + network_mode + agent LAN + manifest file (Sprint A6/D2)       |
-| `room-player-rename`      | device_token       | Rinomina device da admin remoto                                      |
-| `room-player-set-current` | device_token       | Sprint I — segnala "in onda" lato admin                              |
-| `team-invite-accept`      | invite_token       | Sprint 1 — accetta invito email + crea utente Auth                   |
-| `email-send`              | secret interno     | Sprint 7 — Resend transactional (welcome, license warn)              |
-| `email-cron-licenses`     | cron esterno       | Sprint 7 — scan tenant licenze in scadenza, dispatch warn email      |
-| `gdpr-export`             | JWT admin          | Sprint 7 — ZIP export tenant data via service-role + signed URL 7g   |
-| `licensing-sync`          | HMAC interno       | Sprint 4-5 — sync da Live WORKS APP webhook Lemon Squeezy            |
-| `system-status`           | nessuna (pubblico) | Sprint 8 — status page `/status` con probe paralleli DB/Auth/Storage |
+Lista completa canonica in `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 17.
+
+**Pairing (4):**
+
+| Function          | Auth               | Scopo                                                                |
+| ----------------- | ------------------ | -------------------------------------------------------------------- |
+| `pair-init`       | JWT tenant         | Genera codice 6 cifre + scadenza 10 min, INSERT `pairing_codes`      |
+| `pair-claim`      | nessuna (tecnico)  | Valida codice → INSERT `paired_devices` + token sha256               |
+| `pair-direct`     | nessuna (LAN)      | Sprint N — pairing diretto admin LAN ↔ sala LAN (codice + window 5s) |
+| `pair-revoke`     | JWT tenant         | Revoca pairing → DELETE `paired_devices`                             |
+
+**Room player (3):**
+
+| Function                  | Auth         | Scopo                                                              |
+| ------------------------- | ------------ | ------------------------------------------------------------------ |
+| `room-player-bootstrap`   | device_token | Sala + network_mode + agent LAN + manifest file (Sprint A6/D2)     |
+| `room-state-set`          | device_token | Sprint I — segnala "in onda" lato admin (current_presentation_id)  |
+| `room-state-broadcast`    | device_token | Trigger SECURITY DEFINER per `realtime.send` su `room:<uuid>`      |
+
+**Upload (5):**
+
+| Function                       | Auth                  | Scopo                                                              |
+| ------------------------------ | --------------------- | ------------------------------------------------------------------ |
+| `upload-init`                  | JWT tenant            | TUS upload init: validazione quota + crea `presentation_versions`  |
+| `upload-finalize`              | JWT tenant            | TUS upload finalize: SHA-256 verify + status `ready`               |
+| `room-device-upload-init`      | device_token          | Upload diretto da PC sala (anon-token)                             |
+| `room-device-upload-finalize`  | device_token          | Finalize upload PC sala                                            |
+| `slide-validator`              | nessuna (interno)     | Valida formato file (PPT/PPTX/PDF/Keynote) + warning rendering     |
+
+**Licensing (2):**
+
+| Function                | Auth          | Scopo                                                            |
+| ----------------------- | ------------- | ---------------------------------------------------------------- |
+| `licensing-sync`        | HMAC interno  | Sync da Live WORKS APP (Lemon Squeezy → tenant.plan)             |
+| `lemon-squeezy-webhook` | HMAC LSQ      | Webhook entrypoint Lemon Squeezy (order_created, refunded, ...)  |
+
+**GDPR / Email / Monitoring (7):**
+
+| Function                | Auth               | Scopo                                                              |
+| ----------------------- | ------------------ | ------------------------------------------------------------------ |
+| `gdpr-export`           | JWT admin          | ZIP export tenant data via service-role + signed URL 7g            |
+| `gdpr-delete`           | JWT super_admin    | DELETE tenant + cascade (RGPD diritto oblio)                       |
+| `email-sender`          | secret interno     | Resend transactional (welcome, license warn, invite)               |
+| `monitoring-snapshot`   | service_role       | Snapshot KPI tenant (storage, eventi, sale)                        |
+| `monitoring-cron`       | cron               | Trigger periodico snapshot + alert quota                           |
+| `cleanup-cron`          | cron               | DELETE `pairing_codes` + `device_metric_pings` scaduti             |
+| `super-admin-snapshot`  | JWT super_admin    | Vista cross-tenant per super_admin                                 |
+
+**Auth / Tenant (4):**
+
+| Function                | Auth               | Scopo                                                              |
+| ----------------------- | ------------------ | ------------------------------------------------------------------ |
+| `auth-passwordless`     | nessuna            | Magic link login (alternativa a email/password)                    |
+| `auth-invite-accept`    | invite_token       | Accetta invito email + crea utente Auth                            |
+| `tenant-suspend`        | JWT super_admin    | UPDATE `tenants.suspended = true` + revoca sessioni                |
+| `tenant-onboard`        | JWT admin          | Wizard onboarding 3-step + demo seed                               |
+
+**Shared (helper, non endpoint):** `_shared/cors.ts` (CORS headers), `_shared/rate-limit.ts` (token bucket per IP/tenant), `_shared/auth.ts` (verify device_token + JWT tenant).
+
+`verify_jwt = false` in `supabase/config.toml` per: `pair-claim`, `room-player-bootstrap`, `lemon-squeezy-webhook`, `slide-validator`, `auth-passwordless`, `auth-invite-accept`.
 
 ## Migration storiche (riferimento)
 
-Le migration sono in `supabase/migrations/` (25 file totali al 18 apr 2026). Le piu' recenti / chiave:
+Le migration sono in `supabase/migrations/` (30+ file totali al 19 apr 2026, post Sprint W). Le piu' recenti / chiave:
 
-| File                                              | Sprint | Scopo                                                         |
-| ------------------------------------------------- | ------ | ------------------------------------------------------------- |
-| `20250411090000_init_slide_center.sql`            | 0      | Schema core, RLS base                                         |
-| `20250415140000_phase1_2_hardening.sql`           | 1-2    | `super_admin_all` su tutte le tabelle, quota enforcement      |
-| `20250416120100_tenant_suspended.sql`             | 8      | `tenants.suspended` blocco accesso                            |
-| `20250416140301_phase14_rls_tenant_suspended.sql` | 14     | `current_tenant_suspended()` + policy granulari               |
-| `20260417100000_team_invitations.sql`             | 1c     | Inviti team + RLS + path utente invitato                      |
-| `20260417130000_onboarding_and_demo_seed.sql`     | 6      | Wizard onboarding + `tenants.onboarded_at` + RPC seed         |
-| `20260417140000_sprint7_operations.sql`           | 7      | GDPR export RPC + email log                                   |
-| `20260417150000_sprint8_tenant_audit.sql`         | 8      | RPC `list_tenant_activity` SECURITY DEFINER                   |
-| `20260418000000_room_state_playback_mode.sql`     | A      | ENUM `playback_mode` (auto/live/turbo) + colonna              |
-| `20260418010000_room_realtime_broadcast.sql`      | B      | Trigger Broadcast `room:<uuid>` per PC sala anon              |
-| `20260418020000_move_presentation_to_session.sql` | G      | RPC `rpc_move_presentation_to_session` (admin bulk + drag)    |
-| `20260418030000_room_state_now_playing.sql`       | I      | `current_presentation_id` + RPC `rpc_room_player_set_current` |
+| File                                              | Sprint | Scopo                                                              |
+| ------------------------------------------------- | ------ | ------------------------------------------------------------------ |
+| `20250411090000_init_slide_center.sql`            | 0      | Schema core, RLS base                                              |
+| `20250415140000_phase1_2_hardening.sql`           | 1-2    | `super_admin_all` su tutte le tabelle, quota enforcement           |
+| `20250416120100_tenant_suspended.sql`             | 8      | `tenants.suspended` blocco accesso                                 |
+| `20250416140301_phase14_rls_tenant_suspended.sql` | 14     | `current_tenant_suspended()` + policy granulari                    |
+| `20260417100000_team_invitations.sql`             | 1c     | Inviti team + RLS + path utente invitato                           |
+| `20260417130000_onboarding_and_demo_seed.sql`     | 6      | Wizard onboarding + `tenants.onboarded_at` + RPC seed              |
+| `20260417140000_sprint7_operations.sql`           | 7      | GDPR export RPC + email log                                        |
+| `20260417150000_sprint8_tenant_audit.sql`         | 8      | RPC `list_tenant_activity` SECURITY DEFINER                        |
+| `20260418000000_room_state_playback_mode.sql`     | A      | ENUM `playback_mode` (auto/live/turbo) + colonna                   |
+| `20260418010000_room_realtime_broadcast.sql`      | B      | Trigger Broadcast `room:<uuid>` per PC sala anon                   |
+| `20260418020000_move_presentation_to_session.sql` | G      | RPC `rpc_move_presentation_to_session` (admin bulk + drag)         |
+| `20260418030000_room_state_now_playing.sql`       | I      | `current_presentation_id` + RPC `rpc_room_player_set_current`      |
+| `0004_event_folders.sql`                          | U      | Folder organization eventi (cartelle gerarchiche)                  |
+| `0005_validation_warnings.sql`                    | AU03   | Tabella validation_warnings da `slide-validator`                   |
+| `0006_remote_control_pairings.sql`                | D      | Remote control pairings desktop ↔ web                              |
+| `0007_room_provision_tokens.sql`                  | D      | Token provisioning sala desktop                                    |
+| `0008_room_state_slide_index.sql`                 | A      | `slide_index` su `room_state` per stato slide corrente             |
+| `0009_extended_enums.sql`                         | T-3    | Enum estesi (network_mode, playback_mode, role)                    |
+| `0010_device_metric_pings.sql`                    | AU07   | `device_metric_pings` + cleanup pg_cron (retention 7 giorni)       |
 
 ## Test RLS
 

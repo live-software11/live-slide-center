@@ -19,7 +19,8 @@ alwaysApply: true
 
 3. **Per modifiche al desktop Tauri** (`apps/desktop/src-tauri/**`): aggiungi anche `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml` e `cargo clippy --all-targets -- -D warnings`. Il build NSIS completo (`pnpm --filter @slidecenter/desktop release:nsis`) NON e' obbligatorio per chiusura task — basta `cargo check` verde.
 4. **Per modifiche schema Supabase** (`supabase/migrations/**`): `supabase db diff` se possibile, o `supabase test db` (pgTAP). In assenza di CLI: ispezione manuale RLS via `supabase/tests/rls_audit.sql`.
-5. **Semaforo verde:** tutto verde + nessuna incertezza residua → il lavoro e' accettabile.
+5. **Per modifiche cloud rilevanti (deploy / Edge Function nuove / env vars / Sentry):** dopo deploy, esegui `pnpm smoke:cloud` dalla root. Atteso: 6 OK + 1 skip + 1 warn (mDNS PC casa, non bloccante). Vedi `apps/web/scripts/smoke-test-cloud.mjs` per dettaglio test.
+6. **Semaforo verde:** tutto verde + nessuna incertezza residua → il lavoro e' accettabile.
 
 ## Se il build/lint fallisce
 

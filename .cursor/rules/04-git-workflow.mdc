@@ -66,10 +66,18 @@ Auto-deploy su push a `main`. Per preview: push su branch feature → Vercel cre
 
 ```powershell
 vercel whoami                              # deve stampare livesoftware11-3449
-vercel --prod --yes --archive=tgz          # --archive=tgz OBBLIGATORIO (monorepo > 15k file)
+vercel --prod --yes --archive=tgz          # --archive=tgz OBBLIGATORIO (monorepo dopo cleanup ~360 MB, prima ~3.7 GB)
+```
+
+**Post-deploy mandatorio** (per modifiche cloud rilevanti — Edge Function, env vars, Sentry, schema):
+
+```powershell
+pnpm smoke:cloud                           # 6 OK + 1 skip + 1 warn atteso
 ```
 
 **MCP Vercel:** server `vercel` ufficiale (`https://mcp.vercel.com`, OAuth) configurato in `~/.cursor/mcp.json`. Tool utili: `list_deployments`, `get_deployment_build_logs`, `get_deployment_runtime_logs`. Vedi `.cursor/rules/mcp-vercel.mdc`.
+
+**MCP Sentry:** server `sentry` ufficiale (`https://mcp.sentry.dev/mcp`, OAuth) per organizzazione `live-work-app` (region EU `de.sentry.io`). Project canonico: `live-slide-center-web`. Vedi DSN in `vercel env pull` (`VITE_SENTRY_DSN`). Tool utili: `find_issues`, `get_issue_details`, `update_issue`. Init lazy in `apps/web/src/lib/init-sentry.ts`; helper errori in `apps/web/src/lib/telemetry.ts`.
 
 ### Supabase (schema + functions)
 

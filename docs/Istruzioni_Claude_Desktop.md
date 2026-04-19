@@ -2,8 +2,9 @@
 
 > **Come usare questo file:** copia-incolla la sezione "PROMPT DI AVVIO" nella prima chat di una sessione Claude Desktop. Per Cursor agent il prompt e' gia' caricato dalle regole `.cursor/rules/`.
 >
-> **Versione:** 2.2 — 19 aprile 2026 (post Sprint W + follow-up `clean-and-build.bat` version-agnostic)
-> **Allineato con:** `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` + `docs/STATO_E_TODO.md` v2.20 (§0.29) + `docs/SPRINT_W_CLOSURE_REPORT.md`.
+> **Versione:** 2.3 — 19 aprile 2026 (post Sprint W + Sentry + workspace cleanup + docs overhaul).
+> **Allineato con:** `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` v6.0 + `docs/STATO_E_TODO.md` v6.x + `docs/DISASTER_RECOVERY.md` (Sentry + warm-keep + cleanup).
+> **Storici sprint chiusi:** `docs/_archive/` (read-only).
 > **Aggiornare quando:** cambia architettura, cambia roadmap, cambia stack, cambiano account, vengono aggiunti/eliminati sprint o documenti.
 
 ---
@@ -80,10 +81,12 @@ Ogni nuova feature deve funzionare in tutte e tre, oppure dichiarare esplicitame
 
 ### Cloud backend (Supabase)
 
-- Postgres 15 + Auth + Storage (TUS) + Realtime + Edge Functions (Deno)
-- 11+ migrations SQL applicate
+- Postgres 17 + Auth + Storage (TUS) + Realtime + 26 Edge Functions (Deno)
+- 30+ migrations SQL applicate (incluso Sprint W + AU-01..09)
 - RLS abilitata su tutte le tabelle business
 - Custom claims JWT in `app_metadata`: `{ tenant_id, role }`
+- pg_cron retention (4 job daily) + rate-limit `edge_function_rate_events`
+- Sentry runtime monitoring lato web (lazy init, EU region)
 
 ### `apps/desktop` (Tauri 2 — produzione)
 
@@ -119,19 +122,28 @@ Ogni nuova feature deve funzionare in tutte e tre, oppure dichiarare esplicitame
 
 ---
 
-## Stato attuale (Aprile 2026)
+## Stato attuale (Aprile 2026 — post Sprint W)
+
+**SEMAFORO VERDE per primo evento live in produzione.** Cloud Vercel READY su `https://live-slide-center.vercel.app`, desktop NSIS firmato Tauri 2 distribuibile, Sentry attivo, smoke `pnpm smoke:cloud` 6 OK + 1 skip + 1 warn.
 
 **TUTTI gli sprint sono DONE:**
 
 - Cloud: A (offline architecture) -> I (presentation_versions enforcement)
 - Desktop: J (Tauri prereqs) -> P (icon set) + FT (smoke test)
-- Operativita: 1 (audit log) -> 8 (manuali distribuzione + script)
+- Audit chirurgico R-1..S-4 + T-1..T-3 (10/10 GAP risolti, parity competitor)
+- Backlog medium AU-01..09 (retention + search_path + idempotency + TOCTOU + rate-limit + CORS + perf + outbox + E2E)
+- UX Redesign V2.0 (U-1..U-7): shadcn AppShell + Command Palette + ProductionView + OnAirView + provisioning QR + 404 SPA fix
+- Parity cloud/desktop D1..D8: licensing unificato + NSIS vendor + updater Ed25519 + ruolo control_center + heartbeat
+- Sprint W: 7 migration SQLite mirror cloud + folder_routes + UI cloud-only conditional + deploy verde
+- Operativita: Sentry + workspace cleanup -11.83 GB + docs overhaul
 
 L'unico sprint **opzionale** ancora aperto e' Sprint Q (sync hybrid cloud<->desktop push-only). Decisione GO/NO-GO con framework in `docs/STATO_E_TODO.md` § 4.
 
 **Field test desktop** rinviato per scelta Andrea. Procedura completa pronta in `docs/STATO_E_TODO.md` § 3.
 
 **Cose pending non automatizzabili:** Resend setup (1 ora), code-signing cert (€190/anno + 1-2 settimane), screencast (1 giorno + editing), revisione legale SLA/DPA (€300-800), listing prodotti sul sito.
+
+**Per dettaglio storico sprint:** `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22.
 
 ---
 
@@ -224,12 +236,21 @@ Mai committare con quality gate rosso. Se rosso -> fix prima di push.
 
 ---
 
-## Documentazione del progetto (4 file root + 2 sottocartelle)
+## Documentazione del progetto (indice canonico)
 
-Quando hai dubbi architetturali, la fonte di verita e' **`docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`** (24 sezioni, ~90 KB).
-Per cose da fare: **`docs/STATO_E_TODO.md`** (7 sezioni, ~36 KB).
-Per setup ambiente: **`docs/Setup_Strumenti_e_MCP.md`**.
-Per guide operative + commerciali: vedi sottocartelle `docs/Manuali/` e `docs/Commerciale/`.
+**Indice navigabile:** `docs/README.md` (mappa di tutti i doc per topic).
+
+Fonti di verita primarie:
+
+- **`docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`** — UNICA fonte di verita su "cosa e'" e "com'e' fatto" il prodotto + sprint history (§ 22).
+- **`docs/STATO_E_TODO.md`** — UNICA fonte di verita su "cosa rimane da fare", field test, Sprint Q opzionale.
+- **`docs/DISASTER_RECOVERY.md`** — backup, restore, Sentry setup, Edge Fn warm-keep, workspace cleanup runbook.
+- **`docs/FIELD_TEST_CHECKLIST.md`** — checklist pre-evento + smoke E2E + URL produzione.
+- **`docs/Setup_Strumenti_e_MCP.md`** — setup ambiente sviluppo.
+- **`docs/Manuali/`** — manuali operativi (Centro Slide Desktop, distribuzione, code-signing, email Resend, onboarding admin).
+- **`docs/Commerciale/`** — listino, SLA, roadmap vendita esterna.
+- **`docs/_archive/`** — storici sprint chiusi e audit retrospettivi (read-only, NON usare come fonte di verita).
+- **`CLAUDE.md`** (root) — mappa rapida + comandi quotidiani.
 
 Ogni decisione architetturale non coperta: PRIMA aggiorna `ARCHITETTURA_LIVE_SLIDE_CENTER.md` + `STATO_E_TODO.md`, POI scrivi il codice.
 

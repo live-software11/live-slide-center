@@ -108,7 +108,7 @@ Stato `setup` = evento non ancora "andato in onda". Per simulare evento attivo: 
 ## 8. Quick verify — login + isolamento
 
 ### A. Login web (T1)
-1. Apri `https://app.liveslidecenter.com/login` (o l'URL preview/staging che usi).
+1. Apri `https://live-slide-center.vercel.app/login` (o l'URL preview/staging che usi).
 2. Inserisci `admin.alpha@fieldtest.local` / `FieldTest!AlphaAdmin2026`.
 3. Atteso: dashboard di **Field Test Alpha**, vedi 1 evento "Field Test Aprile 2026".
 4. Logout.
@@ -174,7 +174,7 @@ Da **Authentication → Users** → click utente → **Send password recovery** 
 | Riprovisionare ambiente         | `scripts/Setup-Field-Test-Env.ps1`                                 |
 | Schema DB / migrazioni          | `supabase/migrations/*.sql`                                        |
 | Trigger handle_new_user         | `supabase/migrations/20260417100000_team_invitations.sql`          |
-| Audit completo + piano test     | `docs/AUDIT_FINALE_E_PIANO_TEST_v1.md`                             |
+| Audit completo + piano test (storico) | `docs/_archive/AUDIT_FINALE_E_PIANO_TEST_v1.md` (consolidato in `ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 + `STATO_E_TODO.md` § 1) |
 
 ---
 

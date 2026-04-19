@@ -2,17 +2,20 @@
 
 > **Documento UNICO di riferimento.** Questo file sostituisce e incorpora i precedenti `GUIDA_DEFINITIVA_PROGETTO.md`, `PIANO_FINALE_SLIDE_CENTER_v2.md`, `GUIDA_OPERATIVA_v3_FIELD_TEST_E_OFFLINE.md`. Per lo stato sprint corrente e le azioni pendenti vedi il documento gemello `docs/STATO_E_TODO.md`.
 >
-> **Versione:** 5.10 — 18 aprile 2026 (post-Sprint T-2)
+> **Versione:** 6.0 — 19 aprile 2026 (post-Sprint W + cleanup workspace + Sentry attivo)
 > **Owner:** Andrea Rizzari (CTO/Imprenditore)
 > **Stack:** React 19 + Vite 8 + TypeScript strict + Supabase + Tauri 2 (Rust) — monorepo pnpm + Turborepo
-> **Sito:** `app.liveslidecenter.com` (cloud) / installabile NSIS Windows (desktop) / `apps/agent` + `apps/room-agent` (versione PWA + Local/Room Agent storica)
+> **Sito:** `live-slide-center.vercel.app` (cloud, alias futuro `app.liveslidecenter.com`) / installabile NSIS Windows (desktop unificato `apps/desktop`) / `apps/agent` + `apps/room-agent` (Local/Room Agent storici, marcati LEGACY)
 > **Riferimenti operativi:**
 >
+> - `docs/README.md` — indice canonico documentazione
 > - `docs/STATO_E_TODO.md` — cose da fare oggi e domani
+> - `docs/DISASTER_RECOVERY.md` — runbook emergenze + Sentry + cleanup workspace
 > - `docs/Setup_Strumenti_e_MCP.md` — setup macchina di sviluppo
-> - `docs/Istruzioni_Claude_Desktop.md` — prompt di avvio Claude Desktop
-> - `docs/Manuali/` — manuali installazione, distribuzione, code-signing, email
+> - `docs/Istruzioni_Claude_Desktop.md` — prompt di avvio AI agents (Claude Desktop + Cursor)
+> - `docs/Manuali/` — manuali installazione, distribuzione, code-signing, email, Centro Slide Desktop
 > - `docs/Commerciale/` — SLA, listino, roadmap vendita esterna
+> - `docs/_archive/` — storia sprint chiusi e doc storici (READ-ONLY)
 
 ---
 
@@ -1036,23 +1039,68 @@ Convenzioni i18n:
 
 ## 17. Edge Functions Supabase
 
-Cartella `supabase/functions/`:
+Cartella `supabase/functions/` — **26 funzioni totali** raggruppate per dominio. La colonna `verify_jwt` riflette `supabase/config.toml`. `false` = server-to-server o pubblica con auth applicativa (device_token, HMAC, rate-limit IP).
 
-| Funzione                | verify_jwt   | Cosa fa                                                                                                                                                                                                                   |
-| ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pair-init`             | true         | Genera codice 6 cifre, salva in `pairing_codes` (Fase 6)                                                                                                                                                                  |
-| `pair-claim`            | false        | Tecnico claim del codice + rate limit 5/15min IP hash (Fase 6 + 14)                                                                                                                                                       |
-| `pair-poll`             | true         | Dashboard polling stato code (Fase 6)                                                                                                                                                                                     |
-| `cleanup-expired-codes` | true         | pg_cron ogni ora, elimina codici scaduti                                                                                                                                                                                  |
-| `room-player-bootstrap` | false        | Validazione `device_token` server-side, ritorna network_mode + agent online (Fase 9). Sprint S-4: branch `control_center` con files multi-room. Sprint T-1: ogni file include `versionNumber/versionTotal` per badge sala |
-| `team-invite-accept`    | false        | Accetta invito, crea user con tenant + invio welcome email (Sprint 1 + 8)                                                                                                                                                 |
-| `gdpr-export`           | true (admin) | ZIP manifest + 10 CSV + signed URL 7gg + record `tenant_data_exports` (Sprint 7)                                                                                                                                          |
-| `email-send`            | false        | Resend transactional + idempotency `email_log` + 4 template inline IT/EN (Sprint 7)                                                                                                                                       |
-| `email-cron-licenses`   | true (cron)  | Daily scan 3 soglie T-30/T-7/T-1 → dispatch a `email-send` (Sprint 7)                                                                                                                                                     |
-| `system-status`         | false        | Probe paralleli Database/Auth/Storage/Edge + soglia degraded 1500ms (Sprint 8)                                                                                                                                            |
-| `licensing-sync`        | false        | Riceve POST HMAC SHA-256 da Live WORKS APP, chiama `licensing_apply_quota` (Sprint 4)                                                                                                                                     |
+### 17.1 Pairing PC sala (cloud)
 
-`config.toml`: `verify_jwt = false` per `pair-claim`, `room-player-bootstrap`, `team-invite-accept`, `email-send`, `email-cron-licenses`, `system-status`, `licensing-sync` (tutte server-to-server o pubbliche).
+| Funzione                | verify_jwt   | Cosa fa                                                                                       |
+| ----------------------- | ------------ | --------------------------------------------------------------------------------------------- |
+| `pair-init`             | true         | Genera codice 6 cifre, salva in `pairing_codes` (Fase 6)                                      |
+| `pair-claim`            | false        | Tecnico claim del codice + rate limit 5/15min IP hash + atomico TOCTOU-safe (Fase 6 + AU-04) |
+| `pair-poll`             | true         | Dashboard polling stato code (Fase 6)                                                         |
+| `pair-revoke-self`      | false        | Device si auto-revoca al logout (cleanup volontario)                                          |
+| `cleanup-expired-codes` | false (cron) | pg_cron ogni ora, elimina codici scaduti                                                      |
+
+### 17.2 Room player + remote control
+
+| Funzione                  | verify_jwt   | Cosa fa                                                                                                                              |
+| ------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `room-player-bootstrap`   | false        | Validazione `device_token`, ritorna network_mode + manifest sala (Fase 9). Sprint S-4: branch `control_center` multi-room. Sprint T-1: `versionNumber/versionTotal`. Sprint W: `slideIndex/slideTotal` |
+| `room-player-set-current` | false        | Admin imposta versione corrente / slide index. Idempotente con outbox queue lato player (AU-08)                                       |
+| `room-player-rename`      | false        | Rename PC sala da admin                                                                                                              |
+| `room-provision-claim`    | false        | Sprint W: nuovo bind QR senza pair-code (zero-friction)                                                                              |
+| `remote-control-dispatch` | false        | Sprint T-3-G: tablet → PC sala (next/prev slide, blackout). Rate limit 120 req/min/IP (AU-05)                                        |
+
+### 17.3 Upload da PC sala (Sprint R-3 + S-4)
+
+| Funzione                      | verify_jwt | Cosa fa                                                                                       |
+| ----------------------------- | ---------- | --------------------------------------------------------------------------------------------- |
+| `room-device-upload-init`     | false      | Speaker dal PC sala richiede signed URL upload. Auth `device_token`, rate limit 30 req/5min/IP (AU-05) |
+| `room-device-upload-finalize` | false      | Conferma upload completato, crea `presentation_versions` + broadcast realtime                |
+| `room-device-upload-abort`    | false      | Cleanup signed URL non usato (UI cancel / errore client)                                      |
+| `slide-validator`             | true       | Sprint T-3-A: warn-only validation file caricato (formato, dimensione, slide count)           |
+
+### 17.4 Sistema licenze + tenant lifecycle
+
+| Funzione                    | verify_jwt   | Cosa fa                                                                                                            |
+| --------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `team-invite-accept`        | false        | Accetta invito, crea user con tenant + invio welcome email (Sprint 1 + 8)                                          |
+| `licensing-sync`            | false        | Riceve POST HMAC SHA-256 da Live WORKS APP, chiama `licensing_apply_quota` (Sprint 4)                              |
+| `lemon-squeezy-webhook`     | false        | Sprint R-2: webhook checkout/subscription → crea AUTOMATICAMENTE tenant + invito admin. Idempotenza atomica (AU-03) |
+| `desktop-bind-claim`        | false        | Sprint D5: PC desktop bind via magic-link cloud → ritorna license JWT cifrato                                      |
+| `desktop-license-verify`    | false        | Sprint D6: heartbeat PC desktop ogni 6h. Aggiorna `last_seen_at`, ritorna `tenant_status` + `device_status`        |
+| `desktop-license-renew`     | false        | Sprint D6: rinnovo annuale licenza desktop                                                                         |
+
+### 17.5 GDPR + email + monitoring
+
+| Funzione                     | verify_jwt   | Cosa fa                                                                                          |
+| ---------------------------- | ------------ | ------------------------------------------------------------------------------------------------ |
+| `gdpr-export`                | true (admin) | ZIP manifest + 10 CSV + signed URL 7gg + record `tenant_data_exports` (Sprint 7)                  |
+| `email-send`                 | false        | Resend transactional + idempotency `email_log` + 4 template inline IT/EN (Sprint 7)               |
+| `email-cron-licenses`        | false (cron) | Daily scan soglie T-30/T-7/T-1 licenze tenant → dispatch a `email-send` (Sprint 7)                |
+| `email-cron-desktop-tokens`  | false (cron) | Daily scan token desktop in scadenza → email warning admin                                        |
+| `system-status`              | false        | Probe paralleli Database/Auth/Storage/Edge + soglia degraded 1500ms (Sprint 8)                    |
+| `health`                     | false        | Health check globale per smoke test + monitoring esterno                                          |
+
+### 17.6 Auth & rate-limit shared
+
+`config.toml`: `verify_jwt = false` per tutte le funzioni server-to-server (pairing, room-player, upload, licensing, webhooks, cron). Funzioni con `verify_jwt = true` sono per dashboard admin (`pair-init`, `pair-poll`, `gdpr-export`, `slide-validator`).
+
+Nuovi shared (Sprint AU-01 → AU-09):
+- `_shared/cors.ts` — whitelist admin con regex Vercel preview.
+- `_shared/rate-limit.ts` — `checkAndRecordEdgeRate` + `clientIpFromRequest` + `hashIp` salt-aware. Tabella append-only `edge_function_rate_events` con `cleanup_edge_function_rate_events` cron 30min.
+
+Warm-keep procedure operativa per cold-start mitigation: vedi `DISASTER_RECOVERY.md` § "Appendice — Edge Functions warm-keep".
 
 ---
 
@@ -1372,13 +1420,73 @@ Famiglia R chiusa: Slide Center e' ora **commercial-ready end-to-end** (purchase
 | S-3    | G6  | Export ZIP fine evento ordinato per sala/sessione (`buildEventSlidesZip` v2 nested + `info.txt`) | DONE                                            |
 | S-4    | G7  | Ruolo device "Centro Slide" multi-room (oggi: 1 device = 1 sala)                                 | **DONE** ✅ (vedi `docs/STATO_E_TODO.md` §0.15) |
 
-| Sprint | Gap | Nome                                                                                                                | Stato                                           |
-| ------ | --- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| T-1    | G8  | Badge versione "in onda" sempre visibile in sala + toast cambio versione (`VersionBadge` inline+overlay)            | **DONE** ✅ (vedi `docs/STATO_E_TODO.md` §0.16) |
-| T-2    | G9  | Telemetria perf live PC sala heap/storage/FPS/battery (`device_metric_pings` + `LivePerfTelemetryPanel`)            | **DONE** ✅ (vedi `docs/STATO_E_TODO.md` §0.17) |
-| T-3    | G10 | Features competitor parity (file checking, ePoster, mobile SRR, speaker timer integrato, email reminder schedulati) | pending                                         |
+| Sprint  | Gap | Nome                                                                                                            | Stato |
+| ------- | --- | --------------------------------------------------------------------------------------------------------------- | ----- |
+| T-1     | G8  | Badge versione "in onda" sempre visibile in sala + toast cambio versione (`VersionBadge` inline+overlay)        | DONE  |
+| T-2     | G9  | Telemetria perf live PC sala heap/storage/FPS/battery (`device_metric_pings` + `LivePerfTelemetryPanel`)        | DONE  |
+| T-3-A   | G10a | File error checking warn-only (`slide-validator` Edge Function + `validation_warnings`)                         | DONE  |
+| T-3-E   | G10b | Preview "Prossimo file" su PC tecnico (next-up panel in OnAir)                                                  | DONE  |
+| T-3-G   | G10c | Remote slide control da tablet (`remote-control-dispatch` + `remote_control_pairings`)                          | DONE  |
 
-Sprint T (competitor parity, residuo G10) pianificato. Vedi `docs/STATO_E_TODO.md` §0.4 per il dettaglio dei 10 GAP e la roadmap.
+Famiglia T chiusa: 10/10 GAP audit chirurgico 18/04/2026 risolti. Cloud è feature-parity con i competitor (PreSeria/Slidecrew/SLIDEbit) per le funzioni live-event critiche.
+
+#### Audit chirurgico post-deploy + backlog medium (AU-01 → AU-09) — DONE 18/04/2026
+
+| ID    | Nome                                                                                          | Stato |
+| ----- | --------------------------------------------------------------------------------------------- | ----- |
+| AU-01 | Retention DB con `pg_cron` (4 job: lemon_squeezy_event_log/device_metric_pings/rate_events)   | DONE  |
+| AU-02 | `search_path` hardening su ~40 funzioni `SECURITY DEFINER`                                    | DONE  |
+| AU-03 | Idempotency atomica su Lemon Squeezy webhook                                                  | DONE  |
+| AU-04 | TOCTOU race fix su `pair-claim` (`claim_pairing_code_atomic`)                                 | DONE  |
+| AU-05 | Rate-limit Edge Functions generico (`edge_function_rate_events` + `_shared/rate-limit.ts`)    | DONE  |
+| AU-06 | CORS hardening (whitelist admin + regex Vercel preview in `_shared/cors.ts`)                  | DONE  |
+| AU-07 | Frontend perf: debounce reload Realtime + lazy-import jszip                                   | DONE  |
+| AU-08 | Outbox queue offline IndexedDB + retry exponential backoff (RoomPlayerView)                   | DONE  |
+| AU-09 | E2E Playwright: pairing-race + move-presentation + remote-control + rate limit coverage       | DONE  |
+
+#### UX Redesign V2.0 (Sprint U-1 → U-7) — DONE 18/04/2026
+
+| Sprint | Nome                                                                                                  | Stato |
+| ------ | ----------------------------------------------------------------------------------------------------- | ----- |
+| U-1    | Foundation shadcn/ui + AppShell sidebar Notion/Linear-style + Command palette ⌘K + dual mode admin/tenant | DONE  |
+| U-2    | ProductionView (tree+grid+drop globale, split EventDetail in 4 tab)                                   | DONE  |
+| U-3    | Rinomina LiveRegia → OnAirView + preview slide N/Tot grosso                                           | DONE  |
+| U-4    | Zero-friction provisioning via QR (`room-provision-claim`)                                            | DONE  |
+| U-5    | Re-skin pannelli minori + E2E + tag v2.0                                                              | DONE  |
+| U-6    | Fix deploy Vercel + onboarding MCP Vercel ufficiale (https://mcp.vercel.com)                          | DONE  |
+| U-7    | `errorElement` + catch-all SPA route + fix 404 NOT_FOUND su rewrite Vercel                            | DONE  |
+
+#### Parity cloud/desktop + licensing unificato (Sprint D1 → D8) — DONE 18/04/2026
+
+| Sprint | Nome                                                                                                                         | Stato |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------- | ----- |
+| D1     | Sistema licenze unificato (Supabase tabelle `desktop_devices` + `desktop_provision_tokens` + 3 Edge Functions + Rust crate)  | DONE  |
+| D2     | Installer NSIS vendor-grade (lingua IT/EN, EULA, hooks pre/post, firewall + Defender exclusion automatici, profilo Privato) | DONE  |
+| D3     | Tauri updater Ed25519 + GitHub Actions `desktop-release.yml`                                                                 | DONE  |
+| D4     | Port Sprint S-4 ruolo `control_center` su SQLite locale (filesystem `~/SlideCenter/<event>/<sala>/<sessione>/<file>`)        | DONE  |
+| D5     | Pannello admin `/centri-slide` (PC server collegati + magic-link + toggle ruolo) + deep-link `/centro-slide/bind`            | DONE  |
+| D6     | Heartbeat automatico licenza desktop (background tokio loop, refresh `last_seen_at`, grace offline 30gg)                    | DONE  |
+| D7     | Scripts PowerShell `setup-signing-keys.ps1` + `tag-release.ps1` (gen Ed25519 + GH secrets + bump version)                    | DONE  |
+| D8     | Manuale operativo `Manuale_Centro_Slide_Desktop.md` (Setup Parte A + Smoke Test Parte B)                                     | DONE  |
+
+#### Sprint W — Cloud finale + Desktop allineato 100% — DONE 19/04/2026
+
+| Fase | Nome                                                                                                                                                         | Stato |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
+| A    | Cloud finale: rigenerati tipi Supabase (rimossi `unknown as` + `rpcLoose()`), unificata UX cartelle nel solo File Explorer V2, daily backup verifier (PowerShell + GH Actions cron), nuovo `DISASTER_RECOVERY.md` runbook 5 scenari | DONE  |
+| B+C  | Desktop schema/RPC: 7 migration SQLite 0004→0010 mirror dello schema cloud (event_folders, validation_warnings, remote_control_pairings, room_provision_tokens, room_state slide_index/total, enum extensions, device_metric_pings) + nuovo modulo `folder_routes.rs` (REST + RPC `move_presentations_to_folder` + `rename_presentation_version_file_name`) + estensione `init_for_session/speaker` con `p_folder_id` + estensione `rpc_room_player_set_current` con slide index/total + 4 nuovi `LanEventPayload` per fanout cartelle ai PC sala + 6 cargo test integration (18/18 verdi) | DONE  |
+| D    | UI conditional cloud-only: helper `isCloudFeatureAvailable` + 8 type `CloudOnlyFeature` + `RequireCloudFeature` route guard + `FeatureNotAvailableView` (CTA verso `app.liveworksapp.com`) + 8 nuove i18n IT/EN `featureNotAvailable.*` → in desktop le voci `/team`, `/billing`, `/audit` non sono raggiungibili | DONE  |
+| E    | Quality+deploy: typecheck/lint verde, cargo check/test verde 18/18, deploy Vercel produzione READY, NSIS desktop `Live SLIDE CENTER Desktop_0.1.1_x64-setup.exe` 10.70MB sha256 `8c64c96e...d6c7`, smoke test 6 OK + 1 skip + 1 warn (mDNS PC casa, non bloccante) **SEMAFORO VERDE** | DONE  |
+
+Fix tecnici di build inclusi in Sprint W: Tauri CLI 2.10 (rimosso `--manifest-path`), NSIS hooks (delimitatore backtick invece di single quote per PowerShell), Cargo feature `signed-updater` (plugin updater registrato condizionalmente per evitare crash boot in build unsigned).
+
+#### Operations post-Sprint W — DONE 19/04/2026
+
+| Item                                | Nome                                                                                                                                  | Stato |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| Sentry runtime monitoring           | Setup org `live-work-app` (region EU `de.sentry.io`) + project `live-slide-center-web`. Init lazy in `apps/web/src/lib/init-sentry.ts` con `tracesSampleRate=0.1`, telemetry helper `apps/web/src/lib/telemetry.ts`, ErrorBoundary integrato. Vedi `DISASTER_RECOVERY.md` § Setup Sentry | DONE  |
+| Workspace cleanup                   | Liberati 11.83 GB (96% reduction da 12.6 GB → 492 MB). Rewrite `.gitignore`, `.vercelignore`, nuovo `.cursorindexingignore`. Riduce upload Vercel da 3.7 GB a < 100 MB e velocizza indexing Cursor | DONE  |
+| Documentazione consolidata          | 29 doc → ~14 doc canonici + `_archive/`. Merge Setup_PC_Centro_Slide.md + Smoke_Test_Centro_Slide.md → `Manuale_Centro_Slide_Desktop.md`. Merge EDGE_FUNCTIONS_WARM_KEEP.md → `DISASTER_RECOVERY.md` appendice. STATO_E_TODO.md snellito 304→37 KB (-88%). Nuovo `docs/README.md` indice | DONE  |
 
 ---
 

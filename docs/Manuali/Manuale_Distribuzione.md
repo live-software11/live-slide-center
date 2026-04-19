@@ -1,29 +1,49 @@
 # Manuale Distribuzione — Live SLIDE CENTER
 
 > Pubblico: Andrea (CTO) e IT del cliente che riceve il pacchetto.
-> Versione: 0.1.1 — Sprint 4 client (17 Aprile 2026)
+> Versione: 1.0 — 19 aprile 2026 (Sprint W: aggiunto flusso Tauri 2 `apps/desktop` accanto al legacy Tauri 1).
 
 ## 1. Toolchain di build (una volta sola sul PC di sviluppo)
 
 | Strumento      | Versione minima | Comando installazione                               |
 | -------------- | --------------- | --------------------------------------------------- |
-| Node.js LTS    | 20+             | https://nodejs.org/                                 |
+| Node.js LTS    | 22+             | `winget install OpenJS.NodeJS.LTS`                  |
 | pnpm           | 9.x             | `npm install -g pnpm`                               |
 | Rust toolchain | stable          | https://rustup.rs/                                  |
-| Tauri CLI v2   | 2.x             | `cargo install tauri-cli --version "^2.0" --locked` |
+| Tauri CLI v2   | 2.10+           | `cargo install tauri-cli --version "^2.0" --locked` |
 
 Verifica:
 
 ```powershell
-node --version    # >= v20
+node --version    # >= v22
 pnpm --version    # >= 9
 cargo --version   # qualsiasi stable
-cargo tauri --version  # 2.x
+cargo tauri --version  # 2.10+
 ```
 
 ## 2. Build artefatti di distribuzione
 
-Doppio click sulla root del repo:
+Esistono **due flussi paralleli**: il Centro Slide Desktop unificato (Tauri 2, attuale) e gli agent storici (Tauri 1, legacy).
+
+### 2.0 Tauri 2 unificato `apps/desktop` (FLUSSO ATTUALE)
+
+Per nuove installazioni Centro Slide. Single binary che fa sia regia che PC sala (modalita scelta al primo boot).
+
+```powershell
+# Wrapper PowerShell user-friendly (raccomandato)
+apps/desktop/scripts/release.ps1 -Signed
+
+# Comando manuale equivalente
+pnpm --filter @slidecenter/desktop release:nsis
+```
+
+Output: `apps/desktop/src-tauri/target/release/bundle/nsis/Live SLIDE CENTER Desktop_<version>_x64-setup.exe` (~10-15 MB, code-signed se `CERT_PFX_PATH` + `CERT_PASSWORD` env vars sono settate).
+
+Per il manuale di installazione e smoke test del Centro Slide Desktop unificato vedi `Manuale_Centro_Slide_Desktop.md` (Parte A Setup + Parte B Smoke Test).
+
+### 2.1 Tauri 1 legacy (Local Agent + Room Agent separati)
+
+Per clienti gia' installati con il setup tradizionale a 2 binari. Doppio click sulla root del repo:
 
 ```
 clean-and-build.bat
@@ -37,6 +57,8 @@ Lo script esegue 6 step:
 4. Build Local Agent: `pnpm --filter @slidecenter/agent-build run release:full`.
 5. Build Room Agent: `pnpm --filter @slidecenter/room-agent-build run release:full`.
 6. Verifica esistenza dei 6 file di output e stampa riepilogo.
+
+> **Follow-up Sprint W (19 apr 2026):** lo script `clean-and-build.bat` e i due `package.json` legacy sono stati aggiornati a Tauri CLI 2.10 (rimosso `--manifest-path` deprecato) e a `installer-hooks.nsi` con backtick come delimitatore esterno (fix `ExecWait expects 1-2 parameters`). Build end-to-end verificato 19/04/2026 (6 artefatti Local Agent + Room Agent ~5-7 MB ciascuno).
 
 ### 2.1 Build CON sistema licenze (vendita)
 

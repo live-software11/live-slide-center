@@ -14,9 +14,11 @@ globs:
 alwaysApply: false
 ---
 
-# Live SLIDE CENTER Desktop — Tauri 2 (Sprint J-Q)
+# Live SLIDE CENTER Desktop — Tauri 2 (Sprint J-W)
 
-> Questa rule riguarda il **nuovo desktop unico** `apps/desktop` (Sprint J in poi). Per i Tauri legacy `apps/agent` + `apps/room-agent`: vedi `legacy-agents.mdc`.
+> Questa rule riguarda il **nuovo desktop unico** `apps/desktop` (Sprint J in poi, post Sprint W cleanup). Per i Tauri legacy `apps/agent` + `apps/room-agent`: vedi `legacy-agents.mdc`.
+
+> **Manuale operativo canonico:** `docs/Manuali/Manuale_Centro_Slide_Desktop.md` (Tauri 2, Setup Parte A + Smoke Test Parte B). I manuali `Manuale_Installazione_Local_Agent.md` e `Manuale_Installazione_Room_Agent.md` sono LEGACY (Tauri 1).
 
 ## Architettura
 
@@ -200,3 +202,10 @@ Remove-Item ~/SlideCenter/db.sqlite     # reset DB locale (ATTENZIONE: perdita d
 - **Auth desktop** = `DesktopAuthProvider` con session fittizia (`desktop-fake-session.ts`) — no Supabase Auth in offline.
 - **`apps/web/src/main.tsx`** carica `desktop-backend-init.ts` PRIMA di renderare l'app: blocca lo splash finche' `cmd_backend_info` ritorna `ready: true`.
 - Bug fix MSI/Windows installer: NSIS ha override `language: ["Italian", "English"]` in `tauri.conf.json` per UI installer i18n.
+
+## Sprint W cleanup (19 aprile 2026) — impatto sul workflow
+
+- **Rust target/ cancellati**: oltre 11 GB liberati. Rebuild incrementale richiede ricompilazione completa (~5-10 min la prima volta), poi cache rusta normalmente.
+- **`.cursorindexingignore`** esclude `target/`, `dist/`, `node_modules/`, `.turbo/` dall'indicizzazione semantica Cursor → operazioni IDE molto piu' veloci.
+- **`.vercelignore`** rafforzato esclude tutti i `target/` Tauri (apps/desktop, apps/agent, apps/room-agent) → upload deploy ridotto da 3.7 GB a ~360 MB.
+- Se trovi rallentamenti dopo `cargo clean`: e' atteso al primo rebuild. Successivi sono incrementali.

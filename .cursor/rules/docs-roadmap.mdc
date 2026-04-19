@@ -5,43 +5,58 @@ alwaysApply: false
 
 # Documentazione — Mappa & policy aggiornamento
 
-## Hierarchy fonti di verita' (consolidata 18 aprile 2026)
+## Hierarchy fonti di verita' (consolidata 19 aprile 2026, post Sprint W docs overhaul)
 
 ```
 docs/
-├── ARCHITETTURA_LIVE_SLIDE_CENTER.md    ← FONTE UNICA: cos'e' / com'e' fatto (~90 KB, 24 sez.)
-├── STATO_E_TODO.md                       ← FONTE UNICA: cosa rimane da fare (~36 KB, 7 sez.)
-├── Setup_Strumenti_e_MCP.md              ← Setup IDE, MCP servers, Cursor + mappa documentazione
-├── Istruzioni_Claude_Desktop.md          ← Prompt + workflow per AI assistant
+├── README.md                                ← INDICE CANONICO navigabile per topic
+├── ARCHITETTURA_LIVE_SLIDE_CENTER.md        ← FONTE UNICA: cos'e' / com'e' fatto + sprint history (~100KB, 24 sez.)
+├── STATO_E_TODO.md                          ← FONTE UNICA: cosa rimane da fare (~37KB, 7 sez.)
+├── DISASTER_RECOVERY.md                     ← Backup, restore, Sentry setup, Edge Fn warm-keep, workspace cleanup
+├── FIELD_TEST_CHECKLIST.md                  ← Checklist pre-evento + smoke E2E + URL produzione
+├── FIELD_TEST_CREDENTIALS.md                ← Credenziali tenant/utenti/evento demo per field test
+├── Setup_Strumenti_e_MCP.md                 ← Setup IDE, MCP servers, Cursor (rimanda a docs/README.md per la mappa)
+├── Istruzioni_Claude_Desktop.md             ← Prompt + workflow per AI assistant
 │
-├── Manuali/                              ← 7 manuali operativi
-│   ├── README.md                          ← Indice manuali + matrice ruolo→manuale
-│   ├── Manuale_Onboarding_Admin.md        ← Setup nuovo tenant cliente
-│   ├── Manuale_Distribuzione.md           ← Pipeline release desktop
-│   ├── Manuale_Code_Signing.md            ← OV cert Sectigo Windows + setup signtool
-│   ├── Manuale_Email_Resend.md            ← Setup Resend transactional + DNS
-│   ├── Manuale_Installazione_Local_Agent.md   ← Setup Local Agent (Tauri storico)
-│   ├── Manuale_Installazione_Room_Agent.md    ← Setup Room Agent (Tauri storico)
-│   ├── Guida_Uso_Interno_DHS.md           ← Procedure uso interno DHS aziendale
-│   ├── Script_Screencast.md               ← Scaletta 3 video onboarding
-│   └── build-pdf.ps1                       ← Export manuali in PDF (richiede pandoc)
+├── Manuali/                                 ← Manuali operativi (user-facing)
+│   ├── README.md                            ← Indice manuali + matrice ruolo→manuale
+│   ├── Manuale_Centro_Slide_Desktop.md      ← CANONICO Tauri 2 unificato (Setup Parte A + Smoke Test Parte B)
+│   ├── Manuale_Onboarding_Admin.md          ← Wizard primo accesso cloud SaaS
+│   ├── Manuale_Distribuzione.md             ← Pipeline release desktop (Tauri 2 attuale + Tauri 1 legacy)
+│   ├── Manuale_Code_Signing.md              ← OV cert Sectigo Windows + setup signtool
+│   ├── Manuale_Email_Resend.md              ← Setup Resend transactional + DNS + cron
+│   ├── Script_Screencast.md                 ← Scaletta 3 video onboarding
+│   ├── Guida_Uso_Interno_DHS.md             ← Procedure operative team DHS aziendale
+│   ├── Manuale_Installazione_Local_Agent.md ← LEGACY Tauri 1 (regia)
+│   ├── Manuale_Installazione_Room_Agent.md  ← LEGACY Tauri 1 (PC sala)
+│   └── build-pdf.ps1                        ← Export manuali in PDF (richiede pandoc + xelatex)
 │
-└── Commerciale/                          ← Materiali vendita / SLA / pricing
-    ├── README.md                          ← Indice + 5 decisioni urgenti pre-primo-cliente
-    ├── Listino_Prezzi.md                  ← 4 piani SaaS + bundle desktop
-    ├── Contratto_SLA.md                   ← Bozza SLA tecnica (uptime, RPO/RTO, supporto)
-    ├── Roadmap_Vendita_Esterna.md         ← 47 voci pending (legale, marketing, fiscale)
-    └── SlideHub_Live_Commerciale.docx     ← Documento commerciale executive Word
+├── Commerciale/                             ← Materiali vendita / SLA / pricing
+│   ├── README.md                            ← Indice + 5 decisioni urgenti pre-primo-cliente
+│   ├── Listino_Prezzi.md                    ← 4 piani SaaS + bundle desktop
+│   ├── Contratto_SLA.md                     ← Bozza SLA tecnica (uptime, RPO/RTO, supporto)
+│   ├── Roadmap_Vendita_Esterna.md           ← 47 voci pending (legale, marketing, fiscale)
+│   └── SlideHub_Live_Commerciale.docx       ← Documento commerciale executive Word
+│
+└── _archive/                                ← Storici read-only (NON usare come fonte di verita)
+    ├── README.md                            ← Spiega scopo archive + tabella contenuto
+    ├── AUDIT_FINALE_E_PIANO_TEST_v1.md      ← Audit Sprint A→T-3 chiuso (consolidato in ARCHITETTURA § 22)
+    ├── QA_FIX_REPORT_2026-04-18.md          ← Tutti i fix elencati gia' applicati e validati
+    ├── SPRINT_W_CLOSURE_REPORT.md           ← Sprint W chiuso (consolidato in ARCHITETTURA § 22)
+    └── STATO_E_TODO_storia_sprint_0.1-0.29.md ← Sprint 0.1→0.29 (storico DONE) tagliato da STATO_E_TODO.md
 ```
 
 ## Priorita' di consultazione (in ordine)
 
-1. **Domanda su architettura / sprint chiusi / regole sovrane:** `ARCHITETTURA_LIVE_SLIDE_CENTER.md`.
-2. **Domanda su cosa fare ora / field test / Sprint Q / pending Andrea:** `STATO_E_TODO.md`.
-3. **Domanda su setup tool / MCP / IDE:** `Setup_Strumenti_e_MCP.md`.
-4. **Domanda su prompt AI assistant / divisione lavoro Cursor vs Claude Desktop:** `Istruzioni_Claude_Desktop.md`.
-5. **Domanda operativa specifica (admin onboarding, code sign, distribuzione, screencast):** `Manuali/<argomento>.md`.
-6. **Domanda commerciale (pricing, SLA, vendita esterna, target):** `Commerciale/<argomento>.md`.
+1. **Domanda generica "che documento mi serve?"** → `docs/README.md` (indice canonico per topic).
+2. **Domanda su architettura / sprint chiusi / regole sovrane** → `ARCHITETTURA_LIVE_SLIDE_CENTER.md`.
+3. **Domanda su cosa fare ora / field test / Sprint Q / pending Andrea** → `STATO_E_TODO.md`.
+4. **Domanda su backup / restore / Sentry / warm-keep / cleanup workspace** → `DISASTER_RECOVERY.md`.
+5. **Domanda su setup tool / MCP / IDE** → `Setup_Strumenti_e_MCP.md`.
+6. **Domanda su prompt AI assistant / divisione lavoro Cursor vs Claude Desktop** → `Istruzioni_Claude_Desktop.md`.
+7. **Domanda operativa specifica (admin onboarding, code sign, distribuzione, screencast, Centro Slide Desktop)** → `Manuali/<argomento>.md`.
+8. **Domanda commerciale (pricing, SLA, vendita esterna, target)** → `Commerciale/<argomento>.md`.
+9. **Domanda su sprint storici dettagliati (audit chirurgico 0.1→0.29, AU-01..09)** → `_archive/STATO_E_TODO_storia_sprint_0.1-0.29.md` (read-only).
 
 In caso di **conflitto fra docs:** vince sempre **`ARCHITETTURA_LIVE_SLIDE_CENTER.md`**.
 
@@ -65,18 +80,24 @@ In caso di **conflitto fra docs:** vince sempre **`ARCHITETTURA_LIVE_SLIDE_CENTE
 → `ARCHITETTURA_LIVE_SLIDE_CENTER.md`:
 
 - § 7 DATABASE SCHEMA: aggiungere nuove tabelle/policy/colonne con tipi.
-- § 17 EDGE FUNCTIONS: aggiungere nuova funzione con firma + auth + logica.
+- § 17 EDGE FUNCTIONS: aggiungere nuova funzione con firma + auth + logica + count totale.
 - § 6 MULTI-TENANCY/RLS/RBAC: aggiornare se cambia pattern policy.
+
+→ `supabase-db.mdc`: aggiornare tabelle/Edge Functions citate.
 
 → Eventuale nuovo manuale operativo se la modifica impatta admin (es. nuova quota, nuovo permesso utente).
 
-### Modifica processo deploy / build
+### Modifica processo deploy / build / Sentry / smoke
 
 → `Manuali/Manuale_Distribuzione.md` (o nuovo manuale specifico se grosso).
 
 → `04-git-workflow.mdc` (rule sempre attiva) se cambia comando standard.
 
+→ `02-quality-gate.mdc` se cambia il quality gate (typecheck/lint/build/smoke/Sentry).
+
 → `STATO_E_TODO.md` § 7 cheat-sheet quotidiano se cambia comando user-facing.
+
+→ `DISASTER_RECOVERY.md` se cambia procedura backup/restore o Sentry init.
 
 ### Modifica pricing / piani / quote
 
@@ -94,20 +115,39 @@ In caso di **conflitto fra docs:** vince sempre **`ARCHITETTURA_LIVE_SLIDE_CENTE
 
 → `ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 18 i18n se cambia convention.
 
-### Aggiunta/eliminazione di un documento
+### Aggiunta/eliminazione/spostamento di un documento
 
-→ `Setup_Strumenti_e_MCP.md` § 0 mappa documentazione.
+→ `docs/README.md` (indice canonico): aggiornare sezione "Per topic" + sezione "Mappa fisica" + storia overhaul.
+
+→ `Setup_Strumenti_e_MCP.md` § 0 mappa documentazione (se cambia un canonico).
 
 → `00-project-identity.mdc` lista fonti di verita.
 
-→ `CLAUDE.md` tabella documentazione.
+→ `CLAUDE.md` tabella documentazione canonica.
 
 → Questo stesso file `docs-roadmap.mdc`.
+
+### Archiviazione di un documento storico
+
+→ Spostare il file in `docs/_archive/`.
+
+→ Aggiornare `docs/_archive/README.md` aggiungendo una riga in tabella (file, data, motivo, sostituito da).
+
+→ Verificare nessun `[link relativo]` rotto in altri doc canonici (`rg "(\.\./)?archived_filename" docs/`).
+
+→ Rimuovere riferimenti diretti dai doc canonici (`docs/README.md`, `Setup_Strumenti_e_MCP.md`, `CLAUDE.md`, ecc.).
 
 ## Cosa NON va piu' usato
 
 - File con suffisso `_v1`, `_OLD`, `.bak` → spostare in `docs/_archive/` se serve preservare, altrimenti cancellare.
-- File legacy `GUIDA_DEFINITIVA_PROGETTO.md`, `PIANO_FINALE_SLIDE_CENTER_v2.md`, `GUIDA_OPERATIVA_v3_FIELD_TEST_E_OFFLINE.md`, `RUNBOOK_FIELD_TEST_DESKTOP.md`, `TEMPLATE_FEEDBACK_FIELD_TEST_v1.md`: ELIMINATI il 18 aprile 2026, contenuto consolidato in `ARCHITETTURA_LIVE_SLIDE_CENTER.md` + `STATO_E_TODO.md`. Se trovi riferimenti residui in codice/docs: SOSTITUISCILI subito con i due nuovi file.
+- File legacy gia' eliminati 18 aprile 2026 (`GUIDA_DEFINITIVA_PROGETTO.md`, `PIANO_FINALE_SLIDE_CENTER_v2.md`, `GUIDA_OPERATIVA_v3_FIELD_TEST_E_OFFLINE.md`, `RUNBOOK_FIELD_TEST_DESKTOP.md`, `TEMPLATE_FEEDBACK_FIELD_TEST_v1.md`): contenuto consolidato in `ARCHITETTURA_LIVE_SLIDE_CENTER.md` + `STATO_E_TODO.md`.
+- File legacy gia' archiviati o eliminati 19 aprile 2026 (Sprint W docs overhaul):
+  - `AUDIT_FINALE_E_PIANO_TEST_v1.md`, `QA_FIX_REPORT_2026-04-18.md`, `SPRINT_W_CLOSURE_REPORT.md`, `STATO_E_TODO_storia_sprint_0.1-0.29.md` → spostati in `_archive/`.
+  - `Setup_PC_Centro_Slide.md`, `Smoke_Test_Centro_Slide.md` → mergiati in `Manuali/Manuale_Centro_Slide_Desktop.md` ed eliminati.
+  - `EDGE_FUNCTIONS_WARM_KEEP.md` → mergiato in appendice di `DISASTER_RECOVERY.md` ed eliminato.
+  - `.commit-msg.txt`, `COMMIT_MSG_TMP.txt` → eliminati (artefatti temporanei).
+
+Se trovi riferimenti residui in codice/docs: SOSTITUISCILI subito con il nuovo doc canonico.
 
 ## Stile documentazione
 
@@ -119,7 +159,7 @@ In caso di **conflitto fra docs:** vince sempre **`ARCHITETTURA_LIVE_SLIDE_CENTE
 
 ## Quando aggiornare CLAUDE.md
 
-`CLAUDE.md` e' il **front-page** rapido per AI assistenti / nuovi developer. Mantenerlo lean (~12 KB).
+`CLAUDE.md` e' il **front-page** rapido per AI assistenti / nuovi developer. Mantenerlo lean (~250 righe / ~12 KB).
 
 Aggiornare quando:
 
@@ -127,39 +167,28 @@ Aggiornare quando:
 - Cambia stato sprint (chiude un Sprint).
 - Cambia comando quotidiano (`pnpm dev`, deploy, ecc.).
 - Cambia stack technologico (versione major).
-- Vengono aggiunti/eliminati documenti (aggiornare tabella documentazione).
+- Vengono aggiunti/eliminati documenti (aggiornare tabella documentazione canonica).
+- Cambia un account o servizio operativo (Sentry, Vercel, Supabase region, ecc.).
 
 NON duplicare contenuto di `ARCHITETTURA_LIVE_SLIDE_CENTER.md` o `STATO_E_TODO.md` in `CLAUDE.md` — usare link.
 
 ## Tooling per documentazione
 
 - **Editor:** Cursor IDE con plugin Markdown All-in-One (preview live).
-- **Validazione link:** in fase di review manuale (no automation attiva).
-- **Diagrammi:** Mermaid per flow/sequence (supportato da GitHub Markdown). Esempio:
-
-  ```mermaid
-  sequenceDiagram
-    participant Speaker
-    participant Storage
-    participant Realtime
-    participant Sala
-    Speaker->>Storage: TUS upload
-    Storage->>Realtime: trigger PG
-    Realtime->>Sala: broadcast room:<uuid>
-    Sala->>Storage: download verify
-  ```
-
+- **Validazione link:** in fase di review manuale (no automation attiva). Usare `rg "\]\(\./.*\.md\)" docs/` per scansionare i link relativi.
+- **Diagrammi:** Mermaid per flow/sequence (supportato da GitHub Markdown).
 - **Screenshot:** salvare in `docs/_assets/` con naming `<doc>-<feature>-<n>.png`. Inserire con `![alt](../_assets/<file>)`.
-- **Export PDF manuali:** `docs/Manuali/build-pdf.ps1` (richiede pandoc installato).
+- **Export PDF manuali:** `docs/Manuali/build-pdf.ps1` (richiede pandoc + xelatex installati).
 
 ## Checklist pre-commit docs
 
-- [ ] Lingua coerente (IT primaria, EN dove richiesto)
-- [ ] Cross-reference funzionanti (link relativi giusti)
-- [ ] Niente segreti / token / chiavi private inline
-- [ ] Tabelle e code block formattati correttamente
-- [ ] Aggiornato indice (README.md di sezione) se nuovo file
-- [ ] Citato in `00-project-identity.mdc` se diventa fonte di verita' nuova
-- [ ] Aggiornato `docs-roadmap.mdc` (questo file) se aggiunto/eliminato/spostato un documento
-- [ ] Aggiornato `Setup_Strumenti_e_MCP.md` § 0 mappa documentazione se aggiunto/eliminato un documento
-- [ ] Aggiornato `CLAUDE.md` tabella documentazione se la mappa cambia
+- [ ] Lingua coerente (IT primaria, EN dove richiesto).
+- [ ] Cross-reference funzionanti (link relativi giusti, no link rotti dopo archiviazione/eliminazione).
+- [ ] Niente segreti / token / chiavi private inline.
+- [ ] Tabelle e code block formattati correttamente.
+- [ ] Aggiornato indice (`README.md` di sezione + `docs/README.md` indice canonico) se nuovo file.
+- [ ] Citato in `00-project-identity.mdc` se diventa fonte di verita' nuova.
+- [ ] Aggiornato `docs-roadmap.mdc` (questo file) se aggiunto/eliminato/spostato un documento.
+- [ ] Aggiornato `Setup_Strumenti_e_MCP.md` § 0 se cambia un canonico.
+- [ ] Aggiornato `CLAUDE.md` tabella documentazione canonica se la mappa cambia.
+- [ ] Se documento storico archiviato: aggiunta riga in `docs/_archive/README.md`.

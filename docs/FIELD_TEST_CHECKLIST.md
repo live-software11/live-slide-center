@@ -5,7 +5,8 @@
 > **Tempo:** ~3-4 ore se tutto verde, fino a 1 giornata se emergono fix.
 > **Output:** documento spuntato + log incidenti + lista fix prioritizzata per il commit post-evento.
 >
-> **Versione:** 1.0 — 18 Aprile 2026 (Sprint Field Test prep, livello 1)
+> **Versione:** 1.1 — 19 Aprile 2026 (post Sprint W: URL produzione + Sentry attivo).
+> **Allineato con:** `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` v6.0 + `docs/DISASTER_RECOVERY.md` (Sentry + warm-keep + cleanup).
 
 ---
 
@@ -52,10 +53,11 @@
 
 ### Pre-flight check (5 min)
 
-- [ ] `https://app.liveslidecenter.com/healthcheck.json` → 200 OK + `status: "ok"`.
-- [ ] Vercel ultimo deploy production: stato **Ready** (no error).
+- [ ] `https://live-slide-center.vercel.app/healthcheck.json` → 200 OK + `status: "ok"`.
+- [ ] `pnpm smoke:cloud` dalla root del repo → atteso 6 OK + 1 skip + 1 warn (mDNS PC casa, non bloccante).
+- [ ] Vercel ultimo deploy production: stato **Ready** (no error). Comando: `vercel ls --prod` o MCP Vercel.
 - [ ] Supabase dashboard → Logs → ultimi 60 min: 0 errori HTTP 5xx.
-- [ ] Sentry dashboard → ultimi 24h: 0 errori critici unresolved.
+- [ ] Sentry dashboard org `live-work-app` → project `live-slide-center-web` → ultimi 24h: 0 errori critici unresolved. URL: `https://live-work-app.de.sentry.io/issues/`.
 - [ ] Apri questo documento + `docs/DISASTER_RECOVERY.md` su 2 tab pinnati nel browser di servizio.
 
 ---
@@ -335,9 +337,9 @@
 
 **Passi:**
 
-1. Browser: apri URL inesistente `https://app.liveslidecenter.com/foo/bar/baz`.
+1. Browser: apri URL inesistente `https://live-slide-center.vercel.app/foo/bar/baz`.
 2. Verifica vedi `RouteErrorView` con titolo "Pagina non trovata" + bottoni "Ricarica" / "Vai alla home". NON vedi banner React Router default.
-3. Apri magic link rotto: `https://app.liveslidecenter.com/sala-magic/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee` (UUID inventato).
+3. Apri magic link rotto: `https://live-slide-center.vercel.app/sala-magic/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee` (UUID inventato).
 4. Verifica vedi `RouteErrorView` + "Vai alla home" → click → torna a `/` correttamente.
 5. Cambia lingua UI in EN → ripeti step 1 → verifica testo è in inglese ("Page not found").
 
@@ -532,7 +534,7 @@ _________________________________________________________
 ## RIFERIMENTI
 
 - **Credenziali ambiente field test** (email + password + ID tenant/event/room/session): `docs/FIELD_TEST_CREDENTIALS.md`.
-- Procedura test originale: `docs/AUDIT_FINALE_E_PIANO_TEST_v1.md` §4 (T1-T19 + acceptance criteria).
+- Procedura test originale (storico): `docs/_archive/AUDIT_FINALE_E_PIANO_TEST_v1.md` §4 (T1-T19 + acceptance criteria) — consolidato in `ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22.
 - Disaster recovery in caso di problemi durante l'evento: `docs/DISASTER_RECOVERY.md`.
 - Setup ambiente test automatico (idempotente, da rilanciare se l'ambiente viene cancellato): `scripts/Setup-Field-Test-Env.ps1`.
 - Architettura: `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.

@@ -14,6 +14,7 @@ alwaysApply: false
                     +----------------------------------+
                     |    Vercel — apps/web (cloud)     |
                     |  React 19 SPA (Slide Center UI)  |
+                    |  Sentry runtime (DSN EU)         |
                     +----------------+-----------------+
                                      |
                   +------------------+------------------+
@@ -24,12 +25,12 @@ alwaysApply: false
         Auth (JWT app_metadata)                ├ Webview = SPA apps/web
         Storage (TUS resumable)                ├ Server Rust Axum (127.0.0.1:dynamic)
         Realtime (Postgres+Broadcast)          ├ SQLite locale + WAL
-        Edge Functions Deno (15)               ├ mDNS _slidecenter._tcp.local
-        Cron pg_cron                           └ NSIS installer + Updater Tauri
+        Edge Functions Deno (26)               ├ mDNS _slidecenter._tcp.local
+        Cron pg_cron (cleanup ping)            └ NSIS installer + Updater Tauri
                   |
                   +-------- Live WORKS APP (SaaS partner)
                             licensing webhook → licensing-sync Edge Fn
-                            (Lemon Squeezy backend Andraven11... no, live-software11)
+                            (Lemon Squeezy backend live-software11)
 ```
 
 ## Catena dati END-TO-END (esempio: cliente carica file → PC sala lo proietta)
@@ -94,6 +95,21 @@ packages/
 │   └── src/lib/               # utility cross-app (formatBytes, formatRelativeTime, ...)
 └── ui/                        # @slidecenter/ui (eventuale, attualmente vuoto/inline in apps/web)
 ```
+
+## Edge Functions — inventario completo (26 funzioni)
+
+Lista canonica in `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 17. Sintesi per dominio:
+
+| Dominio                      | Funzioni                                                                                                                                                                           |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pairing                      | `pair-init`, `pair-claim`, `pair-direct`, `pair-revoke`                                                                                                                            |
+| Room player                  | `room-player-bootstrap`, `room-state-set`, `room-state-broadcast`                                                                                                                  |
+| Upload (TUS + speaker)       | `upload-init`, `upload-finalize`, `room-device-upload-init`, `room-device-upload-finalize`, `slide-validator`                                                                       |
+| Licensing                    | `licensing-sync`, `lemon-squeezy-webhook`                                                                                                                                          |
+| GDPR / Email / Monitoring    | `gdpr-export`, `gdpr-delete`, `email-sender`, `monitoring-snapshot`, `monitoring-cron`, `cleanup-cron`, `super-admin-snapshot`                                                     |
+| Auth / Rate-limit (shared)   | `_shared/cors.ts`, `_shared/rate-limit.ts`, `_shared/auth.ts` (helper, non endpoint), oltre a `auth-passwordless`, `auth-invite-accept`, `tenant-suspend`, `tenant-onboard`         |
+
+`verify_jwt`: tutte ON tranne `pair-claim`, `room-player-bootstrap`, `lemon-squeezy-webhook`, `slide-validator` (anon by design).
 
 ## Edge Functions — flussi reali
 
@@ -181,7 +197,12 @@ Dettaglio in `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 (storia sprint sinte
 |                | O      | DONE      | Backend status hook + BackendModeBadge sidebar                                                                                                          |
 |                | P      | DONE      | Updater Tauri + DesktopUpdateBanner + release script                                                                                                    |
 |                | FT     | DONE      | Field Test Readiness Pack (smoke test + runbook + template)                                                                                             |
-|                | Q      | OPZIONALE | Sync hybrid cloud<->offline. GO/NO-GO post-field-test reale (vedi §17 della guida operativa per framework deterministico). Piano READY-TO-CODE in §5.A. |
+| **Audit/Bckp** | AU01-09| DONE      | Audit chirurgico cloud + fix QA + Sentry init lazy + telemetry helper                                                                                   |
+|                | T-3-A/E/G | DONE   | Test isolamento RLS multi-tenant + Edge Fn rate-limit + smoke E2E                                                                                       |
+| **UX redesign**| U1-U7  | DONE      | Onboarding admin + UI sala + dark mode toggle + dashboard refresh                                                                                       |
+| **Parity D8**  | D1-D8  | DONE      | Desktop ↔ Cloud feature parity (devices, manifest, audit, GDPR)                                                                                         |
+| **Sprint W**   | W      | DONE      | Workspace cleanup (-11.83 GB), Sentry attivato (DSN EU), docs overhaul                                                                                  |
+|                | Q      | OPZIONALE | Sync hybrid cloud<->offline. GO/NO-GO post-field-test reale. Piano READY-TO-CODE.                                                                       |
 
 ## Tre modalita di esecuzione del prodotto (§0.bis della guida)
 
