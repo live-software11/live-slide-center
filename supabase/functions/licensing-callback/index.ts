@@ -85,6 +85,117 @@ function jsonResponse(status: number, body: Record<string, unknown>): Response {
   });
 }
 
+/**
+ * Audit 4.9: retry esponenziale sulla chiamata POST verso WORKS.
+ *
+ * Cosa: 3 tentativi totali (1 + 2 retry) con backoff 200ms -> 800ms.
+ * Quando fa retry:
+ *   - eccezione di rete (fetch throw)
+ *   - status 5xx (cold start, deploy in corso, errore upstream transitorio)
+ *   - status 408 (timeout) e 429 (rate limit)
+ * Quando NON fa retry:
+ *   - 2xx (ok, esce subito)
+ *   - 4xx tranne 408/429 (errore permanente: HMAC sbagliato, payload invalido, etc.)
+ *
+ * Importante: la function ha sempre risposto in caso di non-2xx finale, cosi'
+ * il caller (pg_net trigger) ha visibilita' del problema. Il fail-safe lato DB
+ * e' "se sync fallisce, prossimo UPDATE rilancia": il retry interno riduce
+ * i casi in cui WORKS resta disallineato fino al prossimo evento.
+ *
+ * Tempo totale max ≈ 1s aggiuntivo (200ms + 800ms backoff): ben dentro il
+ * budget Edge Function (~150s). Non rallenta l'UPDATE Postgres che invoca
+ * questa function (pg_net e' fire-and-forget async).
+ */
+const RETRY_DELAYS_MS = [200, 800];
+
+function shouldRetry(status: number): boolean {
+  if (status >= 500) return true;
+  if (status === 408 || status === 429) return true;
+  return false;
+}
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+interface PostResult {
+  ok: boolean;
+  status: number;
+  bodyText?: string;
+  bodyJson?: unknown;
+  /** Numero di tentativi effettivamente effettuati (1..3). */
+  attempts: number;
+  /** Errore di rete dell'ultimo tentativo, se applicabile. */
+  networkError?: string;
+}
+
+async function postWithRetry(
+  url: string,
+  init: RequestInit,
+  context: { tenantId: string },
+): Promise<PostResult> {
+  const totalAttempts = RETRY_DELAYS_MS.length + 1;
+  let lastNetErr: string | undefined;
+  let lastStatus = 0;
+  let lastBodyText: string | undefined;
+  for (let attempt = 1; attempt <= totalAttempts; attempt++) {
+    try {
+      const resp = await fetch(url, init);
+      if (resp.ok) {
+        let bodyJson: unknown = null;
+        try {
+          bodyJson = await resp.json();
+        } catch {
+          // ignore
+        }
+        return { ok: true, status: resp.status, bodyJson, attempts: attempt };
+      }
+      lastStatus = resp.status;
+      lastBodyText = await resp.text().catch(() => '');
+      if (!shouldRetry(resp.status) || attempt === totalAttempts) {
+        return {
+          ok: false,
+          status: resp.status,
+          bodyText: lastBodyText,
+          attempts: attempt,
+        };
+      }
+      console.warn('[licensing-callback] retrying_after_non_2xx', {
+        tenantId: context.tenantId,
+        attempt,
+        nextAttemptIn: RETRY_DELAYS_MS[attempt - 1],
+        status: resp.status,
+      });
+    } catch (err) {
+      lastNetErr = err instanceof Error ? err.message : String(err);
+      if (attempt === totalAttempts) {
+        return {
+          ok: false,
+          status: 0,
+          attempts: attempt,
+          networkError: lastNetErr,
+        };
+      }
+      console.warn('[licensing-callback] retrying_after_network_error', {
+        tenantId: context.tenantId,
+        attempt,
+        nextAttemptIn: RETRY_DELAYS_MS[attempt - 1],
+        error: lastNetErr,
+      });
+    }
+    // Backoff prima del prossimo tentativo (attempt e' 1-based, idx = attempt-1).
+    await sleep(RETRY_DELAYS_MS[attempt - 1]);
+  }
+  // Unreachable per costruzione, ma TS richiede return.
+  return {
+    ok: false,
+    status: lastStatus,
+    bodyText: lastBodyText,
+    attempts: totalAttempts,
+    networkError: lastNetErr,
+  };
+}
+
 function isValidUuid(s: string | null | undefined): boolean {
   if (!s) return false;
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
@@ -234,8 +345,10 @@ Deno.serve(async (req: Request) => {
   const rawBody = JSON.stringify(callbackPayload);
   const signature = await hmacHex(hmacSecret, rawBody);
 
-  try {
-    const resp = await fetch(callbackUrl, {
+  // Audit 4.9: retry esponenziale (1+2 = 3 tentativi, backoff 200/800ms).
+  const result = await postWithRetry(
+    callbackUrl,
+    {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -243,38 +356,41 @@ Deno.serve(async (req: Request) => {
         'X-Signature': signature,
       },
       body: rawBody,
-    });
+    },
+    { tenantId },
+  );
 
-    if (!resp.ok) {
-      const text = await resp.text().catch(() => '');
-      console.error('[licensing-callback] works_callback_non_2xx', {
-        tenantId,
-        status: resp.status,
-        body: text.slice(0, 256),
-      });
-      return jsonResponse(502, {
-        error: 'works_callback_failed',
-        upstream_status: resp.status,
-      });
-    }
-
-    let upstream: unknown = null;
-    try {
-      upstream = await resp.json();
-    } catch {
-      // ignore
-    }
+  if (result.ok) {
     return jsonResponse(200, {
       ok: true,
       tenantId,
       sourceOp: body.source_op ?? null,
-      upstream,
+      attempts: result.attempts,
+      upstream: result.bodyJson,
     });
-  } catch (err) {
-    console.error('[licensing-callback] works_callback_exception', {
-      tenantId,
-      error: err instanceof Error ? err.message : String(err),
-    });
-    return jsonResponse(502, { error: 'works_callback_exception' });
   }
+
+  if (result.networkError) {
+    console.error('[licensing-callback] works_callback_exception_after_retries', {
+      tenantId,
+      attempts: result.attempts,
+      error: result.networkError,
+    });
+    return jsonResponse(502, {
+      error: 'works_callback_exception',
+      attempts: result.attempts,
+    });
+  }
+
+  console.error('[licensing-callback] works_callback_non_2xx_after_retries', {
+    tenantId,
+    attempts: result.attempts,
+    status: result.status,
+    body: (result.bodyText ?? '').slice(0, 256),
+  });
+  return jsonResponse(502, {
+    error: 'works_callback_failed',
+    upstream_status: result.status,
+    attempts: result.attempts,
+  });
 });
