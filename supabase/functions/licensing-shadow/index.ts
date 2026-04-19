@@ -67,6 +67,9 @@ interface TenantShadowRow {
   max_devices_per_room: number | null;
   max_devices_per_event: number | null;
   max_active_events: number | null;
+  // Audit allineamento WORKS<->SC 2026-04-20: limite eventi nel mese corrente
+  // per il tenant. 0 = illimitato. Aggiunto allo shadow verso WORKS.
+  max_events_per_month: number | null;
   license_key: string | null;
 }
 
@@ -201,7 +204,7 @@ Deno.serve(async (req: Request) => {
   const SELECT_COLS =
     'id,plan,suspended,expires_at,storage_used_bytes,storage_limit_bytes,' +
     'max_rooms_per_event,max_devices_per_room,max_devices_per_event,' +
-    'max_active_events,license_key';
+    'max_active_events,max_events_per_month,license_key';
 
   let query = supabaseAdmin
     .from('tenants')
@@ -243,6 +246,7 @@ Deno.serve(async (req: Request) => {
     maxDevicesPerRoom: devicesPerEvent,
     maxDevicesPerEvent: devicesPerEvent,
     maxActiveEvents: num(data.max_active_events),
+    maxEventsPerMonth: num(data.max_events_per_month),
     expiresAt: typeof data.expires_at === 'string' ? data.expires_at : null,
     lastObservedAt: Date.now(),
   };

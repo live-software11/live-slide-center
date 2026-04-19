@@ -1611,6 +1611,7 @@ export type Database = {
           ls_customer_id: string | null
           ls_subscription_id: string | null
           max_active_events: number | null
+          max_devices_per_event: number
           max_devices_per_room: number
           max_events_per_month: number
           max_rooms_per_event: number
@@ -1636,6 +1637,7 @@ export type Database = {
           ls_customer_id?: string | null
           ls_subscription_id?: string | null
           max_active_events?: number | null
+          max_devices_per_event?: number
           max_devices_per_room?: number
           max_events_per_month?: number
           max_rooms_per_event?: number
@@ -1661,6 +1663,7 @@ export type Database = {
           ls_customer_id?: string | null
           ls_subscription_id?: string | null
           max_active_events?: number | null
+          max_devices_per_event?: number
           max_devices_per_room?: number
           max_events_per_month?: number
           max_rooms_per_event?: number

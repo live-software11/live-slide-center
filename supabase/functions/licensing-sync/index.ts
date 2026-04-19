@@ -28,6 +28,9 @@ const DEVICES_MAX = 1024;
 // Audit edit-policy-per-software 2026-04-19: -1 = unlimited; 0 vietato.
 const ACTIVE_EVENTS_MIN = -1;
 const ACTIVE_EVENTS_MAX = 1024;
+// Audit allineamento WORKS<->SC 2026-04-20: 0 = illimitato; range 0..1024.
+const EVENTS_PER_MONTH_MIN = 0;
+const EVENTS_PER_MONTH_MAX = 1024;
 
 type TenantPlan = (typeof TENANT_PLANS)[number];
 type LicenseStatus = (typeof LICENSE_STATUSES)[number];
@@ -46,6 +49,10 @@ interface SyncBody {
   max_devices_per_room?: number | null;
   max_devices_per_event?: number | null;
   max_active_events?: number | null;
+  // Audit allineamento WORKS<->SC 2026-04-20: limite eventi nel mese corrente
+  // per il tenant. 0 = illimitato (convention enterprise). Mappa su
+  // tenants.max_events_per_month nel DB.
+  max_events_per_month?: number | null;
   expires_at?: string | null;
   status?: LicenseStatus;
 }
@@ -102,7 +109,9 @@ function sanitizedRpcError(message: string | undefined): string {
     'invalid_storage_limit',
     'invalid_max_rooms',
     'invalid_max_devices',
+    'invalid_max_devices_per_event',
     'invalid_max_active_events',
+    'invalid_max_events_per_month',
   ];
   for (const code of known) {
     if (message.includes(code)) return code;
@@ -219,6 +228,17 @@ Deno.serve(async (req: Request) => {
       return jsonResponse(400, { error: 'invalid_max_active_events' });
     }
   }
+  // Audit allineamento WORKS<->SC 2026-04-20: 0 = illimitato; range 0..1024.
+  const eventsPerMonth = payload.max_events_per_month;
+  if (eventsPerMonth != null) {
+    if (
+      !Number.isInteger(eventsPerMonth) ||
+      eventsPerMonth < EVENTS_PER_MONTH_MIN ||
+      eventsPerMonth > EVENTS_PER_MONTH_MAX
+    ) {
+      return jsonResponse(400, { error: 'invalid_max_events_per_month' });
+    }
+  }
 
   const tenantId = payload.tenant_id;
   if (tenantId != null && !isValidUuid(tenantId)) {
@@ -252,6 +272,7 @@ Deno.serve(async (req: Request) => {
     p_expires_at: expiresAt ?? null,
     p_status: status,
     p_max_active_events: activeEvents ?? null,
+    p_max_events_per_month: eventsPerMonth ?? null,
   });
 
   if (error) {

@@ -380,7 +380,7 @@ export function CreateTenantDialog({ supabase, onClose, onCreated }: CreateTenan
 
           <div>
             <label className="block text-xs font-medium text-sc-text-muted" htmlFor="ct-events">
-              {t('tenantQuota.eventsThisMonthLabel')} *
+              {t('admin.tenantDetailMaxEventsPerMonth')} *
             </label>
             <input
               id="ct-events"
@@ -390,8 +390,10 @@ export function CreateTenantDialog({ supabase, onClose, onCreated }: CreateTenan
               value={maxEventsStr}
               onChange={(e) => setMaxEventsStr(e.target.value)}
               disabled={busy}
+              placeholder={t('admin.tenantDetailMaxEventsPerMonthPlaceholder')}
               className="mt-1.5 w-full rounded-xl border border-sc-primary/20 bg-sc-bg px-3 py-2 font-mono text-sm text-sc-text outline-none focus:border-sc-primary/40 focus:ring-2 focus:ring-sc-ring/25 disabled:opacity-50"
             />
+            <p className="mt-1 text-[11px] text-sc-text-dim">{t('admin.tenantDetailMaxEventsPerMonthHint')}</p>
           </div>
 
           <div>

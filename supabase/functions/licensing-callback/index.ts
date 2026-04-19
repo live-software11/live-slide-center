@@ -66,6 +66,9 @@ interface TenantRow {
   max_devices_per_room: number | null;
   max_devices_per_event: number | null;
   max_active_events: number | null;
+  // Audit allineamento WORKS<->SC 2026-04-20: limite eventi nel mese corrente
+  // per il tenant. 0 = illimitato. Aggiunto al payload shadow verso WORKS.
+  max_events_per_month: number | null;
   license_synced_at: string | null;
   updated_at: string | null;
 }
@@ -84,6 +87,9 @@ interface SlideCenterShadowPayload {
   maxDevicesPerRoom: number | null;
   maxDevicesPerEvent: number | null;
   maxActiveEvents: number | null;
+  // Audit allineamento WORKS<->SC 2026-04-20: propagato anche maxEventsPerMonth.
+  // Default 0 = illimitato (convention enterprise).
+  maxEventsPerMonth: number | null;
   licenseSyncedAt: string | null;
   observedAt: string;
 }
@@ -265,6 +271,7 @@ function buildShadow(t: TenantRow): SlideCenterShadowPayload {
     maxDevicesPerRoom: devicesPerEvent,
     maxDevicesPerEvent: devicesPerEvent,
     maxActiveEvents: t.max_active_events,
+    maxEventsPerMonth: t.max_events_per_month,
     licenseSyncedAt: t.license_synced_at,
     observedAt: new Date().toISOString(),
   };
@@ -339,7 +346,8 @@ Deno.serve(async (req: Request) => {
     .from('tenants')
     .select(
       // Audit UI nomenclatura quote 2026-04-20: include max_devices_per_event.
-      'id, license_key, plan, suspended, expires_at, storage_limit_bytes, storage_used_bytes, max_rooms_per_event, max_devices_per_room, max_devices_per_event, max_active_events, license_synced_at, updated_at',
+      // Audit allineamento WORKS<->SC 2026-04-20: include max_events_per_month.
+      'id, license_key, plan, suspended, expires_at, storage_limit_bytes, storage_used_bytes, max_rooms_per_event, max_devices_per_room, max_devices_per_event, max_active_events, max_events_per_month, license_synced_at, updated_at',
     )
     .eq('id', tenantId)
     .maybeSingle();

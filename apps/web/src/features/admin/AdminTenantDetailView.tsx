@@ -11,6 +11,32 @@ import { isUnlimitedStorage } from '@/features/tenant/lib/quota-usage';
 
 const TENANT_PLANS: Database['public']['Enums']['tenant_plan'][] = ['trial', 'starter', 'pro', 'enterprise'];
 
+// Audit allineamento WORKS<->SC 2026-04-20: l'UI admin ora usa GB invece di
+// byte (allineato a Live WORKS APP "GenerateLicenseDialog" e
+// "QuickSlideCenterChip" che gia' lavorano in GB). Convenzione -1 = illimitato
+// (Enterprise) preservata: l'utente puo' scrivere "-1" e viene salvato come -1
+// senza conversione.
+const BYTES_PER_GB = 1024 ** 3;
+
+function bytesToGbDisplay(bytes: number | null | undefined): string {
+  if (bytes === null || bytes === undefined) return '';
+  if (bytes === -1) return '-1';
+  if (!Number.isFinite(bytes)) return '';
+  const gb = bytes / BYTES_PER_GB;
+  // Mostra senza decimali superflui (es. 1, 1.5, 0.5).
+  return Number.isInteger(gb) ? String(gb) : Number(gb.toFixed(2)).toString();
+}
+
+function gbDisplayToBytes(input: string): number | null {
+  const trimmed = input.trim();
+  if (trimmed === '') return null;
+  const num = Number(trimmed);
+  if (!Number.isFinite(num)) return null;
+  if (num === -1) return -1;
+  if (num < 0) return null;
+  return Math.round(num * BYTES_PER_GB);
+}
+
 function eventStatusLabel(t: (k: string) => string, status: string): string {
   const map: Record<string, string> = {
     draft: 'event.statusDraft',
@@ -38,10 +64,16 @@ function TenantQuotaForm({
 }) {
   const { t } = useTranslation();
   const [plan, setPlan] = useState(tenant.plan);
-  const [storageLimitStr, setStorageLimitStr] = useState(String(tenant.storage_limit_bytes));
+  // Audit allineamento WORKS<->SC 2026-04-20: storage in GB (non byte).
+  const [storageGbStr, setStorageGbStr] = useState(bytesToGbDisplay(tenant.storage_limit_bytes));
   const [maxEventsStr, setMaxEventsStr] = useState(String(tenant.max_events_per_month));
   const [maxRoomsStr, setMaxRoomsStr] = useState(String(tenant.max_rooms_per_event));
-  const [maxDevicesStr, setMaxDevicesStr] = useState(String(tenant.max_devices_per_room));
+  // Audit UI nomenclatura quote 2026-04-20: prefer max_devices_per_event (la
+  // colonna nuova canonica) ma fallback alla vecchia per safety durante la
+  // finestra di rollout. Lo stato locale rappresenta il valore "per evento".
+  const [maxDevicesStr, setMaxDevicesStr] = useState(
+    String(tenant.max_devices_per_event ?? tenant.max_devices_per_room)
+  );
   const [maxActiveEventsStr, setMaxActiveEventsStr] = useState(
     tenant.max_active_events === null || tenant.max_active_events === undefined
       ? ''
@@ -60,21 +92,24 @@ function TenantQuotaForm({
       : 0;
 
   const onSaveQuotas = useCallback(async () => {
-    const storage_limit_bytes = Number(storageLimitStr);
+    // Audit allineamento WORKS<->SC 2026-04-20: storage convertito da GB a byte
+    // prima del save. Convenzione -1 = illimitato preservata.
+    const storage_limit_bytes = gbDisplayToBytes(storageGbStr);
     const max_events_per_month = Number(maxEventsStr);
     const max_rooms_per_event = Number(maxRoomsStr);
-    const max_devices_per_room = Number(maxDevicesStr);
+    const max_devices_per_event = Number(maxDevicesStr);
     if (
+      storage_limit_bytes === null ||
       !Number.isFinite(storage_limit_bytes) ||
       !Number.isInteger(max_events_per_month) ||
       !Number.isInteger(max_rooms_per_event) ||
-      !Number.isInteger(max_devices_per_room)
+      !Number.isInteger(max_devices_per_event)
     ) {
       setSaveMsg('err');
       setSaveDetail(t('admin.tenantDetailQuotaInvalid'));
       return;
     }
-    if (max_events_per_month < 0 || max_rooms_per_event < 0 || max_devices_per_room < 0) {
+    if (max_events_per_month < 0 || max_rooms_per_event < 0 || max_devices_per_event < 0) {
       setSaveMsg('err');
       setSaveDetail(t('admin.tenantDetailQuotaInvalid'));
       return;
@@ -114,6 +149,10 @@ function TenantQuotaForm({
 
     setSaving(true);
     setSaveMsg('idle');
+    // Audit UI nomenclatura quote 2026-04-20: scriviamo SU ENTRAMBE le colonne
+    // (max_devices_per_room legacy + max_devices_per_event canonica) per
+    // mantenere allineamento durante la finestra di rollout. La RPC
+    // licensing_apply_quota fa lo stesso quando WORKS pusha quote via Edge Fn.
     const { error } = await supabase
       .from('tenants')
       .update({
@@ -121,7 +160,8 @@ function TenantQuotaForm({
         storage_limit_bytes,
         max_events_per_month,
         max_rooms_per_event,
-        max_devices_per_room,
+        max_devices_per_room: max_devices_per_event,
+        max_devices_per_event: max_devices_per_event,
         max_active_events,
         expires_at,
       })
@@ -139,7 +179,7 @@ function TenantQuotaForm({
     tenantId,
     supabase,
     plan,
-    storageLimitStr,
+    storageGbStr,
     maxEventsStr,
     maxRoomsStr,
     maxDevicesStr,
@@ -185,22 +225,22 @@ function TenantQuotaForm({
       </select>
 
       <label className="mt-4 block text-xs font-medium text-sc-text-muted" htmlFor="adm-storage">
-        {t('admin.tenantDetailStorageLimitBytes')}
+        {t('admin.tenantDetailStorageLimitGb')}
       </label>
       <input
         id="adm-storage"
         type="text"
-        inputMode="numeric"
-        value={storageLimitStr}
-        onChange={(e) => setStorageLimitStr(e.target.value)}
+        inputMode="decimal"
+        value={storageGbStr}
+        onChange={(e) => setStorageGbStr(e.target.value)}
         disabled={disabled || saving}
-        placeholder={t('admin.tenantDetailStorageLimitPlaceholder')}
+        placeholder={t('admin.tenantDetailStorageLimitGbPlaceholder')}
         className="mt-1.5 w-full rounded-xl border border-sc-primary/15 bg-sc-bg px-3 py-2 font-mono text-sm text-sc-text outline-none focus:border-sc-primary/40 focus:ring-2 focus:ring-sc-ring/25 disabled:opacity-50"
       />
-      <p className="mt-1 text-[11px] text-sc-text-dim">{t('admin.tenantDetailStorageLimitHint')}</p>
+      <p className="mt-1 text-[11px] text-sc-text-dim">{t('admin.tenantDetailStorageLimitGbHint')}</p>
 
       <label className="mt-4 block text-xs font-medium text-sc-text-muted" htmlFor="adm-ev">
-        {t('tenantQuota.eventsThisMonthLabel')} ({t('admin.tenantDetailMaxNumericHint')})
+        {t('admin.tenantDetailMaxEventsPerMonth')}
       </label>
       <input
         id="adm-ev"
@@ -209,8 +249,10 @@ function TenantQuotaForm({
         value={maxEventsStr}
         onChange={(e) => setMaxEventsStr(e.target.value)}
         disabled={disabled || saving}
+        placeholder={t('admin.tenantDetailMaxEventsPerMonthPlaceholder')}
         className="mt-1.5 w-full rounded-xl border border-sc-primary/15 bg-sc-bg px-3 py-2 font-mono text-sm text-sc-text outline-none focus:border-sc-primary/40 focus:ring-2 focus:ring-sc-ring/25 disabled:opacity-50"
       />
+      <p className="mt-1 text-[11px] text-sc-text-dim">{t('admin.tenantDetailMaxEventsPerMonthHint')}</p>
 
       <label className="mt-4 block text-xs font-medium text-sc-text-muted" htmlFor="adm-rm">
         {t('tenantQuota.roomsThisEventLabel')} ({t('admin.tenantDetailMaxNumericHint')})
