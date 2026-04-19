@@ -5,8 +5,8 @@
 > **Tempo:** ~3-4 ore se tutto verde, fino a 1 giornata se emergono fix.
 > **Output:** documento spuntato + log incidenti + lista fix prioritizzata per il commit post-evento.
 >
-> **Versione:** 1.1 — 19 Aprile 2026 (post Sprint W: URL produzione + Sentry attivo).
-> **Allineato con:** `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` v6.0 + `docs/DISASTER_RECOVERY.md` (Sentry + warm-keep + cleanup).
+> **Versione:** 1.2 — 19 Aprile 2026 sera (post Sprint X-1: upload hardening — desktop simple-upload + cloud TUS race-cancel + smoke secrets via env).
+> **Allineato con:** `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` v6.0 § 22 (Sprint X-1) + `docs/DISASTER_RECOVERY.md` (Sentry + warm-keep + cleanup).
 
 ---
 
@@ -219,9 +219,9 @@
 
 ---
 
-### T9 — Upload speaker via QR (Sprint R-3)
+### T9 — Upload speaker via QR (Sprint R-3 + hardening Sprint X-1)
 
-**Cosa testa:** flusso completo speaker → QR → upload → versioning.
+**Cosa testa:** flusso completo speaker → QR → upload → versioning. Post Sprint X-1 i 3 path di upload sono indipendenti: (a) upload portal anon TUS cloud, (b) admin authenticated TUS cloud, (c) admin desktop POST diretto Rust. Test T9 copre il path (a).
 
 **Passi:**
 
@@ -231,8 +231,10 @@
 4. Verifica progress bar avanza correttamente.
 5. Carica nuova versione dello stesso file (modifica 1 byte) → verifica v1 + v2 visibili in storico.
 6. Stacca WiFi telefono a metà upload → verifica retry automatico al ricollego.
+7. **(Sprint X-1, regression test cancel cloud)**: da admin (NON speaker, browser separato) inizia upload file ~200MB su `/eventi/<id>/upload` → durante caricamento cliccare "Cancella" entro 2s → verifica che upload si fermi DAVVERO (network panel: chunks PUT/PATCH stoppati), che NON appaiano nuove righe in `presentation_versions` con status `uploading` orfane, e che la UI torni a `idle` (NON `error`). Ripetere 3 volte per stress race condition.
+8. **(Sprint X-1, regression test desktop POST)**: SE testando in mode desktop (vedi T6), ripetere step 1-6 ma confermare che network panel mostri `POST /storage/v1/object/presentations/...` (NON endpoint TUS `/upload/resumable`) e che il file sia visibile in `~/SlideCenter/storage/tenants/...`.
 
-**Output atteso:** upload chunked + retry funzionano, hash SHA-256 diversi per ogni versione, versioning visibile in UI tecnico.
+**Output atteso:** upload chunked + retry funzionano, hash SHA-256 diversi per ogni versione, versioning visibile in UI tecnico, cancel cloud non lascia orfani, desktop usa POST diretto.
 
 **Esito:** ☐ PASS  ☐ FAIL  ☐ PARTIAL  ☐ SKIP  ☐ N/A
 **Nota / fix necessario:**

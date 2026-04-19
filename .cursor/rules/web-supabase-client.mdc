@@ -155,7 +155,58 @@ return () => sub.unsubscribe();
 
 In cloud usa `supabase.channel(...)`, in desktop usa long-poll `/events/stream` (Sprint N3).
 
-## Storage upload (TUS resumable)
+## Storage upload — branching cloud TUS / desktop POST (Sprint X-1)
+
+**Regola d'oro:** il backend desktop Rust NON implementa TUS (solo `POST /storage/v1/object/{bucket}/{*key}` diretto). MAI usare `tus-js-client` quando `getBackendMode() === 'desktop'`, fallirebbe sempre. Branching in `useUploadQueue.ts` / `AdminUploaderInline.tsx`:
+
+```typescript
+import { getBackendMode } from '../../../lib/backend-mode';
+import { startTusUpload } from '../../upload-portal/lib/tus-upload';
+import { startSimpleUpload } from '../../upload-portal/lib/simple-upload';
+import { getDesktopBackendInitialized } from '../../../lib/desktop-backend-init';
+import { getSupabaseBrowserClient } from '../../../lib/supabase';
+
+if (getBackendMode() === 'desktop') {
+  const info = getDesktopBackendInitialized();
+  job.uploadHandle = startSimpleUpload({
+    baseUrl: info.base_url,
+    adminToken: info.admin_token,
+    bucket: init.bucket,
+    objectName: init.storage_key,
+    file: job.file,
+    onProgress,
+    onSuccess: () => resolve(),
+    onError: (err) => reject(err),
+  });
+} else {
+  const supabaseClient = getSupabaseBrowserClient();
+  supabaseClient.auth.getSession().then(({ data: sessionData }) => {
+    // Sprint X-1 race-cancel fix: l'utente puo' aver gia' chiamato cancel()
+    // durante l'await asincrono di getSession(). Senza questo check
+    // partirebbe un upload TUS che non puo' piu' essere abortito (handle null).
+    if (job.cancelled) {
+      reject(new Error('upload_cancelled'));
+      return;
+    }
+    const accessToken = sessionData.session?.access_token ?? null;
+    job.uploadHandle = startTusUpload({
+      supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+      anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+      accessToken,
+      bucket: init.bucket,
+      objectName: init.storage_key,
+      file: job.file,
+      onProgress,
+      onSuccess: () => resolve(),
+      onError: (err) => reject(err),
+    });
+  }).catch((err) => reject(err instanceof Error ? err : new Error(String(err))));
+}
+```
+
+**Interfaccia comune `UploadHandle = { abort(): void }`** (dichiarata in `simple-upload.ts` e `tus-upload.ts`) per consentire `cancel()` simmetrico tra i 2 path.
+
+### Cloud — TUS resumable
 
 ```typescript
 import * as tus from 'tus-js-client';
@@ -185,6 +236,29 @@ void upload.findPreviousUploads().then((prev) => {
 ```
 
 **Path obbligatorio:** `tenants/{tenant_id}/events/{event_id}/presentations/{id}/v{n}/{file}`.
+
+**RLS storage (Sprint X-1, mig `20260419093026`):** le policy `anon_insert_uploading_version` e `tenant_insert_uploading_version` su `storage.objects` chiamano funzioni `SECURITY DEFINER` `public.storage_can_upload_object_anon(text)` e `..._tenant(text)` invece di fare subquery raw. Necessario perche' subquery dirette fallivano con HTTP 403 quando admin authenticated usava anon_key come Bearer TUS. Le funzioni isolano la logica e supportano sia upload portal anon (solo `status='uploading'`) sia admin tenant (`status='uploading' AND tenant_id = app_tenant_id()`). Vedi anche `supabase-db.mdc` per pattern SECURITY DEFINER.
+
+### Desktop — POST diretto (no TUS)
+
+```typescript
+import { startSimpleUpload } from 'apps/web/src/features/upload-portal/lib/simple-upload';
+
+const handle = startSimpleUpload({
+  baseUrl,        // es. http://127.0.0.1:7300 (dal cmd_backend_info)
+  adminToken,     // dal cmd_backend_info, header Authorization Bearer
+  bucket,         // es. 'presentations'
+  objectName,     // tenants/<t>/events/<e>/presentations/<p>/v<n>/<file>
+  file,
+  onProgress: (loaded, total) => { /* ... */ },
+  onSuccess: () => { /* ... */ },
+  onError: (err) => { /* ... */ },
+});
+// abort:
+handle.abort();
+```
+
+L'implementazione usa `XMLHttpRequest` (NON `fetch`) per ottenere progress events nativi. Il server Rust risponde 200 quando il body e' ricevuto integralmente e scritto su disco in `~/SlideCenter/storage/<objectName>`. Smoke test E2E disponibile come `pnpm --filter @slidecenter/desktop smoke-upload` (RPC init → POST → SHA-256 → finalize → verify → cleanup).
 
 **SHA-256 client-side prima dell'upload (Web Crypto API):**
 

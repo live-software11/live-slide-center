@@ -184,6 +184,30 @@ In SPA: `<DesktopUpdateBanner>` nel `RootLayout` (no-op in cloud; check al boot 
 - HTTP Range support per resumable download (`Range: bytes=N-` → 206 Partial Content).
 - Limit body: configurabile via `tower-http::limit` (default 5 GB per upload).
 
+## Upload via POST diretto — NO TUS (Sprint X-1, fix critico desktop)
+
+**Il server Rust NON implementa il protocollo TUS.** Espone solo `POST /storage/v1/object/{bucket}/{*key}` (vedi `apps/desktop/src-tauri/src/server/routes/storage_routes.rs`) che accetta il body intero in un singolo HTTP request e lo scrive su `~/SlideCenter/storage/<bucket>/<key>`.
+
+**Errore tipico (pre Sprint X-1):** la SPA in mode desktop usava `tus-js-client` (legacy) → endpoint `/storage/v1/upload/resumable` non esistente sul server Rust → upload SEMPRE rotti, l'utente non riusciva mai a caricare nulla in desktop.
+
+**Fix Sprint X-1:** branching su `getBackendMode()` in `useUploadQueue.ts` e `AdminUploaderInline.tsx`:
+
+- `desktop` → nuovo `apps/web/src/features/upload-portal/lib/simple-upload.ts` (`XMLHttpRequest` per progress events, header `Authorization: Bearer <admin_token>`, body = `File` raw).
+- `cloud` → `apps/web/src/features/upload-portal/lib/tus-upload.ts` (TUS resumable verso Supabase Storage).
+
+Stessa firma `UploadHandle = { abort(): void }` per simmetria UX (cancel button funziona uguale in entrambe le modalita).
+
+**Smoke test E2E disponibile** in `apps/desktop/scripts/smoke-test-upload.mjs` (lanciabile con `pnpm --filter @slidecenter/desktop smoke-upload`):
+
+1. RPC `init_upload_version_for_session` → ottiene `version_id` + `bucket` + `storage_key`.
+2. `POST /storage/v1/object/<bucket>/<storage_key>` con file dummy + Authorization Bearer admin_token.
+3. SHA-256 del file caricato (calcolo client + verifica server).
+4. RPC `finalize_upload_version_admin` → status `ready` + `current_version_id` aggiornato.
+5. Verify: file presente su `~/SlideCenter/storage/...` + `presentation_versions.status = 'ready'`.
+6. Cleanup: RPC abort + delete storage row.
+
+Lanciare smoke ad ogni modifica del modulo storage Rust o di `simple-upload.ts`.
+
 ## Testing veloce (cancellare stato)
 
 ```powershell

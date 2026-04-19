@@ -3,9 +3,9 @@
 > **Documento operativo gemello di `ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare. Per "cosa fa il prodotto" e "come è fatto" → architettura.
 >
-> **Versione:** 3.0 (2026-04-19 sera) — snellito post-cleanup documentazione (storia sprint 0.1→0.29 archiviata in `_archive/STATO_E_TODO_storia_sprint_0.1-0.29.md` e consolidata in `ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22).
+> **Versione:** 3.1 (2026-04-19 notte) — aggiunta riga Sprint X-1 (upload hardening desktop+cloud+smoke). Storia sprint 0.1→0.29 archiviata in `_archive/STATO_E_TODO_storia_sprint_0.1-0.29.md` e consolidata in `ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22.
 > **Owner:** Andrea Rizzari
-> **Stato globale:** **SEMAFORO VERDE** per produzione. Cloud + Desktop in parity 100% (Sprint W chiuso 19/04/2026). Sentry attivo per error monitoring (configurato 19/04/2026). Workspace ottimizzato (cleanup 11.83 GB → 96% riduzione, 19/04/2026).
+> **Stato globale:** **SEMAFORO VERDE** per produzione. Cloud + Desktop in parity 100% (Sprint W chiuso 19/04/2026). Sentry attivo per error monitoring (configurato 19/04/2026). Workspace ottimizzato (cleanup 11.83 GB → 96% riduzione, 19/04/2026). Upload hardening Sprint X-1 chiuso 19/04/2026 sera (desktop + cloud + smoke test secrets).
 
 ---
 
@@ -46,6 +46,7 @@
 | NSIS desktop installer 0.1.1 + smoke verde                | DONE  | `Manuali/Manuale_Centro_Slide_Desktop.md` Parte B |
 | Sentry runtime error monitoring                           | DONE  | `DISASTER_RECOVERY.md` § "Setup Sentry" |
 | Workspace cleanup + ignore files universal                | DONE  | `DISASTER_RECOVERY.md` § "Workspace cleanup" |
+| Sprint X-1 upload hardening (desktop simple-upload + cloud TUS race-cancel + smoke secrets via env) | DONE | ARCHITETTURA § 22 "Sprint X-1" |
 
 ### Conseguenza pratica
 

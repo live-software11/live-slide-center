@@ -9,7 +9,7 @@
 > **Disaster recovery + Sentry + warm-keep + workspace cleanup:** `docs/DISASTER_RECOVERY.md`.
 > **Regole AI:** `.cursor/rules/*.mdc`.
 >
-> **Versione CLAUDE.md:** 3.0 — 19 aprile 2026 (post Sprint W + Sentry + workspace cleanup + docs overhaul).
+> **Versione CLAUDE.md:** 3.1 — 19 aprile 2026 (post Sprint X-1 upload hardening: desktop simple-upload + cloud TUS race-cancel fix + smoke test secrets via env).
 
 ## Cos'e'
 
@@ -154,6 +154,7 @@ Per messaggi commit multilinea (PowerShell NON supporta heredoc bash): scrivere 
 | Sentry runtime monitoring | DONE     | Org `live-work-app`, region EU, init lazy `apps/web/src/lib/init-sentry.ts`                          |
 | Workspace cleanup | DONE      | -11.83 GB (96% reduction) + ignore files harden                                                     |
 | Docs overhaul     | DONE      | 29 doc → 14 canonici + `_archive/`, indice `docs/README.md`                                         |
+| Sprint X-1 (upload hardening) | DONE 100% | (a) desktop usava TUS contro server Rust che non lo implementa → nuovo `simple-upload.ts` POST diretto; (b) cloud TUS partiva comunque dopo cancel utente durante `getSession()` → fix race con `uploadCancelledRef` / `job.cancelled` check; (c) smoke test cloud aveva email/password/anon-key hardcoded → ora obbligatori via env vars `VITE_SUPABASE_*` + `SC_SMOKE_*`. Migration `20260419093026_sprint_x1_fix_admin_upload_storage_rls` (SECURITY DEFINER `storage_can_upload_object_anon`/`_tenant`) GIA' applicata in cloud |
 
 **Dettagli storici:** `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 (sprint history sintetica).
 **Dettagli storici estesi (sprint 0.1→0.29):** `docs/_archive/STATO_E_TODO_storia_sprint_0.1-0.29.md` (read-only).
