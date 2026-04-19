@@ -8,6 +8,7 @@ globs:
     'apps/room-agent/**/*.rs',
     'apps/room-agent/**/*.toml',
     'apps/room-agent/**/*.json',
+    'clean-and-build.bat',
   ]
 alwaysApply: false
 ---
@@ -52,12 +53,14 @@ apps/agent/
             └── mod.rs
 ```
 
-**Build NSIS:**
+**Build NSIS (singolo agent):**
 
 ```powershell
 cd apps/agent/src-tauri
 cargo tauri build           # NSIS installer in src-tauri/target/release/bundle/nsis/
 ```
+
+**Build NSIS (entrambi gli agent in un colpo):** vedi sezione "Script `clean-and-build.bat`" piu' sotto.
 
 **Tray Icon:** richiede installer NSIS (no `cargo run`). UI minimale: status sync, ultimo evento, log recente. La gestione vera passa dalla SPA admin (`features/devices/AgentManagementView`).
 
@@ -141,3 +144,71 @@ Shared secret = token random generato al primo boot, scritto in `%APPDATA%/Slide
 - **Mantenere ABI/protocollo** stabile: clienti gia' installati non possono essere forzati ad aggiornare.
 - **Test smoke ogni release:** boot agent → discovery mDNS → manifest fetch → download piccolo file. Documentato in `docs/Manuali/Manuale_Installazione_Local_Agent.md` + `docs/Manuali/Manuale_Installazione_Room_Agent.md`.
 - **Bug critici only:** crash, perdita dati, license validation rotta. Feature requests → roadmap `apps/desktop`.
+
+## Script `clean-and-build.bat` (one-click build dei due legacy agent)
+
+> File alla root del progetto. Builda **insieme** Local Agent e Room Agent (NSIS installer + ZIP portable + SHA-256). NON tocca `apps/desktop` (per quello: `apps/desktop/scripts/release.ps1` o `release.mjs`).
+
+### Cosa fa lo script (6 step)
+
+1. **Verifica toolchain** — `node`, `npm`, `pnpm`, `cargo`, `cargo tauri --version`. Fail con messaggio chiaro se manca qualcosa (rimanda a installer ufficiale).
+2. **`pnpm install`** workspace — prova prima `--frozen-lockfile`, fallback senza in caso di drift lockfile.
+3. **Pulizia `release/`** — rimuove `release\` e ricrea vuota (build pulita garantita).
+4. **Build Local Agent** — `pushd apps\agent` → `npm run release:full` (= `clean` + `build:tauri` + `post-build`). Output in `release\live-slide-center-agent\`.
+5. **Build Room Agent** — analogo su `apps\room-agent`. Output in `release\live-slide-center-room-agent\`.
+6. **Verifica artefatti** — costruisce i nomi attesi leggendo `release/<slug>/VERSION.txt` (scritto dal post-build, single source of truth = `src-tauri/Cargo.toml`). Controlla 6 file: 2 `*-Setup-X.Y.Z.exe`, 2 `*-Portable-X.Y.Z.zip`, 2 `SHA256SUMS.txt`.
+
+### Quando usarlo
+
+- **Release doppia legacy:** quando devi distribuire entrambi gli agent allo stesso tempo (caso classico studio/agenzia LAN).
+- **Smoke test post-fix:** dopo un bugfix critico in `license/` o `discovery.rs` per validare che entrambi compilino senza errori.
+- **Setup iniziale dev box:** prima compilazione (5-15 min) per avere tutto il toolchain riscaldato + lockfile validato.
+
+### Quando NON usarlo
+
+- Per buildare il **desktop principale** `apps/desktop` (Tauri 2 unico Sprint J-Q-W). Usa invece `apps/desktop/scripts/release.ps1` o lo script Node `release.mjs`.
+- Per buildare un **singolo** agent: piu' veloce `cd apps/agent && npm run release:full`.
+
+### Caveat operativi
+
+> **Storico (post Sprint W follow-up, apr 2026):** sono stati risolti due caveat critici che impedivano il build con Tauri CLI 2.10+ — (1) `--manifest-path` rimosso dai 4 script `build:tauri*` nei `package.json`, (2) versione hard-coded sostituita da lettura dinamica da `src-tauri/Cargo.toml` con emit `release/<slug>/VERSION.txt` letto poi dallo step `[6/6]`. Inoltre i 2 `installer-hooks.nsi` sono stati portati a delimitatori backtick (stesso fix di `apps/desktop`) per non far crashare `makensis` su comandi PowerShell con `''$LOCALAPPDATA\…''`. Build end-to-end validato 19/04/2026: 4 artefatti (`Setup-0.1.0.exe` + `Portable-0.1.0.zip` per ciascun agent) + 2 `SHA256SUMS.txt` + 2 `VERSION.txt` generati senza errori in `release/`.
+
+1. **Single source of truth della versione = `src-tauri/Cargo.toml`** — `post-build.mjs` legge dinamicamente `[package] version` con regex e lo scrive in `release/<slug>/VERSION.txt`. Il `.bat` lo ri-legge nello step `[6/6]` per costruire i nomi attesi. Quando bumpi: edita SOLO `Cargo.toml` (eventualmente con `cargo tauri version X.Y.Z` che allinea anche `tauri.conf.json`); lo script non va piu' toccato.
+
+2. **Code-signing opt-in via env var** — se NON setti `CERT_PFX_PATH` + `CERT_PASSWORD` (o `CERT_THUMBPRINT`), `post-build.mjs` skippa silenziosamente la firma. I `.exe` saranno installabili ma SmartScreen mostrera' warning. Per dev locale Andrea: skip OK. Per release a clienti: cert OV Sectigo obbligatorio (vedi `docs/Manuali/Manuale_Code_Signing.md`).
+
+3. **Prima build = 5-15 min** — Cargo deve compilare ~400 crate (Tauri + dep + license/crypto). Le successive (incrementali) sono 1-3 min. Lo script avvisa esplicitamente nello step `[4/6]`.
+
+4. **`installer-hooks.nsi` — stringhe in backtick, non in single-quote** — `makensis` interpreta `''` consecutive dentro stringa single-quoted come "chiudi/riapri stringa", spezzando `ExecWait` in 3 parametri quando il PowerShell interno contiene `''$LOCALAPPDATA\…''`. Per questo i 2 hook usano `` `…` `` come delimitatore esterno e `$$_` per escape del `$_` PowerShell. Se aggiungi nuovi `ExecWait`, segui lo stesso pattern.
+
+### Comando rapido equivalente (PowerShell per chi non ama il `.bat`)
+
+```powershell
+# Equivalente "manuale" agli step 2-5 dello script
+pnpm install --frozen-lockfile
+Remove-Item -Recurse -Force release -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path release | Out-Null
+
+Push-Location apps/agent ; npm run release:full ; Pop-Location
+Push-Location apps/room-agent ; npm run release:full ; Pop-Location
+```
+
+### Output atteso (con versione 0.1.0)
+
+```
+release/
+├── live-slide-center-agent/
+│   ├── Live-SLIDE-CENTER-Agent-Setup-0.1.0.exe         # NSIS installer Win11
+│   ├── Live-SLIDE-CENTER-Agent-Portable-0.1.0.zip      # ZIP single-file (no installer)
+│   └── SHA256SUMS.txt
+└── live-slide-center-room-agent/
+    ├── Live-SLIDE-CENTER-Room-Agent-Setup-0.1.0.exe
+    ├── Live-SLIDE-CENTER-Room-Agent-Portable-0.1.0.zip
+    └── SHA256SUMS.txt
+```
+
+### Scenari di distribuzione consigliati (dallo script stesso)
+
+- **Mini-PC regia (admin):** `Live-SLIDE-CENTER-Agent-Setup-0.1.0.exe` (Local Agent — espone Axum su 0.0.0.0:8080).
+- **PC sala (proiezione):** `Live-SLIDE-CENTER-Room-Agent-Setup-0.1.0.exe` (Room Agent — autostart Win HKCU).
+- **Verifica integrita' on-site:** confrontare hash con `SHA256SUMS.txt` prima di lanciare l'installer.

@@ -20,7 +20,7 @@
  *     l'utente deve avere Edge / WebView2 gia' installato (default su Win 11).
  */
 import { mkdir, copyFile, readdir, writeFile, readFile, rm } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -33,7 +33,22 @@ const repoRoot = join(root, '..', '..');
 const PRODUCT_SLUG = 'live-slide-center-agent';
 const PRODUCT_PRETTY = 'Live SLIDE CENTER Agent';
 const BIN_NAME = 'local-agent.exe';
-const VERSION = '0.1.0';
+
+// Versione letta dinamicamente da `src-tauri/Cargo.toml`. Single source of truth:
+// chiunque bumpi il `[package] version` nel Cargo non deve toccare anche questo file
+// (rule legacy-agents.mdc § "Caveat critici", fix dopo Sprint W).
+function readVersionFromCargoToml() {
+  const cargoPath = join(root, 'src-tauri', 'Cargo.toml');
+  const contents = readFileSync(cargoPath, 'utf8');
+  // Match della prima riga `version = "X.Y.Z"` dentro la sezione `[package]`.
+  const match = contents.match(/^\s*\[package\][^[]*?version\s*=\s*"([^"]+)"/ms);
+  if (!match) {
+    throw new Error(`[post-build] impossibile leggere version da ${cargoPath}`);
+  }
+  return match[1];
+}
+
+const VERSION = readVersionFromCargoToml();
 
 /**
  * Code-signing opzionale (Sprint 5b) — skip silenzioso senza cert configurato.
@@ -226,5 +241,13 @@ const sumsBody = [
 ].join('\r\n');
 await writeFile(sumsDest, sumsBody, 'utf8');
 console.log(`[post-build] SHA256SUMS -> ${sumsDest}`);
+
+// VERSION.txt: file machine-readable letto dallo script `clean-and-build.bat`
+// per costruire i nomi attesi nello step di verifica artefatti. Senza questo,
+// ogni bump versione richiederebbe edit simultaneo di Cargo.toml + .bat (vedi
+// rule legacy-agents.mdc, caveat fixato post Sprint W).
+const versionDest = join(releaseDir, 'VERSION.txt');
+await writeFile(versionDest, `${VERSION}\r\n`, 'utf8');
+console.log(`[post-build] VERSION.txt -> ${versionDest} (${VERSION})`);
 
 console.log('[post-build] OK');

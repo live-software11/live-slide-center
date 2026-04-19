@@ -7,8 +7,8 @@
   "scripts": {
     "clean": "node scripts/clean.mjs",
     "clean:full": "node scripts/clean.mjs --full",
-    "build:tauri": "cargo tauri build --manifest-path src-tauri/Cargo.toml",
-    "build:tauri:licensed": "cargo tauri build --manifest-path src-tauri/Cargo.toml --features license",
+    "build:tauri": "cargo tauri build",
+    "build:tauri:licensed": "cargo tauri build --features license",
     "post-build": "node scripts/post-build.mjs",
     "release:full": "npm run clean && npm run build:tauri && npm run post-build",
     "release:licensed": "npm run clean && npm run build:tauri:licensed && npm run post-build"

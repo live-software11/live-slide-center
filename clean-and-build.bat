@@ -131,6 +131,13 @@ echo.
 
 REM ============================================================
 REM   6/6 - Verifica output
+REM ----------------------------------------------------------------
+REM   Le versioni vengono LETTE dai due file `release/<slug>/VERSION.txt`
+REM   prodotti dal post-build (vedi `apps/agent/scripts/post-build.mjs`
+REM   e `apps/room-agent/scripts/post-build.mjs`). Single source of truth
+REM   delle versioni: i due `src-tauri/Cargo.toml`. Cosi' bumpando il
+REM   `[package] version` non serve toccare anche questo .bat (caveat
+REM   storico fixato dopo Sprint W, vedi rule legacy-agents.mdc).
 REM ============================================================
 echo [6/6] Verifica artefatti generati...
 echo.
@@ -138,13 +145,32 @@ echo.
 set "AGENT_DIR=release\live-slide-center-agent"
 set "ROOM_DIR=release\live-slide-center-room-agent"
 
+set "AGENT_VERSION="
+set "ROOM_VERSION="
+if exist "%AGENT_DIR%\VERSION.txt" (
+    set /p AGENT_VERSION=<"%AGENT_DIR%\VERSION.txt"
+)
+if exist "%ROOM_DIR%\VERSION.txt" (
+    set /p ROOM_VERSION=<"%ROOM_DIR%\VERSION.txt"
+)
+
 set "ALL_OK=1"
-call :check_file "%AGENT_DIR%\Live-SLIDE-CENTER-Agent-Setup-0.1.0.exe"
-call :check_file "%AGENT_DIR%\Live-SLIDE-CENTER-Agent-Portable-0.1.0.zip"
-call :check_file "%AGENT_DIR%\SHA256SUMS.txt"
-call :check_file "%ROOM_DIR%\Live-SLIDE-CENTER-Room-Agent-Setup-0.1.0.exe"
-call :check_file "%ROOM_DIR%\Live-SLIDE-CENTER-Room-Agent-Portable-0.1.0.zip"
-call :check_file "%ROOM_DIR%\SHA256SUMS.txt"
+if not defined AGENT_VERSION (
+    echo   [!!]  Local Agent: VERSION.txt mancante ^(post-build non eseguito o build fallita^).
+    set "ALL_OK=0"
+) else (
+    call :check_file "%AGENT_DIR%\Live-SLIDE-CENTER-Agent-Setup-!AGENT_VERSION!.exe"
+    call :check_file "%AGENT_DIR%\Live-SLIDE-CENTER-Agent-Portable-!AGENT_VERSION!.zip"
+    call :check_file "%AGENT_DIR%\SHA256SUMS.txt"
+)
+if not defined ROOM_VERSION (
+    echo   [!!]  Room Agent: VERSION.txt mancante ^(post-build non eseguito o build fallita^).
+    set "ALL_OK=0"
+) else (
+    call :check_file "%ROOM_DIR%\Live-SLIDE-CENTER-Room-Agent-Setup-!ROOM_VERSION!.exe"
+    call :check_file "%ROOM_DIR%\Live-SLIDE-CENTER-Room-Agent-Portable-!ROOM_VERSION!.zip"
+    call :check_file "%ROOM_DIR%\SHA256SUMS.txt"
+)
 
 echo.
 if "%ALL_OK%"=="1" (
@@ -152,12 +178,12 @@ if "%ALL_OK%"=="1" (
     echo   BUILD COMPLETATO - tutti gli artefatti generati con successo
     echo =====================================================================
     echo.
-    echo   Local Agent  -^> %AGENT_DIR%\
-    echo   Room Agent   -^> %ROOM_DIR%\
+    echo   Local Agent  v!AGENT_VERSION!  -^> %AGENT_DIR%\
+    echo   Room Agent   v!ROOM_VERSION!  -^> %ROOM_DIR%\
     echo.
     echo   Distribuzione consigliata:
-    echo     - Mini-PC regia:    Live-SLIDE-CENTER-Agent-Setup-0.1.0.exe
-    echo     - PC sala:          Live-SLIDE-CENTER-Room-Agent-Setup-0.1.0.exe
+    echo     - Mini-PC regia:    Live-SLIDE-CENTER-Agent-Setup-!AGENT_VERSION!.exe
+    echo     - PC sala:          Live-SLIDE-CENTER-Room-Agent-Setup-!ROOM_VERSION!.exe
     echo.
     echo   Verifica integrita: confronta gli hash con SHA256SUMS.txt
 ) else (

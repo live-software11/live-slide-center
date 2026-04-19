@@ -2,8 +2,8 @@
 
 > **Come usare questo file:** copia-incolla la sezione "PROMPT DI AVVIO" nella prima chat di una sessione Claude Desktop. Per Cursor agent il prompt e' gia' caricato dalle regole `.cursor/rules/`.
 >
-> **Versione:** 2.0 — 18 aprile 2026
-> **Allineato con:** `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` v1.0 + `docs/STATO_E_TODO.md` v1.0.
+> **Versione:** 2.2 — 19 aprile 2026 (post Sprint W + follow-up `clean-and-build.bat` version-agnostic)
+> **Allineato con:** `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` + `docs/STATO_E_TODO.md` v2.20 (§0.29) + `docs/SPRINT_W_CLOSURE_REPORT.md`.
 > **Aggiornare quando:** cambia architettura, cambia roadmap, cambia stack, cambiano account, vengono aggiunti/eliminati sprint o documenti.
 
 ---
@@ -191,6 +191,25 @@ cargo test --all-features                   # tutti verdi
 ````
 
 Mai committare con quality gate rosso. Se rosso -> fix prima di push.
+
+---
+
+## Build & release — script disponibili (one-click vs manuale)
+
+| Target                                                               | Script one-click                                                                                                                                                 | Comando manuale equivalente                                                                               |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Desktop principale** (`apps/desktop`, Tauri 2 unico, Sprint J-Q-W) | `apps/desktop/scripts/release.ps1` (PowerShell wrapper) o `node apps/desktop/scripts/release.mjs`                                                                | `pnpm --filter @slidecenter/desktop release:nsis`                                                         |
+| **Local Agent + Room Agent legacy** (entrambi insieme)               | **`clean-and-build.bat`** alla root del progetto (Windows BAT, 6 step: toolchain check → pnpm install → clean → build agent → build room-agent → verify SHA-256) | `pnpm install && (cd apps/agent && npm run release:full) && (cd apps/room-agent && npm run release:full)` |
+| **Singolo agent legacy** (Local OR Room)                             | —                                                                                                                                                                | `cd apps/agent && npm run release:full` (oppure `apps/room-agent`)                                        |
+| **SPA cloud** (Vercel produzione)                                    | —                                                                                                                                                                | `pnpm --filter @slidecenter/web build && vercel --prod --archive=tgz` (dalla **root** monorepo)           |
+
+**`clean-and-build.bat` — stato attuale (post follow-up Sprint W, 19 apr 2026)** (vedi `.cursor/rules/legacy-agents.mdc` per dettaglio completo):
+
+1. **Compatibile Tauri CLI 2.10+** — il `--manifest-path` deprecato è stato rimosso dai 4 script `build:tauri*` nei due `package.json` legacy. Tauri risolve il workspace dal cwd (`apps/agent` o `apps/room-agent`).
+2. **Versione dinamica** — `post-build.mjs` legge `[package] version` da `src-tauri/Cargo.toml` e scrive `release/<slug>/VERSION.txt`. Lo step `[6/6]` del `.bat` lo ri-legge per costruire i nomi attesi. Per bumpare basta editare `Cargo.toml` (idealmente con `cargo tauri version X.Y.Z`); lo script BAT non va più toccato.
+3. **NSIS hooks fix** — i 2 `installer-hooks.nsi` usano backtick come delimitatore esterno e `$$_` per escape di `$_` PowerShell (stesso fix di `apps/desktop` Sprint W). Senza, `makensis` falliva con `ExecWait expects 1-2 parameters, got 3`.
+4. **Code-signing OPT-IN via env var** `CERT_PFX_PATH` + `CERT_PASSWORD` → senza, build OK ma `.exe` non firmato (SmartScreen warning lato cliente).
+5. **Build end-to-end validato** 19/04/2026: 6 artefatti generati in `release/` (Local Agent + Room Agent, ~5-7 MB ciascuno).
 
 ---
 
