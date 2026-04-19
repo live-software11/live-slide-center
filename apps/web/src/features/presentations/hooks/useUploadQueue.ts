@@ -258,12 +258,29 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
     bumpTick();
   }, [bumpTick, syncPublic]);
 
-  // Cleanup unmount: aborta tutto e libera versionId orfani.
+  // Cleanup unmount: aborta SOLO i job ancora attivi (uploading/hashing/finalizing/pending),
+  // mai job già terminali (done/error/cancelled).
+  //
+  // BUGFIX 2026-04-19 (Sprint X-2): se l'utente caricava un file e poi lasciava
+  // ProductionView (es. apriva un modal, navigava), il cleanup chiamava
+  // `j.uploadHandle?.abort()` anche su job in stato 'done'. tus-js-client a quel
+  // punto faceva `DELETE /storage/v1/upload/resumable/<id>` per terminare la
+  // sessione TUS — ma la `presentation_versions` corrispondente era già `ready`
+  // quindi la policy storage `tenant_insert_uploading_version` (che richiede
+  // status='uploading') falliva con 403 RLS "new row violates row-level security
+  // policy". Lo stack trace finiva in console come errore `tus-upload.ts:108`.
+  //
+  // Difesa in profondità:
+  //  1. dopo done/error/cancelled, nullifichiamo `uploadHandle` (vedi runJob)
+  //  2. qui skippiamo job terminali per non chiamare nemmeno `abort()` su null/stale
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       for (const j of internalJobsRef.current) {
+        if (j.status === 'done' || j.status === 'error' || j.status === 'cancelled') {
+          continue;
+        }
         j.cancelled = true;
         j.uploadHandle?.abort();
         j.hashAbort?.abort();
@@ -348,6 +365,14 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
         syncPublic();
       };
 
+      // BUGFIX 2026-04-19 (Sprint X-2): wrapper "terminale" che nullifica
+      // uploadHandle/hashAbort PRIMA di passare lo status a done/error/cancelled.
+      // Garantisce che cleanup unmount o cancel tardivi non chiamino .abort()
+      // su tus-js-client già completato (DELETE 403 RLS sulla risorsa TUS).
+      const updateTerminal = (patch: Partial<InternalJob>) => {
+        update({ ...patch, uploadHandle: null, hashAbort: null });
+      };
+
       update({ status: 'uploading', progress: 0, uploaded: 0 });
 
       let init;
@@ -360,10 +385,10 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
         });
       } catch (err) {
         if (job.cancelled) {
-          update({ status: 'cancelled' });
+          updateTerminal({ status: 'cancelled' });
           return;
         }
-        update({
+        updateTerminal({
           status: 'error',
           errorKey: mapErrorKey((err as { message?: string })?.message),
         });
@@ -371,7 +396,7 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
       }
       if (job.cancelled) {
         try { await abortAdminUpload(init.version_id); } catch { /* noop */ }
-        update({ status: 'cancelled' });
+        updateTerminal({ status: 'cancelled' });
         return;
       }
       job.versionId = init.version_id;
@@ -462,10 +487,10 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
       } catch {
         if (job.cancelled) {
           try { await abortAdminUpload(init.version_id); } catch { /* noop */ }
-          update({ status: 'cancelled' });
+          updateTerminal({ status: 'cancelled' });
           return;
         }
-        update({ status: 'error', errorKey: 'presentation.adminUpload.errorNetwork' });
+        updateTerminal({ status: 'error', errorKey: 'presentation.adminUpload.errorNetwork' });
         try { await abortAdminUpload(init.version_id); } catch { /* noop */ }
         job.versionId = null;
         return;
@@ -473,7 +498,7 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
 
       if (job.cancelled) {
         try { await abortAdminUpload(init.version_id); } catch { /* noop */ }
-        update({ status: 'cancelled' });
+        updateTerminal({ status: 'cancelled' });
         return;
       }
 
@@ -481,7 +506,7 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
       const sha256 = await sha256Promise;
       if (!sha256) {
         // sha256Promise null = abort (rari sovrascritti da cancel)
-        update({ status: job.cancelled ? 'cancelled' : 'error', errorKey: 'presentation.adminUpload.errorGeneric' });
+        updateTerminal({ status: job.cancelled ? 'cancelled' : 'error', errorKey: 'presentation.adminUpload.errorGeneric' });
         try { await abortAdminUpload(init.version_id); } catch { /* noop */ }
         job.versionId = null;
         return;
@@ -489,7 +514,7 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
 
       if (job.cancelled) {
         try { await abortAdminUpload(init.version_id); } catch { /* noop */ }
-        update({ status: 'cancelled' });
+        updateTerminal({ status: 'cancelled' });
         return;
       }
 
@@ -497,7 +522,7 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
       try {
         await finalizeAdminUpload(init.version_id, sha256);
       } catch (err) {
-        update({
+        updateTerminal({
           status: 'error',
           errorKey: mapErrorKey((err as { message?: string })?.message),
         });
@@ -513,7 +538,7 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
         sessionId,
       };
       job.versionId = null;
-      update({ status: 'done', progress: 1, uploaded: job.fileSize });
+      updateTerminal({ status: 'done', progress: 1, uploaded: job.fileSize });
       onJobDoneRef.current?.(finalizedInfo);
     }
   }, [tick, sessionId, supabaseUrl, anonKey, backendMode, bumpTick, syncPublic]);

@@ -3,9 +3,9 @@
 > **Documento operativo gemello di `ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare. Per "cosa fa il prodotto" e "come è fatto" → architettura.
 >
-> **Versione:** 3.1 (2026-04-19 notte) — aggiunta riga Sprint X-1 (upload hardening desktop+cloud+smoke). Storia sprint 0.1→0.29 archiviata in `_archive/STATO_E_TODO_storia_sprint_0.1-0.29.md` e consolidata in `ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22.
+> **Versione:** 3.2 (2026-04-19 sera tardi) — aggiunta riga Sprint X-2 (hotfix field-test: TUS abort 403 + slide-validator 401 ES256 + invalidazione cache PWA). Storia sprint 0.1→0.29 archiviata in `_archive/STATO_E_TODO_storia_sprint_0.1-0.29.md` e consolidata in `ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22.
 > **Owner:** Andrea Rizzari
-> **Stato globale:** **SEMAFORO VERDE** per produzione. Cloud + Desktop in parity 100% (Sprint W chiuso 19/04/2026). Sentry attivo per error monitoring (configurato 19/04/2026). Workspace ottimizzato (cleanup 11.83 GB → 96% riduzione, 19/04/2026). Upload hardening Sprint X-1 chiuso 19/04/2026 sera (desktop + cloud + smoke test secrets).
+> **Stato globale:** **SEMAFORO VERDE** per produzione. Cloud + Desktop in parity 100% (Sprint W chiuso 19/04/2026). Sentry attivo per error monitoring (configurato 19/04/2026). Workspace ottimizzato (cleanup 11.83 GB → 96% riduzione, 19/04/2026). Upload hardening Sprint X-1 + X-2 chiusi 19/04/2026 (desktop + cloud + smoke test secrets + TUS terminal-state hardening + edge-function ES256 fix).
 
 ---
 
@@ -23,30 +23,31 @@
 
 ## 1. Stato attuale
 
-| Macro-area                                                | Stato | Riferimento architettura       |
-| --------------------------------------------------------- | ----- | ------------------------------ |
-| Cloud SaaS (`apps/web`)                                   | DONE  | ARCHITETTURA § 13              |
-| Desktop offline (`apps/desktop` Tauri 2)                  | DONE  | ARCHITETTURA § 14              |
-| Local + Room Agent storici (`apps/agent`, `apps/room-agent`) | LEGACY | ARCHITETTURA § 15 + `Manuali/Manuale_Installazione_*_Agent.md` |
-| Multi-tenancy + RLS + RBAC + GDPR                         | DONE  | ARCHITETTURA § 6               |
-| Pairing PC sala (cloud + LAN)                             | DONE  | ARCHITETTURA § 9               |
-| Sistema licenze Live WORKS APP                            | DONE  | ARCHITETTURA § 12              |
-| i18n IT/EN parity (~1416 chiavi)                          | DONE  | ARCHITETTURA § 18              |
-| Quality gates + CI (web + agent + Playwright)             | DONE  | ARCHITETTURA § 19              |
-| Email transazionali Resend (4 template)                   | DONE  | ARCHITETTURA § 17              |
-| GDPR export ZIP + status page pubblica                    | DONE  | ARCHITETTURA § 17              |
-| Audit log tenant + welcome email                          | DONE  | ARCHITETTURA § 17              |
-| Code-signing CI ready (env-driven)                        | DONE  | ARCHITETTURA § 19              |
-| Smoke test desktop + healthcheck                          | DONE  | ARCHITETTURA § 14.4            |
-| Enforcement regola sovrana #2 (file da locale)            | DONE  | ARCHITETTURA § 11              |
-| Cloud finale + types regen + cast removal (Sprint W)      | DONE  | ARCHITETTURA § 22              |
-| Backup verifier daily + DR runbook                        | DONE  | `DISASTER_RECOVERY.md`         |
-| Desktop schema mirror parity (mig 0004→0010)              | DONE  | ARCHITETTURA § 22 + `Manuali/Manuale_Centro_Slide_Desktop.md` |
-| UI conditional cloud-only feature gate                    | DONE  | ARCHITETTURA § 22              |
-| NSIS desktop installer 0.1.1 + smoke verde                | DONE  | `Manuali/Manuale_Centro_Slide_Desktop.md` Parte B |
-| Sentry runtime error monitoring                           | DONE  | `DISASTER_RECOVERY.md` § "Setup Sentry" |
-| Workspace cleanup + ignore files universal                | DONE  | `DISASTER_RECOVERY.md` § "Workspace cleanup" |
-| Sprint X-1 upload hardening (desktop simple-upload + cloud TUS race-cancel + smoke secrets via env) | DONE | ARCHITETTURA § 22 "Sprint X-1" |
+| Macro-area                                                                                          | Stato  | Riferimento architettura                                       |
+| --------------------------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------- |
+| Cloud SaaS (`apps/web`)                                                                             | DONE   | ARCHITETTURA § 13                                              |
+| Desktop offline (`apps/desktop` Tauri 2)                                                            | DONE   | ARCHITETTURA § 14                                              |
+| Local + Room Agent storici (`apps/agent`, `apps/room-agent`)                                        | LEGACY | ARCHITETTURA § 15 + `Manuali/Manuale_Installazione_*_Agent.md` |
+| Multi-tenancy + RLS + RBAC + GDPR                                                                   | DONE   | ARCHITETTURA § 6                                               |
+| Pairing PC sala (cloud + LAN)                                                                       | DONE   | ARCHITETTURA § 9                                               |
+| Sistema licenze Live WORKS APP                                                                      | DONE   | ARCHITETTURA § 12                                              |
+| i18n IT/EN parity (~1416 chiavi)                                                                    | DONE   | ARCHITETTURA § 18                                              |
+| Quality gates + CI (web + agent + Playwright)                                                       | DONE   | ARCHITETTURA § 19                                              |
+| Email transazionali Resend (4 template)                                                             | DONE   | ARCHITETTURA § 17                                              |
+| GDPR export ZIP + status page pubblica                                                              | DONE   | ARCHITETTURA § 17                                              |
+| Audit log tenant + welcome email                                                                    | DONE   | ARCHITETTURA § 17                                              |
+| Code-signing CI ready (env-driven)                                                                  | DONE   | ARCHITETTURA § 19                                              |
+| Smoke test desktop + healthcheck                                                                    | DONE   | ARCHITETTURA § 14.4                                            |
+| Enforcement regola sovrana #2 (file da locale)                                                      | DONE   | ARCHITETTURA § 11                                              |
+| Cloud finale + types regen + cast removal (Sprint W)                                                | DONE   | ARCHITETTURA § 22                                              |
+| Backup verifier daily + DR runbook                                                                  | DONE   | `DISASTER_RECOVERY.md`                                         |
+| Desktop schema mirror parity (mig 0004→0010)                                                        | DONE   | ARCHITETTURA § 22 + `Manuali/Manuale_Centro_Slide_Desktop.md`  |
+| UI conditional cloud-only feature gate                                                              | DONE   | ARCHITETTURA § 22                                              |
+| NSIS desktop installer 0.1.1 + smoke verde                                                          | DONE   | `Manuali/Manuale_Centro_Slide_Desktop.md` Parte B              |
+| Sentry runtime error monitoring                                                                     | DONE   | `DISASTER_RECOVERY.md` § "Setup Sentry"                        |
+| Workspace cleanup + ignore files universal                                                          | DONE   | `DISASTER_RECOVERY.md` § "Workspace cleanup"                   |
+| Sprint X-1 upload hardening (desktop simple-upload + cloud TUS race-cancel + smoke secrets via env) | DONE   | ARCHITETTURA § 22 "Sprint X-1"                                 |
+| Sprint X-2 field-test hotfix (TUS abort post-done 403 + slide-validator 401 ES256 + PWA cache bust) | DONE   | ARCHITETTURA § 22 "Sprint X-2"                                 |
 
 ### Conseguenza pratica
 
@@ -60,13 +61,13 @@ Non c'è nulla di bloccante per usare il prodotto in produzione DHS. Tutto ciò 
 
 Tutti i macro-sprint R / S / T / U / W sono **chiusi**. Per la prossima fase non ci sono sprint di sviluppo schedulati: il prodotto è pronto al primo evento DHS. Le prossime evoluzioni dipendono da:
 
-| Sprint | Focus                                       | Quando partire                                       |
-| ------ | ------------------------------------------- | ---------------------------------------------------- |
-| Q      | Sync hybrid cloud↔desktop                   | Quando cliente chiede backup cloud automatico durante eventi offline |
-| (TBD)  | API pubblica REST integratori               | Quando 5+ clienti la chiedono                        |
-| (TBD)  | Mobile app companion                        | Quando 10+ clienti la chiedono                       |
-| (TBD)  | Multi-lingua oltre IT/EN                    | Quando primo cliente non IT/EN                       |
-| (TBD)  | White-label                                 | Quando primo cliente Enterprise lo chiede            |
+| Sprint | Focus                         | Quando partire                                                       |
+| ------ | ----------------------------- | -------------------------------------------------------------------- |
+| Q      | Sync hybrid cloud↔desktop     | Quando cliente chiede backup cloud automatico durante eventi offline |
+| (TBD)  | API pubblica REST integratori | Quando 5+ clienti la chiedono                                        |
+| (TBD)  | Mobile app companion          | Quando 10+ clienti la chiedono                                       |
+| (TBD)  | Multi-lingua oltre IT/EN      | Quando primo cliente non IT/EN                                       |
+| (TBD)  | White-label                   | Quando primo cliente Enterprise lo chiede                            |
 
 Storia dettagliata sprint chiusi → `ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 + archive `_archive/STATO_E_TODO_storia_sprint_0.1-0.29.md`.
 
@@ -97,15 +98,15 @@ Totale: ~1 ora. **Costo:** €0 (Resend free tier basta per primi 6 mesi).
 
 **Stato:** integrazione build DONE (env-driven), manca solo certificato fisico.
 
-| #   | Azione                                                                                  | Tempo                                   | Costo                |
-| --- | --------------------------------------------------------------------------------------- | --------------------------------------- | -------------------- |
-| 1   | Acquista cert OV Sectigo via reseller (consigliato: ssl.com o ksoftware.net)            | 30 min ordine + 1-2 settimane emissione | ~€190/anno           |
-| 2   | Genera CSR via OpenSSL (vedi `Manuali/Manuale_Code_Signing.md` § 2)                     | 10 min                                  | €0                   |
-| 3   | Validazione OV: documenti azienda DHS                                                   | 3-5 giorni                              | €0 (vendor verifica) |
-| 4   | Ricezione `.pfx` + password via email                                                   | -                                       | -                    |
-| 5   | Installa `signtool` (Windows SDK) + add to PATH                                         | 15 min                                  | €0                   |
+| #   | Azione                                                                                    | Tempo                                   | Costo                |
+| --- | ----------------------------------------------------------------------------------------- | --------------------------------------- | -------------------- |
+| 1   | Acquista cert OV Sectigo via reseller (consigliato: ssl.com o ksoftware.net)              | 30 min ordine + 1-2 settimane emissione | ~€190/anno           |
+| 2   | Genera CSR via OpenSSL (vedi `Manuali/Manuale_Code_Signing.md` § 2)                       | 10 min                                  | €0                   |
+| 3   | Validazione OV: documenti azienda DHS                                                     | 3-5 giorni                              | €0 (vendor verifica) |
+| 4   | Ricezione `.pfx` + password via email                                                     | -                                       | -                    |
+| 5   | Installa `signtool` (Windows SDK) + add to PATH                                           | 15 min                                  | €0                   |
 | 6   | Setta env: `CERT_PFX_PATH`, `CERT_PASSWORD`, `TIMESTAMP_URL=http://timestamp.sectigo.com` | 5 min                                   | €0                   |
-| 7   | Test build firmata: `release-licensed.bat` → output firmato + `SHA256SUMS.txt` corretto | 10 min                                  | €0                   |
+| 7   | Test build firmata: `release-licensed.bat` → output firmato + `SHA256SUMS.txt` corretto   | 10 min                                  | €0                   |
 
 Totale: ~1 giornata setup + 1-2 settimane emissione cert. **Costo:** €190/anno.
 
@@ -129,24 +130,24 @@ Totale: 1 giornata di registrazione + 1 giornata di editing leggero. **Costo:** 
 
 **Stato:** bozza tecnica SLA DONE, manca revisione legale.
 
-| #   | Azione                                                                                              | Tempo         | Costo (preventivo)    |
-| --- | --------------------------------------------------------------------------------------------------- | ------------- | --------------------- |
-| 1   | Trova avvocato GDPR/contratti SaaS B2B (consigliato: tramite ordine Roma o Camera Civile)           | 1 settimana   | -                     |
-| 2   | Brief: invia `Commerciale/Contratto_SLA.md` v1.0 + `Commerciale/README.md` con schema DPA           | 30 min        | -                     |
-| 3   | Revisione SLA + redazione DPA Allegato A (10 punti raccomandati nel README)                         | 1-2 settimane | €300-800 forfait      |
-| 4   | Iterazione modifiche con avvocato                                                                   | -             | (incluso nel forfait) |
-| 5   | Pubblica versione finale in `Commerciale/Contratto_SLA.md` + `Commerciale/DPA_Allegato_A.md`         | 30 min        | €0                    |
+| #   | Azione                                                                                       | Tempo         | Costo (preventivo)    |
+| --- | -------------------------------------------------------------------------------------------- | ------------- | --------------------- |
+| 1   | Trova avvocato GDPR/contratti SaaS B2B (consigliato: tramite ordine Roma o Camera Civile)    | 1 settimana   | -                     |
+| 2   | Brief: invia `Commerciale/Contratto_SLA.md` v1.0 + `Commerciale/README.md` con schema DPA    | 30 min        | -                     |
+| 3   | Revisione SLA + redazione DPA Allegato A (10 punti raccomandati nel README)                  | 1-2 settimane | €300-800 forfait      |
+| 4   | Iterazione modifiche con avvocato                                                            | -             | (incluso nel forfait) |
+| 5   | Pubblica versione finale in `Commerciale/Contratto_SLA.md` + `Commerciale/DPA_Allegato_A.md` | 30 min        | €0                    |
 
 Totale: 2-3 settimane elapsed. **Costo:** €300-800.
 
 ### 2.5 Listing prodotti su sito marketing `liveworksapp.com`
 
-| #   | Azione                                                                                                                | Tempo  | Costo               |
-| --- | --------------------------------------------------------------------------------------------------------------------- | ------ | ------------------- |
-| 1   | Pagina prodotto Slide Center con descrizione + 3 piani (Starter/Pro/Enterprise) + screenshot UI + 3 screencast embed  | 4 ore  | €0 (riuso template) |
-| 2   | Pagina prodotto Centro Slide Desktop + bundle Suite + checkout Lemon Squeezy                                          | 2 ore  | €0                  |
-| 3   | CTA "Prova Trial gratis" → link a `https://app.liveslidecenter.com/signup`                                            | 15 min | €0                  |
-| 4   | Footer: link a `/status` + email supporto + link a Contratto_SLA.md + DPA_Allegato_A.md                               | 30 min | €0                  |
+| #   | Azione                                                                                                               | Tempo  | Costo               |
+| --- | -------------------------------------------------------------------------------------------------------------------- | ------ | ------------------- |
+| 1   | Pagina prodotto Slide Center con descrizione + 3 piani (Starter/Pro/Enterprise) + screenshot UI + 3 screencast embed | 4 ore  | €0 (riuso template) |
+| 2   | Pagina prodotto Centro Slide Desktop + bundle Suite + checkout Lemon Squeezy                                         | 2 ore  | €0                  |
+| 3   | CTA "Prova Trial gratis" → link a `https://app.liveslidecenter.com/signup`                                           | 15 min | €0                  |
+| 4   | Footer: link a `/status` + email supporto + link a Contratto_SLA.md + DPA_Allegato_A.md                              | 30 min | €0                  |
 
 Totale: 1 giornata. **Costo:** €0 (lavoro su sito esistente Aruba).
 
@@ -234,6 +235,7 @@ Crea `docs/feedback/<YYYY-MM-DD>_field_test_desktop/REPORT.md` (compila DURANTE 
 # Field Test Desktop — Report
 
 ## Metadata
+
 - Data: ...
 - Versione testata (`/info` → `version`): ...
 - Commit SHA: ...
@@ -290,13 +292,13 @@ Push-only worker desktop → cloud (`presentation_versions` + `room_state` + `pa
 
 Compila durante/dopo il field test:
 
-| #   | Domanda                                                                              | SI/NO |
-| --- | ------------------------------------------------------------------------------------ | ----- |
-| 1   | Ho avuto bisogno, durante il field test, di vedere file da un PC NON sulla LAN?       |       |
-| 2   | Ho avuto bisogno di backup automatico dei file su cloud?                              |       |
-| 3   | Ho clienti che useranno la versione desktop in più sedi distribuite (no VPN)?         |       |
-| 4   | Voglio un'unica dashboard cloud che vede TUTTI gli eventi (anche quelli offline)?     |       |
-| 5   | Sono disposto a investire 5-7 giorni di sviluppo + tenant linking + auth cross-sys?   |       |
+| #   | Domanda                                                                             | SI/NO |
+| --- | ----------------------------------------------------------------------------------- | ----- |
+| 1   | Ho avuto bisogno, durante il field test, di vedere file da un PC NON sulla LAN?     |       |
+| 2   | Ho avuto bisogno di backup automatico dei file su cloud?                            |       |
+| 3   | Ho clienti che useranno la versione desktop in più sedi distribuite (no VPN)?       |       |
+| 4   | Voglio un'unica dashboard cloud che vede TUTTI gli eventi (anche quelli offline)?   |       |
+| 5   | Sono disposto a investire 5-7 giorni di sviluppo + tenant linking + auth cross-sys? |       |
 
 **Regola:**
 
@@ -507,15 +509,15 @@ Vedi `Commerciale/Roadmap_Vendita_Esterna.md` § "Decisioni urgenti":
 
 ### 6.2 Hardening tecnico opzionale
 
-| Idea                                                         | Effort     | Beneficio                               |
-| ------------------------------------------------------------ | ---------- | --------------------------------------- |
-| Migrazione Storage da Supabase a Cloudflare R2 (zero egress) | 1 giornata | Quando egress > $50/mese                |
-| Database read replicas (Supabase Pro+ feature)               | 2 ore      | Quando >100 tenant o 1M+ righe/giorno   |
-| pgBouncer proxy per connection pooling avanzato              | 1 giornata | Quando >50 concurrent users             |
-| Sentry sourcemaps upload automatico (script già pronto)      | 30 min     | Stack trace leggibili (vedi DR § Sentry) |
-| OpenTelemetry tracing distribuito                            | 2-3 giorni | Quando debug cross-system diventa lungo |
+| Idea                                                         | Effort     | Beneficio                                                                        |
+| ------------------------------------------------------------ | ---------- | -------------------------------------------------------------------------------- |
+| Migrazione Storage da Supabase a Cloudflare R2 (zero egress) | 1 giornata | Quando egress > $50/mese                                                         |
+| Database read replicas (Supabase Pro+ feature)               | 2 ore      | Quando >100 tenant o 1M+ righe/giorno                                            |
+| pgBouncer proxy per connection pooling avanzato              | 1 giornata | Quando >50 concurrent users                                                      |
+| Sentry sourcemaps upload automatico (script già pronto)      | 30 min     | Stack trace leggibili (vedi DR § Sentry)                                         |
+| OpenTelemetry tracing distribuito                            | 2-3 giorni | Quando debug cross-system diventa lungo                                          |
 | Edge Functions warm-keep cron-job.org                        | 30 min     | Solo se Sentry mostra cold-start > 500ms (vedi `DISASTER_RECOVERY.md` appendice) |
-| Auto-rollback Vercel su smoke fail (post-deploy GH Action)   | 4 ore      | Sicurezza extra rilascio prod           |
+| Auto-rollback Vercel su smoke fail (post-deploy GH Action)   | 4 ore      | Sicurezza extra rilascio prod                                                    |
 
 ### 6.3 Cose che PROBABILMENTE non faremo mai
 

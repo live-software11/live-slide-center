@@ -14,7 +14,12 @@
 //   - 'warning' azione consigliata (es. font non embedded)
 //   - 'error'   il file probabilmente non si aprira' (es. PDF corrotto)
 //
-// Auth: JWT utente obbligatorio (verify_jwt=true di default).
+// Auth: JWT utente obbligatorio, verificato lato function via
+// getAuthenticatedUser() (admin.auth.getUser(jwt)) — pattern stabile su Deno.
+// Sprint X-2 hotfix 2026-04-19: NON usiamo `verify_jwt = true` del platform
+// gateway perche' il legacy verifier non supporta le nuove JWT signing keys
+// ES256 (asimmetriche, default Supabase 2025+) e rifiutava token validi con
+// HTTP 401. Il check resta robusto perche' fatto qui in codice.
 // Cross-tenant: confronto rigoroso tenant_id JWT vs tenant_id version.
 //
 // Dipendenze: npm:jszip per parsing PPTX (ZIP+XML scan).

@@ -92,17 +92,28 @@ export function AdminUploaderInline({
 
   // Cleanup completo all'unmount: abort upload + hash, e abort anche lato server
   // per non lasciare presentation_versions in stato 'uploading' orfane.
+  //
+  // BUGFIX 2026-04-19 (Sprint X-2): l'upload TUS finalizzato ha già `removeFingerprintOnSuccess`
+  // (vedi tus-upload.ts) ma `upload.abort(true)` chiamato su un upload completato
+  // emette comunque `DELETE /storage/v1/upload/resumable/<id>` → 403 RLS perché
+  // la version associata è già `ready` e la policy storage richiede `uploading`.
+  // L'unica difesa robusta è skippare abort/hashAbort/abortAdminUpload quando
+  // siamo già in stato terminale (done/error/idle): li nullifichiamo proattivamente
+  // alle linee finali di startUpload, qui controlliamo come safety net.
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      // Safety net: se uploadHandle è stato nullato (done/error/idle) skippiamo.
       uploadHandleRef.current?.abort();
       uploadHandleRef.current = null;
       hashAbortRef.current?.abort();
       hashAbortRef.current = null;
       const orphanVersionId = versionIdRef.current;
       if (orphanVersionId) {
-        // fire-and-forget: best effort, non possiamo attendere su unmount
+        // fire-and-forget: best effort, non possiamo attendere su unmount.
+        // versionIdRef è null SOLO dopo done/error completi, quindi qui siamo
+        // sicuri di abortare solo upload davvero orfani (mai 'ready' versions).
         void abortAdminUpload(orphanVersionId).catch(() => undefined);
         versionIdRef.current = null;
       }
@@ -110,6 +121,16 @@ export function AdminUploaderInline({
   }, []);
 
   const safeSetState = useCallback((next: UploadState) => {
+    if (mountedRef.current) setState(next);
+  }, []);
+
+  // BUGFIX 2026-04-19 (Sprint X-2): wrapper TERMINALE per stati done/error.
+  // Nullifica uploadHandleRef + hashAbortRef PRIMA di settare lo stato così
+  // che cleanup unmount o cancel tardivi non triggerino tus.abort() su upload
+  // già completato/errato → evita DELETE 403 RLS sulla risorsa TUS.
+  const terminalState = useCallback((next: UploadState) => {
+    uploadHandleRef.current = null;
+    hashAbortRef.current = null;
     if (mountedRef.current) setState(next);
   }, []);
 
@@ -244,7 +265,7 @@ export function AdminUploaderInline({
           versionIdRef.current = null;
           return;
         }
-        safeSetState({ kind: 'error', messageKey: 'presentation.adminUpload.errorNetwork' });
+        terminalState({ kind: 'error', messageKey: 'presentation.adminUpload.errorNetwork' });
         try {
           await abortAdminUpload(init.version_id);
         } catch {
@@ -270,7 +291,7 @@ export function AdminUploaderInline({
       safeSetState({ kind: 'hashing', total: file.size });
       const sha256 = await sha256Promise;
       if (!sha256) {
-        safeSetState({ kind: 'error', messageKey: 'presentation.adminUpload.errorGeneric' });
+        terminalState({ kind: 'error', messageKey: 'presentation.adminUpload.errorGeneric' });
         try {
           await abortAdminUpload(init.version_id);
         } catch {
@@ -284,7 +305,7 @@ export function AdminUploaderInline({
       try {
         await finalizeAdminUpload(init.version_id, sha256);
       } catch (err) {
-        safeSetState({ kind: 'error', ...mapError((err as { message?: string })?.message) });
+        terminalState({ kind: 'error', ...mapError((err as { message?: string })?.message) });
         try {
           await abortAdminUpload(init.version_id);
         } catch {
@@ -295,7 +316,7 @@ export function AdminUploaderInline({
       }
 
       versionIdRef.current = null;
-      safeSetState({ kind: 'done' });
+      terminalState({ kind: 'done' });
       if (mountedRef.current) setFile(null);
       onUploaded?.();
     } finally {

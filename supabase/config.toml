@@ -462,12 +462,23 @@ verify_jwt = false
 [functions.email-cron-desktop-tokens]
 verify_jwt = false
 
-# Audit-fix 2026-04-19: dichiarazione esplicita di slide-validator.
-# La function richiede JWT utente (legge presentation_versions cross-tenant
-# filter via metadata.tenant_id). Lasciare il default platform e' stato
-# storicamente fonte di confusione audit (default cambiato in passato).
+# Sprint X-2 hotfix 2026-04-19: slide-validator -> verify_jwt = false.
+#
+# WHY: il legacy verifier platform di Supabase NON supporta le nuove JWT
+# signing keys ES256 (asimmetriche, default dal 2025). Con verify_jwt=true
+# il gateway rifiutava i token validi con HTTP 401 "Unauthorized" PRIMA di
+# entrare nel codice della function (vedi anche pair-init/pair-poll che
+# hanno lo stesso pattern già documentato sopra).
+#
+# SAFETY: la sicurezza NON e' compromessa. Il codice della function fa
+# `getAuthenticatedUser(req)` (vedi `_shared/auth.ts`) che usa
+# `admin.auth.getUser(jwt)` con service-role: questo path supporta ES256
+# correttamente e ritorna 401 esplicito se il token e' invalido/scaduto.
+# Il check tenant_id su presentation_versions resta intatto.
+#
+# Riferimento: https://supabase.com/docs/guides/functions/auth
 [functions.slide-validator]
-verify_jwt = true
+verify_jwt = false
 
 # Audit-fix 2026-04-19: cleanup-expired-codes (cron pulizia pairing_codes
 # scaduti). Schedulato via pg_cron interno; Authorization opzionale.
