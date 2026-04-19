@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { computeFileSha256 } from '@/features/upload-portal/lib/sha256';
+import { startSimpleUpload, type SimpleUploadHandle } from '@/features/upload-portal/lib/simple-upload';
 import { startTusUpload, type TusHandle } from '@/features/upload-portal/lib/tus-upload';
 import {
   abortAdminUpload,
   finalizeAdminUpload,
   initSessionUpload,
 } from '@/features/presentations/repository';
+import { getBackendMode } from '@/lib/backend-mode';
+import { getCachedDesktopBackendInfo } from '@/lib/desktop-backend-init';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
+
+/** Handle abort comune ai due upload: TUS (cloud) e Simple POST (desktop). */
+type UploadHandle = TusHandle | SimpleUploadHandle;
 
 /**
  * Sprint H (GUIDA_OPERATIVA_v3 §3.C C2) — coda upload multi-file.
@@ -29,7 +35,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase';
  *
  * CANCELLAZIONE:
  *  - Job pending: rimosso dalla coda al volo, niente network.
- *  - Job in corso: tusHandle.abort() + hashAbort.abort() + abortAdminUpload
+ *  - Job in corso: uploadHandle.abort() + hashAbort.abort() + abortAdminUpload
  *    se versionId gia' creato (cleanup orfano lato DB).
  *
  * IDEMPOTENZA / FAULT TOLERANCE:
@@ -64,7 +70,11 @@ export interface UploadJob {
 interface InternalJob extends UploadJob {
   file: File;
   versionId: string | null;
-  tusHandle: TusHandle | null;
+  /**
+   * Handle dell'upload in corso. In cloud e' un `TusHandle` (tus-js-client),
+   * in desktop e' un `SimpleUploadHandle` (XHR). Entrambi espongono `abort()`.
+   */
+  uploadHandle: UploadHandle | null;
   hashAbort: AbortController | null;
   /** Marker per saltare init/finalize quando l'utente ha gia' cancellato. */
   cancelled: boolean;
@@ -146,7 +156,7 @@ export interface UseUploadQueueResult {
 export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResult {
   const { sessionId, supabaseUrl, anonKey, onAllDone, onJobDone } = opts;
 
-  // Stato pubblico (read-only) e ref interno (con `file`, `tusHandle`, ecc.).
+  // Stato pubblico (read-only) e ref interno (con `file`, `uploadHandle`, ecc.).
   // Teniamo entrambi per: (1) la UI re-renderizza solo su cambio "leggero",
   // (2) il worker accede ai bytes/handle senza ri-cercarli ogni volta.
   const [publicJobs, setPublicJobs] = useState<UploadJob[]>([]);
@@ -201,7 +211,7 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
           status: 'pending' as UploadJobStatus,
           file: f,
           versionId: null,
-          tusHandle: null,
+          uploadHandle: null,
           hashAbort: null,
           cancelled: false,
         }));
@@ -226,12 +236,12 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
         return;
       }
       // In corso: abort tutto, lascia il job visibile come 'cancelled'.
-      job.tusHandle?.abort();
+      job.uploadHandle?.abort();
       job.hashAbort?.abort();
       const orphan = job.versionId;
       if (orphan) void abortAdminUpload(orphan).catch(() => undefined);
       job.status = 'cancelled';
-      job.tusHandle = null;
+      job.uploadHandle = null;
       job.hashAbort = null;
       job.versionId = null;
       syncPublic();
@@ -255,7 +265,7 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
       mountedRef.current = false;
       for (const j of internalJobsRef.current) {
         j.cancelled = true;
-        j.tusHandle?.abort();
+        j.uploadHandle?.abort();
         j.hashAbort?.abort();
         const orphan = j.versionId;
         if (orphan) void abortAdminUpload(orphan).catch(() => undefined);
@@ -267,14 +277,33 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
   // Worker loop: consuma `pending` un job alla volta (concurrency 1).
   // Triggerato da `tick` (cambia su enqueue, cancel, job done).
   // ────────────────────────────────────────────────────────────────────
+  // Sprint X-1 (parita' UX desktop): ramifichiamo l'upload sotto.
+  // - cloud: TUS verso Supabase Storage, supabaseUrl + anonKey + accessToken JWT
+  // - desktop: simple POST verso server Rust, base_url + admin_token
+  // La validazione "config presente" cambia di conseguenza: in desktop NON
+  // servono `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (anzi spesso non sono
+  // settate), serve invece che `getCachedDesktopBackendInfo()` ritorni info.
+  const backendMode = getBackendMode();
+
   useEffect(() => {
     if (!mountedRef.current) return;
     if (runningJobIdRef.current !== null) return; // gia' in upload
-    if (!supabaseUrl || !anonKey) {
-      // BUGFIX 2026-04-19: in passato il worker usciva silenziosamente
-      // lasciando i job in 'pending' eterno senza segnalare l'errore in UI
-      // (il caller incolpava il backend). Ora marchiamo TUTTI i pending come
-      // 'error' con messageKey dedicata cosi' l'utente sa che manca la config.
+
+    // Validazione config differenziata cloud vs desktop. Senza questi check
+    // i job restavano "pending" eternamente lasciando l'utente senza
+    // feedback visibile.
+    let configError: string | null = null;
+    if (backendMode === 'desktop') {
+      const info = getCachedDesktopBackendInfo();
+      if (!info?.base_url || !info?.admin_token) {
+        configError = 'desktop_backend_not_ready';
+      }
+    } else {
+      if (!supabaseUrl || !anonKey) {
+        configError = 'cloud_supabase_missing';
+      }
+    }
+    if (configError) {
       const pendingJobs = internalJobsRef.current.filter(
         (j) => j.status === 'pending' && !j.cancelled,
       );
@@ -284,9 +313,7 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
           job.errorKey = 'presentation.adminUpload.errorConfig';
         }
         syncPublic();
-        console.error(
-          '[useUploadQueue] VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY missing — upload disabled',
-        );
+        console.error(`[useUploadQueue] config error: ${configError} — upload disabled`);
       }
       return;
     }
@@ -358,32 +385,63 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
         throw err;
       });
 
-      // BUGFIX 2026-04-19 (Sprint X-1): recuperiamo l'access_token JWT della
-      // sessione utente PRIMA di startTusUpload. Senza JWT come Bearer, lo
-      // Storage applica la policy `anon_insert_uploading_version` la cui
-      // subquery su `presentation_versions` risulta sempre vuota per anon
-      // (manca policy SELECT per anon su quella tabella) → HTTP 403 RLS.
-      // Con JWT scatta la policy `tenant_insert_uploading_version` che gira.
-      const supabaseClient = getSupabaseBrowserClient();
-      const { data: sessionData } = await supabaseClient.auth.getSession();
-      const accessToken = sessionData.session?.access_token ?? null;
-
+      // Sprint X-1 (audit chirurgico upload, 19 aprile 2026):
+      // ramificazione cloud (TUS resumable) vs desktop (simple POST).
+      //
+      // CLOUD: Supabase Storage parla TUS Resumable. Bearer = JWT utente
+      // (admin authenticated) per soddisfare la policy
+      // `tenant_insert_uploading_version` su `storage.objects`. Senza JWT
+      // scatta `anon_insert_uploading_version` la cui subquery
+      // su `presentation_versions` non e' visibile ad anon → HTTP 403 RLS.
+      //
+      // DESKTOP: il server Rust embedded espone solo
+      // `POST /storage/v1/object/{bucket}/{*key}` (no TUS). Bearer = admin
+      // token UUID (vedi `apps/web/src/lib/supabase.ts` per la genesi del
+      // token in `getCachedDesktopBackendInfo()`). Senza questo branch,
+      // l'upload desktop colpiva `/storage/v1/upload/resumable` → 404 →
+      // version 'uploading' orfana → abort → utente vedeva "errore di rete".
       const uploadPromise = new Promise<void>((resolve, reject) => {
-        job.tusHandle = startTusUpload({
-          supabaseUrl,
-          anonKey,
-          accessToken,
-          bucket: init.bucket,
-          objectName: init.storage_key,
-          file: job.file,
-          onProgress: (uploaded, total) => {
-            if (job.cancelled) return;
-            const pct = total > 0 ? uploaded / total : 0;
-            update({ progress: pct, uploaded });
-          },
-          onSuccess: () => resolve(),
-          onError: (err) => reject(err),
-        });
+        const onProgress = (uploaded: number, total: number) => {
+          if (job.cancelled) return;
+          const pct = total > 0 ? uploaded / total : 0;
+          update({ progress: pct, uploaded });
+        };
+
+        if (backendMode === 'desktop') {
+          const info = getCachedDesktopBackendInfo();
+          if (!info?.base_url || !info?.admin_token) {
+            reject(new Error('desktop_backend_not_ready'));
+            return;
+          }
+          job.uploadHandle = startSimpleUpload({
+            baseUrl: info.base_url,
+            adminToken: info.admin_token,
+            bucket: init.bucket,
+            objectName: init.storage_key,
+            file: job.file,
+            onProgress,
+            onSuccess: () => resolve(),
+            onError: (err) => reject(err),
+          });
+        } else {
+          // Cloud: recupero JWT utente authenticated; in upload-portal pubblico
+          // (mai usato in questa coda admin) sarebbe `null`.
+          const supabaseClient = getSupabaseBrowserClient();
+          supabaseClient.auth.getSession().then(({ data: sessionData }) => {
+            const accessToken = sessionData.session?.access_token ?? null;
+            job.uploadHandle = startTusUpload({
+              supabaseUrl,
+              anonKey,
+              accessToken,
+              bucket: init.bucket,
+              objectName: init.storage_key,
+              file: job.file,
+              onProgress,
+              onSuccess: () => resolve(),
+              onError: (err) => reject(err),
+            });
+          }).catch((err) => reject(err instanceof Error ? err : new Error(String(err))));
+        }
       });
 
       try {
@@ -445,7 +503,7 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
       update({ status: 'done', progress: 1, uploaded: job.fileSize });
       onJobDoneRef.current?.(finalizedInfo);
     }
-  }, [tick, sessionId, supabaseUrl, anonKey, bumpTick, syncPublic]);
+  }, [tick, sessionId, supabaseUrl, anonKey, backendMode, bumpTick, syncPublic]);
 
   const counts = useMemo(() => {
     let pending = 0;

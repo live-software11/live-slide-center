@@ -3,13 +3,20 @@ import { useTranslation } from 'react-i18next';
 import { UploadCloud, X } from 'lucide-react';
 import { formatBytes } from '@/features/upload-portal/lib/format-bytes';
 import { computeFileSha256 } from '@/features/upload-portal/lib/sha256';
+import { startSimpleUpload, type SimpleUploadHandle } from '@/features/upload-portal/lib/simple-upload';
 import { startTusUpload, type TusHandle } from '@/features/upload-portal/lib/tus-upload';
 import {
   abortAdminUpload,
   finalizeAdminUpload,
   initAdminUpload,
 } from '@/features/presentations/repository';
+import { getBackendMode } from '@/lib/backend-mode';
+import { getCachedDesktopBackendInfo } from '@/lib/desktop-backend-init';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
+
+// Sprint X-1 (parita' UX desktop): handle generico TUS o SimpleUpload — vedi
+// `useUploadQueue.ts` per il razionale dietro la ramificazione cloud/desktop.
+type UploadHandleAny = TusHandle | SimpleUploadHandle;
 
 // Upload diretto da admin/coordinator tenant per uno specifico speaker.
 // Riusa lo stack TUS di Fase 3, ma chiama le RPC *_admin che validano
@@ -56,7 +63,7 @@ export function AdminUploaderInline({
   const [state, setState] = useState<UploadState>({ kind: 'idle' });
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const tusRef = useRef<TusHandle | null>(null);
+  const uploadHandleRef = useRef<UploadHandleAny | null>(null);
   const hashAbortRef = useRef<AbortController | null>(null);
   const versionIdRef = useRef<string | null>(null);
   // Guard anti-double-submit: bloccca prima che setState propaghi.
@@ -66,22 +73,23 @@ export function AdminUploaderInline({
 
   const supabaseUrl = useMemo(() => import.meta.env.VITE_SUPABASE_URL as string, []);
   const anonKey = useMemo(() => import.meta.env.VITE_SUPABASE_ANON_KEY as string, []);
+  const backendMode = useMemo(() => getBackendMode(), []);
 
   const cancelEverything = useCallback(() => {
-    tusRef.current?.abort();
-    tusRef.current = null;
+    uploadHandleRef.current?.abort();
+    uploadHandleRef.current = null;
     hashAbortRef.current?.abort();
     hashAbortRef.current = null;
   }, []);
 
-  // Cleanup completo all'unmount: abort TUS + hash, e abort anche lato server
+  // Cleanup completo all'unmount: abort upload + hash, e abort anche lato server
   // per non lasciare presentation_versions in stato 'uploading' orfane.
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      tusRef.current?.abort();
-      tusRef.current = null;
+      uploadHandleRef.current?.abort();
+      uploadHandleRef.current = null;
       hashAbortRef.current?.abort();
       hashAbortRef.current = null;
       const orphanVersionId = versionIdRef.current;
@@ -124,7 +132,17 @@ export function AdminUploaderInline({
     if (startingRef.current) return;
     startingRef.current = true;
     try {
-      if (!supabaseUrl || !anonKey) {
+      // Sprint X-1: validazione config differenziata cloud vs desktop.
+      // - cloud: serve VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY (build Vercel)
+      // - desktop: serve `getCachedDesktopBackendInfo()` popolato (gia' fatto da
+      //   `ensureDesktopBackendReady()` in main.tsx pre-render)
+      if (backendMode === 'desktop') {
+        const info = getCachedDesktopBackendInfo();
+        if (!info?.base_url || !info?.admin_token) {
+          safeSetState({ kind: 'error', messageKey: 'presentation.adminUpload.errorConfig' });
+          return;
+        }
+      } else if (!supabaseUrl || !anonKey) {
         safeSetState({ kind: 'error', messageKey: 'presentation.adminUpload.errorConfig' });
         return;
       }
@@ -152,28 +170,48 @@ export function AdminUploaderInline({
         throw err;
       });
 
-      // BUGFIX 2026-04-19 (Sprint X-1): JWT utente come Bearer TUS.
-      // Vedi commento in `useUploadQueue.ts` e `tus-upload.ts` per dettagli
-      // sulla policy storage `anon_insert_uploading_version` che fallisce
-      // sotto ruolo anon (subquery invisibile su `presentation_versions`).
-      const supabaseClient = getSupabaseBrowserClient();
-      const { data: sessionData } = await supabaseClient.auth.getSession();
-      const accessToken = sessionData.session?.access_token ?? null;
-
+      // Sprint X-1 (audit chirurgico upload, 19 aprile 2026):
+      // ramificazione cloud (TUS resumable) vs desktop (simple POST).
+      // Vedi commenti dettagliati in `useUploadQueue.ts` runJob.
       const uploadPromise = new Promise<void>((resolve, reject) => {
-        tusRef.current = startTusUpload({
-          supabaseUrl,
-          anonKey,
-          accessToken,
-          bucket: init.bucket,
-          objectName: init.storage_key,
-          file,
-          onProgress: (uploaded, total) => {
-            safeSetState({ kind: 'uploading', uploaded, total });
-          },
-          onSuccess: () => resolve(),
-          onError: (err) => reject(err),
-        });
+        const onProgress = (uploaded: number, total: number) => {
+          safeSetState({ kind: 'uploading', uploaded, total });
+        };
+
+        if (backendMode === 'desktop') {
+          const info = getCachedDesktopBackendInfo();
+          if (!info?.base_url || !info?.admin_token) {
+            reject(new Error('desktop_backend_not_ready'));
+            return;
+          }
+          uploadHandleRef.current = startSimpleUpload({
+            baseUrl: info.base_url,
+            adminToken: info.admin_token,
+            bucket: init.bucket,
+            objectName: init.storage_key,
+            file,
+            onProgress,
+            onSuccess: () => resolve(),
+            onError: (err) => reject(err),
+          });
+        } else {
+          // Cloud: JWT authenticated come Bearer TUS (vedi tus-upload.ts).
+          const supabaseClient = getSupabaseBrowserClient();
+          supabaseClient.auth.getSession().then(({ data: sessionData }) => {
+            const accessToken = sessionData.session?.access_token ?? null;
+            uploadHandleRef.current = startTusUpload({
+              supabaseUrl,
+              anonKey,
+              accessToken,
+              bucket: init.bucket,
+              objectName: init.storage_key,
+              file,
+              onProgress,
+              onSuccess: () => resolve(),
+              onError: (err) => reject(err),
+            });
+          }).catch((err) => reject(err instanceof Error ? err : new Error(String(err))));
+        }
       });
 
       try {
@@ -223,7 +261,7 @@ export function AdminUploaderInline({
     } finally {
       startingRef.current = false;
     }
-  }, [anonKey, file, mapError, onUploaded, safeSetState, speakerId, supabaseUrl]);
+  }, [anonKey, backendMode, file, mapError, onUploaded, safeSetState, speakerId, supabaseUrl]);
 
   const busy =
     state.kind === 'uploading' || state.kind === 'hashing' || state.kind === 'finalizing';

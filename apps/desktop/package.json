@@ -17,6 +17,7 @@
     "release:latest-json": "node scripts/generate-latest-json.mjs",
     "smoke-test": "node scripts/smoke-test.mjs",
     "smoke-test:json": "node scripts/smoke-test.mjs --json",
-    "smoke-test:sala": "node scripts/smoke-test.mjs --skip-installer"
+    "smoke-test:sala": "node scripts/smoke-test.mjs --skip-installer",
+    "smoke-upload": "node scripts/smoke-test-upload.mjs"
   }
 }
