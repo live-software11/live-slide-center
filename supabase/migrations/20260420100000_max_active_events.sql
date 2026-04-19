@@ -45,7 +45,7 @@ CREATE OR REPLACE FUNCTION public.licensing_apply_quota(
         p_status TEXT,
         p_max_active_events INT DEFAULT NULL
     ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path = public AS $$
+SET search_path = public AS $$
 DECLARE v_target_id UUID;
 v_should_suspend BOOLEAN;
 v_suspended_after BOOLEAN;
@@ -92,11 +92,16 @@ RETURNING suspended INTO v_suspended_after;
 IF NOT FOUND THEN RAISE EXCEPTION 'tenant_not_found' USING HINT = 'Create tenant via signup before assigning a license.';
 END IF;
 RETURN jsonb_build_object(
-    'ok', true,
-    'tenant_id', v_target_id,
-    'license_key', p_license_key,
-    'suspended', v_suspended_after,
-    'suspended_by_license', v_should_suspend
+    'ok',
+    true,
+    'tenant_id',
+    v_target_id,
+    'license_key',
+    p_license_key,
+    'suspended',
+    v_suspended_after,
+    'suspended_by_license',
+    v_should_suspend
 );
 END;
 $$;
@@ -125,9 +130,9 @@ GRANT EXECUTE ON FUNCTION public.licensing_apply_quota(
     ) TO service_role;
 -- ── 3) Trigger: includi max_active_events nel diff per callback a WORKS ────
 CREATE OR REPLACE FUNCTION public._internal_notify_works_on_tenant_change() RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path = public,
-        extensions,
-        net AS $$
+SET search_path = public,
+    extensions,
+    net AS $$
 DECLARE v_url TEXT;
 v_secret TEXT;
 v_enabled BOOLEAN;
@@ -179,12 +184,16 @@ END IF;
 v_request_id := net.http_post(
     url := v_url,
     body := jsonb_build_object(
-        'tenant_id', NEW.id,
-        'source_op', TG_OP
+        'tenant_id',
+        NEW.id,
+        'source_op',
+        TG_OP
     ),
     headers := jsonb_build_object(
-        'Content-Type', 'application/json',
-        'x-internal-secret', v_secret
+        'Content-Type',
+        'application/json',
+        'x-internal-secret',
+        v_secret
     ),
     timeout_milliseconds := 5000
 );

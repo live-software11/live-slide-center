@@ -41,6 +41,15 @@ function TenantQuotaForm({
   const [storageLimitStr, setStorageLimitStr] = useState(String(tenant.storage_limit_bytes));
   const [maxEventsStr, setMaxEventsStr] = useState(String(tenant.max_events_per_month));
   const [maxRoomsStr, setMaxRoomsStr] = useState(String(tenant.max_rooms_per_event));
+  const [maxDevicesStr, setMaxDevicesStr] = useState(String(tenant.max_devices_per_room));
+  const [maxActiveEventsStr, setMaxActiveEventsStr] = useState(
+    tenant.max_active_events === null || tenant.max_active_events === undefined
+      ? ''
+      : String(tenant.max_active_events)
+  );
+  const [expiresAtStr, setExpiresAtStr] = useState(
+    tenant.expires_at ? tenant.expires_at.slice(0, 10) : ''
+  );
   const [saveMsg, setSaveMsg] = useState<'idle' | 'ok' | 'err'>('idle');
   const [saveDetail, setSaveDetail] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -54,16 +63,55 @@ function TenantQuotaForm({
     const storage_limit_bytes = Number(storageLimitStr);
     const max_events_per_month = Number(maxEventsStr);
     const max_rooms_per_event = Number(maxRoomsStr);
-    if (!Number.isFinite(storage_limit_bytes) || !Number.isInteger(max_events_per_month) || !Number.isInteger(max_rooms_per_event)) {
+    const max_devices_per_room = Number(maxDevicesStr);
+    if (
+      !Number.isFinite(storage_limit_bytes) ||
+      !Number.isInteger(max_events_per_month) ||
+      !Number.isInteger(max_rooms_per_event) ||
+      !Number.isInteger(max_devices_per_room)
+    ) {
       setSaveMsg('err');
       setSaveDetail(t('admin.tenantDetailQuotaInvalid'));
       return;
     }
-    if (max_events_per_month < 0 || max_rooms_per_event < 0) {
+    if (max_events_per_month < 0 || max_rooms_per_event < 0 || max_devices_per_room < 0) {
       setSaveMsg('err');
       setSaveDetail(t('admin.tenantDetailQuotaInvalid'));
       return;
     }
+
+    /**
+     * Audit bidirezionalita 2026-04-19 (GAP-4): supporto -1 (illimitato) per
+     * `max_active_events`. Stringa vuota = NULL (default = unlimited per coerenza
+     * con la migration `20260420100000_max_active_events.sql`).
+     */
+    let max_active_events: number | null = null;
+    if (maxActiveEventsStr.trim() !== '') {
+      const parsed = Number(maxActiveEventsStr);
+      if (!Number.isInteger(parsed) || parsed < -1) {
+        setSaveMsg('err');
+        setSaveDetail(t('admin.tenantDetailQuotaInvalid'));
+        return;
+      }
+      max_active_events = parsed;
+    }
+
+    /**
+     * Audit bidirezionalita 2026-04-19 (GAP-4): expires_at opzionale.
+     * Stringa vuota = NULL (lifetime / no scadenza). Stringa = ISO date YYYY-MM-DD,
+     * convertita in mezzanotte UTC della data scelta. Validazione minima.
+     */
+    let expires_at: string | null = null;
+    if (expiresAtStr.trim() !== '') {
+      const parsedDate = new Date(`${expiresAtStr}T23:59:59Z`);
+      if (Number.isNaN(parsedDate.getTime())) {
+        setSaveMsg('err');
+        setSaveDetail(t('admin.tenantDetailQuotaInvalid'));
+        return;
+      }
+      expires_at = parsedDate.toISOString();
+    }
+
     setSaving(true);
     setSaveMsg('idle');
     const { error } = await supabase
@@ -73,6 +121,9 @@ function TenantQuotaForm({
         storage_limit_bytes,
         max_events_per_month,
         max_rooms_per_event,
+        max_devices_per_room,
+        max_active_events,
+        expires_at,
       })
       .eq('id', tenantId);
     setSaving(false);
@@ -84,7 +135,19 @@ function TenantQuotaForm({
     setSaveMsg('ok');
     setSaveDetail(null);
     await onAfterSave();
-  }, [tenantId, supabase, plan, storageLimitStr, maxEventsStr, maxRoomsStr, onAfterSave, t]);
+  }, [
+    tenantId,
+    supabase,
+    plan,
+    storageLimitStr,
+    maxEventsStr,
+    maxRoomsStr,
+    maxDevicesStr,
+    maxActiveEventsStr,
+    expiresAtStr,
+    onAfterSave,
+    t,
+  ]);
 
   return (
     <section className="rounded-xl border border-sc-primary/12 bg-sc-surface p-5">
@@ -160,6 +223,47 @@ function TenantQuotaForm({
         disabled={disabled || saving}
         className="mt-1.5 w-full rounded-xl border border-sc-primary/15 bg-sc-bg px-3 py-2 font-mono text-sm text-sc-text outline-none focus:border-sc-primary/40 focus:ring-2 focus:ring-sc-ring/25 disabled:opacity-50"
       />
+
+      <label className="mt-4 block text-xs font-medium text-sc-text-muted" htmlFor="adm-dev">
+        {t('admin.tenantDetailMaxDevicesPerRoom')} ({t('admin.tenantDetailMaxNumericHint')})
+      </label>
+      <input
+        id="adm-dev"
+        type="text"
+        inputMode="numeric"
+        value={maxDevicesStr}
+        onChange={(e) => setMaxDevicesStr(e.target.value)}
+        disabled={disabled || saving}
+        className="mt-1.5 w-full rounded-xl border border-sc-primary/15 bg-sc-bg px-3 py-2 font-mono text-sm text-sc-text outline-none focus:border-sc-primary/40 focus:ring-2 focus:ring-sc-ring/25 disabled:opacity-50"
+      />
+
+      <label className="mt-4 block text-xs font-medium text-sc-text-muted" htmlFor="adm-active-ev">
+        {t('admin.tenantDetailMaxActiveEvents')}
+      </label>
+      <input
+        id="adm-active-ev"
+        type="text"
+        inputMode="numeric"
+        value={maxActiveEventsStr}
+        onChange={(e) => setMaxActiveEventsStr(e.target.value)}
+        disabled={disabled || saving}
+        placeholder={t('admin.tenantDetailMaxActiveEventsPlaceholder')}
+        className="mt-1.5 w-full rounded-xl border border-sc-primary/15 bg-sc-bg px-3 py-2 font-mono text-sm text-sc-text outline-none focus:border-sc-primary/40 focus:ring-2 focus:ring-sc-ring/25 disabled:opacity-50"
+      />
+      <p className="mt-1 text-[11px] text-sc-text-dim">{t('admin.tenantDetailMaxActiveEventsHint')}</p>
+
+      <label className="mt-4 block text-xs font-medium text-sc-text-muted" htmlFor="adm-expires">
+        {t('admin.tenantDetailExpiresAt')}
+      </label>
+      <input
+        id="adm-expires"
+        type="date"
+        value={expiresAtStr}
+        onChange={(e) => setExpiresAtStr(e.target.value)}
+        disabled={disabled || saving}
+        className="mt-1.5 w-full rounded-xl border border-sc-primary/15 bg-sc-bg px-3 py-2 font-mono text-sm text-sc-text outline-none focus:border-sc-primary/40 focus:ring-2 focus:ring-sc-ring/25 disabled:opacity-50"
+      />
+      <p className="mt-1 text-[11px] text-sc-text-dim">{t('admin.tenantDetailExpiresAtHint')}</p>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <button
