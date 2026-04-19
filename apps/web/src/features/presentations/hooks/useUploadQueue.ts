@@ -6,6 +6,7 @@ import {
   finalizeAdminUpload,
   initSessionUpload,
 } from '@/features/presentations/repository';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
 
 /**
  * Sprint H (GUIDA_OPERATIVA_v3 §3.C C2) — coda upload multi-file.
@@ -357,10 +358,21 @@ export function useUploadQueue(opts: UseUploadQueueOptions): UseUploadQueueResul
         throw err;
       });
 
+      // BUGFIX 2026-04-19 (Sprint X-1): recuperiamo l'access_token JWT della
+      // sessione utente PRIMA di startTusUpload. Senza JWT come Bearer, lo
+      // Storage applica la policy `anon_insert_uploading_version` la cui
+      // subquery su `presentation_versions` risulta sempre vuota per anon
+      // (manca policy SELECT per anon su quella tabella) → HTTP 403 RLS.
+      // Con JWT scatta la policy `tenant_insert_uploading_version` che gira.
+      const supabaseClient = getSupabaseBrowserClient();
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const accessToken = sessionData.session?.access_token ?? null;
+
       const uploadPromise = new Promise<void>((resolve, reject) => {
         job.tusHandle = startTusUpload({
           supabaseUrl,
           anonKey,
+          accessToken,
           bucket: init.bucket,
           objectName: init.storage_key,
           file: job.file,

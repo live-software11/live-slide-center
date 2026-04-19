@@ -9,6 +9,7 @@ import {
   finalizeAdminUpload,
   initAdminUpload,
 } from '@/features/presentations/repository';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
 
 // Upload diretto da admin/coordinator tenant per uno specifico speaker.
 // Riusa lo stack TUS di Fase 3, ma chiama le RPC *_admin che validano
@@ -151,10 +152,19 @@ export function AdminUploaderInline({
         throw err;
       });
 
+      // BUGFIX 2026-04-19 (Sprint X-1): JWT utente come Bearer TUS.
+      // Vedi commento in `useUploadQueue.ts` e `tus-upload.ts` per dettagli
+      // sulla policy storage `anon_insert_uploading_version` che fallisce
+      // sotto ruolo anon (subquery invisibile su `presentation_versions`).
+      const supabaseClient = getSupabaseBrowserClient();
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const accessToken = sessionData.session?.access_token ?? null;
+
       const uploadPromise = new Promise<void>((resolve, reject) => {
         tusRef.current = startTusUpload({
           supabaseUrl,
           anonKey,
+          accessToken,
           bucket: init.bucket,
           objectName: init.storage_key,
           file,
