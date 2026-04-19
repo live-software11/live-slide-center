@@ -393,6 +393,13 @@ verify_jwt = false
 [functions.licensing-sync]
 verify_jwt = false
 
+# Licensing shadow (Audit Ondata 3 GAP-8 — 2026-04-19): READ-ONLY mirror di
+# licensing-sync. Restituisce a WORKS lo "shadow" attuale del tenant SC per
+# il pulsante "Sincronizza ora" della dialog cross-project. Riusa lo stesso
+# secret HMAC SLIDECENTER_LICENSING_HMAC_SECRET.
+[functions.licensing-shadow]
+verify_jwt = false
+
 # Licensing callback: chiamata server-to-server dal trigger Postgres
 # `notify_works_on_tenant_change` (via pg_net) per notificare WORKS dei cambi
 # di stato licensing su tenants (suspended, plan, expires_at, quote, ...).

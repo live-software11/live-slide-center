@@ -391,8 +391,8 @@ export default function AdminTenantDetailView() {
             disabled={busy}
             onClick={() => void onToggleSuspend()}
             className={`mt-5 rounded-xl px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${tenant.suspended
-                ? 'bg-sc-success/20 text-sc-success hover:bg-sc-success/30'
-                : 'bg-sc-danger/15 text-sc-danger hover:bg-sc-danger/25'
+              ? 'bg-sc-success/20 text-sc-success hover:bg-sc-success/30'
+              : 'bg-sc-danger/15 text-sc-danger hover:bg-sc-danger/25'
               }`}
           >
             {tenant.suspended ? t('admin.tenantDetailUnsuspendCta') : t('admin.tenantDetailSuspendCta')}
