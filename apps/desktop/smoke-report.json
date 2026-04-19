@@ -1,0 +1,73 @@
+{
+  "ok": true,
+  "counts": {
+    "total": 8,
+    "pass": 6,
+    "fail": 1,
+    "skip": 1,
+    "criticalFail": 0,
+    "warnFail": 1
+  },
+  "backend": "http://127.0.0.1:7300",
+  "platform": "win32",
+  "timestamp_iso": "2026-04-19T00:42:16.276Z",
+  "checks": [
+    {
+      "id": "installer",
+      "label": "Installer NSIS presente",
+      "severity": "info",
+      "status": "skip",
+      "detail": "skip via --skip-installer (test su PC non-build)."
+    },
+    {
+      "id": "health",
+      "label": "Backend Rust risponde su http://127.0.0.1:7300/health",
+      "severity": "critical",
+      "status": "pass",
+      "detail": "26.3ms, version=0.1.1"
+    },
+    {
+      "id": "info",
+      "label": "/info espone metadata runtime",
+      "severity": "critical",
+      "status": "pass",
+      "detail": "role=admin, data_root=C:\\Users\\andre\\SlideCenter, version=0.1.1"
+    },
+    {
+      "id": "rest",
+      "label": "PostgREST mirror /rest/v1/events risponde",
+      "severity": "critical",
+      "status": "pass",
+      "detail": "HTTP 401 in 0.8ms"
+    },
+    {
+      "id": "mdns",
+      "label": "mDNS publish attivo",
+      "severity": "warn",
+      "status": "fail",
+      "detail": "nessun IP LAN rilevato (PC offline o firewall blocca multicast).",
+      "fix": "Verifica connessione cavo/wifi e che il PC sia sulla stessa LAN dell'admin."
+    },
+    {
+      "id": "rtt",
+      "label": "Loopback RTT < 50ms p95",
+      "severity": "warn",
+      "status": "pass",
+      "detail": "median=0.7ms p95=1.4ms"
+    },
+    {
+      "id": "disk",
+      "label": "Spazio disco data_root >= 5 GB",
+      "severity": "warn",
+      "status": "pass",
+      "detail": "590.42 GB liberi"
+    },
+    {
+      "id": "firewall",
+      "label": "Porta 7300 in LISTEN",
+      "severity": "critical",
+      "status": "pass",
+      "detail": "1 binding (LAN reach: si (0.0.0.0))"
+    }
+  ]
+}

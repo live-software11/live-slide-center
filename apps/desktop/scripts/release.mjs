@@ -110,7 +110,9 @@ async function findUpdaterArtifacts(bundleDir) {
   step('3. cargo tauri build (frontend SPA + Rust + NSIS)');
   // tauri.conf.json `beforeBuildCommand` lancia automaticamente
   // `pnpm --filter @slidecenter/web build:desktop` quindi NON ripetiamo qui.
-  const flags = ['--manifest-path', 'src-tauri/Cargo.toml'];
+  // Sprint W E3: tauri-cli 2.10 non accetta più `--manifest-path`; cargo tauri
+  // determina il workspace dal cwd (apps/desktop) che contiene `src-tauri/`.
+  const flags = [];
   if (debug) flags.push('--debug');
   if (signingConfig) {
     if (!existsSync(signingConfig)) {
@@ -124,7 +126,7 @@ async function findUpdaterArtifacts(bundleDir) {
     flags.push('--config', signingConfig);
     console.log(`[release] signing config: ${signingConfig}`);
   }
-  const tauriCmd = `cargo tauri build ${flags.join(' ')}`;
+  const tauriCmd = flags.length > 0 ? `cargo tauri build ${flags.join(' ')}` : 'cargo tauri build';
   run(tauriCmd);
 
   step('4. localizza bundle NSIS finale');

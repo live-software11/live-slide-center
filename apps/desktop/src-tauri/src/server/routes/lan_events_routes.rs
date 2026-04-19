@@ -51,6 +51,14 @@ pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/events/file_added", post(receive_file_added))
         .route("/events/presentation_deleted", post(receive_presentation_deleted))
+        // Sprint W C3 — File Explorer V2: 4 nuovi push admin → sala.
+        .route("/events/folder_created", post(receive_folder_created))
+        .route("/events/folder_renamed", post(receive_folder_renamed))
+        .route("/events/folder_deleted", post(receive_folder_deleted))
+        .route(
+            "/events/presentations_moved_to_folder",
+            post(receive_presentations_moved),
+        )
         .route("/events/stream", get(stream_events))
 }
 
@@ -97,6 +105,72 @@ async fn receive_presentation_deleted(
         evt_id = evt.id,
         "lan-events: ricevuto presentation_deleted dall'admin"
     );
+    Ok(Json(json!({ "ok": true, "event_id": evt.id })))
+}
+
+// ── 2.b. Receive folder/move events (Sprint W C3) ────────────────────────────
+
+async fn receive_folder_created(
+    State(state): State<AppState>,
+    Json(payload): Json<Value>,
+) -> AppResult<Json<Value>> {
+    enforce_role_sala(&state)?;
+    let parsed: LanEventPayload =
+        serde_json::from_value(materialize_kind(&payload, "folder_created"))
+            .map_err(|e| AppError::BadRequest(format!("invalid folder_created body: {e}")))?;
+    if !matches!(parsed, LanEventPayload::FolderCreated { .. }) {
+        return Err(AppError::BadRequest("expected kind=folder_created".into()));
+    }
+    let evt = state.event_bus.publish(parsed);
+    Ok(Json(json!({ "ok": true, "event_id": evt.id })))
+}
+
+async fn receive_folder_renamed(
+    State(state): State<AppState>,
+    Json(payload): Json<Value>,
+) -> AppResult<Json<Value>> {
+    enforce_role_sala(&state)?;
+    let parsed: LanEventPayload =
+        serde_json::from_value(materialize_kind(&payload, "folder_renamed"))
+            .map_err(|e| AppError::BadRequest(format!("invalid folder_renamed body: {e}")))?;
+    if !matches!(parsed, LanEventPayload::FolderRenamed { .. }) {
+        return Err(AppError::BadRequest("expected kind=folder_renamed".into()));
+    }
+    let evt = state.event_bus.publish(parsed);
+    Ok(Json(json!({ "ok": true, "event_id": evt.id })))
+}
+
+async fn receive_folder_deleted(
+    State(state): State<AppState>,
+    Json(payload): Json<Value>,
+) -> AppResult<Json<Value>> {
+    enforce_role_sala(&state)?;
+    let parsed: LanEventPayload =
+        serde_json::from_value(materialize_kind(&payload, "folder_deleted"))
+            .map_err(|e| AppError::BadRequest(format!("invalid folder_deleted body: {e}")))?;
+    if !matches!(parsed, LanEventPayload::FolderDeleted { .. }) {
+        return Err(AppError::BadRequest("expected kind=folder_deleted".into()));
+    }
+    let evt = state.event_bus.publish(parsed);
+    Ok(Json(json!({ "ok": true, "event_id": evt.id })))
+}
+
+async fn receive_presentations_moved(
+    State(state): State<AppState>,
+    Json(payload): Json<Value>,
+) -> AppResult<Json<Value>> {
+    enforce_role_sala(&state)?;
+    let parsed: LanEventPayload =
+        serde_json::from_value(materialize_kind(&payload, "presentations_moved_to_folder"))
+            .map_err(|e| {
+                AppError::BadRequest(format!("invalid presentations_moved_to_folder body: {e}"))
+            })?;
+    if !matches!(parsed, LanEventPayload::PresentationsMovedToFolder { .. }) {
+        return Err(AppError::BadRequest(
+            "expected kind=presentations_moved_to_folder".into(),
+        ));
+    }
+    let evt = state.event_bus.publish(parsed);
     Ok(Json(json!({ "ok": true, "event_id": evt.id })))
 }
 
@@ -215,6 +289,12 @@ fn filter_by_event_id(events: Vec<LanEvent>, event_id: Option<&str>) -> Vec<LanE
 fn event_id_match(evt: &LanEvent, event_id: &str) -> bool {
     match &evt.payload {
         LanEventPayload::FileAdded { event_id: eid, .. }
-        | LanEventPayload::PresentationDeleted { event_id: eid, .. } => eid.as_str() == event_id,
+        | LanEventPayload::PresentationDeleted { event_id: eid, .. }
+        | LanEventPayload::FolderCreated { event_id: eid, .. }
+        | LanEventPayload::FolderRenamed { event_id: eid, .. }
+        | LanEventPayload::FolderDeleted { event_id: eid, .. }
+        | LanEventPayload::PresentationsMovedToFolder { event_id: eid, .. } => {
+            eid.as_str() == event_id
+        }
     }
 }

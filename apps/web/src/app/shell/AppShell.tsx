@@ -49,7 +49,7 @@ import {
 } from '@slidecenter/ui';
 import { useAuth } from '@/app/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
-import { getBackendMode } from '@/lib/backend-mode';
+import { getBackendMode, isCloudFeatureAvailable } from '@/lib/backend-mode';
 import { getTenantIdFromSession } from '@/lib/session-tenant';
 import { AppBrandLogo } from '@/components/AppBrandLogo';
 import { BackendModeBadge } from '@/components/BackendModeBadge';
@@ -367,15 +367,24 @@ function TenantSidebarSections({
             </SidebarMenuItem>
             {isTenantAdmin ? (
               <>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    isActive={isActive('/team')}
-                    onClick={() => navigate('/team')}
-                  >
-                    <Users />
-                    <span>{t('nav.team')}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                {/*
+                 * Sprint W D2 — voci cloud-only nascoste in modalita desktop.
+                 * Team/Billing/Audit dipendono da Lemon Squeezy + dashboard
+                 * tenant cloud che il singolo PC non puo' replicare; meglio
+                 * non mostrarle che mostrare bottoni che portano a
+                 * `FeatureNotAvailableView`.
+                 */}
+                {isCloudFeatureAvailable('tenant-admin') ? (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      isActive={isActive('/team')}
+                      onClick={() => navigate('/team')}
+                    >
+                      <Users />
+                      <span>{t('nav.team')}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ) : null}
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     isActive={isActive('/centri-slide')}
@@ -394,24 +403,28 @@ function TenantSidebarSections({
                     <span>{t('nav.networkMap')}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    isActive={isActive('/billing')}
-                    onClick={() => navigate('/billing')}
-                  >
-                    <CreditCard />
-                    <span>{t('nav.billing')}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    isActive={isActive('/audit')}
-                    onClick={() => navigate('/audit')}
-                  >
-                    <ScrollText />
-                    <span>{t('nav.activity')}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                {isCloudFeatureAvailable('billing') ? (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      isActive={isActive('/billing')}
+                      onClick={() => navigate('/billing')}
+                    >
+                      <CreditCard />
+                      <span>{t('nav.billing')}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ) : null}
+                {isCloudFeatureAvailable('audit-log-export') ? (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      isActive={isActive('/audit')}
+                      onClick={() => navigate('/audit')}
+                    >
+                      <ScrollText />
+                      <span>{t('nav.activity')}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ) : null}
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     isActive={isActive('/settings/privacy')}

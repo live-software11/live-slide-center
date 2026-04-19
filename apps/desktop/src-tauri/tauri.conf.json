@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Live SLIDE CENTER Desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "com.livesoftware.slidecenter.desktop",
   "build": {
     "beforeDevCommand": "pnpm --filter @slidecenter/web dev -- --mode desktop",
@@ -45,7 +45,7 @@
       "icons/128x128@2x.png",
       "icons/icon.ico"
     ],
-    "createUpdaterArtifacts": true,
+    "createUpdaterArtifacts": false,
     "windows": {
       "webviewInstallMode": {
         "type": "downloadBootstrapper",
@@ -62,14 +62,5 @@
       }
     }
   },
-  "plugins": {
-    "updater": {
-      "endpoints": [
-        "https://github.com/live-software11/live-slide-center/releases/latest/download/latest.json"
-      ],
-      "windows": {
-        "installMode": "passive"
-      }
-    }
-  }
+  "plugins": {}
 }

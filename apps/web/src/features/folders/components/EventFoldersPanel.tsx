@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronRight, Folder, FolderPlus, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ChevronRight, Folder, FolderPlus, Plus, Trash2 } from 'lucide-react';
 import {
   Button,
   Input,
@@ -12,7 +12,6 @@ import {
   createEventFolder,
   deleteEventFolder,
   listEventFolders,
-  renameEventFolder,
   type EventFolderRow,
   type FolderTreeNode,
 } from '@/features/folders/repository';
@@ -20,9 +19,15 @@ import {
 /**
  * Sprint U-2 (UX redesign V2.0): pannello gerarchia cartelle Production.
  *
- * Versione 1: tree espandibile + CRUD inline (rinomina + nuova cartella +
- * elimina). NON ancora drag&drop file dentro una folder (verra' nello
- * step 2 con la `ProductionView` completa che integra anche la grid file).
+ * Versione 1.1 (Sprint W A2): tree espandibile + CRUD inline solo per
+ * "nuova cartella" e "elimina". La RINOMINA e' stata rimossa: l'unico
+ * punto operativo per rinominare una cartella e' il File Explorer V2
+ * (`/events/:id/production`) per evitare due punti di gestione e
+ * disallineamenti UX. L'utente arriva li' tramite il banner CTA in
+ * cima alla tab "Produzione" (vedi `EventDetailView.tsx`).
+ *
+ * NON ancora drag&drop file dentro una folder qui: la grid file +
+ * pannello dettaglio + rinomina file vivono solo in `ProductionView`.
  */
 
 interface EventFoldersPanelProps {
@@ -36,8 +41,6 @@ export function EventFoldersPanel({ eventId, tenantId }: EventFoldersPanelProps)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState<string>('');
   const [creatingUnderId, setCreatingUnderId] = useState<string | 'root' | null>(null);
   const [createValue, setCreateValue] = useState<string>('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -91,26 +94,6 @@ export function EventFoldersPanel({ eventId, tenantId }: EventFoldersPanelProps)
     [createValue, tenantId, eventId, load],
   );
 
-  const handleRename = useCallback(
-    async (folderId: string) => {
-      const name = renameValue.trim();
-      if (!name) return;
-      setBusy(folderId);
-      setError(null);
-      try {
-        await renameEventFolder(folderId, name);
-        setRenamingId(null);
-        setRenameValue('');
-        await load();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'rename_failed');
-      } finally {
-        setBusy(null);
-      }
-    },
-    [renameValue, load],
-  );
-
   const handleDelete = useCallback(
     async (folder: FolderTreeNode) => {
       const childCount = folder.children.length;
@@ -155,6 +138,10 @@ export function EventFoldersPanel({ eventId, tenantId }: EventFoldersPanelProps)
         </Button>
       </header>
 
+      <p className="mb-3 rounded-md border border-sc-primary/15 bg-sc-primary/5 px-3 py-2 text-xs text-sc-text-dim">
+        {t('folder.renameMovedToExplorer')}
+      </p>
+
       {error ? (
         <p
           role="alert"
@@ -196,23 +183,10 @@ export function EventFoldersPanel({ eventId, tenantId }: EventFoldersPanelProps)
               key={node.id}
               node={node}
               expanded={expanded}
-              renamingId={renamingId}
-              renameValue={renameValue}
               creatingUnderId={creatingUnderId}
               createValue={createValue}
               busy={busy}
               onToggle={toggleExpand}
-              onStartRename={(id, name) => {
-                setRenamingId(id);
-                setRenameValue(name);
-                setCreatingUnderId(null);
-              }}
-              onChangeRename={setRenameValue}
-              onSubmitRename={handleRename}
-              onCancelRename={() => {
-                setRenamingId(null);
-                setRenameValue('');
-              }}
               onStartCreate={(id) => {
                 setCreatingUnderId(id);
                 setCreateValue('');
@@ -236,16 +210,10 @@ export function EventFoldersPanel({ eventId, tenantId }: EventFoldersPanelProps)
 interface FolderNodeRowProps {
   node: FolderTreeNode;
   expanded: Set<string>;
-  renamingId: string | null;
-  renameValue: string;
   creatingUnderId: string | 'root' | null;
   createValue: string;
   busy: string | null;
   onToggle: (id: string) => void;
-  onStartRename: (id: string, name: string) => void;
-  onChangeRename: (val: string) => void;
-  onSubmitRename: (id: string) => void;
-  onCancelRename: () => void;
   onStartCreate: (id: string) => void;
   onChangeCreate: (val: string) => void;
   onSubmitCreate: (parentId: string | null) => void;
@@ -257,16 +225,10 @@ function FolderNodeRow(props: FolderNodeRowProps) {
   const {
     node,
     expanded,
-    renamingId,
-    renameValue,
     creatingUnderId,
     createValue,
     busy,
     onToggle,
-    onStartRename,
-    onChangeRename,
-    onSubmitRename,
-    onCancelRename,
     onStartCreate,
     onChangeCreate,
     onSubmitCreate,
@@ -275,7 +237,6 @@ function FolderNodeRow(props: FolderNodeRowProps) {
   } = props;
   const { t } = useTranslation();
   const isExpanded = expanded.has(node.id);
-  const isRenaming = renamingId === node.id;
   const hasChildren = node.children.length > 0;
   const isCreatingHere = creatingUnderId === node.id;
 
@@ -284,7 +245,6 @@ function FolderNodeRow(props: FolderNodeRowProps) {
       <div
         className={cn(
           'group flex items-center gap-1.5 rounded-md px-2 py-1.5 transition-colors hover:bg-sc-primary/8',
-          isRenaming && 'bg-sc-primary/10',
         )}
         style={{ paddingLeft: `${node.depth * 16 + 8}px` }}
       >
@@ -304,55 +264,36 @@ function FolderNodeRow(props: FolderNodeRowProps) {
 
         <Folder className="h-4 w-4 shrink-0 text-sc-accent" />
 
-        {isRenaming ? (
-          <FolderInlineForm
-            value={renameValue}
-            onChange={onChangeRename}
-            onSubmit={() => onSubmitRename(node.id)}
-            onCancel={onCancelRename}
-            disabled={busy === node.id}
-            placeholder={t('folder.renamePlaceholder')}
-          />
-        ) : (
-          <>
-            <span className="flex-1 truncate text-sm text-sc-text">{node.name}</span>
-            <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7"
-                aria-label={t('folder.actionNewSub')}
-                onClick={() => onStartCreate(node.id)}
-                disabled={busy !== null}
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7"
-                aria-label={t('folder.actionRename')}
-                onClick={() => onStartRename(node.id, node.name)}
-                disabled={busy !== null}
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7 text-sc-danger hover:text-sc-danger/80"
-                aria-label={t('folder.actionDelete')}
-                onClick={() => onDelete(node)}
-                disabled={busy !== null}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </>
-        )}
+        <span
+          className="flex-1 truncate text-sm text-sc-text"
+          title={t('folder.renameMovedToExplorer')}
+        >
+          {node.name}
+        </span>
+        <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
+            aria-label={t('folder.actionNewSub')}
+            onClick={() => onStartCreate(node.id)}
+            disabled={busy !== null}
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-sc-danger hover:text-sc-danger/80"
+            aria-label={t('folder.actionDelete')}
+            onClick={() => onDelete(node)}
+            disabled={busy !== null}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
       {(isExpanded || isCreatingHere) && (

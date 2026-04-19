@@ -236,7 +236,9 @@ fn build_router(state: AppState) -> Router {
     // cosi' restano riusabili (es. test integration).
     let rest_v1 = Router::new()
         .merge(routes::rest::routes())
-        .merge(routes::rpc::routes());
+        .merge(routes::rpc::routes())
+        // Sprint W C1 — Folder routes (REST event_folders + RPC move/rename).
+        .merge(routes::folder_routes::routes());
 
     Router::new()
         .route("/health", get(health))

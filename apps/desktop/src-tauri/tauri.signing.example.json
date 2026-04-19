@@ -19,6 +19,13 @@
 
   "plugins": {
     "updater": {
+      "//endpoints": "Sprint W E3: spostati qui (dal config base) perche' Tauri 2 plugin updater fallisce HARD al boot se la sezione e' incompleta. Mantenendo gli endpoints SOLO nell'override signing, il binary unsigned non crasha.",
+      "endpoints": [
+        "https://github.com/live-software11/live-slide-center/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      },
       "//pubkey_required": "Generare con `cargo tauri signer generate -w ~/.tauri/slidecenter-desktop.key`. Il contenuto qui sotto e' SOLO la public key (file *.key.pub o riga `untrusted comment...` + chiave). La chiave PRIVATA va in env var `TAURI_SIGNING_PRIVATE_KEY` durante la build. Se la pubkey resta placeholder, la build fallira' con errore esplicito.",
       "pubkey": "REPLACE_WITH_CONTENT_OF_YOUR_TAURI_KEY_PUB_FILE"
     }

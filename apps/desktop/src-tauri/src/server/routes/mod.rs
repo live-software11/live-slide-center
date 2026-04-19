@@ -8,6 +8,7 @@
 //   • lan_events_routes → /events/file_added + /events/presentation_deleted (push admin → sala)
 //                        + /events/stream (long-poll sala → SPA webview) — Sprint N2-N3
 
+pub mod folder_routes;
 pub mod functions;
 pub mod lan_events_routes;
 pub mod rest;

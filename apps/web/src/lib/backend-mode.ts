@@ -71,3 +71,61 @@ export function getBackendDescriptor(): BackendDescriptor {
     tone: 'cloud',
   };
 }
+
+/**
+ * Sprint W D1 — feature flag per le funzionalita' che esistono solo in cloud.
+ *
+ * Il backend desktop (server Rust + SQLite) e' nato come "cloud-parity offline":
+ * mirror dello schema dei file e dei flussi base, ma alcune feature dipendono da
+ * infrastrutture che il PC singolo non puo' replicare:
+ *
+ *   • `billing`            → checkout Lemon Squeezy + webhook → solo cloud.
+ *   • `analytics`          → dashboard aggregata multi-evento basata su query
+ *                            cloud che il SQLite locale non collezionerebbe in
+ *                            modo significativo (1 evento per volta).
+ *   • `marketing`          → pagine pubbliche, share link → richiede dominio cloud.
+ *   • `tenant-admin`       → gestione utenti/ruoli/inviti tenant → solo cloud.
+ *   • `cloud-presence`     → presence presenter cross-rete → richiede Realtime Supabase.
+ *   • `cross-event-search` → ricerca full-text multi-evento → solo cloud.
+ *   • `device-telemetry`   → dashboard health PC sala remoti → in desktop il
+ *                            singolo PC sa di se stesso, non serve dashboard.
+ *   • `audit-log-export`   → export audit log multi-evento → solo cloud.
+ *
+ * Le feature di gestione locale (event/room/sessions/upload/folders/devices LAN)
+ * funzionano IDENTICHE in desktop: NON vanno marcate cloud-only.
+ *
+ * Uso tipico in TSX:
+ *
+ *   if (!isCloudFeatureAvailable('billing')) return <FeatureNotAvailableView feature="billing" />;
+ *
+ * Oppure come route guard:
+ *
+ *   <RequireCloudFeature feature="billing"><BillingPage /></RequireCloudFeature>
+ */
+export type CloudOnlyFeature =
+  | 'billing'
+  | 'analytics'
+  | 'marketing'
+  | 'tenant-admin'
+  | 'cloud-presence'
+  | 'cross-event-search'
+  | 'device-telemetry'
+  | 'audit-log-export';
+
+/**
+ * Restituisce `true` se la feature richiesta e' disponibile nel backend
+ * corrente. In modalita cloud → sempre `true`. In modalita desktop →
+ * `false` per le feature elencate in `CloudOnlyFeature`.
+ *
+ * Il parametro `feature` resta nel tipo per documentazione e per evolvere
+ * la funzione in futuro (es. abilitare in desktop alcune feature
+ * specifiche). Oggi e' una blacklist piatta su tutto l'union type.
+ */
+export function isCloudFeatureAvailable(feature: CloudOnlyFeature): boolean {
+  if (getBackendMode() === 'cloud') return true;
+  // In desktop blocchiamo TUTTE le feature elencate. La whitelist e' chiusa:
+  // se in futuro una feature diventa portabile in desktop, basta aggiungerla
+  // alla `desktopAllowed` set qui sotto.
+  const desktopAllowed: ReadonlySet<CloudOnlyFeature> = new Set();
+  return desktopAllowed.has(feature);
+}

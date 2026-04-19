@@ -157,6 +157,9 @@ const ALLOWED_TABLES: &[&str] = &[
     "events", "rooms", "sessions", "speakers", "presentations",
     "presentation_versions", "paired_devices", "room_state", "local_agents",
     "pairing_codes", "tenants", "users", "activity_log",
+    // Sprint W B1: nuove tabelle per parita' schema cloud. La CRUD su
+    // event_folders e' gestita dal modulo dedicato `folder_routes.rs`
+    // (rimozione dalla whitelist generica per evitare doppio handler).
 ];
 
 const TABLES: &[TableSpec] = &[
@@ -221,9 +224,12 @@ const TABLES: &[TableSpec] = &[
         cols_filter: &[
             "id","speaker_id","session_id","event_id","tenant_id","current_version_id",
             "total_versions","status","created_at","updated_at",
+            // Sprint W B1 — File Explorer V2: folder_id opzionale.
+            "folder_id",
         ],
         cols_write: &[
             "id","speaker_id","session_id","event_id","current_version_id","total_versions","status",
+            "folder_id",
         ],
         writable: true,
         auto_cols: &["created_at","updated_at"],
@@ -235,11 +241,14 @@ const TABLES: &[TableSpec] = &[
             "id","presentation_id","tenant_id","version_number","storage_key","file_name",
             "file_size_bytes","file_hash_sha256","mime_type","uploaded_by_speaker",
             "uploaded_by_user_id","upload_source","status","notes","created_at",
+            // Sprint W B1 — validation results scritti dal pipeline `validation.rs`.
+            "validation_warnings","validated_at",
         ],
         cols_write: &[
             "id","presentation_id","version_number","storage_key","file_name",
             "file_size_bytes","file_hash_sha256","mime_type","uploaded_by_speaker",
             "uploaded_by_user_id","upload_source","status","notes",
+            "validation_warnings","validated_at",
         ],
         writable: true,
         auto_cols: &["created_at"],
@@ -273,11 +282,14 @@ const TABLES: &[TableSpec] = &[
             "room_id","tenant_id","current_session_id","current_presentation_id",
             "current_version_id","sync_status","agent_connection","playback_mode",
             "last_play_started_at","last_sync_at","assigned_agent_id","updated_at",
+            // Sprint W B1 — slide index del file in onda (Sprint U-3 cloud).
+            "current_slide_index","current_slide_total",
         ],
         cols_write: &[
             "room_id","current_session_id","current_presentation_id","current_version_id",
             "sync_status","agent_connection","playback_mode","last_play_started_at",
             "last_sync_at","assigned_agent_id",
+            "current_slide_index","current_slide_total",
         ],
         writable: true,
         auto_cols: &["updated_at"],

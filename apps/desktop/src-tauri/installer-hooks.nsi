@@ -1,31 +1,37 @@
-; Live SLIDE CENTER — Desktop (Sprint D2)
+; Live SLIDE CENTER — Desktop (Sprint D2 + Sprint W E3 fix)
 ; NSIS installer hooks: bypass permessi Windows + cleanup pulito.
 ;
 ; Eseguiti durante install (admin) UNA volta sola. Il runtime gira poi come
 ; utente normale, niente UAC. Convenzione hook: vedi
 ; https://v2.tauri.app/distribute/windows-installer/#installer-hooks
+;
+; Sprint W E3: refactor da single-quoted (`'...'`) a backtick (`` `...` ``)
+; come delimitatore esterno NSIS. Motivo: NSIS interpreta `''` consecutive
+; dentro stringa single-quoted come "chiudi/riapri stringa", spezzando il
+; comando in 3 parametri quando il PowerShell interno contiene
+; `''$PROFILE\...''`. Backtick e' tollerante e non collide con PowerShell.
 
 !macro NSIS_HOOK_POSTINSTALL
   ; ── 1) Firewall: porta TCP 7300 per server Axum locale ─────────────────
   ;    Necessario perche' i PC sala raggiungono il server admin via LAN.
   ;    Profili: private + domain (mai public per sicurezza eventi pubblici).
-  ExecWait 'netsh advfirewall firewall delete rule name="Live SLIDE CENTER Desktop"'
-  ExecWait 'netsh advfirewall firewall add rule name="Live SLIDE CENTER Desktop" dir=in action=allow protocol=TCP localport=7300 program="$INSTDIR\slide-center-desktop.exe" profile=private,domain enable=yes'
+  ExecWait `netsh advfirewall firewall delete rule name="Live SLIDE CENTER Desktop"`
+  ExecWait `netsh advfirewall firewall add rule name="Live SLIDE CENTER Desktop" dir=in action=allow protocol=TCP localport=7300 program="$INSTDIR\slide-center-desktop.exe" profile=private,domain enable=yes`
 
   ; ── 2) Firewall: UDP 5353 per mDNS (`_slidecenter._tcp.local.`) ────────
   ;    Apre service-discovery LAN cosi' i PC sala trovano il server da soli.
-  ExecWait 'netsh advfirewall firewall delete rule name="Live SLIDE CENTER Desktop mDNS"'
-  ExecWait 'netsh advfirewall firewall add rule name="Live SLIDE CENTER Desktop mDNS" dir=in action=allow protocol=UDP localport=5353 program="$INSTDIR\slide-center-desktop.exe" profile=private,domain enable=yes'
+  ExecWait `netsh advfirewall firewall delete rule name="Live SLIDE CENTER Desktop mDNS"`
+  ExecWait `netsh advfirewall firewall add rule name="Live SLIDE CENTER Desktop mDNS" dir=in action=allow protocol=UDP localport=5353 program="$INSTDIR\slide-center-desktop.exe" profile=private,domain enable=yes`
 
   ; ── 3) Defender: esclusione cartella dati per evitare scan continuo ────
   ;    `~/SlideCenter` (root data) e `~/.slidecenter` (admin token + license).
   ;    Errore tollerato (Defender disabilitato / non disponibile).
-  ExecWait 'powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-MpPreference -ExclusionPath ''$PROFILE\SlideCenter'' -Force -ErrorAction SilentlyContinue"'
-  ExecWait 'powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-MpPreference -ExclusionPath ''$PROFILE\.slidecenter'' -Force -ErrorAction SilentlyContinue"'
+  ExecWait `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-MpPreference -ExclusionPath '$PROFILE\SlideCenter' -Force -ErrorAction SilentlyContinue"`
+  ExecWait `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-MpPreference -ExclusionPath '$PROFILE\.slidecenter' -Force -ErrorAction SilentlyContinue"`
 
   ; ── 4) Profilo rete: forza Private (LAN consentita) ────────────────────
   ;    Errore tollerato se non c'e' rete attiva (es. install offline).
-  ExecWait 'powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Get-NetConnectionProfile | Where-Object { $_.NetworkCategory -eq ''Public'' } | Set-NetConnectionProfile -NetworkCategory Private -ErrorAction SilentlyContinue"'
+  ExecWait `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Get-NetConnectionProfile | Where-Object { $$_.NetworkCategory -eq 'Public' } | Set-NetConnectionProfile -NetworkCategory Private -ErrorAction SilentlyContinue"`
 
   ; ── 5) Shortcut Desktop (oltre al menu Start gia' creato da NSIS) ──────
   ;    Andrea ha richiesto installer "moderno e completo" → shortcut desktop
@@ -37,15 +43,15 @@
   ; ── 0) Termina processo se in esecuzione ───────────────────────────────
   ;    `taskkill /F` evita "file in uso" errori durante delete files.
   ;    Errore tollerato se app non e' running.
-  ExecWait 'taskkill /F /IM slide-center-desktop.exe /T'
+  ExecWait `taskkill /F /IM slide-center-desktop.exe /T`
 
   ; ── 1) Cleanup regole firewall ─────────────────────────────────────────
-  ExecWait 'netsh advfirewall firewall delete rule name="Live SLIDE CENTER Desktop"'
-  ExecWait 'netsh advfirewall firewall delete rule name="Live SLIDE CENTER Desktop mDNS"'
+  ExecWait `netsh advfirewall firewall delete rule name="Live SLIDE CENTER Desktop"`
+  ExecWait `netsh advfirewall firewall delete rule name="Live SLIDE CENTER Desktop mDNS"`
 
   ; ── 2) Cleanup esclusione Defender ─────────────────────────────────────
-  ExecWait 'powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Remove-MpPreference -ExclusionPath ''$PROFILE\SlideCenter'' -Force -ErrorAction SilentlyContinue"'
-  ExecWait 'powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Remove-MpPreference -ExclusionPath ''$PROFILE\.slidecenter'' -Force -ErrorAction SilentlyContinue"'
+  ExecWait `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Remove-MpPreference -ExclusionPath '$PROFILE\SlideCenter' -Force -ErrorAction SilentlyContinue"`
+  ExecWait `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Remove-MpPreference -ExclusionPath '$PROFILE\.slidecenter' -Force -ErrorAction SilentlyContinue"`
 
   ; ── 3) Shortcut desktop ────────────────────────────────────────────────
   Delete "$DESKTOP\Live SLIDE CENTER Desktop.lnk"

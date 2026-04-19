@@ -1,0 +1,128 @@
+name: Supabase Backup Verify (daily)
+
+# Sprint W A3 — verifica che Supabase abbia un backup recente (≤26h) per il
+# progetto produzione. Esegue lo script PowerShell `verify-supabase-backup.ps1`
+# tramite pwsh su Ubuntu (PowerShell e' multipiattaforma da v6+).
+#
+# Cron: 06:00 UTC daily (= 08:00 CEST estate, 07:00 CET inverno). Garantisce
+# che il backup notturno (di solito creato tra 02:00-05:00 UTC dal piano Supabase
+# Pro o automaticamente da Free) sia ormai disponibile.
+#
+# Output:
+#   - PASS  → exit 0, l'artefatto contiene il report JSON
+#   - FAIL  → exit ≠ 0 + apre/aggiorna issue GitHub con label `bug-backup`
+#             cosi' Andrea riceve email automatica
+#
+# SECRETS richiesti nel repo:
+#   - SUPABASE_PROJECT_REF (es. cdjxxxkrhgdkcpkkozdl)
+#   - SUPABASE_ACCESS_TOKEN (Personal Access Token sbp_...)
+
+on:
+  schedule:
+    - cron: '0 6 * * *' # daily 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: supabase-backup-verify
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify daily backup exists
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run verify-supabase-backup.ps1
+        id: verify
+        shell: pwsh
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Continue'
+          ./scripts/verify-supabase-backup.ps1 -ReportDir ./backup-reports
+          $code = $LASTEXITCODE
+          "exit_code=$code" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          if ($code -ne 0) {
+            Write-Host "::error::Backup verify failed (exit $code)"
+            exit $code
+          }
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-report-${{ github.run_id }}
+          path: backup-reports/*.json
+          retention-days: 30
+
+      - name: Open / update GitHub issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const reportDir = 'backup-reports';
+            let reportText = '_(report not produced)_';
+            if (fs.existsSync(reportDir)) {
+              const files = fs.readdirSync(reportDir).filter((f) => f.endsWith('.json'));
+              if (files.length > 0) {
+                reportText = '```json\n' + fs.readFileSync(path.join(reportDir, files[0]), 'utf8') + '\n```';
+              }
+            }
+
+            const today = new Date().toISOString().slice(0, 10);
+            const title = `[backup] Supabase backup verify failed (${today})`;
+            const body = `## Supabase backup verify failed
+
+            Lo script di verifica giornaliero (\`scripts/verify-supabase-backup.ps1\`)
+            ha rilevato che NON e' presente un backup recente (≤26h) per il progetto
+            \`${process.env.SUPABASE_PROJECT_REF || '(secret)'}\`.
+
+            **Azione richiesta:**
+            1. Verificare la dashboard Supabase → Settings → Database → Backups.
+            2. Se il backup e' effettivamente mancante, controllare il piano (Free
+               ha solo 7 giorni di retention; Pro ha PITR continuo).
+            3. Se il backup esiste ma il workflow fallisce, controllare il PAT
+               (\`SUPABASE_ACCESS_TOKEN\` secret) e \`SUPABASE_PROJECT_REF\`.
+
+            **Workflow:** ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}
+
+            ### Report
+
+            ${reportText}
+            `;
+
+            const search = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${context.repo.owner}/${context.repo.repo} is:issue is:open label:bug-backup in:title "Supabase backup verify failed"`,
+            });
+
+            if (search.data.total_count > 0) {
+              const issue = search.data.items[0];
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body,
+              });
+              core.notice(`Backup failure already tracked in #${issue.number}, added comment.`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['bug-backup', 'priority:high'],
+              });
+              core.notice(`Opened backup failure issue #${created.data.number}`);
+            }

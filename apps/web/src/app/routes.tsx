@@ -4,6 +4,7 @@ import { DesktopRoleGate } from './desktop-role-gate';
 import { HydrateFallback } from './hydrate-fallback';
 import { RootLayout } from './root-layout';
 import { RequireAuth } from './require-auth';
+import { RequireCloudFeature } from './require-cloud-feature';
 import { RequireSuperAdmin } from './require-super-admin';
 import { RequireTenantAdmin } from './require-tenant-admin';
 import { RouteErrorView } from './route-error';
@@ -163,8 +164,15 @@ export const router = createBrowserRouter([
                 element: <RequireTenantAdmin />,
                 children: [
                   {
-                    index: true,
-                    lazy: () => import('@/features/team/TeamView'),
+                    // Sprint W D3: gestione team/inviti utenti dipende da
+                    // tenants cloud + Auth Supabase → cloud-only.
+                    element: <RequireCloudFeature feature="tenant-admin" />,
+                    children: [
+                      {
+                        index: true,
+                        lazy: () => import('@/features/team/TeamView'),
+                      },
+                    ],
                   },
                 ],
               },
@@ -200,8 +208,14 @@ export const router = createBrowserRouter([
                 element: <RequireTenantAdmin />,
                 children: [
                   {
-                    index: true,
-                    lazy: () => import('@/features/audit/AuditView'),
+                    // Sprint W D3: audit log multi-evento → cloud-only.
+                    element: <RequireCloudFeature feature="audit-log-export" />,
+                    children: [
+                      {
+                        index: true,
+                        lazy: () => import('@/features/audit/AuditView'),
+                      },
+                    ],
                   },
                 ],
               },
@@ -210,8 +224,14 @@ export const router = createBrowserRouter([
                 element: <RequireTenantAdmin />,
                 children: [
                   {
-                    index: true,
-                    lazy: () => import('@/features/billing/BillingView'),
+                    // Sprint W D3: checkout Lemon Squeezy + webhook → cloud-only.
+                    element: <RequireCloudFeature feature="billing" />,
+                    children: [
+                      {
+                        index: true,
+                        lazy: () => import('@/features/billing/BillingView'),
+                      },
+                    ],
                   },
                 ],
               },

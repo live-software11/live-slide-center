@@ -58,6 +58,12 @@ pub fn routes() -> Router<AppState> {
 // ── 1. init_upload_version_for_session(p_session_id, p_filename, p_size, p_mime) ───
 // Crea (o ri-usa) una presentation senza speaker (modello "upload diretto a sessione")
 // + presentation_version status='uploading'. Ritorna version_id, presentation_id, storage_key.
+//
+// Sprint W C2: aggiunto `p_folder_id` opzionale per mirror dell'extension cloud
+// `init_upload_version_for_session(text, integer, text, uuid)`. Quando presente, la
+// presentation viene creata (o aggiornata) con `folder_id` settato. Se la presentation
+// esiste gia' con un folder diverso e il caller passa un folder_id non NULL, vince
+// il caller (UPDATE). Comportamento allineato al cloud.
 
 #[derive(Deserialize)]
 struct InitForSessionInput {
@@ -66,6 +72,9 @@ struct InitForSessionInput {
     p_size: i64,
     #[serde(default)]
     p_mime: Option<String>,
+    /// Sprint W C2: cartella di destinazione (File Explorer V2). NULL = root.
+    #[serde(default)]
+    p_folder_id: Option<String>,
 }
 
 async fn init_upload_for_session(
@@ -92,6 +101,25 @@ async fn init_upload_for_session(
             |r| r.get(0),
         ).map_err(|_| AppError::NotFound("session_not_found".into()))?;
 
+        // Sprint W C2: validazione folder (se passato) → deve esistere e
+        // appartenere allo stesso event. NULL = root (sempre valido).
+        if let Some(folder_id) = input.p_folder_id.as_ref() {
+            let folder_event: Option<String> = tx
+                .query_row(
+                    "SELECT event_id FROM event_folders WHERE id = ?1 AND tenant_id = ?2",
+                    [folder_id, LOCAL_TENANT_ID],
+                    |r| r.get(0),
+                )
+                .ok();
+            match folder_event {
+                None => return Err(AppError::NotFound("folder_not_found".into())),
+                Some(eid) if eid != event_id => {
+                    return Err(AppError::BadRequest("folder_event_mismatch".into()));
+                }
+                _ => {}
+            }
+        }
+
         // Lookup presentation senza speaker per questa sessione (1:N possibile, ma
         // su upload diretto a sessione e' 1:1 con session_id — usiamo la prima senza speaker).
         let presentation_id: String = match tx.query_row(
@@ -101,13 +129,32 @@ async fn init_upload_for_session(
             [&input.p_session_id, LOCAL_TENANT_ID],
             |r| r.get::<_, String>(0),
         ) {
-            Ok(id) => id,
+            Ok(id) => {
+                // Sprint W C2: se il caller ha specificato un folder_id, aggiorniamo
+                // la presentation esistente (vince il caller). Se ha passato NULL,
+                // lasciamo invariato (potrebbe gia' avere un folder).
+                if let Some(folder_id) = input.p_folder_id.as_ref() {
+                    tx.execute(
+                        "UPDATE presentations SET folder_id = ?1,
+                            updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                          WHERE id = ?2",
+                        [folder_id, &id],
+                    )?;
+                }
+                id
+            }
             Err(rusqlite::Error::QueryReturnedNoRows) => {
                 let new_id = Uuid::new_v4().to_string();
                 tx.execute(
-                    "INSERT INTO presentations (id, session_id, event_id, tenant_id, status)
-                     VALUES (?1, ?2, ?3, ?4, 'pending')",
-                    [&new_id, &input.p_session_id, &event_id, &LOCAL_TENANT_ID.to_string()],
+                    "INSERT INTO presentations (id, session_id, event_id, tenant_id, folder_id, status)
+                     VALUES (?1, ?2, ?3, ?4, ?5, 'pending')",
+                    rusqlite::params![
+                        new_id,
+                        input.p_session_id,
+                        event_id,
+                        LOCAL_TENANT_ID,
+                        input.p_folder_id,
+                    ],
                 )?;
                 new_id
             }
@@ -181,6 +228,9 @@ struct InitForSpeakerInput {
     p_size: i64,
     #[serde(default)]
     p_mime: Option<String>,
+    /// Sprint W C2: cartella di destinazione (File Explorer V2). NULL = root.
+    #[serde(default)]
+    p_folder_id: Option<String>,
 }
 
 async fn init_upload_for_speaker(
@@ -206,19 +256,54 @@ async fn init_upload_for_speaker(
             |r| Ok((r.get(0)?, r.get(1)?)),
         ).map_err(|_| AppError::NotFound("speaker_not_found".into()))?;
 
+        // Sprint W C2: validazione folder (stesso event scope).
+        if let Some(folder_id) = input.p_folder_id.as_ref() {
+            let folder_event: Option<String> = tx
+                .query_row(
+                    "SELECT event_id FROM event_folders WHERE id = ?1 AND tenant_id = ?2",
+                    [folder_id, LOCAL_TENANT_ID],
+                    |r| r.get(0),
+                )
+                .ok();
+            match folder_event {
+                None => return Err(AppError::NotFound("folder_not_found".into())),
+                Some(eid) if eid != event_id => {
+                    return Err(AppError::BadRequest("folder_event_mismatch".into()));
+                }
+                _ => {}
+            }
+        }
+
         // UPSERT idempotente su `presentations(speaker_id)` UNIQUE.
         let presentation_id: String = match tx.query_row(
             "SELECT id FROM presentations WHERE speaker_id = ?1",
             [&input.p_speaker_id],
             |r| r.get::<_, String>(0),
         ) {
-            Ok(id) => id,
+            Ok(id) => {
+                if let Some(folder_id) = input.p_folder_id.as_ref() {
+                    tx.execute(
+                        "UPDATE presentations SET folder_id = ?1,
+                            updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                          WHERE id = ?2",
+                        [folder_id, &id],
+                    )?;
+                }
+                id
+            }
             Err(rusqlite::Error::QueryReturnedNoRows) => {
                 let new_id = Uuid::new_v4().to_string();
                 tx.execute(
-                    "INSERT INTO presentations (id, speaker_id, session_id, event_id, tenant_id, status)
-                     VALUES (?1, ?2, ?3, ?4, ?5, 'pending')",
-                    rusqlite::params![new_id, input.p_speaker_id, session_id, event_id, LOCAL_TENANT_ID],
+                    "INSERT INTO presentations (id, speaker_id, session_id, event_id, tenant_id, folder_id, status)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'pending')",
+                    rusqlite::params![
+                        new_id,
+                        input.p_speaker_id,
+                        session_id,
+                        event_id,
+                        LOCAL_TENANT_ID,
+                        input.p_folder_id,
+                    ],
                 )?;
                 new_id
             }
@@ -613,15 +698,27 @@ async fn rename_device(
     })))
 }
 
-// ── 7. rpc_room_player_set_current(p_token, p_presentation_id) ───────────────
+// ── 7. rpc_room_player_set_current(p_token, p_presentation_id, [slide_index, slide_total]) ──
 // Aggiorna `room_state.current_presentation_id` validando che la presentation
 // appartenga alla stessa sala del device (no cross-room).
+//
+// Sprint W C2 — port Sprint U-3 cloud: aggiunti `p_current_slide_index` e
+// `p_current_slide_total` opzionali per "On Air slide N/M". Sanity check:
+//   • valori < 1 → coercion a NULL (silenziosa, non blocchiamo il sala)
+//   • index > total quando entrambi presenti → NULL+NULL
+//   • presentation_id NULL → azzera anche slide-counter (no file in onda)
 
 #[derive(Deserialize)]
 struct SetCurrentInput {
     p_token: String,
     #[serde(default)]
     p_presentation_id: Option<String>,
+    /// Sprint U-3 (cloud) → desktop W C2: indice 1-based slide visibile.
+    #[serde(default)]
+    p_current_slide_index: Option<i64>,
+    /// Sprint U-3 (cloud) → desktop W C2: totale slide del file in onda.
+    #[serde(default)]
+    p_current_slide_total: Option<i64>,
 }
 
 async fn room_player_set_current(
@@ -634,10 +731,39 @@ async fn room_player_set_current(
         .clone()
         .ok_or_else(|| AppError::Conflict("device_not_in_room".into()))?;
 
+    // Sanity check slide-counter: invalidi → NULL (back-compat: non blocchiamo
+    // mai il PC sala con HTTP 400, meglio "stato sconosciuto").
+    let mut slide_index = input.p_current_slide_index;
+    let mut slide_total = input.p_current_slide_total;
+    if matches!(slide_index, Some(v) if v < 1) {
+        slide_index = None;
+    }
+    if matches!(slide_total, Some(v) if v < 1) {
+        slide_total = None;
+    }
+    if let (Some(i), Some(t)) = (slide_index, slide_total) {
+        if i > t {
+            slide_index = None;
+            slide_total = None;
+        }
+    }
+    // Se la trasmissione e' stoppata (presentation_id NULL), azzeriamo anche i
+    // contatori: non avrebbero senso senza un file in onda.
+    if input.p_presentation_id.is_none() {
+        slide_index = None;
+        slide_total = None;
+    }
+
     let pool = state.db.clone();
+    let response_index = slide_index;
+    let response_total = slide_total;
     let result = tokio::task::spawn_blocking(move || -> AppResult<Value> {
         let mut conn = pool.get()?;
         let tx = conn.transaction()?;
+
+        // Garantiamo l'esistenza della riga room_state PRIMA di tentare UPDATE.
+        // (Su cloud Postgres c'e' un trigger; qui il setup desktop non lo crea.)
+        upsert_room_state(&tx, &room_id)?;
 
         if let Some(pres_id) = input.p_presentation_id.as_ref() {
             // Verifica appartenenza alla sala.
@@ -659,23 +785,25 @@ async fn room_player_set_current(
                 "UPDATE room_state
                     SET current_presentation_id = ?1,
                         last_play_started_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                        current_slide_index = ?2,
+                        current_slide_total = ?3,
                         updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-                  WHERE room_id = ?2",
-                [pres_id, &room_id],
+                  WHERE room_id = ?4",
+                rusqlite::params![pres_id, slide_index, slide_total, room_id],
             )?;
         } else {
             tx.execute(
                 "UPDATE room_state
                     SET current_presentation_id = NULL,
                         last_play_started_at = NULL,
+                        current_slide_index = NULL,
+                        current_slide_total = NULL,
                         updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
                   WHERE room_id = ?1",
                 [&room_id],
             )?;
         }
 
-        // Audit log (best-effort)
-        let _ = upsert_room_state(&tx, &room_id);
         let activity_id = Uuid::new_v4().to_string();
         let _ = tx.execute(
             "INSERT INTO activity_log (id, tenant_id, event_id, actor, actor_id, action, entity_type, entity_id, metadata)
@@ -689,6 +817,8 @@ async fn room_player_set_current(
                 json!({
                     "device_id": device.id,
                     "presentation_id": input.p_presentation_id,
+                    "slide_index": slide_index,
+                    "slide_total": slide_total,
                 }).to_string(),
             ],
         );
@@ -698,6 +828,8 @@ async fn room_player_set_current(
             "ok": true,
             "room_id": room_id,
             "presentation_id": input.p_presentation_id,
+            "slide_index": response_index,
+            "slide_total": response_total,
         }))
     })
     .await??;

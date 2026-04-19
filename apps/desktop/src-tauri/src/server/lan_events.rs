@@ -62,6 +62,34 @@ pub enum LanEventPayload {
         presentation_id: String,
         version_ids: Vec<String>,
     },
+    /// Sprint W C3 — File Explorer V2: cartella creata. Il PC sala invalida il
+    /// tree manifest e ricarica via long-poll.
+    FolderCreated {
+        event_id: String,
+        folder_id: String,
+        parent_id: Option<String>,
+        name: String,
+    },
+    /// Sprint W C3 — Cartella rinominata. Il PC sala aggiorna il tree.
+    FolderRenamed {
+        event_id: String,
+        folder_id: String,
+        new_name: String,
+    },
+    /// Sprint W C3 — Cartella eliminata (cascade su sotto-cartelle e
+    /// dissociazione presentations: vedi cloud `rpc_delete_event_folder`).
+    FolderDeleted {
+        event_id: String,
+        folder_id: String,
+        cascade_folder_ids: Vec<String>,
+    },
+    /// Sprint W C3 — Una o piu' presentation spostate in una folder (o root).
+    /// Il PC sala aggiorna il bucket di file mostrato in player.
+    PresentationsMovedToFolder {
+        event_id: String,
+        target_folder_id: Option<String>,
+        presentation_ids: Vec<String>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize)]

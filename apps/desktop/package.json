@@ -1,7 +1,7 @@
 {
   "name": "@slidecenter/desktop",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Build orchestrator per Live SLIDE CENTER Desktop (Tauri 2 wrapper della SPA apps/web). Sprint J bootstrap + Sprint P (NSIS + updater + signing slot). Non e' un progetto npm classico: espone solo script clean / dev / build / release verso la toolchain Cargo + Tauri CLI installata globalmente.",
   "scripts": {
@@ -9,9 +9,9 @@
     "prereqs:json": "node scripts/check-prereqs.mjs --json",
     "clean": "node scripts/clean.mjs",
     "clean:full": "node scripts/clean.mjs --full",
-    "dev": "cargo tauri dev --manifest-path src-tauri/Cargo.toml",
-    "build:tauri": "cargo tauri build --manifest-path src-tauri/Cargo.toml",
-    "build:tauri:debug": "cargo tauri build --manifest-path src-tauri/Cargo.toml --debug",
+    "dev": "cargo tauri dev",
+    "build:tauri": "cargo tauri build",
+    "build:tauri:debug": "cargo tauri build --debug",
     "release:full": "npm run clean && npm run prereqs && npm run build:tauri",
     "release:nsis": "node scripts/release.mjs",
     "release:latest-json": "node scripts/generate-latest-json.mjs",

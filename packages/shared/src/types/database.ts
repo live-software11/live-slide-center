@@ -1991,6 +1991,10 @@ export type Database = {
         Args: { p_name: string; p_token: string }
         Returns: Json
       }
+      rename_presentation_version_file_name: {
+        Args: { p_new_name: string; p_version_id: string }
+        Returns: Json
+      }
       reset_tenant_onboarding: { Args: never; Returns: undefined }
       rpc_admin_create_desktop_provision_token: {
         Args: {

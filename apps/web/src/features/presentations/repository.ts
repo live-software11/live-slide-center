@@ -208,18 +208,12 @@ export async function renameVersionFileName(
   newName: string,
 ): Promise<RenameVersionFileNameResult> {
   const supabase = getSupabaseBrowserClient();
-  // RPC introdotta in migration 20260420060000 — i types generati non la includono
-  // ancora (rigenerare con `pnpm db:gen-types` post-deploy). Cast minimo locale.
-  const rpc = supabase.rpc as unknown as (
-    fn: string,
-    args: Record<string, unknown>,
-  ) => Promise<{ data: unknown; error: { message: string } | null }>;
-  const { data, error } = await rpc('rename_presentation_version_file_name', {
+  const { data, error } = await supabase.rpc('rename_presentation_version_file_name', {
     p_version_id: versionId,
     p_new_name: newName,
   });
   if (error || !data) throw error ?? new Error('rename_version_file_name_failed');
-  return data as RenameVersionFileNameResult;
+  return data as unknown as RenameVersionFileNameResult;
 }
 
 // ────────────────────────────────────────────────────────────────────

@@ -20,6 +20,18 @@
     "billing": "Abbonamento",
     "activity": "Attività"
   },
+  "featureNotAvailable": {
+    "modeBadge": "Versione Desktop",
+    "title": "{{feature}} è disponibile solo nella versione Cloud",
+    "description": "Questa funzione richiede l'infrastruttura cloud (Supabase, fatturazione Lemon Squeezy, dashboard multi-evento) che non è replicabile sul singolo PC. Apri la versione web all'indirizzo qui sotto per usarla.",
+    "cta": "Apri la versione Cloud",
+    "feature": {
+      "billing": "Abbonamento e fatturazione",
+      "tenant-admin": "Gestione team e inviti",
+      "audit-log-export": "Audit log e attività",
+      "generic": "Questa funzione"
+    }
+  },
   "folder": {
     "panelTitle": "Cartelle dell'evento",
     "panelIntro": "Organizza i file dell'evento per sala, sessione o speaker. Le cartelle sono opzionali.",
@@ -34,6 +46,7 @@
     "expand": "Espandi",
     "namePlaceholder": "Nome cartella...",
     "renamePlaceholder": "Nuovo nome...",
+    "renameMovedToExplorer": "Per rinominare una cartella apri il File Manager (banner in cima alla scheda Produzione).",
     "errors": {
       "nameLength": "Il nome deve essere tra 1 e 200 caratteri."
     }

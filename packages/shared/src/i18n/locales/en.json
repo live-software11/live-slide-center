@@ -20,6 +20,18 @@
     "billing": "Subscription",
     "activity": "Activity"
   },
+  "featureNotAvailable": {
+    "modeBadge": "Desktop Edition",
+    "title": "{{feature}} is only available in the Cloud edition",
+    "description": "This feature relies on cloud infrastructure (Supabase, Lemon Squeezy billing, multi-event dashboards) that cannot run on a single offline PC. Open the web app at the address below to use it.",
+    "cta": "Open the Cloud edition",
+    "feature": {
+      "billing": "Subscription and billing",
+      "tenant-admin": "Team management and invitations",
+      "audit-log-export": "Audit log and activity",
+      "generic": "This feature"
+    }
+  },
   "folder": {
     "panelTitle": "Event folders",
     "panelIntro": "Organize event files by room, session or speaker. Folders are optional.",
@@ -34,6 +46,7 @@
     "expand": "Expand",
     "namePlaceholder": "Folder name...",
     "renamePlaceholder": "New name...",
+    "renameMovedToExplorer": "To rename a folder open the File Manager (banner at the top of the Production tab).",
     "errors": {
       "nameLength": "Name must be between 1 and 200 characters."
     }

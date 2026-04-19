@@ -1,6 +1,6 @@
 [package]
 name = "slide-center-desktop"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Live SLIDE CENTER Desktop — wrapper Tauri 2 + server Rust locale (Sprint J + K)"
 
@@ -31,21 +31,27 @@ tauri-plugin-http = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-dialog = "2"
 
-# ── Sprint P3 (GUIDA_OPERATIVA_v3 §4.H): auto-update Tauri ──────────────────
+# ── Sprint P3 + Sprint W E3 (GUIDA_OPERATIVA_v3 §4.H): auto-update Tauri ───
 # `tauri-plugin-updater` (MSRV 1.77.2) e `tauri-plugin-process` (per il
 # relaunch dopo install). Entrambi target-gated su desktop perche' l'updater
-# non supporta Android/iOS. Il blocco `[target.cfg(...)]` evita di provare a
-# compilarli per future build mobile.
+# non supporta Android/iOS.
+#
+# Sprint W E3 — feature flag `signed-updater`:
+#   In Tauri 2 il plugin updater FALLISCE HARD al boot se la sezione
+#   `plugins.updater` nel config base non contiene `pubkey` (anche se gli
+#   endpoints sono validi). Per evitare di forzare una build firmata in
+#   ogni installazione, il plugin viene COMPILATO sempre ma REGISTRATO
+#   solo quando `--features signed-updater` e' attivo (vedi `main.rs`).
+#   La build firmata `release:nsis` con `--signing-config` deve aggiungere
+#   `--features signed-updater` per riabilitare l'auto-update.
 #
 # Attivazione end-to-end (vedi `apps/desktop/UPDATER_SETUP.md`):
 #   1. `cargo tauri signer generate -w ~/.tauri/slidecenter-desktop.key`
 #   2. Copia il contenuto `~/.tauri/slidecenter-desktop.key.pub` dentro
-#      `tauri.conf.json` -> `plugins.updater.pubkey`.
-#   3. Imposta `bundle.createUpdaterArtifacts: true`.
-#   4. Esporta `TAURI_SIGNING_PRIVATE_KEY` (e password se settata) prima di
-#      `cargo tauri build`.
-# Senza questi step la build NSIS funziona comunque (solo l'auto-check
-# remoto resta disattivato e la SPA mostra "updater_not_configured").
+#      `tauri.signing.json` -> `plugins.updater.pubkey`.
+#   3. `tauri.signing.json` setta `bundle.createUpdaterArtifacts: true`.
+#   4. Esporta `TAURI_SIGNING_PRIVATE_KEY` prima di
+#      `cargo tauri build --features signed-updater --config tauri.signing.json`.
 [target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
@@ -142,6 +148,15 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 aes-gcm = { version = "0.10", features = ["aes"] }
 hostname = "0.4"
 url = "2"
+
+[features]
+default = []
+# Sprint W E3 — attiva il plugin updater al boot. Richiede che la config
+# contenga `plugins.updater.pubkey` valido (vedi `tauri.signing.json`).
+# Senza questa feature, l'app boota normalmente ma `app.updater()` ritorna
+# errore "updater_not_configured" → comportamento desiderato per build
+# unsigned distribuite via NSIS senza updater automatico.
+signed-updater = []
 
 [profile.release]
 strip = true

@@ -80,6 +80,10 @@ pub async fn notify_paired_devices(state: &AppState, event_id: String, payload: 
     let kind = match &payload {
         LanEventPayload::FileAdded { .. } => "file_added",
         LanEventPayload::PresentationDeleted { .. } => "presentation_deleted",
+        LanEventPayload::FolderCreated { .. } => "folder_created",
+        LanEventPayload::FolderRenamed { .. } => "folder_renamed",
+        LanEventPayload::FolderDeleted { .. } => "folder_deleted",
+        LanEventPayload::PresentationsMovedToFolder { .. } => "presentations_moved_to_folder",
     };
 
     for (device_id, lan_base_url) in targets {
@@ -159,6 +163,43 @@ pub fn build_presentation_deleted(
     }
 }
 
+/// Sprint W C3 — Helper per costruire payload `FolderCreated` (File Explorer V2).
+pub fn build_folder_created(
+    event_id: String,
+    folder_id: String,
+    parent_id: Option<String>,
+    name: String,
+) -> LanEventPayload {
+    LanEventPayload::FolderCreated { event_id, folder_id, parent_id, name }
+}
+
+/// Sprint W C3 — Helper per costruire payload `FolderRenamed`.
+pub fn build_folder_renamed(
+    event_id: String,
+    folder_id: String,
+    new_name: String,
+) -> LanEventPayload {
+    LanEventPayload::FolderRenamed { event_id, folder_id, new_name }
+}
+
+/// Sprint W C3 — Helper per costruire payload `FolderDeleted` (cascade).
+pub fn build_folder_deleted(
+    event_id: String,
+    folder_id: String,
+    cascade_folder_ids: Vec<String>,
+) -> LanEventPayload {
+    LanEventPayload::FolderDeleted { event_id, folder_id, cascade_folder_ids }
+}
+
+/// Sprint W C3 — Helper per costruire payload `PresentationsMovedToFolder`.
+pub fn build_presentations_moved_to_folder(
+    event_id: String,
+    target_folder_id: Option<String>,
+    presentation_ids: Vec<String>,
+) -> LanEventPayload {
+    LanEventPayload::PresentationsMovedToFolder { event_id, target_folder_id, presentation_ids }
+}
+
 /// Helper di logging: serializza payload per audit (best-effort).
 #[allow(dead_code)]
 pub fn payload_summary(payload: &LanEventPayload) -> String {
@@ -166,6 +207,10 @@ pub fn payload_summary(payload: &LanEventPayload) -> String {
         "kind": match payload {
             LanEventPayload::FileAdded { .. } => "file_added",
             LanEventPayload::PresentationDeleted { .. } => "presentation_deleted",
+            LanEventPayload::FolderCreated { .. } => "folder_created",
+            LanEventPayload::FolderRenamed { .. } => "folder_renamed",
+            LanEventPayload::FolderDeleted { .. } => "folder_deleted",
+            LanEventPayload::PresentationsMovedToFolder { .. } => "presentations_moved_to_folder",
         },
     })
     .to_string()

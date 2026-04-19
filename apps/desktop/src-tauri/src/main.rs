@@ -33,18 +33,27 @@ fn main() {
         env!("CARGO_PKG_VERSION")
     );
 
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_dialog::init())
-        // Sprint P3 — updater + process. `tauri_plugin_updater::Builder` sceglie
-        // automaticamente endpoints/pubkey da `tauri.conf.json -> plugins.updater`.
-        // Se la sezione e' incompleta (no `pubkey`), `app.updater().check()` lato
-        // SPA fallisce graceful con "updater_not_configured" senza crashare.
-        // `process` serve solo per `app.restart()` dopo l'install.
-        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init());
+
+    // Sprint P3 + Sprint W E3 — updater plugin gated dietro feature `signed-updater`.
+    // Tauri 2 panica al boot se `plugins.updater` esiste ma manca `pubkey`. Per
+    // evitare di forzare la build firmata su ogni installazione (e per non far
+    // crashare l'app unsigned), il plugin viene REGISTRATO solo quando la build
+    // include la chiave pubblica via `--features signed-updater` + override
+    // `tauri.signing.json`. Lato SPA, la chiamata `app.updater().check()`
+    // ritorna semplicemente "updater non disponibile" se il plugin non e'
+    // registrato. `process` resta sempre attivo per `app.restart()` post-install.
+    #[cfg(feature = "signed-updater")]
+    {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    }
+
+    builder = builder
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
             // Sprint L1: leggi il ruolo PRIMA di avviare il server. Default `admin`
@@ -109,7 +118,9 @@ fn main() {
             license::cmd_license_verify_now,
             license::cmd_license_renew_now,
             license::cmd_license_reset,
-        ])
+        ]);
+
+    builder
         .run(tauri::generate_context!())
         .expect("Error running Live SLIDE CENTER Desktop");
 }
