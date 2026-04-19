@@ -698,7 +698,9 @@ async function checkSentryConfigured() {
   // initSentry usa import.meta.env.VITE_SENTRY_DSN. Se la env era vuota a build
   // time, vite sostituisce con stringa vuota. Se era valorizzata, troviamo
   // il DSN o un riferimento "sentry" nel chunk.
-  const hasSentryDsn = /https:\/\/[a-z0-9]+@[a-z0-9.-]+\.ingest\.sentry\.io/.test(chunk.bodyText);
+  // Nota: il DSN puo' essere region-specific (us/de/eu): es. `*.ingest.de.sentry.io`,
+  // `*.ingest.us.sentry.io`. Usiamo regex permissivo che copre tutte le region.
+  const hasSentryDsn = /https:\/\/[a-z0-9]+@[a-z0-9.-]+\.sentry\.io\/\d+/.test(chunk.bodyText);
   if (hasSentryDsn) {
     record({
       id: 'sentry',

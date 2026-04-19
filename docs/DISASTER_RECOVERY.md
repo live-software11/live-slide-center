@@ -451,60 +451,152 @@ Dopo:
 
 ---
 
-## Setup Sentry (runtime error monitoring)
+## Setup Sentry (runtime error monitoring) — ATTIVO
 
-Senza Sentry siamo "ciechi" rispetto agli errori in produzione: scopriamo i bug
-solo quando un tenant chiama o quando li riproduciamo a posteriori. Setup
-una-tantum di 5 minuti, gratis fino a 5k eventi/mese.
+> **Stato**: configurato il 2026-04-19. Eventi runtime gia' tracciati in
+> produzione. Sezione mantenuta come reference per disaster recovery
+> (es. perdita progetto Sentry, rotazione DSN).
 
-### Step 1 — Crea progetto Sentry
+### Coordinate progetto
 
-1. <https://sentry.io/signup/> (account gratuito; o GitHub login con
-   `live-software11`).
-2. **Create Project** → Platform: **React** → Project name: `live-slide-center-web`.
-3. Copia il DSN dalla schermata setup. Formato:
-   `https://<key>@o<org-id>.ingest.sentry.io/<project-id>`.
+| Campo | Valore |
+|-------|--------|
+| Sentry org slug | `live-work-app` |
+| Sentry region | **EU** (`https://de.sentry.io`) |
+| Project slug | `live-slide-center-web` |
+| Platform | `javascript-react` |
+| Dashboard | <https://live-work-app.sentry.io/issues/?project=live-slide-center-web> |
+| Vercel env | `VITE_SENTRY_DSN` (Production) |
+| File init | `apps/web/src/lib/init-sentry.ts` (lazy import, no-op senza DSN) |
+| Error boundary | `apps/web/src/app/error-boundary.tsx` |
+| Helper warning | `apps/web/src/lib/telemetry.ts` (`reportError(...)`) |
 
-### Step 2 — Aggiungi env-var su Vercel
+> **Region EU = importante**: il DSN finisce con `.ingest.de.sentry.io` (NON
+> `.ingest.sentry.io`). La CSP in `vercel.json` usa `https://*.sentry.io`
+> che copre entrambi i pattern. Se in futuro si cambia region, nessuna
+> modifica CSP necessaria.
 
-```powershell
-vercel env add VITE_SENTRY_DSN production
-# Incolla il DSN quando richiesto.
+### Re-setup da zero (DR)
 
-# (opzionale ma consigliato)
-vercel env add VITE_SENTRY_DSN preview
-vercel env add VITE_SENTRY_DSN development
+#### Step 1 — Crea progetto Sentry
+
+Login con account `live.software11@gmail.com` su <https://sentry.io>, poi
+ricreare il progetto con esattamente:
+
+- **Organization**: `live-work-app` (region EU, NON US)
+- **Platform**: `React`
+- **Project name**: `live-slide-center-web`
+- **Team**: `live-work-app`
+
+Copia il DSN dalla schermata setup. Formato atteso:
+`https://<key>@o<org-id>.ingest.de.sentry.io/<project-id>`
+
+In alternativa, via Sentry MCP da Cursor:
+
+```text
+create_project(organizationSlug='live-work-app', regionUrl='https://de.sentry.io',
+  teamSlug='live-work-app', name='live-slide-center-web', platform='javascript-react')
 ```
 
-### Step 3 — Redeploy produzione
+#### Step 2 — Aggiungi env-var su Vercel
+
+**ATTENZIONE Windows PowerShell**: non usare `echo VALUE | vercel env add`
+perche' aggiunge `\r\n` al valore. Usare il flag `--value`:
+
+```powershell
+vercel env add VITE_SENTRY_DSN production --value "https://<key>@o<id>.ingest.de.sentry.io/<proj>" --yes
+```
+
+Per preview/development (passare anche il branch o accettare prompt):
+
+```powershell
+# Specifica branch oppure ometti per "tutti i preview"
+vercel env add VITE_SENTRY_DSN preview <branch> --value "<DSN>" --yes
+vercel env add VITE_SENTRY_DSN development --value "<DSN>" --yes
+```
+
+Verifica valore pulito (no CRLF):
+
+```powershell
+vercel env pull .env.test --environment=production --yes
+Select-String -Path .env.test -Pattern "SENTRY"
+Remove-Item .env.test
+```
+
+Atteso (NO `\r\n`, NO trailing space):
+
+```text
+VITE_SENTRY_DSN="https://...ingest.de.sentry.io/..."
+```
+
+#### Step 3 — Redeploy produzione
 
 ```powershell
 vercel deploy --prod --yes --archive=tgz
 ```
 
-### Step 4 — Verifica
+Tempo atteso: ~12 min (upload monorepo Windows + build Turbo + deploy).
+
+#### Step 4 — Verifica end-to-end
 
 ```powershell
 pnpm smoke:cloud
-# Cerca la riga: [OK]   ~ Sentry runtime configurato
+# Riga attesa: [OK]   ~ Sentry runtime configurato
 ```
 
-In alternativa: apri devtools del browser su <https://app.liveslidecenter.com>,
-network tab, filtra per "sentry.io" → al primo errore vedrai una richiesta
-POST verso `ingest.sentry.io`.
+E poi invio evento test via curl/Node direttamente al DSN:
+
+```powershell
+node -e "const id=require('crypto').randomBytes(16).toString('hex'); fetch('https://<orgid>.ingest.de.sentry.io/api/<projectid>/store/?sentry_version=7&sentry_key=<key>',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_id:id,timestamp:new Date().toISOString(),platform:'javascript',level:'info',message:{formatted:'DR test'}})}).then(r=>r.text().then(t=>console.log(r.status,t)))"
+```
+
+Atteso `200 {"id":"..."}`. Poi via Sentry MCP (Cursor):
+
+```text
+search_issues(organizationSlug='live-work-app', regionUrl='https://de.sentry.io',
+  projectSlugOrId='live-slide-center-web', naturalLanguageQuery='events from last 5 minutes')
+```
+
+Risolvi/silenzia l'evento test:
+
+```text
+update_issue(organizationSlug='live-work-app', regionUrl='https://de.sentry.io',
+  issueId='LIVE-SLIDE-CENTER-WEB-<n>', status='resolved')
+```
 
 ### Cosa NON fare
 
-- **NO** mettere il DSN nel repo: e' env-var pubblica ma comunque preferibile
-  passarla solo via Vercel env per poterla ruotare.
-- **NO** alzare `tracesSampleRate` sopra 0.1 senza monitorare il consumo: la
-  performance tracing consuma quota in fretta su un'app con molti `useEffect`.
+- **NO** mettere il DSN hard-coded nel repo: e' env-var pubblica ma
+  preferibile passarla solo via Vercel env per poterla ruotare.
+- **NO** alzare `tracesSampleRate` sopra 0.1 senza monitorare il consumo:
+  la performance tracing consuma quota in fretta su un'app con molti
+  `useEffect`.
+- **NO** confondere region: il DSN UE NON funziona se Sentry account e'
+  US (e viceversa). I pannelli sono separati.
 
-### Quota gratuita
+### Quota gratuita (Developer)
 
-Sentry free: 5k errori/mese + 10k transactions. Per Live Slide Center attuale
-(~10 tenant test, evento da 50-100 speakers) bastano largamente. Se la quota
-satura → upgrade a Team ($26/mese) o passare a Sentry self-hosted.
+Sentry free: 5k errori/mese + 10k transactions + 50 replays. Per Live
+Slide Center attuale (~10 tenant test, evento da 50-100 speakers) bastano
+largamente. Se la quota satura → upgrade a Team ($29/mese, 50k errori) o
+passare a Sentry self-hosted.
+
+### Sourcemaps (opzionale, da fare a freddo)
+
+Lo script `apps/web/scripts/upload-sourcemaps.mjs` e' gia' presente: se
+settiamo `SENTRY_AUTH_TOKEN` (anche solo lato Vercel build env) le
+sourcemaps vengono uploadate automaticamente al deploy → stack trace
+leggibili in dashboard. Senza token: stack trace minificati ma comunque
+filtrabili per file/route.
+
+Setup token:
+
+1. <https://live-work-app.sentry.io/settings/account/api/auth-tokens/>
+2. Create token con scope `project:releases` + `project:read`.
+3. `vercel env add SENTRY_AUTH_TOKEN production --value "sntrys_..." --yes`
+   (senza `VITE_` prefix: e' un secret build-time, NON deve finire nel
+   bundle pubblico).
+4. Redeploy. Lo script post-build esegue upload e logga `[sentry-upload] ok`.
 
 ---
 
