@@ -393,6 +393,15 @@ verify_jwt = false
 [functions.licensing-sync]
 verify_jwt = false
 
+# Licensing callback: chiamata server-to-server dal trigger Postgres
+# `notify_works_on_tenant_change` (via pg_net) per notificare WORKS dei cambi
+# di stato licensing su tenants (suspended, plan, expires_at, quote, ...).
+# Auth via header `x-internal-secret` confrontato con
+# LICENSING_CALLBACK_INTERNAL_SECRET. La function poi calcola HMAC SHA-256
+# verso WORKS endpoint e invia il payload shadow.
+[functions.licensing-callback]
+verify_jwt = false
+
 # Lemon Squeezy webhook: chiamata server-to-server da api.lemonsqueezy.com
 # protetta da HMAC SHA-256 sul body raw (LEMON_SQUEEZY_WEBHOOK_SECRET).
 # Sprint R-2: crea/aggiorna/sospende tenant in base a subscription_*.
