@@ -2,14 +2,15 @@
 
 > Mappa rapida del progetto per AI assistenti / nuovi developer.
 >
+> **Entry-point standard 2026 (Cursor / Codex / Continue):** `AGENTS.md` (root, gemello di questo file).
 > **Architettura completa:** `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` (UNICA fonte di verita).
 > **Indice docs canonico:** `docs/README.md`.
 > **Cose da fare:** `docs/STATO_E_TODO.md`.
 > **Setup ambiente:** `docs/Setup_Strumenti_e_MCP.md`.
 > **Disaster recovery + Sentry + warm-keep + workspace cleanup:** `docs/DISASTER_RECOVERY.md`.
-> **Regole AI:** `.cursor/rules/*.mdc`.
+> **Regole AI:** `.cursor/rules/*.mdc` (15 file, suite a 3 livelli).
 >
-> **Versione CLAUDE.md:** 3.1 — 19 aprile 2026 (post Sprint X-1 upload hardening: desktop simple-upload + cloud TUS race-cancel fix + smoke test secrets via env).
+> **Versione CLAUDE.md:** 3.2 — 6 maggio 2026 (post Sprint XY licensing v3: callback bidirezionale WORKS↔SC + max_active_events + max_events_per_month + storage GB + licensing-shadow + anti-loop + rinomina max_devices_per_event).
 
 ## Cos'e'
 
@@ -33,22 +34,23 @@ Mai operare con account `Andraven11` (e' per Preventivi DHS / Gestionale FREELAN
 
 ## Stack in una riga
 
-React 19 + TS strict + Vite 8 + Tailwind 4 + Tauri 2 + Rust Axum + Supabase (Postgres 17, project `cdjxxxkrhgdkcpkkozdl`) + Sentry + pnpm + Turborepo.
+React 19 + TS 6 strict + Vite 8 + Tailwind 4 (token `sc-*`) + Radix/shadcn (`packages/ui`) + Tauri 2 + Rust Axum + Supabase (Postgres 17, project `cdjxxxkrhgdkcpkkozdl`, 29 Edge Functions Deno) + Sentry + pnpm 9 + Turborepo.
 
 ## Struttura monorepo (alto livello)
 
 ```
 live-slide-center/
 ├── apps/
-│   ├── web/              # React 19 SPA (cloud + desktop) — feature folders
-│   ├── desktop/          # Tauri 2 unico (Sprint J-W): wrapper + server Rust Axum
+│   ├── web/              # @slidecenter/web — React 19 SPA (cloud + desktop) feature folders
+│   ├── desktop/          # @slidecenter/desktop — Tauri 2 unico (Sprint J-W): server Rust Axum embedded
 │   ├── agent/            # Local Agent legacy Tauri 1 (admin LAN)
 │   └── room-agent/       # Room Agent legacy Tauri 1 (PC sala daemon)
 ├── packages/
-│   └── shared/           # @slidecenter/shared — types DB + i18n + utility cross-app
+│   ├── shared/           # @slidecenter/shared — types DB + i18n IT/EN + utility cross-app
+│   └── ui/               # @slidecenter/ui — design system Radix/shadcn (token sc-*) + cmdk + sonner
 ├── supabase/
-│   ├── migrations/       # 30+ SQL migration (Fasi 0-15 + AU-01..09 + Sprint W)
-│   ├── functions/        # 26 Edge Functions Deno
+│   ├── migrations/       # 30+ SQL migration (Fasi 0-15 + AU-01..09 + Sprint W + X-1 + X-2 + XY licensing)
+│   ├── functions/        # 29 Edge Functions Deno
 │   ├── tests/            # rls_audit.sql + pgTAP
 │   └── config.toml
 ├── docs/                 # 14 doc canonici + _archive/ (vedere docs/README.md)
@@ -56,8 +58,10 @@ live-slide-center/
 ├── package.json          # workspace pnpm + script Turbo
 ├── turbo.json
 ├── pnpm-workspace.yaml
-├── .vercelignore         # esclude apps/desktop, apps/agent, apps/room-agent
+├── vercel.json           # framework=vite + rewrites SPA + cache headers
+├── .vercelignore         # esclude apps/desktop, apps/agent, apps/room-agent dal deploy cloud
 ├── .cursorindexingignore # esclude target/, dist/, node_modules/ dall'indexing semantico
+├── AGENTS.md             # entry-point standard 2026 (Cursor / Codex / Continue)
 └── .cursor/rules/        # 15 file rules AI (suite a 3 livelli)
 ```
 
@@ -155,8 +159,10 @@ Per messaggi commit multilinea (PowerShell NON supporta heredoc bash): scrivere 
 | Workspace cleanup | DONE      | -11.83 GB (96% reduction) + ignore files harden                                                     |
 | Docs overhaul     | DONE      | 29 doc → 14 canonici + `_archive/`, indice `docs/README.md`                                         |
 | Sprint X-1 (upload hardening) | DONE 100% | (a) desktop usava TUS contro server Rust che non lo implementa → nuovo `simple-upload.ts` POST diretto; (b) cloud TUS partiva comunque dopo cancel utente durante `getSession()` → fix race con `uploadCancelledRef` / `job.cancelled` check; (c) smoke test cloud aveva email/password/anon-key hardcoded → ora obbligatori via env vars `VITE_SUPABASE_*` + `SC_SMOKE_*`. Migration `20260419093026_sprint_x1_fix_admin_upload_storage_rls` (SECURITY DEFINER `storage_can_upload_object_anon`/`_tenant`) GIA' applicata in cloud |
+| Sprint X-2 (field-test hotfix) | DONE 100% | (a) TUS DELETE 403 su upload `done`/`error`/`cancelled` → helper `updateTerminal/terminalState` nullano `uploadHandle` PRIMA dello status terminale; (b) Edge Fn 401 ES256 (legacy verifier non supporta JWT signing keys asimmetriche di Supabase 2025+) → `verify_jwt = false` su `slide-validator` con auth in-code via `admin.auth.getUser(jwt)` (service-role); (c) PWA cache stale → hard-reload Ctrl+Shift+R, config gia' presente (`autoUpdate` + `skipWaiting` + `clientsClaim`) |
+| Sprint XY (licensing v3 — callback + shadow + quote) | DONE 100% | Famiglia di 7 commit + 6 migration (20/04 → 06/05): (1) `licensing-callback` Edge Function + DB trigger verso Live WORKS APP per propagare cambi quote/feature; (2) retry esponenziale verso WORKS (Audit 4.9); (3) `max_active_events` end-to-end (DB + UI quota panel + Edge Functions v3); (4) anti-loop SC quando WORKS richiama back (skip config); (5) `licensing-shadow` Edge Function per pull WORKS→SC via HMAC (GAP-8) — sync bidirezionale completa; (6) rinomina `max_devices_per_room` → `max_devices_per_event` su tabelle/RPC/UI; (7) `max_events_per_month` (rolling calendar month, calcolato in `tenant_quota_row` RPC) + storage GB nell'admin form. Tutti i path coperti, anti-loop testato, callback HMAC verde |
 
-**Dettagli storici:** `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 (sprint history sintetica).
+**Dettagli storici:** `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 (sprint history sintetica, include X-2 + XY licensing v3).
 **Dettagli storici estesi (sprint 0.1→0.29):** `docs/_archive/STATO_E_TODO_storia_sprint_0.1-0.29.md` (read-only).
 **Cose da fare ora:** `docs/STATO_E_TODO.md`.
 

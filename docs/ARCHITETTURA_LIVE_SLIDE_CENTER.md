@@ -2,12 +2,14 @@
 
 > **Documento UNICO di riferimento.** Questo file sostituisce e incorpora i precedenti `GUIDA_DEFINITIVA_PROGETTO.md`, `PIANO_FINALE_SLIDE_CENTER_v2.md`, `GUIDA_OPERATIVA_v3_FIELD_TEST_E_OFFLINE.md`. Per lo stato sprint corrente e le azioni pendenti vedi il documento gemello `docs/STATO_E_TODO.md`.
 >
-> **Versione:** 6.0 — 19 aprile 2026 (post-Sprint W + cleanup workspace + Sentry attivo)
+> **Versione:** 6.1 — 6 maggio 2026 (post Sprint XY licensing v3: callback HMAC bidirezionale WORKS↔SC + max_active_events + max_events_per_month + storage GB + licensing-shadow + anti-loop + rinomina max_devices_per_event)
 > **Owner:** Andrea Rizzari (CTO/Imprenditore)
-> **Stack:** React 19 + Vite 8 + TypeScript strict + Supabase + Tauri 2 (Rust) — monorepo pnpm + Turborepo
+> **Stack:** React 19 + TS 6 strict + Vite 8 + Tailwind 4 (token `sc-*`) + Radix/shadcn (`packages/ui`) + Tauri 2 (Rust) + Supabase (Postgres 17, **29 Edge Functions Deno**) — monorepo pnpm 9 + Turborepo
 > **Sito:** `live-slide-center.vercel.app` (cloud, alias futuro `app.liveslidecenter.com`) / installabile NSIS Windows (desktop unificato `apps/desktop`) / `apps/agent` + `apps/room-agent` (Local/Room Agent storici, marcati LEGACY)
 > **Riferimenti operativi:**
 >
+> - **`AGENTS.md`** — entry-point standard 2026 per Cursor / Codex CLI / Continue (root, gemello di `CLAUDE.md`)
+> - `CLAUDE.md` — sintesi viva lato Claude Code (root)
 > - `docs/README.md` — indice canonico documentazione
 > - `docs/STATO_E_TODO.md` — cose da fare oggi e domani
 > - `docs/DISASTER_RECOVERY.md` — runbook emergenze + Sentry + cleanup workspace
@@ -1517,6 +1519,51 @@ Tre errori distinti emersi durante il primo field test reale di Andrea, fixati n
 
 **Impatto operativo:** rimossi gli ultimi 3 errori console dal field test. Upload UX pulita (no 403 spuri su cancel/done), validation warnings popolati correttamente sui file caricati (font non embedded, PDF corrotti, mime mismatch, etc.), client PWA aggiornato dopo hard reload. Pronti per il giro di test successivo.
 
+#### Sprint XY — Licensing v3 (callback bidirezionale WORKS↔SC + quote evolutive) — DONE 20/04/2026 → 06/05/2026
+
+Famiglia di sviluppi post Sprint X-2 sul sistema licenze (Lemon Squeezy → Live WORKS APP → Slide Center). Goal: estendere la sync mono-direzionale verso una **callback bidirezionale HMAC** + introdurre nuove quote granulari (eventi attivi, eventi/mese rolling, storage GB). 7 commit + 6 migration applicate in cloud `cdjxxxkrhgdkcpkkozdl`.
+
+| Punto | Componenti | Cosa fa | Razionale                                                                                                                                                                                                                                                                              |
+| ----- | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A** Callback v1 | Edge Function `licensing-callback` + DB trigger su `tenants` (`AFTER UPDATE OF features, max_devices_per_event, max_active_events, max_events_per_month, max_storage_gb`) + migration `20260420090000_sprint_xy_licensing_callback_trigger.sql` | Quando il super-admin Slide Center modifica una quota/feature di un tenant, il trigger PG chiama un'Edge Function asincrona che fa POST HMAC verso Live WORKS APP per allineare la "fonte di verita commerciale" lato WORKS. | Senza callback, le UI admin di Slide Center e Live WORKS APP divergono nel tempo (Slide Center modifica live, WORKS aggiorna solo tramite webhook Lemon Squeezy → race condition + drift). Callback sincronizza upstream con HMAC firmato. |
+| **B** Split URLs + retry esponenziale | `licensing-callback` v2 + migration `20260420093000_sprint_xy_callback_split_urls.sql` (Audit 4.9) | Separa URL callback per ambiente (prod/staging) via env var `LICENSING_CALLBACK_URL` + retry esponenziale 3 tentativi (1s, 4s, 16s) su HTTP 5xx / network error. Log strutturato su `licensing_callback_log` con `attempt_n`, `status_code`, `last_error`, `next_retry_at`. | Audit GAP-4.9: race su deploy multi-env + transient failures di WORKS lasciavano callback persi. Retry esponenziale + log strutturato consente recovery automatico e audit retrospettivo. |
+| **C** `max_active_events` end-to-end | migration `20260420100000_max_active_events.sql` + RPC `tenant_quota_row` v3 + UI quota panel `EventsView` + Edge Functions licensing v3 | Nuova quota `max_active_events` (eventi con `start_at <= now() AND end_at >= now()` per tenant). Calcolata in real-time nella RPC `tenant_quota_row` (no cache). UI mostra `eventiAttivi/max_active_events` con soft-block submit form se saturo. Edge Function `events-create-validate` v3 nega INSERT se quota piena. | Lemon Squeezy supporta solo "eventi totali" come quota: troppo grossolana per il modello "eventi gestiti contemporaneamente". `max_active_events` permette pricing flat-rate evento-rotativo (es. 5 eventi attivi su Plan Pro). |
+| **D** Anti-loop SC quando WORKS richiama back | `licensing-callback` v3 + migration `20260420110000_fix_anti_loop_skip_config.sql` | Quando WORKS riceve callback da SC e aggiorna sua copia, fa a sua volta un webhook verso SC per "conferma allineamento" — questo riapplica le stesse modifiche su SC che richiama callback verso WORKS → loop infinito. Fix: tabella `licensing_anti_loop_skip` con `tenant_id, fingerprint_payload, expires_at` (TTL 5min); il trigger PG popola lo skip prima di chiamare callback; il webhook handler di SC controlla lo skip e ignora se match. | GAP critico scoperto in dry-run pre-deploy: senza anti-loop, ogni edit comunque ammessa esegue 2 round-trip (SC→WORKS→SC→WORKS) generando log inflazionati e race su retry esponenziale. |
+| **E** `licensing-shadow` (pull WORKS→SC) | Edge Function `licensing-shadow` (GAP-8) + HMAC bidirezionale + cron `pg_cron` daily 03:00 UTC | Edge Function che fa GET HMAC verso Live WORKS APP per ogni tenant e applica eventuali drift (quota/feature aggiornate in WORKS senza che il callback SC sia partito — es. WORKS standalone update via Lemon Squeezy webhook). Cron giornaliero alle 03:00 UTC + manualmente via UI super-admin button "Force shadow sync". Risultato salvato in `licensing_shadow_log`. | GAP-8 audit chirurgico: scenario in cui Lemon Squeezy WORKS-only event (es. plan upgrade) non triggera callback verso SC perche' il webhook arriva DIRETTAMENTE a WORKS. Shadow function = safety net daily che riallinea SC anche in assenza di callback diretto. |
+| **F** Rinomina `max_devices_per_room` → `max_devices_per_event` | migration `20260420130000_rename_max_devices_per_room_to_per_event.sql` (rename colonna + RPC + indici + UI) + UI quote SuperAdmin/Admin form | Cambia semantica della quota da "device per sala" (poco intuitiva, tenant ha N sale per evento) a "device per evento" (somma di tutte le sale di un evento). Sincronizzata anche su Live WORKS APP via callback v3. | Feedback commerciale: "device per sala" e' ambiguo e non aiuta il pricing. "Device per evento" e' la metrica reale di valore (un evento usa N PC sala in totale). |
+| **G** `max_events_per_month` + storage GB UI | migration `20260420140000_add_max_events_per_month_to_rpc.sql` (RPC `tenant_quota_row` v4) + UI panel `EventsView` + UI panel `EventDetailView` | Nuova quota `max_events_per_month` (eventi creati nel mese di calendario corrente del tenant, **rolling local-time**) calcolata in `tenant_quota_row` RPC. Pannello `/events` mostra `storage GB usato vs max_storage_gb` + `eventi mese corrente vs max_events_per_month`. Pannello `/events/:eventId` mostra `storage GB evento + sale evento vs max_rooms_per_event`. Soft-block submit form se quota saturata; nessun enforcement server-side aggiuntivo su INSERT (solo storage trigger esistente). | Pricing flat-rate richiede limite mese-per-mese chiaro per evitare abusi (es. tenant Trial che usa 50 eventi/mese). `max_events_per_month` rolling vs hard-cap su anno-fiscale: piu' permissivo ma protegge il margine operativo. |
+
+**Migration applicate in cloud `cdjxxxkrhgdkcpkkozdl`:**
+
+| File migration                                                | Quando      |
+| ------------------------------------------------------------- | ----------- |
+| `20260420090000_sprint_xy_licensing_callback_trigger.sql`     | 20/04/2026  |
+| `20260420093000_sprint_xy_callback_split_urls.sql`            | 20/04/2026  |
+| `20260420100000_max_active_events.sql`                        | 20/04/2026  |
+| `20260420110000_fix_anti_loop_skip_config.sql`                | 20/04/2026  |
+| `20260420130000_rename_max_devices_per_room_to_per_event.sql` | 20/04/2026  |
+| `20260420140000_add_max_events_per_month_to_rpc.sql`          | 20/04/2026  |
+
+**Edge Functions deployate (versione corrente):**
+
+- `licensing-callback` v3 (split URLs + retry esponenziale + anti-loop skip check)
+- `licensing-shadow` v1 (pull HMAC + cron daily 03:00 UTC)
+- `events-create-validate` v3 (`max_active_events` enforcement server-side)
+
+**Quality gates Sprint XY:** typecheck verde, lint verde, build verde, deploy Vercel ready, callback round-trip WORKS↔SC verde con HMAC firmato, anti-loop testato in dry-run (no infinite loop), retry esponenziale verificato con WORKS staging mockato in 503.
+
+**Impatto operativo:** Slide Center e Live WORKS APP ora sono **sync bidirezionalmente** sulle quote/feature dei tenant. Edits manuali del super-admin di Slide Center si propagano a WORKS in < 5s tipici, retry automatico fino a 21s in caso di errore transient. Drift residui (es. webhook Lemon Squeezy WORKS-only) recuperati daily dal `licensing-shadow`. UI admin di Slide Center mostra metriche chiare per il pricing (`eventiAttivi/max`, `eventi mese/max`, `storage GB`, `device per evento`).
+
+**Riferimento commit cronologico** (branch `main`, account `live-software11`):
+
+- `4130de5` feat(licensing): callback edge function + DB trigger verso Live WORKS APP
+- `675f029` feat(licensing-callback): retry esponenziale verso WORKS (Audit 4.9)
+- `9bdbf03` feat(licensing): max_active_events end-to-end + Edge Functions v3
+- `e3ae371` fix(licensing): SC anti-loop ripristinato + admin form campi mancanti (Ondata 1+2)
+- `845c386` feat(licensing): edge function licensing-shadow per pull WORKS<-SC via HMAC (GAP-8)
+- `e87617e` feat(licensing): rinomina max_devices_per_room -> max_devices_per_event + UI quote piu' chiare
+- `4837db7` feat(licensing): aggiunge max_events_per_month + storage GB in admin UI
+
 ---
 
 ## 23. ADR sintetici
@@ -1550,6 +1597,9 @@ Tre errori distinti emersi durante il primo field test reale di Andrea, fixati n
 | 025 | TUS abort gated da terminal-state nullification (Sprint X-2)         | Il cleanup unmount React puo' richiamare `abort()` su upload `done`/`error`/`cancelled`. Soluzione: helper `updateTerminal/terminalState` che nulla `uploadHandle` PRIMA di settare lo status terminale, evitando DELETE 403 RLS spuri |
 | 026 | Edge functions con verify_jwt=false + auth in-code (Sprint X-2)      | Da Supabase 2025+ JWT signing keys sono ES256 (asimmetriche), non supportate dal legacy verifier platform. La verifica del token va fatta in codice via `admin.auth.getUser(jwt)` (service-role) che supporta ES256. Pattern gia' usato per `pair-init`, `pair-poll`, ora anche `slide-validator` |
 | 027 | PWA con autoUpdate + skipWaiting + clientsClaim (Sprint X-2)         | Il service worker rischia di servire chunk JS obsoleti dopo deploy. La config in `vite.config.ts` forza il refresh al primo `controllerchange`. Per i casi edge (Andrea field test) basta hard-reload Ctrl+Shift+R |
+| 028 | Callback HMAC bidirezionale WORKS↔SC (Sprint XY)                     | Webhook Lemon Squeezy resta SOLO in Live WORKS APP (ADR 013), ma SC ha bisogno di propagare a monte (verso WORKS) edit manuali del super-admin. Trigger PG `AFTER UPDATE` chiama Edge Function asincrona che fa POST HMAC firmato. Retry esponenziale 1s/4s/16s su 5xx + log su `licensing_callback_log`. Anti-loop tramite tabella `licensing_anti_loop_skip` con TTL 5min |
+| 029 | `licensing-shadow` daily pull WORKS→SC (Sprint XY)                   | Safety net per scenari dove Lemon Squeezy webhook colpisce SOLO WORKS (es. plan upgrade) e callback diretto SC non parte. Cron `pg_cron` 03:00 UTC + UI super-admin "Force shadow sync". Risultato in `licensing_shadow_log` per audit |
+| 030 | Quote granulari `max_active_events` + `max_events_per_month` + `max_devices_per_event` (Sprint XY) | Lemon Squeezy supporta solo "eventi totali" come quota: troppo grossolano. Granularita: (a) `max_active_events` = eventi con `start_at <= now() AND end_at >= now()` (calcolato real-time in RPC), (b) `max_events_per_month` = rolling local-month, (c) `max_devices_per_event` rinominata da `max_devices_per_room` per chiarezza commerciale (somma device su tutte le sale di un evento). Tutte e 3 calcolate in `tenant_quota_row` RPC v4 |
 
 ---
 

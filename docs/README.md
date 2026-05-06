@@ -2,7 +2,7 @@
 
 > Mappa navigabile di tutta la documentazione del progetto, organizzata per topic.
 >
-> **Ultima revisione:** 19 aprile 2026 (post Sprint W + Sentry + workspace cleanup + docs overhaul).
+> **Ultima revisione:** 6 maggio 2026 (post Sprint XY licensing v3 + creazione `AGENTS.md` entry-point standard 2026).
 > **Aggiornare:** ogni volta che si crea, sposta, archivia o elimina un documento in `docs/`.
 
 ---
@@ -36,15 +36,16 @@
 | Come configuro MCP Supabase / Vercel su Cursor?          | `Setup_Strumenti_e_MCP.md` § 2 + `2c`                           |
 | Quali variabili `.env` servono?                          | `Setup_Strumenti_e_MCP.md` § 3 + `.env.example` (root)          |
 
-### Devi **lavorare con un AI assistant** (Claude Desktop / Cursor agent)
+### Devi **lavorare con un AI assistant** (Claude Desktop / Cursor agent / Codex / Continue)
 
-| Domanda                                                | Documento                                                     |
-| ------------------------------------------------------ | ------------------------------------------------------------- |
-| Prompt di avvio per Claude Desktop?                    | [`Istruzioni_Claude_Desktop.md`](./Istruzioni_Claude_Desktop.md) § PROMPT DI AVVIO |
-| Quando usare Claude Desktop vs Cursor agent?            | `Istruzioni_Claude_Desktop.md` § Divisione del lavoro         |
-| Format atteso per `PLAN_*.md` di Claude Desktop?       | `Istruzioni_Claude_Desktop.md` § Formato output               |
-| Mappa rapida progetto per AI (account, stack, comandi)?| [`../CLAUDE.md`](../CLAUDE.md) (root del repo)                 |
-| Regole AI vincolanti (sempre attive su Cursor)?         | [`../.cursor/rules/`](../.cursor/rules/) (15 file `.mdc`)     |
+| Domanda                                                  | Documento                                                                  |
+| -------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Entry-point standard 2026 (Cursor / Codex / Continue)?** | [`../AGENTS.md`](../AGENTS.md) (root, gemello di `CLAUDE.md`)              |
+| Prompt di avvio per Claude Desktop?                       | [`Istruzioni_Claude_Desktop.md`](./Istruzioni_Claude_Desktop.md) § PROMPT DI AVVIO |
+| Quando usare Claude Desktop vs Cursor agent?              | `Istruzioni_Claude_Desktop.md` § Divisione del lavoro                      |
+| Format atteso per `PLAN_*.md` di Claude Desktop?          | `Istruzioni_Claude_Desktop.md` § Formato output                            |
+| Mappa rapida progetto per AI (account, stack, comandi)?   | [`../CLAUDE.md`](../CLAUDE.md) (root, sintesi viva lato Claude Code)        |
+| Regole AI vincolanti (sempre attive su Cursor)?           | [`../.cursor/rules/`](../.cursor/rules/) (15 file `.mdc`)                  |
 
 ### Devi **gestire un'emergenza** o **fare backup/restore**
 
@@ -148,4 +149,5 @@ docs/
 
 ## Storia overhaul docs
 
+- **2026-05-06** — Audit completo workspace + creato `AGENTS.md` (root) come entry-point standard 2026 per Cursor / Codex CLI / Continue (gemello di `CLAUDE.md` lato Claude Code). Aggiornati: `CLAUDE.md` v3.2 (EF count 26→29 reale, `packages/ui` aggiunto, Sprint X-2 + Sprint XY licensing v3 in roadmap), `docs/README.md` (riga AGENTS.md), `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` v6.1 (header + § 22 nuova sottosezione "Sprint XY licensing v3" con 7 commit + 6 migration: callback HMAC bidirezionale WORKS↔SC, retry esponenziale, max_active_events, anti-loop, licensing-shadow, rinomina max_devices_per_event, max_events_per_month + storage GB), `.cursor/rules/00-project-identity.mdc` (AGENTS.md tra le fonti di verita).
 - **2026-04-19** — Sprint W docs overhaul: 29 doc → 14 canonici + `_archive/` (5 storici). Merge: `Setup_PC_Centro_Slide.md` + `Smoke_Test_Centro_Slide.md` → `Manuali/Manuale_Centro_Slide_Desktop.md`. Merge: `EDGE_FUNCTIONS_WARM_KEEP.md` → appendice `DISASTER_RECOVERY.md`. Snellito `STATO_E_TODO.md` 304 KB → 37 KB (-88%) tagliando § 0 (sprint 0.1→0.29) ad archive. Nuovo `docs/README.md` indice canonico. Aggiornati: `CLAUDE.md` (600→240 righe), `ARCHITETTURA § 17` (11→26 EF), `ARCHITETTURA § 22` (Sprint W + AU-01..09 + U-1..U-7 + D1..D8 + Operations post-Sprint W), `Setup_Strumenti_e_MCP.md § 0`, `Istruzioni_Claude_Desktop.md`, `Manuali/README.md`, `Manuali/Manuale_Distribuzione.md`, banner LEGACY su 2 manuali Tauri 1, URL prod su `FIELD_TEST_CHECKLIST.md` + `FIELD_TEST_CREDENTIALS.md`. Eliminati: `.commit-msg.txt`, `COMMIT_MSG_TMP.txt`, `Setup_PC_Centro_Slide.md`, `Smoke_Test_Centro_Slide.md`, `EDGE_FUNCTIONS_WARM_KEEP.md`. Aggiornate 8 `.cursor/rules/*.mdc`.
