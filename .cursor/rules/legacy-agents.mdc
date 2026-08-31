@@ -135,14 +135,14 @@ Shared secret = token random generato al primo boot, scritto in `%APPDATA%/Slide
 ## Update / manutenzione
 
 - **NO auto-update** sui legacy agent. Distribuzione manuale: nuovo NSIS via email/condivisione, utente disinstalla + reinstalla.
-- Versioning: `Cargo.toml -> [package] version`. Prima di build: bump version, `cargo update`, ricompila NSIS, calcola SHA-256, aggiorna `docs/Manuali/Manuale_Distribuzione.md`.
+- Versioning: `Cargo.toml -> [package] version`. Prima di build: bump version, `cargo update`, ricompila NSIS, calcola SHA-256, aggiorna `docs/operazioni/Manuale_Distribuzione.md`.
 - Logs: `%APPDATA%/SlideCenter/logs/agent-YYYYMMDD.log` (rotazione 7 giorni, `tracing-subscriber` con `RollingFileAppender`).
 
 ## Vincoli specifici legacy
 
 - **NON migrare** funzionalita' nuove qui: vanno tutte in `apps/desktop`.
 - **Mantenere ABI/protocollo** stabile: clienti gia' installati non possono essere forzati ad aggiornare.
-- **Test smoke ogni release:** boot agent → discovery mDNS → manifest fetch → download piccolo file. Documentato in `docs/Manuali/Manuale_Installazione_Local_Agent.md` + `docs/Manuali/Manuale_Installazione_Room_Agent.md`.
+- **Test smoke ogni release:** boot agent → discovery mDNS → manifest fetch → download piccolo file. Documentato in `docs/operazioni/Manuale_Installazione_Local_Agent.md` + `docs/operazioni/Manuale_Installazione_Room_Agent.md`.
 - **Bug critici only:** crash, perdita dati, license validation rotta. Feature requests → roadmap `apps/desktop`.
 
 ## Script `clean-and-build.bat` (one-click build dei due legacy agent)
@@ -175,7 +175,7 @@ Shared secret = token random generato al primo boot, scritto in `%APPDATA%/Slide
 
 1. **Single source of truth della versione = `src-tauri/Cargo.toml`** — `post-build.mjs` legge dinamicamente `[package] version` con regex e lo scrive in `release/<slug>/VERSION.txt`. Il `.bat` lo ri-legge nello step `[6/6]` per costruire i nomi attesi. Quando bumpi: edita SOLO `Cargo.toml` (eventualmente con `cargo tauri version X.Y.Z` che allinea anche `tauri.conf.json`); lo script non va piu' toccato.
 
-2. **Code-signing opt-in via env var** — se NON setti `CERT_PFX_PATH` + `CERT_PASSWORD` (o `CERT_THUMBPRINT`), `post-build.mjs` skippa silenziosamente la firma. I `.exe` saranno installabili ma SmartScreen mostrera' warning. Per dev locale Andrea: skip OK. Per release a clienti: cert OV Sectigo obbligatorio (vedi `docs/Manuali/Manuale_Code_Signing.md`).
+2. **Code-signing opt-in via env var** — se NON setti `CERT_PFX_PATH` + `CERT_PASSWORD` (o `CERT_THUMBPRINT`), `post-build.mjs` skippa silenziosamente la firma. I `.exe` saranno installabili ma SmartScreen mostrera' warning. Per dev locale Andrea: skip OK. Per release a clienti: cert OV Sectigo obbligatorio (vedi `docs/operazioni/Manuale_Code_Signing.md`).
 
 3. **Prima build = 5-15 min** — Cargo deve compilare ~400 crate (Tauri + dep + license/crypto). Le successive (incrementali) sono 1-3 min. Lo script avvisa esplicitamente nello step `[4/6]`.
 

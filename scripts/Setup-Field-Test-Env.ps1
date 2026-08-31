@@ -430,9 +430,8 @@ function Ensure-Speaker {
 # =============================================================================
 # 6) DEFINIZIONE AMBIENTE FIELD TEST
 # =============================================================================
-# IMPORTANTE: i dati qui sotto devono essere ALLINEATI con quelli gia' provisionati
-# via MCP Supabase (vedi docs/FIELD_TEST_CREDENTIALS.md). Se cambi nomi/date qui,
-# il rilancio dello script crea nuovi record invece di trovare quelli esistenti.
+# IMPORTANTE: i nomi evento/tenant qui sotto sono la fonte operativa (slug field-test-alpha/beta).
+# Password: generate dallo script, stampate in console, NON versionate (stub docs/archivio/FIELD_TEST_CREDENTIALS.md).
 
 $EventName     = 'Field Test Aprile 2026'
 $EventNameEn   = 'Field Test April 2026'
@@ -550,7 +549,7 @@ Write-Host '====================================================================
 Write-Host ''
 
 if ($Credentials.Count -gt 0) {
-  Write-Host 'CREDENZIALI (deterministiche, vedi anche docs/FIELD_TEST_CREDENTIALS.md):' -ForegroundColor Yellow
+  Write-Host 'CREDENZIALI (deterministiche; non committare — stub docs/archivio/FIELD_TEST_CREDENTIALS.md):' -ForegroundColor Yellow
   Write-Host ''
   $Credentials | Format-Table -AutoSize Tenant, Email, Role, Password
   Write-Host ''
@@ -563,10 +562,10 @@ else {
 }
 
 Write-Host 'PROSSIMI PASSI:' -ForegroundColor Cyan
-Write-Host '  1. Le credenziali complete sono in docs/FIELD_TEST_CREDENTIALS.md.'
+Write-Host '  1. Password stampate sopra (non stanno in git; stub docs/archivio/FIELD_TEST_CREDENTIALS.md).'
 Write-Host '  2. Login web: https://app.liveslidecenter.com/login (o l URL dell ambiente).'
-Write-Host '  3. Esegui i test T1-T19 seguendo docs/FIELD_TEST_CHECKLIST.md.'
-Write-Host '  4. In caso di problemi durante l evento: docs/DISASTER_RECOVERY.md.'
+Write-Host '  3. Esegui i test T1-T19 seguendo docs/operazioni/FIELD_TEST_CHECKLIST.md.'
+Write-Host '  4. In caso di problemi durante l evento: docs/operazioni/DISASTER_RECOVERY.md.'
 Write-Host ''
 Write-Host 'CLEANUP (quando hai finito il field test):' -ForegroundColor DarkGray
 Write-Host '  - Cancella i 2 tenant (field-test-alpha, field-test-beta) da Supabase dashboard.'

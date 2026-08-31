@@ -3,7 +3,7 @@
 > **Entry-point unico per agenti AI** (Cursor, Claude Code, Codex CLI, Continue, ecc.) su questo workspace.
 > Compatibile con il formato standard `AGENTS.md` (2026). Letto a inizio di ogni sessione.
 >
-> **Ultimo aggiornamento:** 6 maggio 2026 (post Sprint XY licensing v3).
+> **Ultimo aggiornamento:** 31 agosto 2026 (reorg docs layout canonico Live Software). Prima: 6 maggio 2026 (Sprint XY licensing v3).
 
 ---
 
@@ -11,40 +11,52 @@
 
 - **Prodotto:** **Live SLIDE CENTER** (commerciale: **Slide Center**) — SaaS multi-tenant per gestione presentazioni in eventi live (congressi, corporate, fiere).
 - **Tipo:** monorepo `pnpm` + `Turborepo` con 4 apps + 2 packages condivisi.
-- **Modalita prodotto (3, vedi `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 1):**
+- **Modalita prodotto (3, vedi `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 1):**
   - **Cloud SaaS** (Supabase + Vercel) — eventi multi-sede, accesso remoto.
   - **Desktop intranet** (Tauri 2 + Rust Axum + SQLite + mDNS) — eventi single-site senza Internet.
   - **Hybrid** (post-Sprint Q opzionale) — desktop master + cloud backup push-only.
 - **Owner:** Andrea Rizzari (CTO/imprenditore).
 - **Lingua agente ↔ utente:** SEMPRE italiano. Tono CTO che parla a un imprenditore.
 - **Account ufficiali (mai incrociare con `Andraven11` di Preventivi DHS / Gestionale FREELANCE):**
-  - GitHub: **`live-software11`** · Repo `github.com/live-software11/live-slide-center` · Branch `main`
+  - GitHub: **`live-software11`** · Repo `github.com/live-software11/live-slide-center` · Branch `main`. **Fonte di verità** (come le altre app Live). Origin = specchio opzionale; **non fare Detach**.
   - Supabase: **`live.software11@gmail.com`** · Project `cdjxxxkrhgdkcpkkozdl` (Postgres 17)
   - Vercel: **`live.software11@gmail.com`** · Scope `livesoftware11-3449s-projects` · Project `live-slide-center`
   - Sentry: **`live.software11@gmail.com`** · Org `live-work-app` · Project `live-slide-center-web` · Region EU (`de.sentry.io`)
 
 ---
 
+## 0.1 Cursor Cloud e prep agenti (fatti 31/08/2026)
+
+Non inventare altri ID.
+
+- Cloud Agents environment già esistente: nome `live-slide-center`, id `cbcbfabc-a52f-11f1-a7d1-d6b4613131ce`.
+- Install: `corepack enable && corepack prepare pnpm@9.15.9 --activate && pnpm install --frozen-lockfile`. Start vuoto. Nessun secret Firebase.
+- Stack: **NON Firebase**. Supabase + Vercel. Desktop Tauri 2. `apps/agent/` e `apps/room-agent/` sono **LEGACY** — non rianimare se non richiesto.
+- Sentry: org `live-work-app`, EU `de.sentry.io`, progetto esistente `live-slide-center-web`. SDK già in `apps/web` via `VITE_SENTRY_DSN`. **Non creare un nuovo progetto Sentry. Non stampare il DSN.** Al 31/08/2026: 0 issue in quel progetto.
+- Lemon Squeezy: ADR-013 vs webhook in-repo — **[DA VERIFICARE]**. Non "fixare" il licensing in un PR di documentazione.
+
+---
+
 ## 1. Mappa documentazione (dove guardare cosa)
 
-In caso di conflitto vince sempre **`docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`**.
+In caso di conflitto vince sempre **`docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md`**.
 
 | Vuoi sapere…                                            | Apri questo file                                                |
 | ------------------------------------------------------- | --------------------------------------------------------------- |
-| **Cos'e' / com'e' fatto** (24 sezioni, ~140 KB)         | `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` (FONTE UNICA DI VERITA) |
+| **Cos'e' / com'e' fatto** (24 sezioni, ~140 KB)         | `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` (FONTE UNICA DI VERITA) |
 | **Sintesi viva** (stato + comandi + mappa rules)        | `CLAUDE.md` (root, gemello di questo file lato Claude Code)     |
 | **Indice canonico tutti i doc**                         | `docs/README.md`                                                |
-| **Cose da fare oggi/domani** (TODO, field test, Sprint Q) | `docs/STATO_E_TODO.md`                                        |
-| **Setup ambiente sviluppo + MCP**                       | `docs/Setup_Strumenti_e_MCP.md`                                 |
-| **Disaster recovery + Sentry + warm-keep + cleanup**    | `docs/DISASTER_RECOVERY.md`                                     |
-| **Checklist pre-evento + smoke E2E**                    | `docs/FIELD_TEST_CHECKLIST.md`                                  |
-| **Credenziali tenant/utenti demo**                      | `docs/FIELD_TEST_CREDENTIALS.md` (gitignored)                   |
-| **Prompt + workflow per AI assistant**                  | `docs/Istruzioni_Claude_Desktop.md`                             |
-| **Manuali user-facing** (Centro Slide Desktop, code-signing, email, onboarding…) | `docs/Manuali/` |
-| **Materiali commerciali** (listino, SLA, roadmap vendita) | `docs/Commerciale/`                                           |
-| **Storici sprint chiusi** (read-only)                   | `docs/_archive/`                                                |
-| **Regole AI modulari** (15 file, suite a 3 livelli)     | `.cursor/rules/*.mdc`                                           |
-| **Rules sempre attive** (alwaysApply: true)             | `.cursor/rules/00-project-identity.mdc`, `01-data-isolation.mdc`, `02-quality-gate.mdc`, `03-i18n.mdc`, `04-git-workflow.mdc`, `mcp-supabase.mdc`, `mcp-vercel.mdc` |
+| **Cose da fare oggi/domani** (TODO, field test, Sprint Q) | `docs/implementazioni-future/STATO_E_TODO.md`                                        |
+| **Setup ambiente sviluppo + MCP**                       | `docs/operazioni/Setup_Strumenti_e_MCP.md`                                 |
+| **Disaster recovery + Sentry + warm-keep + cleanup**    | `docs/operazioni/DISASTER_RECOVERY.md`                                     |
+| **Checklist pre-evento + smoke E2E**                    | `docs/operazioni/FIELD_TEST_CHECKLIST.md`                                  |
+| **Credenziali tenant/utenti demo**                      | stub `docs/archivio/FIELD_TEST_CREDENTIALS.md` — password **non in git** (solo Raven/Andrea) |
+| **Prompt + workflow per AI assistant**                  | `docs/agenti/Istruzioni_Claude_Desktop.md`                             |
+| **Manuali user-facing** (Centro Slide Desktop, code-signing, email, onboarding…) | `docs/operazioni/` |
+| **Materiali commerciali** (listino, SLA, roadmap vendita) | `docs/commerciali/`                                           |
+| **Storici sprint chiusi** (read-only)                   | `docs/archivio/`                                                |
+| **Regole AI modulari** (16 file, suite a 3 livelli)     | `.cursor/rules/*.mdc`                                           |
+| **Rules sempre attive** (alwaysApply: true)             | `00-project-identity`, `01-data-isolation`, `02-quality-gate`, `03-i18n`, `04-git-workflow`, `mcp-supabase`, `mcp-vercel`, `docs-structure` |
 | **RLS / tenant-isolation pattern**                      | `.cursor/rules/01-data-isolation.mdc` + `supabase-db.mdc`       |
 | **Storia commit messaggi multilinea** (template)        | radice: `.commit-msg-*.txt` / `.commit-msg-*.tmp` (gitignored)  |
 
@@ -69,7 +81,7 @@ In caso di conflitto vince sempre **`docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`**.
 | Hosting cloud        | Vercel (`live-slide-center.vercel.app`, alias futuro `app.liveslidecenter.com`)                                     |
 | Distribuzione desktop| NSIS Windows x64 firmato + Tauri updater Ed25519 (signed-updater opzionale)                                         |
 | Telemetria           | Sentry (init lazy se `VITE_SENTRY_DSN` presente, mai bloccante)                                                     |
-| Licenze              | Lemon Squeezy (webhook → **Live WORKS APP**) → callback HMAC bidirezionale verso Slide Center                       |
+| Licenze              | Lemon Squeezy (webhook → **Live WORKS APP**) → callback HMAC bidirezionale verso Slide Center. ADR-013 vs webhook in-repo: **[DA VERIFICARE]** |
 
 ---
 
@@ -90,7 +102,7 @@ live-slide-center/
 │   ├── functions/        # 29 Edge Functions Deno
 │   ├── tests/            # rls_audit.sql + pgTAP
 │   └── config.toml       # verify_jwt per function (alcune verify_jwt=false con auth in-code per ES256)
-├── docs/                 # 14 doc canonici + _archive/ (vedere docs/README.md)
+├── docs/                 # layout canonico: architettura/ operazioni/ implementazioni-future/ agenti/ commerciali/ archivio/ strumenti/ (docs/README.md = indice)
 ├── icons/                # Logo Live Slide Center (sorgente)
 ├── scripts/              # PowerShell helpers (Setup-Supabase-MCP.ps1, Verifica-Supabase-MCP.ps1)
 ├── package.json          # workspace pnpm + script Turbo
@@ -99,14 +111,14 @@ live-slide-center/
 ├── vercel.json           # framework=vite + rewrites SPA + cache headers + env runtime
 ├── .vercelignore         # esclude apps/desktop, apps/agent, apps/room-agent dal deploy cloud
 ├── .cursorindexingignore # esclude target/, dist/, node_modules/ dall'indexing semantico
-└── .cursor/rules/        # 15 file rules AI (3 livelli: alwaysApply / globs / agent-requestable)
+└── .cursor/rules/        # 16 file rules AI (3 livelli: alwaysApply / globs / agent-requestable; docs-structure.mdc = layout docs)
 ```
 
 ---
 
 ## 4. Le invarianti SACRE (NON negoziabili — non violare mai)
 
-> Riassunto operativo dei 13 vincoli sovrani in `.cursor/rules/00-project-identity.mdc` § "Vincoli sovrani". In conflitto vince sempre `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.
+> Riassunto operativo dei 13 vincoli sovrani in `.cursor/rules/00-project-identity.mdc` § "Vincoli sovrani". In conflitto vince sempre `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.
 
 1. **Stabilita live > tutto.** Mai compromettere un evento in produzione per una feature nuova.
 2. **Tenant isolation universale.** Ogni tabella business ha `tenant_id UUID NOT NULL` + RLS attiva (`tenant_isolation` + `super_admin_all`). Per le tabelle operative (eventi/sale/sessioni/presentazioni/storage) la policy include `AND NOT public.current_tenant_suspended()`. Vedi `01-data-isolation.mdc`.
@@ -158,7 +170,7 @@ Eccezione PC sala anon: `room-player-bootstrap`, `room-player-rename`, `room-pla
 - Aggiornamento testi / chiavi `it.json` + `en.json`
 - Fix lint / typecheck / `cargo check`
 - Migration additive su `supabase/migrations/**` (con RLS pattern obbligatorio)
-- Documentazione interna (incluso `docs/STATO_E_TODO.md`)
+- Documentazione interna (incluso `docs/implementazioni-future/STATO_E_TODO.md`)
 - Comando "commit and push" / "deploy" → esegui subito (vedi `04-git-workflow.mdc`)
 
 ### L'agente si FERMA e chiede conferma (formato 3 righe: Cosa / Rischio / Beneficio)
@@ -167,7 +179,7 @@ Eccezione PC sala anon: `room-player-bootstrap`, `room-player-rename`, `room-pla
 - Refactor che tocca >10 file o cambia public API tra moduli
 - Modifiche a `01-data-isolation.mdc` o ai pattern RLS canonici
 - Modifiche al sistema licenze (ADR 013: webhook SOLO in WORKS APP) o sync licenze (Sprint XY)
-- Deploy production fuori finestra (vedi `STATO_E_TODO.md` per finestre evento)
+- Deploy production fuori finestra (vedi `docs/implementazioni-future/STATO_E_TODO.md` per finestre evento)
 - `git push --force` su `main`
 - `git commit --amend` su commit gia' pushati
 - Cambio `origin` o `gh auth switch` automatico
@@ -179,7 +191,7 @@ Eccezione PC sala anon: `room-player-bootstrap`, `room-player-rename`, `room-pla
 - Push da sessione `Andraven11` su `origin live-software11/live-slide-center`.
 - Cambiare `origin` verso repo `Andraven11/*` senza richiesta esplicita.
 - `git rebase -i` o `git add -i` (interattivo non supportato dal terminale agent).
-- Hardcodare credenziali (anon key, service role, password admin) in script committati. Le credenziali field test stanno in `docs/FIELD_TEST_CREDENTIALS.md` (gitignored).
+- Hardcodare credenziali (anon key, service role, password admin) in script committati. Password field test **non** stanno in git (stub `docs/archivio/FIELD_TEST_CREDENTIALS.md`; live solo su Raven/Andrea).
 - Disattivare Sentry init nei path produzione.
 - Toccare `.env`, `.env.local`, `apps/desktop/src-tauri/tauri.signing.json`, `~/.cursor/mcp.json` in commit.
 - Modificare `network_mode` ENUM, `tenant_id` su tabelle business, `super_admin_all` policy senza ADR.
@@ -202,7 +214,7 @@ Eccezione PC sala anon: `room-player-bootstrap`, `room-player-rename`, `room-pla
 - [ ] **Cloud-only?** Wrappato in `RequireCloudFeature` + nascosto in modalita desktop (`/team`, `/billing`, `/audit`, `/admin/*`)?
 - [ ] **Sentry?** Errori critici via `reportError(err, { tag: 'feature.action', extra })` (`telemetry.ts`)?
 - [ ] **Smoke?** Modifica cloud rilevante (Edge Fn, env vars, schema)? Lanciare `pnpm smoke:cloud` post-deploy (atteso 6 OK + 1 skip + 1 warn)?
-- [ ] **Docs?** Aggiornato `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` (header / § rilevante / § 22 sprint history) e/o `docs/STATO_E_TODO.md` se la modifica e' strutturale?
+- [ ] **Docs?** Aggiornato `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` (header / § rilevante / § 22 sprint history) e/o `docs/implementazioni-future/STATO_E_TODO.md` se la modifica e' strutturale?
 
 ---
 
@@ -279,9 +291,10 @@ Live SLIDE CENTER e' una delle 10+ app di Andrea Rizzari. Questa cartella tratta
 
 ## 10. Storia documentale (per chi legge in futuro)
 
-- **6 maggio 2026** — Audit completo workspace + creato `AGENTS.md` come entry-point standard 2026 (gemello di `CLAUDE.md` lato Cursor / Codex / Continue). Aggiornati: `CLAUDE.md` v3.2 (EF count 26→29, packages/ui aggiunto, Sprint XY licensing v3 in roadmap), `docs/README.md` (riga AGENTS.md), `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` v6.1 (header + § 22 nuova sottosezione "Sprint XY licensing v3"), `.cursor/rules/00-project-identity.mdc` (AGENTS.md tra le fonti di verita).
-- **19 aprile 2026 sera tardi** — Sprint X-2 (TUS abort + ES256 edge function + cache PWA). Vedi `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22.
-- **19 aprile 2026 sera** — Sprint X-1 (upload hardening: simple-upload desktop + race-cancel cloud + smoke env vars + storage RLS SECURITY DEFINER). Vedi `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22.
+- **31 agosto 2026** — Reorg documentazione al layout canonico Live Software (`docs/architettura|operazioni|implementazioni-future|agenti|commerciali|archivio|strumenti`). Indice `docs/README.md`. Rule `docs-structure.mdc`. Stub credenziali field test (password non in git).
+- **6 maggio 2026** — Audit completo workspace + creato `AGENTS.md` come entry-point standard 2026 (gemello di `CLAUDE.md` lato Cursor / Codex / Continue). Aggiornati: `CLAUDE.md` v3.2 (EF count 26→29, packages/ui aggiunto, Sprint XY licensing v3 in roadmap), `docs/README.md` (riga AGENTS.md), `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` v6.1 (header + § 22 nuova sottosezione "Sprint XY licensing v3"), `.cursor/rules/00-project-identity.mdc` (AGENTS.md tra le fonti di verita).
+- **19 aprile 2026 sera tardi** — Sprint X-2 (TUS abort + ES256 edge function + cache PWA). Vedi `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22.
+- **19 aprile 2026 sera** — Sprint X-1 (upload hardening: simple-upload desktop + race-cancel cloud + smoke env vars + storage RLS SECURITY DEFINER). Vedi `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22.
 - **19 aprile 2026** — Sprint W chiuso, Sentry attivo, workspace cleanup (-11.83 GB), docs overhaul (29 → 14 doc canonici), nuovo `docs/README.md` indice canonico.
 
 ---

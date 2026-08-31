@@ -3,13 +3,13 @@
 > Guida completa per configurare l'ambiente di sviluppo ottimale.
 >
 > **Versione:** 3.0 — 19 aprile 2026 (post Sprint W + Sentry + workspace cleanup + docs overhaul).
-> **Status:** allineata con `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` e `docs/STATO_E_TODO.md` v6.x.
+> **Status:** allineata con `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` e `docs/implementazioni-future/STATO_E_TODO.md` v6.x.
 
 ---
 
 ## 0. Mappa documentazione
 
-La documentazione canonica di **Live SLIDE CENTER** vive in `docs/` (14 doc canonici + sottocartelle `Manuali/`, `Commerciale/`, `_archive/`). Per l'**indice navigabile completo** vedi:
+La documentazione canonica di **Live SLIDE CENTER** vive in `docs/` con layout Live Software (`architettura/`, `operazioni/`, `implementazioni-future/`, `agenti/`, `commerciali/`, `archivio/`, `strumenti/`). Indice:
 
 > **`docs/README.md`** — indice canonico aggiornato a ogni overhaul.
 
@@ -17,24 +17,24 @@ La documentazione canonica di **Live SLIDE CENTER** vive in `docs/` (14 doc cano
 
 | Topic                                                         | Documento                                                                                  |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Cosa e' / com'e' fatto il prodotto                            | `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` (UNICA fonte di verita)                           |
-| Cosa resta da fare / sprint pending                           | `docs/STATO_E_TODO.md`                                                                     |
-| Setup ambiente sviluppo (Node/pnpm/Rust/Tauri/Supabase CLI/MCP) | `docs/Setup_Strumenti_e_MCP.md` (questo file)                                              |
-| Istruzioni AI (Claude Desktop / Cursor)                       | `docs/Istruzioni_Claude_Desktop.md`                                                        |
-| Disaster recovery + Sentry + warm-keep + workspace cleanup    | `docs/DISASTER_RECOVERY.md`                                                                |
-| Checklist pre-evento + smoke E2E                              | `docs/FIELD_TEST_CHECKLIST.md`                                                             |
-| Manuale Centro Slide Desktop (Setup + Smoke Test)             | `docs/Manuali/Manuale_Centro_Slide_Desktop.md`                                             |
-| Onboarding admin cloud SaaS                                   | `docs/Manuali/Manuale_Onboarding_Admin.md`                                                 |
-| Email transazionali Resend                                    | `docs/Manuali/Manuale_Email_Resend.md`                                                     |
-| Code signing OV Sectigo                                       | `docs/Manuali/Manuale_Code_Signing.md`                                                     |
-| Distribuzione installer firmati                               | `docs/Manuali/Manuale_Distribuzione.md`                                                    |
-| Listino + SLA + roadmap vendita                               | `docs/Commerciale/`                                                                        |
-| Storici sprint chiusi (read-only)                             | `docs/_archive/`                                                                           |
+| Cosa e' / com'e' fatto il prodotto                            | `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` (UNICA fonte di verita)                           |
+| Cosa resta da fare / sprint pending                           | `docs/implementazioni-future/STATO_E_TODO.md`                                                                     |
+| Setup ambiente sviluppo (Node/pnpm/Rust/Tauri/Supabase CLI/MCP) | `docs/operazioni/Setup_Strumenti_e_MCP.md` (questo file)                                              |
+| Istruzioni AI (Claude Desktop / Cursor)                       | `docs/agenti/Istruzioni_Claude_Desktop.md`                                                        |
+| Disaster recovery + Sentry + warm-keep + workspace cleanup    | `docs/operazioni/DISASTER_RECOVERY.md`                                                                |
+| Checklist pre-evento + smoke E2E                              | `docs/operazioni/FIELD_TEST_CHECKLIST.md`                                                             |
+| Manuale Centro Slide Desktop (Setup + Smoke Test)             | `docs/operazioni/Manuale_Centro_Slide_Desktop.md`                                             |
+| Onboarding admin cloud SaaS                                   | `docs/operazioni/Manuale_Onboarding_Admin.md`                                                 |
+| Email transazionali Resend                                    | `docs/operazioni/Manuale_Email_Resend.md`                                                     |
+| Code signing OV Sectigo                                       | `docs/operazioni/Manuale_Code_Signing.md`                                                     |
+| Distribuzione installer firmati                               | `docs/operazioni/Manuale_Distribuzione.md`                                                    |
+| Listino + SLA + roadmap vendita                               | `docs/commerciali/`                                                                        |
+| Storici sprint chiusi (read-only)                             | `docs/archivio/`                                                                           |
 | Mappa rapida per AI                                           | `CLAUDE.md` (root)                                                                         |
 
 ### Regole `.cursor/rules/` (vincoli per l'agente AI)
 
-15 file `.mdc` in `.cursor/rules/` organizzati su 3 livelli (alwaysApply / globs mirati / agent-requestable). Per la mappa completa vedi `CLAUDE.md` § "Suite Cursor rules" oppure `.cursor/rules/docs-roadmap.mdc`.
+16 file `.mdc` in `.cursor/rules/` organizzati su 3 livelli (alwaysApply / globs mirati / agent-requestable). Layout docs: `docs-structure.mdc`. Per la mappa completa vedi `CLAUDE.md` § "Suite Cursor rules" oppure `.cursor/rules/docs-roadmap.mdc`.
 
 ---
 
@@ -218,7 +218,7 @@ Vedi `.cursor/rules/mcp-vercel.mdc` per:
 
 - Naming progetti Vercel per ogni app dell'ecosistema.
 - Quando usare CLI vs MCP vs dashboard.
-- Cosa fare quando il deploy automatico GitHub e' rotto (= storia 18/04/2026 sera, vedi `STATO_E_TODO.md` §0.26).
+- Cosa fare quando il deploy automatico GitHub e' rotto (= storia 18/04/2026 sera, vedi `docs/implementazioni-future/STATO_E_TODO.md` §0.26).
 
 ---
 

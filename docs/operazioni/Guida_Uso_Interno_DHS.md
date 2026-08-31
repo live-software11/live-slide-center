@@ -4,7 +4,7 @@
 > **Pubblico:** Andrea + team operativo DHS che usa Slide Center come strumento interno per gli eventi.
 > **Stato:** Quick start operativo. Non sostituisce i manuali per cliente esterno (`Manuale_Onboarding_Admin.md`, `Manuale_Installazione_*.md`).
 
-Questa guida e' la "checklist operativa" da usare **prima**, **durante** e **dopo** ogni evento gestito internamente da DHS con Slide Center. Tutto cio' che e' richiesto per la vendita esterna (DPA, sito marketing, primi clienti) e' nel documento separato `docs/Commerciale/Roadmap_Vendita_Esterna.md` e non blocca l'uso interno.
+Questa guida e' la "checklist operativa" da usare **prima**, **durante** e **dopo** ogni evento gestito internamente da DHS con Slide Center. Tutto cio' che e' richiesto per la vendita esterna (DPA, sito marketing, primi clienti) e' nel documento separato `docs/commerciali/Roadmap_Vendita_Esterna.md` e non blocca l'uso interno.
 
 ---
 

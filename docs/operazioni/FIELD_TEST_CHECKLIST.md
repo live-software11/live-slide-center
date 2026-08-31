@@ -1,4 +1,4 @@
-# FIELD_TEST_CHECKLIST.md — Live SLIDE CENTER
+# Field Test Checklist — Live SLIDE CENTER
 
 > **Per chi:** Andrea (operatore field test) + tecnico in sala.
 > **Quando:** evento reale o simulato pre-cliente. Da compilare in **tempo reale** durante l'evento.
@@ -6,7 +6,7 @@
 > **Output:** documento spuntato + log incidenti + lista fix prioritizzata per il commit post-evento.
 >
 > **Versione:** 1.2 — 19 Aprile 2026 sera (post Sprint X-1: upload hardening — desktop simple-upload + cloud TUS race-cancel + smoke secrets via env).
-> **Allineato con:** `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` v6.0 § 22 (Sprint X-1) + `docs/DISASTER_RECOVERY.md` (Sentry + warm-keep + cleanup).
+> **Allineato con:** `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` v6.0 § 22 (Sprint X-1) + `docs/operazioni/DISASTER_RECOVERY.md` (Sentry + warm-keep + cleanup).
 
 ---
 
@@ -14,7 +14,7 @@
 
 1. **Pre-evento (T-1 giorno):** completa la sezione [Setup pre-test](#setup-pre-test-completare-1-volta-prima-dellevento). Lancia `scripts/Setup-Field-Test-Env.ps1`. Stampa o tieni aperto questo file su tablet.
 2. **Durante l'evento:** spunta `[ ]` → `[x]` man mano che esegui ogni step. Per ogni test scrivi **PASS / FAIL / SKIP** + nota breve. Se FAIL: cattura screenshot/log e segnala in `Field Test Log` in fondo.
-3. **Dopo l'evento:** sintetizza i FAIL in una sezione "Fix prioritari" + crea issue/commit per ognuno. Aggiorna `docs/STATO_E_TODO.md`.
+3. **Dopo l'evento:** sintetizza i FAIL in una sezione "Fix prioritari" + crea issue/commit per ognuno. Aggiorna `docs/implementazioni-future/STATO_E_TODO.md`.
 4. **Convenzioni esito:**
    - **PASS** = funziona come atteso.
    - **FAIL** = comportamento errato/bloccante. Annota fix necessario.
@@ -36,9 +36,9 @@
 
 ### Tenant + utenti + evento demo
 
-- [x] **Ambiente già provisionato il 2026-04-18 via MCP Supabase.** Tutte le credenziali, ID tenant/event/room/session/speaker e procedura di reset sono in `docs/FIELD_TEST_CREDENTIALS.md`.
-- [ ] (Solo se serve riprovisionare da zero) Esegui `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Setup-Field-Test-Env.ps1` con `$env:SUPABASE_URL` + `$env:SUPABASE_SERVICE_ROLE_KEY` validi (script idempotente, password identiche al provisioning corrente).
-- [ ] Verifica login per almeno 1 utente per ruolo: `admin.alpha@fieldtest.local` / `FieldTest!AlphaAdmin2026`, `coord.alpha`, `tech.alpha`, `super.alpha`. Pattern password: `FieldTest!<Tenant><Role>2026`.
+- [x] **Ambiente già provisionato il 2026-04-18 via MCP Supabase.** Password **non in git** (stub: `docs/archivio/FIELD_TEST_CREDENTIALS.md` — live solo su Raven/Andrea). Riprovisioning: `scripts/Setup-Field-Test-Env.ps1`.
+- [ ] (Solo se serve riprovisionare da zero) Esegui `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Setup-Field-Test-Env.ps1` con `$env:SUPABASE_URL` + `$env:SUPABASE_SERVICE_ROLE_KEY` validi (script idempotente; secret solo in env, mai in commit).
+- [ ] Verifica login per almeno 1 utente per ruolo (`admin.alpha@fieldtest.local`, `coord.alpha`, `tech.alpha`, `super.alpha`) con le password che Andrea ha in locale.
 - [ ] Verifica isolamento RLS (T6 in anticipo): login `admin.beta`, controlla che NON veda l'evento di Alpha (event_id `7e3af553-abd8-401f-bfd3-c81c1e90a9d2`).
 
 ### Hardware fisico
@@ -49,7 +49,7 @@
 - [ ] **Tablet relatore**: connesso allo stesso WiFi, Chrome.
 - [ ] **Smartphone Andrea**: per QR scanning + comms emergenza.
 - [ ] **Switch/router LAN**: tutti i PC sulla stessa subnet (no VLAN, no VPN).
-- [ ] **Backup internet**: hotspot 4G pronto come failover (vedi `docs/DISASTER_RECOVERY.md` §3).
+- [ ] **Backup internet**: hotspot 4G pronto come failover (vedi `docs/operazioni/DISASTER_RECOVERY.md` §3).
 
 ### Pre-flight check (5 min)
 
@@ -58,7 +58,7 @@
 - [ ] Vercel ultimo deploy production: stato **Ready** (no error). Comando: `vercel ls --prod` o MCP Vercel.
 - [ ] Supabase dashboard → Logs → ultimi 60 min: 0 errori HTTP 5xx.
 - [ ] Sentry dashboard org `live-work-app` → project `live-slide-center-web` → ultimi 24h: 0 errori critici unresolved. URL: `https://live-work-app.de.sentry.io/issues/`.
-- [ ] Apri questo documento + `docs/DISASTER_RECOVERY.md` su 2 tab pinnati nel browser di servizio.
+- [ ] Apri questo documento + `docs/operazioni/DISASTER_RECOVERY.md` su 2 tab pinnati nel browser di servizio.
 
 ---
 
@@ -70,10 +70,10 @@
 
 **Passi:**
 
-1. Browser principale: login come `admin.alpha@fieldtest.local` (`FieldTest!AlphaAdmin2026`) → vai a `/eventi`. Annota: vedi solo evento "Field Test Aprile 2026" del tenant Alpha (event_id `7e3af553-abd8-401f-bfd3-c81c1e90a9d2`).
-2. Browser incognito: login come `admin.beta@fieldtest.local` (`FieldTest!BetaAdmin2026`) → vai a `/eventi`. Annota: vedi solo "Field Test Aprile 2026" del tenant Beta (event_id `cb6b01a2-0a04-4b16-924a-b71dbe790265`).
-3. Dal browser principale (Alpha), naviga a `/eventi/cb6b01a2-0a04-4b16-924a-b71dbe790265` (event di Beta, copiato da `docs/FIELD_TEST_CREDENTIALS.md`).
-4. Browser incognito: login come `super.alpha@fieldtest.local` (`FieldTest!AlphaSuper2026`) → vai a `/admin/tenants`. Annota: vedi entrambi i tenant.
+1. Browser principale: login come `admin.alpha@fieldtest.local` (password da Raven/Andrea) → vai a `/eventi`. Annota: vedi solo evento "Field Test Aprile 2026" del tenant Alpha (event_id `7e3af553-abd8-401f-bfd3-c81c1e90a9d2`).
+2. Browser incognito: login come `admin.beta@fieldtest.local` (password da Raven/Andrea) → vai a `/eventi`. Annota: vedi solo "Field Test Aprile 2026" del tenant Beta (event_id `cb6b01a2-0a04-4b16-924a-b71dbe790265`).
+3. Dal browser principale (Alpha), naviga a `/eventi/cb6b01a2-0a04-4b16-924a-b71dbe790265` (event di Beta).
+4. Browser incognito: login come `super.alpha@fieldtest.local` (password da Raven/Andrea) → vai a `/admin/tenants`. Annota: vedi entrambi i tenant.
 
 **Output atteso:** step 3 mostra **404 / forbidden** (NON i dati di Beta). Step 4 mostra entrambi i tenant.
 
@@ -535,9 +535,9 @@ _________________________________________________________
 
 ## RIFERIMENTI
 
-- **Credenziali ambiente field test** (email + password + ID tenant/event/room/session): `docs/FIELD_TEST_CREDENTIALS.md`.
-- Procedura test originale (storico): `docs/_archive/AUDIT_FINALE_E_PIANO_TEST_v1.md` §4 (T1-T19 + acceptance criteria) — consolidato in `ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22.
-- Disaster recovery in caso di problemi durante l'evento: `docs/DISASTER_RECOVERY.md`.
+- **Credenziali ambiente field test:** non in git. Stub `docs/archivio/FIELD_TEST_CREDENTIALS.md`. Password live solo su Raven/Andrea. Riprovisioning: `scripts/Setup-Field-Test-Env.ps1`.
+- Procedura test originale (storico): `docs/archivio/AUDIT_FINALE_E_PIANO_TEST_v1.md` §4 (T1-T19 + acceptance criteria) — consolidato in `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22.
+- Disaster recovery in caso di problemi durante l'evento: `docs/operazioni/DISASTER_RECOVERY.md`.
 - Setup ambiente test automatico (idempotente, da rilanciare se l'ambiente viene cancellato): `scripts/Setup-Field-Test-Env.ps1`.
-- Architettura: `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.
-- Storico stato sprint: `docs/STATO_E_TODO.md`.
+- Architettura: `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.
+- Storico stato sprint: `docs/implementazioni-future/STATO_E_TODO.md`.

@@ -1,6 +1,6 @@
 # Manuale Installazione — Local Agent (mini-PC regia) — LEGACY
 
-> **STATO: LEGACY (Tauri 1).** Per nuove installazioni Centro Slide usare `Manuale_Centro_Slide_Desktop.md` (Tauri 2 unificato `apps/desktop`, single binary). Questo manuale resta valido per i clienti gia' installati con setup tradizionale a 2 binari (Local Agent + Room Agent). Per dettagli architetturali vedi `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 4.
+> **STATO: LEGACY (Tauri 1).** Per nuove installazioni Centro Slide usare `Manuale_Centro_Slide_Desktop.md` (Tauri 2 unificato `apps/desktop`, single binary). Questo manuale resta valido per i clienti gia' installati con setup tradizionale a 2 binari (Local Agent + Room Agent). Per dettagli architetturali vedi `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 4.
 >
 > Pubblico: operatore di regia / IT del cliente con setup legacy.
 > Versione: 0.1.1 — Sprint 4 (17 Aprile 2026)

@@ -15,10 +15,10 @@ Rizzari (Listino Prezzi).
 
 Quando si firma con il cliente, allegare anche (gia' presenti nel repo):
 
-- `docs/Manuali/Manuale_Installazione_Local_Agent.md` → PDF (Allegato C)
-- `docs/Manuali/Manuale_Installazione_Room_Agent.md` → PDF (Allegato D)
+- `docs/operazioni/Manuale_Installazione_Local_Agent.md` → PDF (Allegato C)
+- `docs/operazioni/Manuale_Installazione_Room_Agent.md` → PDF (Allegato D)
 
-Generazione PDF: vedi `docs/Manuali/build-pdf.ps1`.
+Generazione PDF: vedi `docs/strumenti/build-pdf.ps1`.
 
 ## Allegato A — DPA ex art. 28 GDPR
 

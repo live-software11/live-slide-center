@@ -5,11 +5,11 @@ alwaysApply: false
 
 # Fase 15 — Field Test + Offline Desktop (Sprint A-W)
 
-> Fonte primaria: `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` (sezioni 14, 22). Questa rule e' una mappa veloce per sapere cosa-fa-cosa, come si verifica, e quale codice e' coinvolto.
+> Fonte primaria: `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` (sezioni 14, 22). Questa rule e' una mappa veloce per sapere cosa-fa-cosa, come si verifica, e quale codice e' coinvolto.
 > Per architettura completa: `architecture-deep.mdc`. Per attualita' codice: i file linkati di volta in volta.
-> Per cose da fare ORA: `docs/STATO_E_TODO.md`.
+> Per cose da fare ORA: `docs/implementazioni-future/STATO_E_TODO.md`.
 >
-> **Tre modalita di esecuzione del prodotto** (vedi `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 3): Cloud SaaS / Desktop intranet offline / Hybrid (post-Q). Ogni feature deve funzionare in tutte e tre le modalita o dichiarare esplicitamente quale tocca.
+> **Tre modalita di esecuzione del prodotto** (vedi `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 3): Cloud SaaS / Desktop intranet offline / Hybrid (post-Q). Ogni feature deve funzionare in tutte e tre le modalita o dichiarare esplicitamente quale tocca.
 >
 > **Regola sovrana #2 (file da locale)**: enforcement programmatico via `useFilePreviewSource({ enforceLocalOnly: true })` nei wrapper PC sala — vedi `RoomPlayerView.tsx` come reference. Una violazione produce `sovereignViolation` (i18n) + console.error con stack trace, intercettando regressioni in dev.
 
@@ -22,9 +22,9 @@ alwaysApply: false
 - **Sprint T-3-A/E/G (TEST RLS):** test isolamento multi-tenant + Edge Fn rate-limit + smoke E2E. **DONE.**
 - **Sprint U1-U7 (UX REDESIGN):** onboarding admin + UI sala + dark mode toggle + dashboard refresh. **DONE.**
 - **Sprint D1-D8 (PARITY DESKTOP):** desktop ↔ cloud feature parity (devices, manifest, audit, GDPR). **DONE.**
-- **Sprint W (CLEANUP + SENTRY + DOCS — 19/04/2026):** workspace cleanup -11.83 GB, Sentry attivato (DSN EU), docs overhaul (canonical README + archive _archive/). **DONE.**
-- **Field test desktop:** RINVIATO per scelta Andrea. Procedura completa pronta in `docs/STATO_E_TODO.md` § 3 (preparazione T-2 / smoke T-1 / esecuzione T / decisione T+1) + template feedback inline (§ 3.5).
-- **Sprint Q (HYBRID SYNC CLOUD<->OFFLINE — Fase 15.3, OPZIONALE):** decisione GO/NO-GO **vincolata** al framework deterministico in `docs/STATO_E_TODO.md` § 4.2 (5 domande SI/NO, soglia 2 SI). Pianificazione solo dopo il field test. **Piano READY-TO-CODE** in `docs/STATO_E_TODO.md` § 4.3 (file, RPC, schema, UI, costi, test).
+- **Sprint W (CLEANUP + SENTRY + DOCS — 19/04/2026):** workspace cleanup -11.83 GB, Sentry attivato (DSN EU), docs overhaul (canonical README + archive docs/archivio/). **DONE.**
+- **Field test desktop:** RINVIATO per scelta Andrea. Procedura completa pronta in `docs/implementazioni-future/STATO_E_TODO.md` § 3 (preparazione T-2 / smoke T-1 / esecuzione T / decisione T+1) + template feedback inline (§ 3.5).
+- **Sprint Q (HYBRID SYNC CLOUD<->OFFLINE — Fase 15.3, OPZIONALE):** decisione GO/NO-GO **vincolata** al framework deterministico in `docs/implementazioni-future/STATO_E_TODO.md` § 4.2 (5 domande SI/NO, soglia 2 SI). Pianificazione solo dopo il field test. **Piano READY-TO-CODE** in `docs/implementazioni-future/STATO_E_TODO.md` § 4.3 (file, RPC, schema, UI, costi, test).
 
 ## Sprint A — playback_mode tuning sala
 
@@ -312,12 +312,12 @@ alwaysApply: false
   - Script npm: `pnpm --filter @slidecenter/desktop smoke-test` / `smoke-test:json` / `smoke-test:sala`.
 
 - **FT2 — Runbook eseguibile:**
-  - Procedura completa in `docs/STATO_E_TODO.md` § 3 (preparazione T-2 / smoke T-1 / esecuzione T / decisione T+1).
+  - Procedura completa in `docs/implementazioni-future/STATO_E_TODO.md` § 3 (preparazione T-2 / smoke T-1 / esecuzione T / decisione T+1).
   - Pensato per essere stampato e seguito riga per riga durante il field test.
 
 - **FT3 — Template feedback con regola decisionale:**
-  - Template inline in `docs/STATO_E_TODO.md` § 3.5 (10 sezioni: metadata, inventario PC, esiti smoke test, esiti checklist 10 punti, test critici stress 4K + resilienza rete + persistenza, bug rilevati, KPI con mediana + p95, decisione GO/NO-GO produzione **e** GO/NO-GO Sprint Q).
-  - Decisione Sprint Q in `docs/STATO_E_TODO.md` § 4.2: **5 domande SI/NO + soglia 2 SI -> GO Q**. La decisione su Sprint Q non e' rimandabile: viene presa con dati raccolti in field test.
+  - Template inline in `docs/implementazioni-future/STATO_E_TODO.md` § 3.5 (10 sezioni: metadata, inventario PC, esiti smoke test, esiti checklist 10 punti, test critici stress 4K + resilienza rete + persistenza, bug rilevati, KPI con mediana + p95, decisione GO/NO-GO produzione **e** GO/NO-GO Sprint Q).
+  - Decisione Sprint Q in `docs/implementazioni-future/STATO_E_TODO.md` § 4.2: **5 domande SI/NO + soglia 2 SI -> GO Q**. La decisione su Sprint Q non e' rimandabile: viene presa con dati raccolti in field test.
 
 **Verifica FT:** smoke test gira con Node 22 senza errori; runbook eseguibile da una persona; template feedback ha regola decisionale **misurabile** non lasciata al sentiment.
 
@@ -327,15 +327,15 @@ alwaysApply: false
 
 **Procedura:**
 
-1. Segui `docs/STATO_E_TODO.md` § 3 step-by-step (T-2 → T-1 → T → T+1).
+1. Segui `docs/implementazioni-future/STATO_E_TODO.md` § 3 step-by-step (T-2 → T-1 → T → T+1).
 2. Pre-volo automatizzato: `pnpm --filter @slidecenter/desktop smoke-test:sala` su ogni PC field-test (deve restituire `>>> SEMAFORO VERDE` su 100% PC).
-3. Compila il template inline in `docs/STATO_E_TODO.md` § 3.5 (copia in `docs/feedback/<data>_field_test_desktop/REPORT.md`).
+3. Compila il template inline in `docs/implementazioni-future/STATO_E_TODO.md` § 3.5 (copia in `docs/feedback/<data>_field_test_desktop/REPORT.md`).
 4. Sezione 7 del template: decisione GO/NO-GO **produzione**.
-5. Framework `docs/STATO_E_TODO.md` § 4.2: decisione GO/NO-GO **Sprint Q** (5 domande, soglia 2 SI).
+5. Framework `docs/implementazioni-future/STATO_E_TODO.md` § 4.2: decisione GO/NO-GO **Sprint Q** (5 domande, soglia 2 SI).
 
 ## Sprint Q — Sync Hybrid Cloud<->Offline (OPZIONALE, post-field-test)
 
-**Stato:** **NON in progress.** Decisione vincolata al framework deterministico in `docs/STATO_E_TODO.md` § 4.2 (5 domande SI/NO, soglia 2 SI).
+**Stato:** **NON in progress.** Decisione vincolata al framework deterministico in `docs/implementazioni-future/STATO_E_TODO.md` § 4.2 (5 domande SI/NO, soglia 2 SI).
 
 **Goal (se GO):** quando il desktop torna online, sincronizza con cloud Supabase per backup/condivisione cross-sede.
 
@@ -343,7 +343,7 @@ alwaysApply: false
 
 **Quando NON serve:** uso interno aziendale single-site senza necessita di backup cloud o condivisione fra sedi distinte.
 
-**Piano READY-TO-CODE:** dettaglio completo in `docs/STATO_E_TODO.md` § 4.3 (giorno per giorno, file, RPC, schema, UI, costi, test manuali).
+**Piano READY-TO-CODE:** dettaglio completo in `docs/implementazioni-future/STATO_E_TODO.md` § 4.3 (giorno per giorno, file, RPC, schema, UI, costi, test manuali).
 
 **Acceptance Sprint Q (per merge):** typecheck + lint + cargo check + cargo clippy --all-targets -- -D warnings exit 0 + test manuali documentati con screenshot in `docs/feedback/<data>_sprint_q_qa/REPORT.md`.
 
@@ -357,9 +357,9 @@ alwaysApply: false
 
 Sono attivita **trasversali** non assegnate a uno sprint specifico:
 
-- Code-sign Windows OV cert Sectigo (evita SmartScreen): documentato in `docs/Manuali/Manuale_Code_Signing.md`. Acquisto cert e firma e' decisione commerciale, non sprint di codice.
+- Code-sign Windows OV cert Sectigo (evita SmartScreen): documentato in `docs/operazioni/Manuale_Code_Signing.md`. Acquisto cert e firma e' decisione commerciale, non sprint di codice.
 - macOS .dmg signed + notarized: richiede Apple Developer account. Pianificare quando primo cliente macOS lo richiede.
 - Linux AppImage / .deb: pianificare on demand.
 - ~~Telemetry opt-in (Sentry anonymized)~~ → **ATTIVO post-Sprint W**: DSN EU configurato in Vercel (`VITE_SENTRY_DSN`), init lazy in `apps/web/src/lib/init-sentry.ts`, helper `reportError(err, { tag, extra })` in `apps/web/src/lib/telemetry.ts`. Org Sentry: `live-work-app`, project `live-slide-center-web`. MCP server `sentry` configurato in `~/.cursor/mcp.json`.
 
-Per richieste specifiche su sprint chiuso: link al codice + verifica nel piano `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 (storia sprint sintetica) con `Ctrl+F "Sprint X"`.
+Per richieste specifiche su sprint chiuso: link al codice + verifica nel piano `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 (storia sprint sintetica) con `Ctrl+F "Sprint X"`.

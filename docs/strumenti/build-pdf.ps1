@@ -9,14 +9,12 @@
 #        winget install --id MiKTeX.MiKTeX -e
 #      Al primo run xelatex chiede installazione pacchetti mancanti: confermare "Yes" per "Always".
 #
-# Output: 3 file PDF in docs\Manuali\pdf\
-#   - Manuale_Distribuzione.pdf
-#   - Manuale_Installazione_Local_Agent.pdf
-#   - Manuale_Installazione_Room_Agent.pdf
+# Output: PDF in docs\strumenti\pdf\ (gitignored).
+# Sorgenti Markdown: docs\operazioni\Manuale_*.md
 #
 # Esecuzione:
-#   pwsh -File docs\Manuali\build-pdf.ps1
-# Oppure dalla cartella docs\Manuali\:
+#   pwsh -File docs\strumenti\build-pdf.ps1
+# Oppure dalla cartella docs\strumenti\:
 #   .\build-pdf.ps1
 
 [CmdletBinding()]
@@ -76,7 +74,8 @@ $manuals = @(
     @{ Source = 'Manuale_Installazione_Room_Agent.md';  Title = 'Live SLIDE CENTER - Installazione Room Agent (PC sala)' }
 )
 
-$manualsDir = $PSScriptRoot
+# I .md stanno in docs/operazioni/; questo script vive in docs/strumenti/.
+$manualsDir = (Join-Path $PSScriptRoot '..\operazioni')
 $success = 0
 $failed = 0
 

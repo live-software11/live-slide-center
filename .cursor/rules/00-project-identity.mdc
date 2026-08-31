@@ -16,19 +16,19 @@ SaaS multi-tenant per **gestione presentazioni in eventi live**. Il prodotto e' 
 ## Fonti di verita (in ordine)
 
 1. **`AGENTS.md`** (root) — entry-point standard 2026 per Cursor / Codex CLI / Continue. Contiene la mappa rapida (workspace context + invarianti + RBAC + comandi + ecosistema). Gemello di `CLAUDE.md` lato Claude Code.
-2. **`docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`** — UNICA fonte di verita su "cos'e'" e "com'e' fatto" il prodotto. 24 sezioni, ~140 KB. Include sprint history (§ 22) fino a Sprint XY licensing v3 (06/05/2026). Sostituisce le precedenti `GUIDA_DEFINITIVA_PROGETTO.md`, `PIANO_FINALE_SLIDE_CENTER_v2.md`, `GUIDA_OPERATIVA_v3_FIELD_TEST_E_OFFLINE.md`.
-3. **`docs/STATO_E_TODO.md`** — UNICA fonte di verita su "cosa rimane da fare" (azioni pending Andrea, field test, Sprint Q opzionale, backlog vendite).
+2. **`docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md`** — UNICA fonte di verita su "cos'e'" e "com'e' fatto" il prodotto. 24 sezioni, ~140 KB. Include sprint history (§ 22) fino a Sprint XY licensing v3 (06/05/2026). Sostituisce le precedenti `GUIDA_DEFINITIVA_PROGETTO.md`, `PIANO_FINALE_SLIDE_CENTER_v2.md`, `GUIDA_OPERATIVA_v3_FIELD_TEST_E_OFFLINE.md`.
+3. **`docs/implementazioni-future/STATO_E_TODO.md`** — UNICA fonte di verita su "cosa rimane da fare" (azioni pending Andrea, field test, Sprint Q opzionale, backlog vendite).
 4. **`docs/README.md`** — INDICE CANONICO navigabile per topic (mappa di tutti i doc).
-5. **`docs/DISASTER_RECOVERY.md`** — backup, restore, Sentry setup, Edge Fn warm-keep, workspace cleanup runbook.
-6. **`docs/FIELD_TEST_CHECKLIST.md`** — checklist pre-evento + smoke E2E + URL produzione.
+5. **`docs/operazioni/DISASTER_RECOVERY.md`** — backup, restore, Sentry setup, Edge Fn warm-keep, workspace cleanup runbook.
+6. **`docs/operazioni/FIELD_TEST_CHECKLIST.md`** — checklist pre-evento + smoke E2E + URL produzione.
 7. **`CLAUDE.md`** (root) — sintesi viva lato Claude Code: stato + comandi quotidiani + mappa rules.
-8. **`docs/Setup_Strumenti_e_MCP.md`** — setup ambiente sviluppo (rimanda a `docs/README.md` per la mappa).
-9. **`docs/Istruzioni_Claude_Desktop.md`** — prompt + workflow per AI assistant.
-10. **`docs/Manuali/`** — manuali operativi (Centro Slide Desktop Tauri 2 + Onboarding Admin + distribuzione + code signing + email Resend + agent legacy + screencast + uso interno DHS).
-11. **`docs/Commerciale/`** — materiali vendita (listino, SLA, roadmap vendita esterna).
-12. **`docs/_archive/`** — storici read-only (NON usare come fonte di verita; solo per audit retrospettivi).
+8. **`docs/operazioni/Setup_Strumenti_e_MCP.md`** — setup ambiente sviluppo (rimanda a `docs/README.md` per la mappa).
+9. **`docs/agenti/Istruzioni_Claude_Desktop.md`** — prompt + workflow per AI assistant.
+10. **`docs/operazioni/`** — manuali operativi (Centro Slide Desktop Tauri 2 + Onboarding Admin + distribuzione + code signing + email Resend + agent legacy + screencast + uso interno DHS).
+11. **`docs/commerciali/`** — materiali vendita (listino, SLA, roadmap vendita esterna).
+12. **`docs/archivio/`** — storici read-only (NON usare come fonte di verita; solo per audit retrospettivi).
 
-In caso di conflitto: vince sempre **`ARCHITETTURA_LIVE_SLIDE_CENTER.md`**.
+In caso di conflitto: vince sempre **`docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md`**.
 
 ## Stack in una riga
 
@@ -64,6 +64,6 @@ Mai operare con account `Andraven11` su questo workspace (e' per Preventivi DHS 
 
 ## Suite di rules
 
-- **alwaysApply** (sempre attive, breve): `00-project-identity`, `01-data-isolation`, `02-quality-gate`, `03-i18n`, `04-git-workflow`, `mcp-supabase`, `mcp-vercel`.
+- **alwaysApply** (sempre attive, breve): `00-project-identity`, `01-data-isolation`, `02-quality-gate`, `03-i18n`, `04-git-workflow`, `mcp-supabase`, `mcp-vercel`, `docs-structure`.
 - **Globs mirati** (su file matching): `web-react`, `web-supabase-client`, `supabase-db`, `desktop-tauri`, `legacy-agents`.
 - **Agent-requestable** (on demand, leggere quando serve approfondimento): `architecture-deep`, `field-test-fase15`, `docs-roadmap`.

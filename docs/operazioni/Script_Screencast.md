@@ -344,7 +344,7 @@ attivi alle versioni vecchie almeno 6 mesi (clienti su licenza vecchia).
 
 **Riferimenti:**
 
-- `docs/Manuali/Manuale_Distribuzione.md` — flusso operativo completo
-- `docs/Manuali/Manuale_Installazione_Local_Agent.md` — passi installer regia
-- `docs/Manuali/Manuale_Installazione_Room_Agent.md` — passi installer sala
-- `docs/Commerciale/Listino_Prezzi.md` — pricing per CTA finale screencast
+- `docs/operazioni/Manuale_Distribuzione.md` — flusso operativo completo
+- `docs/operazioni/Manuale_Installazione_Local_Agent.md` — passi installer regia
+- `docs/operazioni/Manuale_Installazione_Room_Agent.md` — passi installer sala
+- `docs/commerciali/Listino_Prezzi.md` — pricing per CTA finale screencast

@@ -51,7 +51,7 @@ alwaysApply: true
 ## Chiusura sessione e messaggio all'utente
 
 - Se **non** tutto verde: segnala cosa fallisce, correggi, ripeti il ciclo. NON proporre lo step successivo come completato.
-- Se **tutto verde**: in chiusura indica **in una frase** lo step successivo naturale (dalle azioni pending in `docs/STATO_E_TODO.md`), senza avviarlo se non richiesto.
+- Se **tutto verde**: in chiusura indica **in una frase** lo step successivo naturale (dalle azioni pending in `docs/implementazioni-future/STATO_E_TODO.md`), senza avviarlo se non richiesto.
 - Aggiorna documentazione **nello stesso intervento** se la modifica e' strutturale (vedi `docs-roadmap.mdc` per quale doc).
 
 ## Mentalita
