@@ -59,7 +59,7 @@ Entry-point agenti: [`../AGENTS.md`](../AGENTS.md) · sintesi Claude Code: [`../
 | Domanda | Documento |
 | ------- | --------- |
 | Checklist pre-evento + smoke E2E | [`operazioni/FIELD_TEST_CHECKLIST.md`](./operazioni/FIELD_TEST_CHECKLIST.md) |
-| Credenziali demo | **non in git** — stub [`archivio/FIELD_TEST_CREDENTIALS.md`](./archivio/FIELD_TEST_CREDENTIALS.md) (live solo su Raven/Andrea) |
+| Credenziali demo | [`operazioni/FIELD_TEST_CREDENTIALS.md`](./operazioni/FIELD_TEST_CREDENTIALS.md) (pattern + email `@fieldtest.local`; **niente tabella password**) |
 | PC sala offline durante l'evento | [`operazioni/DISASTER_RECOVERY.md`](./operazioni/DISASTER_RECOVERY.md) Scenario 4 |
 
 ### Installazione, firma, email, onboarding
@@ -99,7 +99,6 @@ Matrice ruolo → manuale: Andrea build/release → Distribuzione + Code Signing
 | [`archivio/QA_FIX_REPORT_2026-04-18.md`](./archivio/QA_FIX_REPORT_2026-04-18.md) | Fix già applicati |
 | [`archivio/SPRINT_W_CLOSURE_REPORT.md`](./archivio/SPRINT_W_CLOSURE_REPORT.md) | Sprint W chiuso |
 | [`archivio/STATO_E_TODO_storia_sprint_0.1-0.29.md`](./archivio/STATO_E_TODO_storia_sprint_0.1-0.29.md) | Sprint 0.1→0.29 tagliati da STATO_E_TODO |
-| [`archivio/FIELD_TEST_CREDENTIALS.md`](./archivio/FIELD_TEST_CREDENTIALS.md) | Stub: password non in git |
 
 ---
 

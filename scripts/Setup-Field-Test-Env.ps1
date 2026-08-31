@@ -431,7 +431,7 @@ function Ensure-Speaker {
 # 6) DEFINIZIONE AMBIENTE FIELD TEST
 # =============================================================================
 # IMPORTANTE: i nomi evento/tenant qui sotto sono la fonte operativa (slug field-test-alpha/beta).
-# Password: generate dallo script, stampate in console, NON versionate (stub docs/archivio/FIELD_TEST_CREDENTIALS.md).
+# Password: generate dallo script (stesso pattern documentato in docs/operazioni/FIELD_TEST_CREDENTIALS.md). Non committare tabelle password né service_role.
 
 $EventName     = 'Field Test Aprile 2026'
 $EventNameEn   = 'Field Test April 2026'
@@ -549,7 +549,7 @@ Write-Host '====================================================================
 Write-Host ''
 
 if ($Credentials.Count -gt 0) {
-  Write-Host 'CREDENZIALI (deterministiche; non committare — stub docs/archivio/FIELD_TEST_CREDENTIALS.md):' -ForegroundColor Yellow
+  Write-Host 'CREDENZIALI (deterministiche; pattern in docs/operazioni/FIELD_TEST_CREDENTIALS.md — non committare service_role):' -ForegroundColor Yellow
   Write-Host ''
   $Credentials | Format-Table -AutoSize Tenant, Email, Role, Password
   Write-Host ''
@@ -562,7 +562,7 @@ else {
 }
 
 Write-Host 'PROSSIMI PASSI:' -ForegroundColor Cyan
-Write-Host '  1. Password stampate sopra (non stanno in git; stub docs/archivio/FIELD_TEST_CREDENTIALS.md).'
+Write-Host '  1. Pattern + email in docs/operazioni/FIELD_TEST_CREDENTIALS.md (niente tabella password in git).'
 Write-Host '  2. Login web: https://app.liveslidecenter.com/login (o l URL dell ambiente).'
 Write-Host '  3. Esegui i test T1-T19 seguendo docs/operazioni/FIELD_TEST_CHECKLIST.md.'
 Write-Host '  4. In caso di problemi durante l evento: docs/operazioni/DISASTER_RECOVERY.md.'

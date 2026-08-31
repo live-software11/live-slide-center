@@ -34,7 +34,7 @@ Tutto il resto della documentazione vive sotto `docs/`. Non creare guide, runboo
 - Non ricreare `docs/Commerciale/`, `docs/Manuali/`, `docs/_archive/`.
 - Non creare nuovi `AUDIT_*.md`. Gli audit chiusi stanno in `docs/archivio/`.
 - Non creare `PLAN.md` orfano in root (in questo repo non esiste).
-- Non committare password, DSN, service_role, `.env`. Credenziali field test **non** stanno in git (stub in `docs/archivio/FIELD_TEST_CREDENTIALS.md`).
+- Non committare password in chiaro, DSN, `service_role`, `.env`. Field test: `docs/operazioni/FIELD_TEST_CREDENTIALS.md` ha **solo pattern + email** `@fieldtest.local` (niente tabella password). Non era gitignored (era su GitHub).
 - Pochi file, corretti, ordinati. Se due file fanno lo stesso lavoro, uniscili in uno senza perdere info.
 
 ## Dove mettere un doc nuovo

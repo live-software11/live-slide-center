@@ -18,4 +18,3 @@ Layout 31/08/2026: questa cartella era `docs/_archive/`. I path nei file congela
 | `QA_FIX_REPORT_2026-04-18.md` | 2026-04-18 | Fix già applicati e validati | STATO_E_TODO § 1 |
 | `SPRINT_W_CLOSURE_REPORT.md` | 2026-04-19 | Sprint W chiuso | [`../../CLAUDE.md`](../../CLAUDE.md) + STATO_E_TODO § 1 + ARCHITETTURA § 22 |
 | `STATO_E_TODO_storia_sprint_0.1-0.29.md` | 2026-04-19 | Sprint 0.1→0.29 tagliati da STATO_E_TODO | ARCHITETTURA § 22 (sintesi) |
-| `FIELD_TEST_CREDENTIALS.md` | 2026-04-18 / stub 2026-08-31 | Conteneva password; svuotato in reorg docs | Credenziali live solo su Raven/Andrea. Riprovisioning: `scripts/Setup-Field-Test-Env.ps1` |

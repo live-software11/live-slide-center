@@ -36,9 +36,9 @@
 
 ### Tenant + utenti + evento demo
 
-- [x] **Ambiente già provisionato il 2026-04-18 via MCP Supabase.** Password **non in git** (stub: `docs/archivio/FIELD_TEST_CREDENTIALS.md` — live solo su Raven/Andrea). Riprovisioning: `scripts/Setup-Field-Test-Env.ps1`.
+- [x] **Ambiente già provisionato il 2026-04-18 via MCP Supabase.** Email + pattern: `docs/operazioni/FIELD_TEST_CREDENTIALS.md` (niente tabella password). Riprovisioning: `scripts/Setup-Field-Test-Env.ps1`.
 - [ ] (Solo se serve riprovisionare da zero) Esegui `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Setup-Field-Test-Env.ps1` con `$env:SUPABASE_URL` + `$env:SUPABASE_SERVICE_ROLE_KEY` validi (script idempotente; secret solo in env, mai in commit).
-- [ ] Verifica login per almeno 1 utente per ruolo (`admin.alpha@fieldtest.local`, `coord.alpha`, `tech.alpha`, `super.alpha`) con le password che Andrea ha in locale.
+- [ ] Verifica login per almeno 1 utente per ruolo (`admin.alpha@fieldtest.local`, `coord.alpha`, `tech.alpha`, `super.alpha`) con il pattern in `FIELD_TEST_CREDENTIALS.md`.
 - [ ] Verifica isolamento RLS (T6 in anticipo): login `admin.beta`, controlla che NON veda l'evento di Alpha (event_id `7e3af553-abd8-401f-bfd3-c81c1e90a9d2`).
 
 ### Hardware fisico
@@ -70,10 +70,10 @@
 
 **Passi:**
 
-1. Browser principale: login come `admin.alpha@fieldtest.local` (password da Raven/Andrea) → vai a `/eventi`. Annota: vedi solo evento "Field Test Aprile 2026" del tenant Alpha (event_id `7e3af553-abd8-401f-bfd3-c81c1e90a9d2`).
-2. Browser incognito: login come `admin.beta@fieldtest.local` (password da Raven/Andrea) → vai a `/eventi`. Annota: vedi solo "Field Test Aprile 2026" del tenant Beta (event_id `cb6b01a2-0a04-4b16-924a-b71dbe790265`).
+1. Browser principale: login come `admin.alpha@fieldtest.local` (pattern in `FIELD_TEST_CREDENTIALS.md`) → vai a `/eventi`. Annota: vedi solo evento "Field Test Aprile 2026" del tenant Alpha (event_id `7e3af553-abd8-401f-bfd3-c81c1e90a9d2`).
+2. Browser incognito: login come `admin.beta@fieldtest.local` (pattern in `FIELD_TEST_CREDENTIALS.md`) → vai a `/eventi`. Annota: vedi solo "Field Test Aprile 2026" del tenant Beta (event_id `cb6b01a2-0a04-4b16-924a-b71dbe790265`).
 3. Dal browser principale (Alpha), naviga a `/eventi/cb6b01a2-0a04-4b16-924a-b71dbe790265` (event di Beta).
-4. Browser incognito: login come `super.alpha@fieldtest.local` (password da Raven/Andrea) → vai a `/admin/tenants`. Annota: vedi entrambi i tenant.
+4. Browser incognito: login come `super.alpha@fieldtest.local` (pattern in `FIELD_TEST_CREDENTIALS.md`) → vai a `/admin/tenants`. Annota: vedi entrambi i tenant.
 
 **Output atteso:** step 3 mostra **404 / forbidden** (NON i dati di Beta). Step 4 mostra entrambi i tenant.
 
@@ -535,7 +535,7 @@ _________________________________________________________
 
 ## RIFERIMENTI
 
-- **Credenziali ambiente field test:** non in git. Stub `docs/archivio/FIELD_TEST_CREDENTIALS.md`. Password live solo su Raven/Andrea. Riprovisioning: `scripts/Setup-Field-Test-Env.ps1`.
+- **Account field test** (pattern + email, niente tabella password): `docs/operazioni/FIELD_TEST_CREDENTIALS.md`. Riprovisioning: `scripts/Setup-Field-Test-Env.ps1`.
 - Procedura test originale (storico): `docs/archivio/AUDIT_FINALE_E_PIANO_TEST_v1.md` §4 (T1-T19 + acceptance criteria) — consolidato in `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22.
 - Disaster recovery in caso di problemi durante l'evento: `docs/operazioni/DISASTER_RECOVERY.md`.
 - Setup ambiente test automatico (idempotente, da rilanciare se l'ambiente viene cancellato): `scripts/Setup-Field-Test-Env.ps1`.

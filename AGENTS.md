@@ -50,7 +50,7 @@ In caso di conflitto vince sempre **`docs/architettura/ARCHITETTURA_LIVE_SLIDE_C
 | **Setup ambiente sviluppo + MCP**                       | `docs/operazioni/Setup_Strumenti_e_MCP.md`                                 |
 | **Disaster recovery + Sentry + warm-keep + cleanup**    | `docs/operazioni/DISASTER_RECOVERY.md`                                     |
 | **Checklist pre-evento + smoke E2E**                    | `docs/operazioni/FIELD_TEST_CHECKLIST.md`                                  |
-| **Credenziali tenant/utenti demo**                      | stub `docs/archivio/FIELD_TEST_CREDENTIALS.md` — password **non in git** (solo Raven/Andrea) |
+| **Credenziali tenant/utenti demo**                      | `docs/operazioni/FIELD_TEST_CREDENTIALS.md` (pattern + email `@fieldtest.local`; **niente tabella password**, niente `service_role`) |
 | **Prompt + workflow per AI assistant**                  | `docs/agenti/Istruzioni_Claude_Desktop.md`                             |
 | **Manuali user-facing** (Centro Slide Desktop, code-signing, email, onboarding…) | `docs/operazioni/` |
 | **Materiali commerciali** (listino, SLA, roadmap vendita) | `docs/commerciali/`                                           |
@@ -191,7 +191,7 @@ Eccezione PC sala anon: `room-player-bootstrap`, `room-player-rename`, `room-pla
 - Push da sessione `Andraven11` su `origin live-software11/live-slide-center`.
 - Cambiare `origin` verso repo `Andraven11/*` senza richiesta esplicita.
 - `git rebase -i` o `git add -i` (interattivo non supportato dal terminale agent).
-- Hardcodare credenziali (anon key, service role, password admin) in script committati. Password field test **non** stanno in git (stub `docs/archivio/FIELD_TEST_CREDENTIALS.md`; live solo su Raven/Andrea).
+- Hardcodare credenziali (anon key, `service_role`, password admin, DSN) in script committati. Field test: solo pattern + email in `docs/operazioni/FIELD_TEST_CREDENTIALS.md` — **niente tabella password**. (AGENTS.md lo diceva gitignored: non lo era; era su GitHub.)
 - Disattivare Sentry init nei path produzione.
 - Toccare `.env`, `.env.local`, `apps/desktop/src-tauri/tauri.signing.json`, `~/.cursor/mcp.json` in commit.
 - Modificare `network_mode` ENUM, `tenant_id` su tabelle business, `super_admin_all` policy senza ADR.

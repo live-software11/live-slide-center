@@ -444,8 +444,8 @@ Quando apri un ticket includi:
 
 ## Riferimenti incrociati
 
-- **Architettura desktop:** `../ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 14 (desktop) + § 15 (sicurezza) + § 22 (sprint history).
-- **Stato attuale e TODO:** `../STATO_E_TODO.md`.
-- **Disaster recovery + warm-keep Edge Functions:** `../DISASTER_RECOVERY.md`.
+- **Architettura desktop:** `../architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 14 (desktop) + § 15 (sicurezza) + § 22 (sprint history).
+- **Stato attuale e TODO:** `../implementazioni-future/STATO_E_TODO.md`.
+- **Disaster recovery + warm-keep Edge Functions:** `DISASTER_RECOVERY.md`.
 - **Distribuzione e build:** `Manuale_Distribuzione.md`.
-- **Field test sul campo:** `../FIELD_TEST_CHECKLIST.md` + `../FIELD_TEST_CREDENTIALS.md`.
+- **Field test sul campo:** `FIELD_TEST_CHECKLIST.md` + `FIELD_TEST_CREDENTIALS.md`.
