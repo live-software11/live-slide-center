@@ -193,7 +193,7 @@ controllo (DDoS estesi, blackout, sciopero generale, pandemia, atti governativi)
   entro 30 giorni dalla disattivazione del workspace.
 
 ### 7.3 Prezzi
-Vedi documento separato `docs/Commerciale/Listino_Prezzi.md` (versione corrente).
+Vedi documento separato `docs/commerciali/Listino_Prezzi.md` (versione corrente).
 Variazioni di prezzo vengono comunicate con preavviso di **90 giorni** e si
 applicano dal rinnovo successivo.
 
@@ -244,9 +244,9 @@ foro del consumatore se applicabile.
 ## Allegati (separati)
 
 - **Allegato A** — Atto di nomina Responsabile del Trattamento (DPA ex art. 28 GDPR)
-- **Allegato B** — Listino prezzi corrente (`docs/Commerciale/Listino_Prezzi.md`)
-- **Allegato C** — Manuale di Installazione Local Agent (`docs/Manuali/Manuale_Installazione_Local_Agent.md`)
-- **Allegato D** — Manuale di Installazione Room Agent (`docs/Manuali/Manuale_Installazione_Room_Agent.md`)
+- **Allegato B** — Listino prezzi corrente (`docs/commerciali/Listino_Prezzi.md`)
+- **Allegato C** — Manuale di Installazione Local Agent (`docs/operazioni/Manuale_Installazione_Local_Agent.md`)
+- **Allegato D** — Manuale di Installazione Room Agent (`docs/operazioni/Manuale_Installazione_Room_Agent.md`)
 
 ---
 

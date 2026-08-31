@@ -1,6 +1,6 @@
-﻿# Archivio storia sprint Live SLIDE CENTER (estratto da STATO_E_TODO.md)
+﻿# Archivio storia sprint Live SLIDE CENTER (estratto da docs/implementazioni-future/STATO_E_TODO.md)
 
-> **Tagliato da docs/STATO_E_TODO.md il 2026-04-19** durante riorganizzazione documentazione.
+> **Tagliato da docs/implementazioni-future/STATO_E_TODO.md il 2026-04-19** durante riorganizzazione documentazione.
 > Conteneva l'intero § 0 Audit chirurgico 18/04/2026 con 30 sotto-sezioni Sprint 0.1 → 0.29 (tutte DONE).
 > Sintesi narrativa salvata in ../ARCHITETTURA_LIVE_SLIDE_CENTER.md § 22 (Storia sprint).
 > Questo file e' READ-ONLY, NON modificare. Per nuove sprint history, aggiornare ARCHITETTURA § 22.
@@ -9,7 +9,7 @@
 
 # STATO E TO-DO LIVE SLIDE CENTER
 
-> **Documento operativo gemello di `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
+> **Documento operativo gemello di `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare, in ordine di priorita. Per "cosa fa il prodotto" e "come e fatto" → architettura.
 >
 > **Versione:** 2.20 — 19 aprile 2026 notte (post **Sprint W: cloud finale + desktop allineato 100%**, §0.29)
@@ -46,9 +46,9 @@
 >
 > **Sprint D1 → D8 — Parita cloud/desktop + licensing unificato (§ 0.25 — DONE 18/04/2026 sera):** chiusa parita totale tra cloud SaaS e PC desktop offline. **D1:** sistema licenze unificato (Supabase tabelle `desktop_devices` + `desktop_provision_tokens`, 3 Edge Functions `desktop-provision-create`/`-bind`/`-verify`, Rust crate `license/{manager,storage,client,heartbeat}` con AES-256-GCM `~/.slidecenter/license.enc`, Tauri commands, RPC `update_device_role`, UI cloud `DesktopLicenseView` + banner sticky). **D2:** installer NSIS vendor-grade (lingua IT/EN, EULA, hooks pre/post install + uninstall, firewall + Defender exclusion automatici, profilo rete forzato a Privato, prompt "conservare dati evento" in disinstallazione). **D3:** Tauri updater Ed25519 + GitHub Actions `desktop-release.yml` (trigger tag `desktop-v*` + `workflow_dispatch` manuale, upsert release `--clobber`). **D4:** port Sprint S-4 ruolo `control_center` su SQLite locale (filesystem `~/SlideCenter/<event>/<sala>/<sessione>/<file>`). **D5:** pannello admin `/centri-slide` (3 sezioni: PC server collegati con badge online + magic-link attivi con QR/stampa + toggle ruolo PC sala), rotta deep-link `/centro-slide/bind?t=...` con auto-detect cloud/desktop, 53 nuove i18n keys IT/EN. **D6:** heartbeat automatico licenza desktop (background `tokio` loop, 6h release / 60s debug, refresh `last_seen_at` + grace offline 30gg). **D7:** scripts PowerShell `setup-signing-keys.ps1` (gen Ed25519 + GH secrets) + `tag-release.ps1` (bump version + tag + push trigger). **D8:** `docs/Setup_PC_Centro_Slide.md` (guida operativa IT non-tech 10 sezioni) + `docs/Smoke_Test_Centro_Slide.md` (checklist QA 12 sezioni / 120 checkbox). Quality gate verde: typecheck/lint/cargo check/cargo test, migration applicata in prod, 3 Edge Functions deployate, i18n parity, 0 nuovi advisor.
 >
-> **Fix deploy Vercel + onboarding MCP Vercel ufficiale (§ 0.26 — DONE 18/04/2026 sera):** `live-slide-center.vercel.app` serviva ancora il bundle pre-refactor (`index-CaPy7X91.js`) nonostante 6+ commit pushati. Causa: integrazione GitHub→Vercel disconnessa (no auto-deploy webhook). Sblocco: installato Vercel CLI globale (51.7.0) + `vercel link` + `vercel --prod --yes --archive=tgz` (tarball obbligatorio: monorepo 17.619 file > limite 15k API). Build remoto `iad1` 42s, deploy `READY`, alias automatico. Verificato live tutti i chunk Sprint U-1 → U-5 + D1 → D8 (`DesktopDevicesView`, `OnAirView`, `ProductionView`, `DesktopBindAutoView`). Onboardato server MCP **`vercel`** ufficiale (endpoint `https://mcp.vercel.com` OAuth, supportato Cursor da agosto 2025) in `~/.cursor/mcp.json`: tool `list_deployments`/`get_deployment_build_logs`/`get_deployment_runtime_logs` per debug futuri. Fix manuale residuo per Andrea: dashboard Vercel → Settings → Git → riconnettere repo `live-software11/live-slide-center` su `main` per ripristinare auto-deploy (alternativa long-term: workflow GitHub Actions con `VERCEL_TOKEN`). Documentazione completa in `docs/Setup_Strumenti_e_MCP.md` §2c + `.cursor/rules/mcp-vercel.mdc`.
+> **Fix deploy Vercel + onboarding MCP Vercel ufficiale (§ 0.26 — DONE 18/04/2026 sera):** `live-slide-center.vercel.app` serviva ancora il bundle pre-refactor (`index-CaPy7X91.js`) nonostante 6+ commit pushati. Causa: integrazione GitHub→Vercel disconnessa (no auto-deploy webhook). Sblocco: installato Vercel CLI globale (51.7.0) + `vercel link` + `vercel --prod --yes --archive=tgz` (tarball obbligatorio: monorepo 17.619 file > limite 15k API). Build remoto `iad1` 42s, deploy `READY`, alias automatico. Verificato live tutti i chunk Sprint U-1 → U-5 + D1 → D8 (`DesktopDevicesView`, `OnAirView`, `ProductionView`, `DesktopBindAutoView`). Onboardato server MCP **`vercel`** ufficiale (endpoint `https://mcp.vercel.com` OAuth, supportato Cursor da agosto 2025) in `~/.cursor/mcp.json`: tool `list_deployments`/`get_deployment_build_logs`/`get_deployment_runtime_logs` per debug futuri. Fix manuale residuo per Andrea: dashboard Vercel → Settings → Git → riconnettere repo `live-software11/live-slide-center` su `main` per ripristinare auto-deploy (alternativa long-term: workflow GitHub Actions con `VERCEL_TOKEN`). Documentazione completa in `docs/operazioni/Setup_Strumenti_e_MCP.md` §2c + `.cursor/rules/mcp-vercel.mdc`.
 >
-> **Sprint W — Cloud finale + Desktop allineato 100% (§ 0.29 — DONE 19/04/2026 notte):** chiuso 100% gap operativi cloud + allineata parity totale desktop. **Fase A cloud:** rigenerati tipi Supabase (rimossi `unknown as` + `rpcLoose()`), unificata UX cartelle nel solo File Explorer V2, automazione daily backup verifier (PowerShell + GH Actions cron), nuovo `DISASTER_RECOVERY.md` runbook 5 scenari. **Fase B+C desktop schema/RPC:** 7 migration SQLite 0004→0010 mirror dello schema cloud (event_folders, validation_warnings, remote_control_pairings, room_provision_tokens, room_state slide_index/total, enum extensions, device_metric_pings) + nuovo modulo `folder_routes.rs` (REST + RPC `move_presentations_to_folder` + `rename_presentation_version_file_name`) + estensione `init_for_session/speaker` con `p_folder_id` + estensione `rpc_room_player_set_current` con slide index/total + 4 nuovi `LanEventPayload` per fanout cartelle ai PC sala + 6 cargo test integration (18/18 verdi). **Fase D UI conditional:** nuovo helper `isCloudFeatureAvailable` + 8 type `CloudOnlyFeature` + `RequireCloudFeature` route guard + `FeatureNotAvailableView` (CTA verso `app.liveworksapp.com`) + 8 nuove i18n IT/EN `featureNotAvailable.*` → in desktop le voci `/team`, `/billing`, `/audit` non sono raggiungibili (sidebar nascosta + redirect informativo). **Fase E quality+deploy:** `pnpm typecheck`+`lint` verde, `cargo check`+`cargo test` verde 18/18, deploy Vercel produzione `dpl_8mMJ8xrSV1mbkuBbyzKSCQj1EAFU` READY, NSIS desktop `Live SLIDE CENTER Desktop_0.1.1_x64-setup.exe` 10.70MB (sha256 `8c64c96e...d6c7`), smoke test 6 OK + 1 skip + 1 warn (mDNS PC casa, non bloccante in cantiere) **SEMAFORO VERDE**, commit `feat(sprint-w): cloud finale + desktop allineato 100%` (40 file, +2953/-590) pushato su `main`. **Fix tecnici di build:** Tauri CLI 2.10 (rimosso `--manifest-path`), NSIS hooks (delimitatore backtick invece di single quote per PowerShell), Cargo feature `signed-updater` (plugin updater registrato condizionalmente per evitare crash boot in build unsigned). Riferimento sintetico: `docs/SPRINT_W_CLOSURE_REPORT.md`.
+> **Sprint W — Cloud finale + Desktop allineato 100% (§ 0.29 — DONE 19/04/2026 notte):** chiuso 100% gap operativi cloud + allineata parity totale desktop. **Fase A cloud:** rigenerati tipi Supabase (rimossi `unknown as` + `rpcLoose()`), unificata UX cartelle nel solo File Explorer V2, automazione daily backup verifier (PowerShell + GH Actions cron), nuovo `docs/operazioni/DISASTER_RECOVERY.md` runbook 5 scenari. **Fase B+C desktop schema/RPC:** 7 migration SQLite 0004→0010 mirror dello schema cloud (event_folders, validation_warnings, remote_control_pairings, room_provision_tokens, room_state slide_index/total, enum extensions, device_metric_pings) + nuovo modulo `folder_routes.rs` (REST + RPC `move_presentations_to_folder` + `rename_presentation_version_file_name`) + estensione `init_for_session/speaker` con `p_folder_id` + estensione `rpc_room_player_set_current` con slide index/total + 4 nuovi `LanEventPayload` per fanout cartelle ai PC sala + 6 cargo test integration (18/18 verdi). **Fase D UI conditional:** nuovo helper `isCloudFeatureAvailable` + 8 type `CloudOnlyFeature` + `RequireCloudFeature` route guard + `FeatureNotAvailableView` (CTA verso `app.liveworksapp.com`) + 8 nuove i18n IT/EN `featureNotAvailable.*` → in desktop le voci `/team`, `/billing`, `/audit` non sono raggiungibili (sidebar nascosta + redirect informativo). **Fase E quality+deploy:** `pnpm typecheck`+`lint` verde, `cargo check`+`cargo test` verde 18/18, deploy Vercel produzione `dpl_8mMJ8xrSV1mbkuBbyzKSCQj1EAFU` READY, NSIS desktop `Live SLIDE CENTER Desktop_0.1.1_x64-setup.exe` 10.70MB (sha256 `8c64c96e...d6c7`), smoke test 6 OK + 1 skip + 1 warn (mDNS PC casa, non bloccante in cantiere) **SEMAFORO VERDE**, commit `feat(sprint-w): cloud finale + desktop allineato 100%` (40 file, +2953/-590) pushato su `main`. **Fix tecnici di build:** Tauri CLI 2.10 (rimosso `--manifest-path`), NSIS hooks (delimitatore backtick invece di single quote per PowerShell), Cargo feature `signed-updater` (plugin updater registrato condizionalmente per evitare crash boot in build unsigned). Riferimento sintetico: `docs/SPRINT_W_CLOSURE_REPORT.md`.
 
 ---
 
@@ -1561,7 +1561,7 @@ Trovati **2 bug logici** nel widget `LivePerfTelemetryPanel` durante audit chiru
 - `apps/web/src/features/devices/components/Sparkline.tsx` (1 fix formula `inverted` + commento esplicativo)
 - `package.json` (root) — `pnpm.overrides` per `serialize-javascript`
 - `pnpm-lock.yaml` — aggiornato dall'install
-- `docs/STATO_E_TODO.md` — questa sezione
+- `docs/implementazioni-future/STATO_E_TODO.md` — questa sezione
 
 #### 0.18.6 Conclusione audit
 
@@ -2368,7 +2368,7 @@ Aggiunto al file `C:\Users\andre\.cursor\mcp.json` il server MCP **`vercel`** (e
 }
 ```
 
-Procedura attivazione: dopo riavvio Cursor → Settings → Tools & MCP → click "Needs login" su `vercel` → OAuth browser con `live.software11@gmail.com` → connesso. Tool disponibili dal MCP: `list_projects`, `list_deployments`, `get_deployment`, `get_deployment_build_logs`, `get_deployment_runtime_logs`, `get_project`, `search_documentation`, `list_teams`. Vedi `docs/Setup_Strumenti_e_MCP.md` §2c per dettagli.
+Procedura attivazione: dopo riavvio Cursor → Settings → Tools & MCP → click "Needs login" su `vercel` → OAuth browser con `live.software11@gmail.com` → connesso. Tool disponibili dal MCP: `list_projects`, `list_deployments`, `get_deployment`, `get_deployment_build_logs`, `get_deployment_runtime_logs`, `get_project`, `search_documentation`, `list_teams`. Vedi `docs/operazioni/Setup_Strumenti_e_MCP.md` §2c per dettagli.
 
 **Cosa rimane in capo ad Andrea (azione manuale dashboard).**
 
@@ -2395,8 +2395,8 @@ Procedura attivazione: dopo riavvio Cursor → Settings → Tools & MCP → clic
 
 - `C:\Users\andre\.cursor\mcp.json` → aggiunta entry `vercel` MCP.
 - `.gitignore` → +`.vercel/` (commit `59e004d`).
-- `docs/Setup_Strumenti_e_MCP.md` v2.0 → v2.1 con sezione §2c MCP Vercel + Vercel CLI in tabella prerequisiti.
-- `docs/STATO_E_TODO.md` v2.16 → v2.17 (questa sezione §0.26).
+- `docs/operazioni/Setup_Strumenti_e_MCP.md` v2.0 → v2.1 con sezione §2c MCP Vercel + Vercel CLI in tabella prerequisiti.
+- `docs/implementazioni-future/STATO_E_TODO.md` v2.16 → v2.17 (questa sezione §0.26).
 - `.cursor/rules/mcp-vercel.mdc` (NEW) → guida operativa MCP Vercel + workflow deploy.
 - `.cursor/rules/cross-project-ecosystem.mdc` (workspace ecosistema) → riga MCP Vercel in disposizione.
 - `CLAUDE.md` workspace → nota MCP Vercel + caveat fix manuale GitHub integration.
@@ -2481,7 +2481,7 @@ Build remoto Vercel: 47s (130 PWA precache entries, 4174 KiB). Deploy `READY` su
 
 - `vercel.json` → `framework: "vite"`, rimosso `cleanUrls`, rewrite con esclusioni esplicite per asset statici.
 - `apps/web/src/main.tsx` → SW hardening (`controllerchange` reload + `update()` su focus).
-- `docs/STATO_E_TODO.md` v2.17 → v2.18 (questa sezione §0.27).
+- `docs/implementazioni-future/STATO_E_TODO.md` v2.17 → v2.18 (questa sezione §0.27).
 - `.cursor/rules/mcp-vercel.mdc` → aggiornato preset framework + nuovo workflow "404 NOT_FOUND su route SPA" con diagnosi e fix.
 
 **Lesson learned per il futuro.**
@@ -2520,7 +2520,7 @@ Il fix `<ErrorBoundary>` di React (in `main.tsx`) NON copre gli errori del route
 - `apps/web/src/app/routes.tsx` → import + `errorElement` root + catch-all.
 - `packages/shared/src/i18n/locales/it.json` → 6 chiavi nuove `routeError.*`.
 - `packages/shared/src/i18n/locales/en.json` → 6 chiavi nuove `routeError.*`.
-- `docs/STATO_E_TODO.md` v2.18 → v2.19 (questa sezione §0.28).
+- `docs/implementazioni-future/STATO_E_TODO.md` v2.18 → v2.19 (questa sezione §0.28).
 
 **Verifica.** Quality gate: `pnpm --filter web typecheck` verde, `pnpm --filter web lint` verde, `pnpm run build` produce nuovo bundle `index-CqIVPCxu.js` con PWA precache 131 entries (4163 KiB). Deploy Vercel CLI: nuovo deploy production verificato via MCP `list_deployments`.
 
@@ -2545,7 +2545,7 @@ Il fix `<ErrorBoundary>` di React (in `main.tsx`) NON copre gli errori del route
 - **A1 Types regenerated.** Rigenerati `packages/shared/src/types/database.ts` da Supabase + rimossi i cast residui `unknown as` / `rpcLoose()` in `apps/web/src/features/presentations/repository.ts` e `apps/web/src/features/desktop-devices/repository.ts`. Forced rebuild `@slidecenter/shared` per propagare i tipi consumati da `@slidecenter/web`.
 - **A2 UX cartelle unificata.** Rimossa l'azione "Rinomina" inline da `EventFoldersPanel` (legacy panel "light"). Aggiunte i18n `folder.renameMovedToExplorer` IT+EN che indirizzano al File Explorer V2 come unico punto di gestione cartelle. Zero confusione UX, single source of truth.
 - **A3 Backup verifier daily.** Nuovo script PowerShell `scripts/verify-supabase-backup.ps1` (controlla che l'ultimo dump pg_dump esista entro 36h, valida l'header SQL, calcola size MB) + workflow GitHub Actions `.github/workflows/supabase-backup-verify.yml` (cron daily 02:00 UTC, apre/aggiorna issue automatica con label `backup-failed` se mancano backup).
-- **A4 Disaster recovery doc.** Riscritto `docs/DISASTER_RECOVERY.md` come runbook a 5 scenari operativi: (1) Vercel deployment broken, (2) Supabase RLS misfire, (3) Migration corruption, (4) Lemon Squeezy webhook outage, (5) Total tenant data loss. Ogni scenario ha sintomi, RCA, comandi rollback, validation post-fix, prevention.
+- **A4 Disaster recovery doc.** Riscritto `docs/operazioni/DISASTER_RECOVERY.md` come runbook a 5 scenari operativi: (1) Vercel deployment broken, (2) Supabase RLS misfire, (3) Migration corruption, (4) Lemon Squeezy webhook outage, (5) Total tenant data loss. Ogni scenario ha sintomi, RCA, comandi rollback, validation post-fix, prevention.
 
 **Fase B — Desktop schema mirror (2 task).**
 
@@ -2576,7 +2576,7 @@ Il fix `<ErrorBoundary>` di React (in `main.tsx`) NON copre gli errori del route
 
 **Fase F — Documentazione finale (1 task).**
 
-- **F Doc.** Creato `docs/SPRINT_W_CLOSURE_REPORT.md` (report sintetico fine-sprint con tabella esiti, artefatti cloud + desktop, smoke test report verbatim, modifiche di build, pipeline build firmata futura). Aggiornato `docs/STATO_E_TODO.md` (questa sezione 0.29 + bump versione 2.20 + tabella stato attuale §1 estesa con 6 nuove righe). Riferimento operativo per field test resta `docs/FIELD_TEST_CHECKLIST.md`.
+- **F Doc.** Creato `docs/SPRINT_W_CLOSURE_REPORT.md` (report sintetico fine-sprint con tabella esiti, artefatti cloud + desktop, smoke test report verbatim, modifiche di build, pipeline build firmata futura). Aggiornato `docs/implementazioni-future/STATO_E_TODO.md` (questa sezione 0.29 + bump versione 2.20 + tabella stato attuale §1 estesa con 6 nuove righe). Riferimento operativo per field test resta `docs/operazioni/FIELD_TEST_CHECKLIST.md`.
 
 **Risultato.** 100% cloud operativa + 100% desktop allineata, esperienza utente identica salvo le 8 feature cloud-only nascoste con guidance esplicita verso la versione cloud. **Pronti per field test.**
 

@@ -34,7 +34,7 @@ vendibile a terzi. Ogni voce ha:
 - **Blocca:** vendita a clienti che richiedono DPA firmato (PA, sanita, banche,
   multinazionali, qualsiasi cliente B2B serio)
 - **Riferimenti:**
-  - Schema base in `docs/Commerciale/README.md` § "Allegato A — DPA ex art. 28 GDPR"
+  - Schema base in `docs/commerciali/README.md` § "Allegato A — DPA ex art. 28 GDPR"
   - Sub-processor da elencare: Supabase (DB/Storage), Cloudflare (CDN), Resend
     (email), Lemon Squeezy (licensing & billing), GitHub (codice/issues)
 - **Output atteso:** PDF firmato + variante allegato al SLA + processo
@@ -137,7 +137,7 @@ vendibile a terzi. Ogni voce ha:
 - **Sezioni necessarie:**
   - Hero + value proposition ("la regia presentazioni in 1 clic")
   - 3 USP: intranet/offline, multi-tenant SaaS, code-signed installer
-  - Demo video (vedi `docs/Manuali/Script_Screencast.md`)
+  - Demo video (vedi `docs/operazioni/Script_Screencast.md`)
   - Pricing (link `Listino_Prezzi.md`)
   - Form richiesta demo + signup CTA
   - Pagine legali (T&C + Privacy + Cookie + DPA template)
@@ -156,7 +156,7 @@ vendibile a terzi. Ogni voce ha:
 - **Stato:** script pronto, registrazione todo
 - **Owner:** Andrea (registrazione) + montaggio post-prod
 - **Costo:** 200-500 € (mic, OBS, software editing)
-- **Riferimento:** `docs/Manuali/Script_Screencast.md`
+- **Riferimento:** `docs/operazioni/Script_Screencast.md`
 
 ### 3.4 SEO base
 
@@ -365,5 +365,5 @@ vendibile a terzi. Ogni voce ha:
 ---
 
 **Mantenere aggiornato.** Quando una voce passa a `done`, marcarla qui ed
-eventualmente spostarla in un file separato `docs/Commerciale/Done_Externalizzazione.md`
+eventualmente spostarla in un file separato `docs/commerciali/Done_Externalizzazione.md`
 per non appesantire la roadmap.

@@ -1,9 +1,9 @@
 # STATO E TO-DO LIVE SLIDE CENTER
 
-> **Documento operativo gemello di `ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
+> **Documento operativo gemello di `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.**
 > Qui sta SOLO cosa rimane da fare. Per "cosa fa il prodotto" e "come è fatto" → architettura.
 >
-> **Versione:** 3.2 (2026-04-19 sera tardi) — aggiunta riga Sprint X-2 (hotfix field-test: TUS abort 403 + slide-validator 401 ES256 + invalidazione cache PWA). Storia sprint 0.1→0.29 archiviata in `_archive/STATO_E_TODO_storia_sprint_0.1-0.29.md` e consolidata in `ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22.
+> **Versione:** 3.2 (2026-04-19 sera tardi) — aggiunta riga Sprint X-2 (hotfix field-test: TUS abort 403 + slide-validator 401 ES256 + invalidazione cache PWA). Storia sprint 0.1→0.29 archiviata in `docs/archivio/STATO_E_TODO_storia_sprint_0.1-0.29.md` e consolidata in `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22.
 > **Owner:** Andrea Rizzari
 > **Stato globale:** **SEMAFORO VERDE** per produzione. Cloud + Desktop in parity 100% (Sprint W chiuso 19/04/2026). Sentry attivo per error monitoring (configurato 19/04/2026). Workspace ottimizzato (cleanup 11.83 GB → 96% riduzione, 19/04/2026). Upload hardening Sprint X-1 + X-2 chiusi 19/04/2026 (desktop + cloud + smoke test secrets + TUS terminal-state hardening + edge-function ES256 fix).
 
@@ -27,7 +27,7 @@
 | --------------------------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------- |
 | Cloud SaaS (`apps/web`)                                                                             | DONE   | ARCHITETTURA § 13                                              |
 | Desktop offline (`apps/desktop` Tauri 2)                                                            | DONE   | ARCHITETTURA § 14                                              |
-| Local + Room Agent storici (`apps/agent`, `apps/room-agent`)                                        | LEGACY | ARCHITETTURA § 15 + `Manuali/Manuale_Installazione_*_Agent.md` |
+| Local + Room Agent storici (`apps/agent`, `apps/room-agent`)                                        | LEGACY | ARCHITETTURA § 15 + `docs/operazioni/Manuale_Installazione_*_Agent.md` |
 | Multi-tenancy + RLS + RBAC + GDPR                                                                   | DONE   | ARCHITETTURA § 6                                               |
 | Pairing PC sala (cloud + LAN)                                                                       | DONE   | ARCHITETTURA § 9                                               |
 | Sistema licenze Live WORKS APP                                                                      | DONE   | ARCHITETTURA § 12                                              |
@@ -40,12 +40,12 @@
 | Smoke test desktop + healthcheck                                                                    | DONE   | ARCHITETTURA § 14.4                                            |
 | Enforcement regola sovrana #2 (file da locale)                                                      | DONE   | ARCHITETTURA § 11                                              |
 | Cloud finale + types regen + cast removal (Sprint W)                                                | DONE   | ARCHITETTURA § 22                                              |
-| Backup verifier daily + DR runbook                                                                  | DONE   | `DISASTER_RECOVERY.md`                                         |
-| Desktop schema mirror parity (mig 0004→0010)                                                        | DONE   | ARCHITETTURA § 22 + `Manuali/Manuale_Centro_Slide_Desktop.md`  |
+| Backup verifier daily + DR runbook                                                                  | DONE   | `docs/operazioni/DISASTER_RECOVERY.md`                                         |
+| Desktop schema mirror parity (mig 0004→0010)                                                        | DONE   | ARCHITETTURA § 22 + `docs/operazioni/Manuale_Centro_Slide_Desktop.md`  |
 | UI conditional cloud-only feature gate                                                              | DONE   | ARCHITETTURA § 22                                              |
-| NSIS desktop installer 0.1.1 + smoke verde                                                          | DONE   | `Manuali/Manuale_Centro_Slide_Desktop.md` Parte B              |
-| Sentry runtime error monitoring                                                                     | DONE   | `DISASTER_RECOVERY.md` § "Setup Sentry"                        |
-| Workspace cleanup + ignore files universal                                                          | DONE   | `DISASTER_RECOVERY.md` § "Workspace cleanup"                   |
+| NSIS desktop installer 0.1.1 + smoke verde                                                          | DONE   | `docs/operazioni/Manuale_Centro_Slide_Desktop.md` Parte B              |
+| Sentry runtime error monitoring                                                                     | DONE   | `docs/operazioni/DISASTER_RECOVERY.md` § "Setup Sentry"                        |
+| Workspace cleanup + ignore files universal                                                          | DONE   | `docs/operazioni/DISASTER_RECOVERY.md` § "Workspace cleanup"                   |
 | Sprint X-1 upload hardening (desktop simple-upload + cloud TUS race-cancel + smoke secrets via env) | DONE   | ARCHITETTURA § 22 "Sprint X-1"                                 |
 | Sprint X-2 field-test hotfix (TUS abort post-done 403 + slide-validator 401 ES256 + PWA cache bust) | DONE   | ARCHITETTURA § 22 "Sprint X-2"                                 |
 
@@ -55,7 +55,7 @@ Non c'è nulla di bloccante per usare il prodotto in produzione DHS. Tutto ciò 
 
 - **Azione esterna NON automatizzabile** (acquisti, contratti, video, listing) → § 2.
 - **Opzionale ma ready-to-code** (Sprint Q hybrid cloud↔desktop) → § 4.
-- **Roadmap commerciale** (sales/legale/marketing) → § 5 + `Commerciale/Roadmap_Vendita_Esterna.md`.
+- **Roadmap commerciale** (sales/legale/marketing) → § 5 + `docs/commerciali/Roadmap_Vendita_Esterna.md`.
 
 ### Roadmap ad alto livello
 
@@ -69,7 +69,7 @@ Tutti i macro-sprint R / S / T / U / W sono **chiusi**. Per la prossima fase non
 | (TBD)  | Multi-lingua oltre IT/EN      | Quando primo cliente non IT/EN                                       |
 | (TBD)  | White-label                   | Quando primo cliente Enterprise lo chiede                            |
 
-Storia dettagliata sprint chiusi → `ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 + archive `_archive/STATO_E_TODO_storia_sprint_0.1-0.29.md`.
+Storia dettagliata sprint chiusi → `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 + archive `docs/archivio/STATO_E_TODO_storia_sprint_0.1-0.29.md`.
 
 ---
 
@@ -87,12 +87,12 @@ Storia dettagliata sprint chiusi → `ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 +
 | 4   | Genera `EMAIL_SEND_INTERNAL_SECRET` (>=32 char) da PowerShell                                                                                                                             | 1 min  | €0                         |
 | 5   | Imposta 4 secrets su Supabase Edge Functions: `RESEND_API_KEY`, `RESEND_FROM_EMAIL=info@liveworksapp.com`, `EMAIL_SEND_INTERNAL_SECRET`, `PUBLIC_APP_URL=https://app.liveslidecenter.com` | 5 min  | €0                         |
 | 6   | Deploy Edge Functions: `pnpm fn:deploy email-send email-cron-licenses gdpr-export`                                                                                                        | 5 min  | €0                         |
-| 7   | Schedule cron giornaliero su GitHub Actions — vedi `Manuali/Manuale_Email_Resend.md` § "Schedulazione"                                                                                    | 10 min | €0                         |
+| 7   | Schedule cron giornaliero su GitHub Actions — vedi `docs/operazioni/Manuale_Email_Resend.md` § "Schedulazione"                                                                                    | 10 min | €0                         |
 | 8   | Test: invita un membro team → ricevi welcome email entro 5s                                                                                                                               | 1 min  | €0                         |
 
 Totale: ~1 ora. **Costo:** €0 (Resend free tier basta per primi 6 mesi).
 
-> Riferimento dettagliato: `Manuali/Manuale_Email_Resend.md`.
+> Riferimento dettagliato: `docs/operazioni/Manuale_Email_Resend.md`.
 
 ### 2.2 Code-signing certificato OV Sectigo — elimina SmartScreen warning
 
@@ -101,7 +101,7 @@ Totale: ~1 ora. **Costo:** €0 (Resend free tier basta per primi 6 mesi).
 | #   | Azione                                                                                    | Tempo                                   | Costo                |
 | --- | ----------------------------------------------------------------------------------------- | --------------------------------------- | -------------------- |
 | 1   | Acquista cert OV Sectigo via reseller (consigliato: ssl.com o ksoftware.net)              | 30 min ordine + 1-2 settimane emissione | ~€190/anno           |
-| 2   | Genera CSR via OpenSSL (vedi `Manuali/Manuale_Code_Signing.md` § 2)                       | 10 min                                  | €0                   |
+| 2   | Genera CSR via OpenSSL (vedi `docs/operazioni/Manuale_Code_Signing.md` § 2)                       | 10 min                                  | €0                   |
 | 3   | Validazione OV: documenti azienda DHS                                                     | 3-5 giorni                              | €0 (vendor verifica) |
 | 4   | Ricezione `.pfx` + password via email                                                     | -                                       | -                    |
 | 5   | Installa `signtool` (Windows SDK) + add to PATH                                           | 15 min                                  | €0                   |
@@ -110,7 +110,7 @@ Totale: ~1 ora. **Costo:** €0 (Resend free tier basta per primi 6 mesi).
 
 Totale: ~1 giornata setup + 1-2 settimane emissione cert. **Costo:** €190/anno.
 
-> Riferimento: `Manuali/Manuale_Code_Signing.md`.
+> Riferimento: `docs/operazioni/Manuale_Code_Signing.md`.
 
 ### 2.3 Screencast onboarding (3 video, ~5 min ciascuno)
 
@@ -124,7 +124,7 @@ Totale: ~1 giornata setup + 1-2 settimane emissione cert. **Costo:** €190/anno
 
 Totale: 1 giornata di registrazione + 1 giornata di editing leggero. **Costo:** €0 (OBS gratuito).
 
-> Riferimento: `Manuali/Script_Screencast.md` (scaletta + setup tecnico OBS + audio target -16 LUFS + checklist post).
+> Riferimento: `docs/operazioni/Script_Screencast.md` (scaletta + setup tecnico OBS + audio target -16 LUFS + checklist post).
 
 ### 2.4 Revisione legale SLA + DPA art. 28
 
@@ -133,10 +133,10 @@ Totale: 1 giornata di registrazione + 1 giornata di editing leggero. **Costo:** 
 | #   | Azione                                                                                       | Tempo         | Costo (preventivo)    |
 | --- | -------------------------------------------------------------------------------------------- | ------------- | --------------------- |
 | 1   | Trova avvocato GDPR/contratti SaaS B2B (consigliato: tramite ordine Roma o Camera Civile)    | 1 settimana   | -                     |
-| 2   | Brief: invia `Commerciale/Contratto_SLA.md` v1.0 + `Commerciale/README.md` con schema DPA    | 30 min        | -                     |
+| 2   | Brief: invia `docs/commerciali/Contratto_SLA.md` v1.0 + `docs/commerciali/README.md` con schema DPA    | 30 min        | -                     |
 | 3   | Revisione SLA + redazione DPA Allegato A (10 punti raccomandati nel README)                  | 1-2 settimane | €300-800 forfait      |
 | 4   | Iterazione modifiche con avvocato                                                            | -             | (incluso nel forfait) |
-| 5   | Pubblica versione finale in `Commerciale/Contratto_SLA.md` + `Commerciale/DPA_Allegato_A.md` | 30 min        | €0                    |
+| 5   | Pubblica versione finale in `docs/commerciali/Contratto_SLA.md` + `docs/commerciali/DPA_Allegato_A.md` | 30 min        | €0                    |
 
 Totale: 2-3 settimane elapsed. **Costo:** €300-800.
 
@@ -155,7 +155,7 @@ Totale: 1 giornata. **Costo:** €0 (lavoro su sito esistente Aruba).
 
 | #   | Azione                                                                                                 | Tempo  | Costo |
 | --- | ------------------------------------------------------------------------------------------------------ | ------ | ----- |
-| 1   | Leggi `Commerciale/Listino_Prezzi.md` v1.0 (4 piani + bundle + sconti)                                 | 30 min | €0    |
+| 1   | Leggi `docs/commerciali/Listino_Prezzi.md` v1.0 (4 piani + bundle + sconti)                                 | 30 min | €0    |
 | 2   | Decidi prezzi DEFINITIVI (eventuali modifiche al file) e firma sotto "Approvato Andrea Rizzari + data" | 15 min | €0    |
 | 3   | Configura prodotti su Lemon Squeezy con prezzi approvati (oppure delega a Live WORKS APP)              | 1 ora  | €0    |
 
@@ -165,7 +165,7 @@ Totale: 2 ore. **Costo:** €0.
 
 ## 3. Field test desktop (quando vorrai farlo)
 
-> **Stato:** opzionale per uso interno DHS, **bloccante** per vendita esterna della versione desktop. Per la procedura QA dettagliata della versione desktop attuale (Tauri 2 unificato) vedi `Manuali/Manuale_Centro_Slide_Desktop.md` Parte B (smoke test 12 sezioni). Questa sezione resta come **field test su evento reale**.
+> **Stato:** opzionale per uso interno DHS, **bloccante** per vendita esterna della versione desktop. Per la procedura QA dettagliata della versione desktop attuale (Tauri 2 unificato) vedi `docs/operazioni/Manuale_Centro_Slide_Desktop.md` Parte B (smoke test 12 sezioni). Questa sezione resta come **field test su evento reale**.
 
 ### 3.1 Quando ha senso
 
@@ -208,7 +208,7 @@ Compress-Archive -Force -Path `
 
 Copia su chiavetta USB → installa su 4 PC field test.
 
-**T-1 giorno (smoke test):** su OGNI PC esegui il flusso `Manuali/Manuale_Centro_Slide_Desktop.md` Parte B.
+**T-1 giorno (smoke test):** su OGNI PC esegui il flusso `docs/operazioni/Manuale_Centro_Slide_Desktop.md` Parte B.
 
 **Giorno T (test ~5 ore):**
 
@@ -430,8 +430,8 @@ Consigliato: **Opzione B** (no service_role su disco).
 - E2E: simula crash di rete durante push, riprende dopo.
 - Idempotenza: ripeti push stesso payload, verifica `inserted=0, skipped=N`.
 - Conflitti: desktop e cloud entrambi modificano `room_state` → desktop vince (push-only).
-- Aggiorna `ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 con "Sprint Q DONE".
-- Aggiorna `STATO_E_TODO.md` § 4 con "DONE".
+- Aggiorna `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 con "Sprint Q DONE".
+- Aggiorna `docs/implementazioni-future/STATO_E_TODO.md` § 4 con "DONE".
 
 ### 4.4 Costi stimati Sprint Q
 
@@ -461,15 +461,15 @@ MODIFY:
   apps/web/src/features/settings/SettingsView.tsx       (aggiungi sezione)
   packages/shared/src/i18n/locales/{it,en}.json         (~15 chiavi nuove `hybridSync.*`)
   packages/shared/src/types/database.ts                 (RPC + tabella nuova)
-  docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md                 (§ 22 mark DONE)
-  docs/STATO_E_TODO.md                                  (§ 4 mark DONE)
+  docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md                 (§ 22 mark DONE)
+  docs/implementazioni-future/STATO_E_TODO.md                                  (§ 4 mark DONE)
 ```
 
 ---
 
 ## 5. Backlog post-vendita (sales + legale + marketing)
 
-> Per le azioni esterne dettagliate vedi `Commerciale/Roadmap_Vendita_Esterna.md` (10 sezioni, 47 voci, budget complessivo €3.700-€7.000 one-time + €1.090-€3.930/anno).
+> Per le azioni esterne dettagliate vedi `docs/commerciali/Roadmap_Vendita_Esterna.md` (10 sezioni, 47 voci, budget complessivo €3.700-€7.000 one-time + €1.090-€3.930/anno).
 
 ### 5.1 Macro-aree pending
 
@@ -484,7 +484,7 @@ MODIFY:
 
 ### 5.2 Decisioni urgenti pre-primo-cliente
 
-Vedi `Commerciale/Roadmap_Vendita_Esterna.md` § "Decisioni urgenti":
+Vedi `docs/commerciali/Roadmap_Vendita_Esterna.md` § "Decisioni urgenti":
 
 1. Pricing definitivo (mensile vs annuale, sconti).
 2. Modalità di vendita (self-service vs assistita).
@@ -516,7 +516,7 @@ Vedi `Commerciale/Roadmap_Vendita_Esterna.md` § "Decisioni urgenti":
 | pgBouncer proxy per connection pooling avanzato              | 1 giornata | Quando >50 concurrent users                                                      |
 | Sentry sourcemaps upload automatico (script già pronto)      | 30 min     | Stack trace leggibili (vedi DR § Sentry)                                         |
 | OpenTelemetry tracing distribuito                            | 2-3 giorni | Quando debug cross-system diventa lungo                                          |
-| Edge Functions warm-keep cron-job.org                        | 30 min     | Solo se Sentry mostra cold-start > 500ms (vedi `DISASTER_RECOVERY.md` appendice) |
+| Edge Functions warm-keep cron-job.org                        | 30 min     | Solo se Sentry mostra cold-start > 500ms (vedi `docs/operazioni/DISASTER_RECOVERY.md` appendice) |
 | Auto-rollback Vercel su smoke fail (post-deploy GH Action)   | 4 ore      | Sicurezza extra rilascio prod                                                    |
 
 ### 6.3 Cose che PROBABILMENTE non faremo mai
@@ -620,7 +620,7 @@ cargo test --all-features
 ### 7.7 Workspace cleanup periodico (post-Sprint W)
 
 ```powershell
-# Quando deploy Vercel > 5 min o sidebar Cursor lenta — vedi DISASTER_RECOVERY.md § "Workspace cleanup"
+# Quando deploy Vercel > 5 min o sidebar Cursor lenta — vedi docs/operazioni/DISASTER_RECOVERY.md § "Workspace cleanup"
 $paths = @(
   "apps/desktop/src-tauri/target",
   "apps/agent/src-tauri/target",
@@ -653,7 +653,7 @@ vercel promote https://live-slide-center-<hash>.vercel.app --scope livesoftware1
 pnpm smoke:cloud
 ```
 
-Per gli altri 5 scenari (Supabase down, data-loss, Vercel down, perdita parziale storage, setup Sentry da zero) → `DISASTER_RECOVERY.md`.
+Per gli altri 5 scenari (Supabase down, data-loss, Vercel down, perdita parziale storage, setup Sentry da zero) → `docs/operazioni/DISASTER_RECOVERY.md`.
 
 ### 7.9 Git workflow
 
@@ -676,4 +676,4 @@ git push origin main                                            # solo dopo gh a
 
 ---
 
-**FINE.** Per architettura tecnica: `ARCHITETTURA_LIVE_SLIDE_CENTER.md`. Per setup ambiente sviluppo: `Setup_Strumenti_e_MCP.md`. Per AI agents (Claude/Cursor): `Istruzioni_Claude_Desktop.md`. Per operazioni di emergenza: `DISASTER_RECOVERY.md`. Per setup desktop: `Manuali/Manuale_Centro_Slide_Desktop.md`.
+**FINE.** Per architettura tecnica: `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md`. Per setup ambiente sviluppo: `docs/operazioni/Setup_Strumenti_e_MCP.md`. Per AI agents (Claude/Cursor): `docs/agenti/Istruzioni_Claude_Desktop.md`. Per operazioni di emergenza: `docs/operazioni/DISASTER_RECOVERY.md`. Per setup desktop: `docs/operazioni/Manuale_Centro_Slide_Desktop.md`.

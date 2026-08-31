@@ -98,7 +98,7 @@ packages/
 
 ## Edge Functions — inventario completo (26 funzioni)
 
-Lista canonica in `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 17. Sintesi per dominio:
+Lista canonica in `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 17. Sintesi per dominio:
 
 | Dominio                      | Funzioni                                                                                                                                                                           |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -176,7 +176,7 @@ Admin SPA → gdpr-export (JWT admin) → RPC public.gdpr_export_tenant_data(ten
 
 ## Piano sprint piu' recente (riferimento Fase 15)
 
-Dettaglio in `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 (storia sprint sintetica) + `docs/STATO_E_TODO.md` (azioni pending). Per richieste rapide su uno sprint, leggere `field-test-fase15.mdc`.
+Dettaglio in `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 (storia sprint sintetica) + `docs/implementazioni-future/STATO_E_TODO.md` (azioni pending). Per richieste rapide su uno sprint, leggere `field-test-fase15.mdc`.
 
 | Macro-fase     | Sprint | Stato     | Tema                                                                                                                                                    |
 | -------------- | ------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |

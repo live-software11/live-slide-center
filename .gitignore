@@ -83,8 +83,9 @@ supabase/.temp
 # --- Sprint 3: artefatti di distribuzione (NSIS installer + portable ZIP) ---
 release/
 
-# --- Sprint 5: manuali operatore PDF generati da pandoc (sorgenti MD versionati) ---
-docs/Manuali/pdf/
+# --- Manuali operatore PDF generati da pandoc (sorgenti MD versionati) ---
+docs/strumenti/pdf/
+docs/operazioni/pdf/
 
 # --- Cartelle / file temporanei build/scripting locale ---
 .tmp/

@@ -57,7 +57,7 @@ Vercel MCP espone anche tool di scrittura (es. `cancel_deployment`, gestione env
 
 ## Workflow operativo: "404 NOT_FOUND su route SPA" (es. `/centri-slide`, `/admin/*`, `/sala/:token`)
 
-Caso documentato in produzione (18/04/2026 sera tardi, vedi `docs/STATO_E_TODO.md` §0.27): tutte le route React Router accessibili con URL diretto (link condiviso, F5, deep link) ritornavano `x-vercel-error: NOT_FOUND` con ID tipo `fra1::z9rs5-...`. Solo la home `/` funzionava.
+Caso documentato in produzione (18/04/2026 sera tardi, vedi `docs/archivio/STATO_E_TODO_storia_sprint_0.1-0.29.md` §0.27): tutte le route React Router accessibili con URL diretto (link condiviso, F5, deep link) ritornavano `x-vercel-error: NOT_FOUND` con ID tipo `fra1::z9rs5-...`. Solo la home `/` funzionava.
 
 ### Step 1 — diagnosi via MCP
 
@@ -128,7 +128,7 @@ Tutto OK.
 
 ## Workflow operativo: "il deploy cloud non e' aggiornato"
 
-Caso documentato in produzione (18/04/2026 sera, vedi `docs/STATO_E_TODO.md` §0.26): bundle live serviva ancora UI pre-refactor nonostante 6+ commit pushati a `main`.
+Caso documentato in produzione (18/04/2026 sera, vedi `docs/archivio/STATO_E_TODO_storia_sprint_0.1-0.29.md` §0.26): bundle live serviva ancora UI pre-refactor nonostante 6+ commit pushati a `main`.
 
 ### Step 1 — diagnosi via MCP
 
@@ -189,7 +189,7 @@ Il fix CLI sblocca **questo** deploy ma **non** ripristina l'auto-deploy. Per la
 
 ## Riferimenti
 
-- Setup completo: `docs/Setup_Strumenti_e_MCP.md` §2c.
-- Architettura deploy: `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` §20.3 / §20.3.1 / §20.3.2.
-- Storia incidente 18/04/2026: `docs/STATO_E_TODO.md` §0.26.
+- Setup completo: `docs/operazioni/Setup_Strumenti_e_MCP.md` §2c.
+- Architettura deploy: `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` §20.3 / §20.3.1 / §20.3.2.
+- Storia incidente 18/04/2026: `docs/archivio/STATO_E_TODO_storia_sprint_0.1-0.29.md` §0.26.
 - Tool reference Vercel MCP: [vercel.com/docs/agent-resources/vercel-mcp](https://vercel.com/docs/agent-resources/vercel-mcp).

@@ -199,7 +199,7 @@ Deno.serve(async (req) => {
 
 ## Edge Functions attive (26 — post Sprint W)
 
-Lista completa canonica in `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 17.
+Lista completa canonica in `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 17.
 
 **Pairing (4):**
 

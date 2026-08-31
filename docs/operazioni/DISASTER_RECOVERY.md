@@ -785,8 +785,8 @@ cron-job.org → folder `live-slide-center` → bulk action **Pause** (o **Delet
 - `apps/web/scripts/smoke-test-cloud.mjs` — smoke test cloud production
   (`pnpm smoke:cloud`)
 - `apps/desktop/scripts/smoke-test.mjs` — smoke test desktop offline pre-evento
-- `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` — architettura tecnica + § 22 storia sprint
-- `docs/STATO_E_TODO.md` — stato sprint corrente + TODO operativi
-- `docs/Manuali/Manuale_Centro_Slide_Desktop.md` — setup + smoke test desktop
+- `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` — architettura tecnica + § 22 storia sprint
+- `docs/implementazioni-future/STATO_E_TODO.md` — stato sprint corrente + TODO operativi
+- `docs/operazioni/Manuale_Centro_Slide_Desktop.md` — setup + smoke test desktop
 - `.cursor/rules/01-data-isolation.mdc` — policy account & tenant isolation
 - `.gitignore` / `.vercelignore` / `.cursorindexingignore` — workspace cleanup config

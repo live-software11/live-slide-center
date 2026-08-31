@@ -159,6 +159,6 @@ Tutti i prerequisiti del field test (Sprint FT) sono soddisfatti:
 - Smoke test SEMAFORO VERDE (8 check, 0 critical fail)
 - Schema desktop SQLite allineato con Postgres cloud (10 migrazioni totali, 7 nuove in Sprint W)
 - File Explorer V2 unico punto rinomina/spostamento cartelle (cloud + desktop)
-- Disaster recovery runbook e backup verifier daily attivi (vedi `docs/DISASTER_RECOVERY.md`)
+- Disaster recovery runbook e backup verifier daily attivi (vedi `docs/operazioni/DISASTER_RECOVERY.md`)
 
-**Riferimento operativo:** `docs/FIELD_TEST_CHECKLIST.md` per la checklist passo-passo da eseguire sul sito evento.
+**Riferimento operativo:** `docs/operazioni/FIELD_TEST_CHECKLIST.md` per la checklist passo-passo da eseguire sul sito evento.

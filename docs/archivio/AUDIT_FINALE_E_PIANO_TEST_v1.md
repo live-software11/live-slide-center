@@ -107,7 +107,7 @@ I primi sprint usano timestamp `20250411` → `20250417` (anno 2025), poi tutto 
 
 **Sintomo:** confusione cronologica nei log Postgres / pgAdmin, ma Postgres applica per ordine alfabetico quindi l'esecuzione e' corretta. Innocuo.
 
-**Fix opzionale:** non rinominare (rompe checksum gia' applicati in produzione), ma documenta in `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` o in un nuovo `docs/MIGRATIONS_TIMELINE.md` che i timestamp 2025 sono "convenzionali" (sviluppo agile veloce, non riflettono date reali). Ti basta un paragrafo di 5 righe.
+**Fix opzionale:** non rinominare (rompe checksum gia' applicati in produzione), ma documenta in `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` o in un nuovo `docs/MIGRATIONS_TIMELINE.md` che i timestamp 2025 sono "convenzionali" (sviluppo agile veloce, non riflettono date reali). Ti basta un paragrafo di 5 righe.
 
 ---
 
@@ -713,7 +713,7 @@ Per dichiarare "production ready":
 - [ ] T1-T18 con report scritto (cosa funziona, cosa no, fix necessari)
 - [ ] CSP report-only attivato 24h: zero violazioni inattese
 - [ ] Backup giornaliero Supabase verificato (download + restore test su tenant test)
-- [ ] Disaster recovery doc scritto (cosa fare se Supabase down 1h, 1gg, perm — file `docs/DISASTER_RECOVERY.md`)
+- [ ] Disaster recovery doc scritto (cosa fare se Supabase down 1h, 1gg, perm — file `docs/operazioni/DISASTER_RECOVERY.md`)
 
 ### 5.2 Monitoraggio runtime in produzione (gia' configurato in larga parte)
 
@@ -751,7 +751,7 @@ Misura con Sentry custom transactions su questi 4 funnel.
 
 **Sprint Q (opzionale, 8-12 giornate) — Hybrid sync cloud↔desktop push-only**
 
-- Vedi `docs/STATO_E_TODO.md` §4 framework GO/NO-GO + §8 decisione
+- Vedi `docs/implementazioni-future/STATO_E_TODO.md` §4 framework GO/NO-GO + §8 decisione
 - Decisione consigliata: **GO solo se almeno 1 cliente paying lo richiede esplicitamente**
 - Per uso interno + LAN sufficienti, non spendere tempo
 

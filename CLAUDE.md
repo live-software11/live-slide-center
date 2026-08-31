@@ -3,12 +3,12 @@
 > Mappa rapida del progetto per AI assistenti / nuovi developer.
 >
 > **Entry-point standard 2026 (Cursor / Codex / Continue):** `AGENTS.md` (root, gemello di questo file).
-> **Architettura completa:** `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` (UNICA fonte di verita).
+> **Architettura completa:** `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` (UNICA fonte di verita).
 > **Indice docs canonico:** `docs/README.md`.
-> **Cose da fare:** `docs/STATO_E_TODO.md`.
-> **Setup ambiente:** `docs/Setup_Strumenti_e_MCP.md`.
-> **Disaster recovery + Sentry + warm-keep + workspace cleanup:** `docs/DISASTER_RECOVERY.md`.
-> **Regole AI:** `.cursor/rules/*.mdc` (15 file, suite a 3 livelli).
+> **Cose da fare:** `docs/implementazioni-future/STATO_E_TODO.md`.
+> **Setup ambiente:** `docs/operazioni/Setup_Strumenti_e_MCP.md`.
+> **Disaster recovery + Sentry + warm-keep + workspace cleanup:** `docs/operazioni/DISASTER_RECOVERY.md`.
+> **Regole AI:** `.cursor/rules/*.mdc` (16 file, suite a 3 livelli; `docs-structure.mdc` = layout docs).
 >
 > **Versione CLAUDE.md:** 3.2 — 6 maggio 2026 (post Sprint XY licensing v3: callback bidirezionale WORKS↔SC + max_active_events + max_events_per_month + storage GB + licensing-shadow + anti-loop + rinomina max_devices_per_event).
 
@@ -53,7 +53,7 @@ live-slide-center/
 │   ├── functions/        # 29 Edge Functions Deno
 │   ├── tests/            # rls_audit.sql + pgTAP
 │   └── config.toml
-├── docs/                 # 14 doc canonici + _archive/ (vedere docs/README.md)
+├── docs/                 # layout canonico Live Software (architettura/ operazioni/ implementazioni-future/ agenti/ commerciali/ archivio/ strumenti/)
 ├── icons/                # Sorgente brand (Logo Live Slide Center.jpg)
 ├── package.json          # workspace pnpm + script Turbo
 ├── turbo.json
@@ -62,7 +62,7 @@ live-slide-center/
 ├── .vercelignore         # esclude apps/desktop, apps/agent, apps/room-agent dal deploy cloud
 ├── .cursorindexingignore # esclude target/, dist/, node_modules/ dall'indexing semantico
 ├── AGENTS.md             # entry-point standard 2026 (Cursor / Codex / Continue)
-└── .cursor/rules/        # 15 file rules AI (suite a 3 livelli)
+└── .cursor/rules/        # 16 file rules AI (suite a 3 livelli; docs-structure.mdc = layout docs)
 ```
 
 ## Comandi quotidiani
@@ -122,6 +122,7 @@ Per messaggi commit multilinea (PowerShell NON supporta heredoc bash): scrivere 
 | `04-git-workflow.mdc`     | Account live-software11, commit format, deploy Vercel/Supabase/Tauri/smoke   |
 | `mcp-supabase.mdc`        | Uso server MCP Supabase (project_id, capabilities)                           |
 | `mcp-vercel.mdc`          | Uso server MCP Vercel (deploy + build/runtime logs + workflow CLI fallback)  |
+| `docs-structure.mdc`      | Layout canonico `docs/` (cartelle Live Software 23/08/2026)                  |
 
 ### Globs mirati (caricati solo quando matchi i file)
 
@@ -157,24 +158,24 @@ Per messaggi commit multilinea (PowerShell NON supporta heredoc bash): scrivere 
 | Sprint W (cloud finale + desktop allineato) | DONE 100% | 7 migration SQLite mirror + folder_routes + UI cloud-only conditional + deploy verde |
 | Sentry runtime monitoring | DONE     | Org `live-work-app`, region EU, init lazy `apps/web/src/lib/init-sentry.ts`                          |
 | Workspace cleanup | DONE      | -11.83 GB (96% reduction) + ignore files harden                                                     |
-| Docs overhaul     | DONE      | 29 doc → 14 canonici + `_archive/`, indice `docs/README.md`                                         |
+| Docs overhaul     | DONE      | 29 doc → 14 canonici + `docs/archivio/`, indice `docs/README.md`                                         |
 | Sprint X-1 (upload hardening) | DONE 100% | (a) desktop usava TUS contro server Rust che non lo implementa → nuovo `simple-upload.ts` POST diretto; (b) cloud TUS partiva comunque dopo cancel utente durante `getSession()` → fix race con `uploadCancelledRef` / `job.cancelled` check; (c) smoke test cloud aveva email/password/anon-key hardcoded → ora obbligatori via env vars `VITE_SUPABASE_*` + `SC_SMOKE_*`. Migration `20260419093026_sprint_x1_fix_admin_upload_storage_rls` (SECURITY DEFINER `storage_can_upload_object_anon`/`_tenant`) GIA' applicata in cloud |
 | Sprint X-2 (field-test hotfix) | DONE 100% | (a) TUS DELETE 403 su upload `done`/`error`/`cancelled` → helper `updateTerminal/terminalState` nullano `uploadHandle` PRIMA dello status terminale; (b) Edge Fn 401 ES256 (legacy verifier non supporta JWT signing keys asimmetriche di Supabase 2025+) → `verify_jwt = false` su `slide-validator` con auth in-code via `admin.auth.getUser(jwt)` (service-role); (c) PWA cache stale → hard-reload Ctrl+Shift+R, config gia' presente (`autoUpdate` + `skipWaiting` + `clientsClaim`) |
 | Sprint XY (licensing v3 — callback + shadow + quote) | DONE 100% | Famiglia di 7 commit + 6 migration (20/04 → 06/05): (1) `licensing-callback` Edge Function + DB trigger verso Live WORKS APP per propagare cambi quote/feature; (2) retry esponenziale verso WORKS (Audit 4.9); (3) `max_active_events` end-to-end (DB + UI quota panel + Edge Functions v3); (4) anti-loop SC quando WORKS richiama back (skip config); (5) `licensing-shadow` Edge Function per pull WORKS→SC via HMAC (GAP-8) — sync bidirezionale completa; (6) rinomina `max_devices_per_room` → `max_devices_per_event` su tabelle/RPC/UI; (7) `max_events_per_month` (rolling calendar month, calcolato in `tenant_quota_row` RPC) + storage GB nell'admin form. Tutti i path coperti, anti-loop testato, callback HMAC verde |
 
-**Dettagli storici:** `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 (sprint history sintetica, include X-2 + XY licensing v3).
-**Dettagli storici estesi (sprint 0.1→0.29):** `docs/_archive/STATO_E_TODO_storia_sprint_0.1-0.29.md` (read-only).
-**Cose da fare ora:** `docs/STATO_E_TODO.md`.
+**Dettagli storici:** `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22 (sprint history sintetica, include X-2 + XY licensing v3).
+**Dettagli storici estesi (sprint 0.1→0.29):** `docs/archivio/STATO_E_TODO_storia_sprint_0.1-0.29.md` (read-only).
+**Cose da fare ora:** `docs/implementazioni-future/STATO_E_TODO.md`.
 
 ### Sprint Q (OPZIONALE): Sync hybrid cloud<->offline
 
-**Stato:** **NON in progress.** Decisione GO/NO-GO vincolata al framework in `docs/STATO_E_TODO.md` § 4.2 (post-field-test desktop reale).
+**Stato:** **NON in progress.** Decisione GO/NO-GO vincolata al framework in `docs/implementazioni-future/STATO_E_TODO.md` § 4.2 (post-field-test desktop reale).
 
-**Goal (se GO):** quando il desktop torna online, sync con cloud Supabase per backup + condivisione cross-sede. Push-only (desktop master, cloud backup). Worker 60s, `synced_at` su SQLite, TUS upload bucket. **Piano operativo READY-TO-CODE** in `docs/STATO_E_TODO.md` § 4.3 (file da creare, RPC, schema migration, UI, costi stimati ~5€/mese-evento).
+**Goal (se GO):** quando il desktop torna online, sync con cloud Supabase per backup + condivisione cross-sede. Push-only (desktop master, cloud backup). Worker 60s, `synced_at` su SQLite, TUS upload bucket. **Piano operativo READY-TO-CODE** in `docs/implementazioni-future/STATO_E_TODO.md` § 4.3 (file da creare, RPC, schema migration, UI, costi stimati ~5€/mese-evento).
 
 **Quando NON serve:** uso interno single-site senza necessita di backup cloud o condivisione fra sedi.
 
-**Hardening, code-signing, multi-OS:** **NON sono Sprint Q.** Code-signing OV Sectigo e' un'attivita esterna pianificabile (vedi `docs/STATO_E_TODO.md` § 2.2 + `docs/Manuali/Manuale_Code_Signing.md`).
+**Hardening, code-signing, multi-OS:** **NON sono Sprint Q.** Code-signing OV Sectigo e' un'attivita esterna pianificabile (vedi `docs/implementazioni-future/STATO_E_TODO.md` § 2.2 + `docs/operazioni/Manuale_Code_Signing.md`).
 
 ## Tre modalita di esecuzione del prodotto (vedi ARCHITETTURA § 3)
 
@@ -192,7 +193,7 @@ In modalita desktop, le route cloud-only (`/team`, `/billing`, `/audit`, `/admin
 
 1. **Stabilita live > tutto.** Mai compromettere un evento in produzione per una feature nuova.
 2. **Tenant isolation** — RLS sempre attivo. Vedi `01-data-isolation.mdc`.
-3. **File partono sempre da locale.** Il PC sala legge dal proprio disco; cloud/LAN solo per sync. **Enforcement programmatico:** wrapper PC sala devono passare `enforceLocalOnly: true` a `useFilePreviewSource` (rifiuta `mode: 'remote'` con `sovereignViolation`). Vedi `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 11 per la matrice di enforcement completa.
+3. **File partono sempre da locale.** Il PC sala legge dal proprio disco; cloud/LAN solo per sync. **Enforcement programmatico:** wrapper PC sala devono passare `enforceLocalOnly: true` a `useFilePreviewSource` (rifiuta `mode: 'remote'` con `sovereignViolation`). Vedi `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 11 per la matrice di enforcement completa.
 4. **UI identica fra cloud e desktop.** Stessa codebase `apps/web/src/**`.
 5. **Persistenza assoluta sala.** Riavvio non perde stato. Solo utente o admin disconnettono.
 6. **i18n completezza:** ogni stringa IT visibile in UI ha coppia EN nello stesso commit.
@@ -216,17 +217,17 @@ In modalita desktop, le route cloud-only (`/team`, `/billing`, `/audit`, `/admin
 | Documento                                | Quando consultarlo                                                          |
 | ---------------------------------------- | --------------------------------------------------------------------------- |
 | `docs/README.md`                         | **INDICE CANONICO**: mappa di tutti i doc per topic                         |
-| `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` | **FONTE UNICA DI VERITA**: cos'e' / com'e' fatto / sprint history (~100KB)  |
-| `docs/STATO_E_TODO.md`                   | **FONTE UNICA TO-DO**: cosa rimane da fare, field test, Sprint Q            |
-| `docs/DISASTER_RECOVERY.md`              | Backup, restore, Sentry setup, Edge Fn warm-keep, workspace cleanup runbook |
-| `docs/FIELD_TEST_CHECKLIST.md`           | Checklist pre-evento + smoke E2E + URL produzione                           |
-| `docs/Setup_Strumenti_e_MCP.md`          | Setup IDE, MCP servers, Cursor                                              |
-| `docs/Istruzioni_Claude_Desktop.md`      | Prompt + workflow per AI assistant (Claude Desktop / Cursor)                |
-| `docs/Manuali/`                          | Manuali operativi (Centro Slide Desktop, distribuzione, code-signing, ecc.) |
-| `docs/Commerciale/`                      | Materiali vendita (Listino, SLA, Roadmap_Vendita_Esterna)                   |
-| `docs/_archive/`                         | Storici sprint chiusi e audit retrospettivi (read-only)                     |
+| `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` | **FONTE UNICA DI VERITA**: cos'e' / com'e' fatto / sprint history (~100KB)  |
+| `docs/implementazioni-future/STATO_E_TODO.md`                   | **FONTE UNICA TO-DO**: cosa rimane da fare, field test, Sprint Q            |
+| `docs/operazioni/DISASTER_RECOVERY.md`              | Backup, restore, Sentry setup, Edge Fn warm-keep, workspace cleanup runbook |
+| `docs/operazioni/FIELD_TEST_CHECKLIST.md`           | Checklist pre-evento + smoke E2E + URL produzione                           |
+| `docs/operazioni/Setup_Strumenti_e_MCP.md`          | Setup IDE, MCP servers, Cursor                                              |
+| `docs/agenti/Istruzioni_Claude_Desktop.md`      | Prompt + workflow per AI assistant (Claude Desktop / Cursor)                |
+| `docs/operazioni/`                          | Manuali operativi (Centro Slide Desktop, distribuzione, code-signing, ecc.) |
+| `docs/commerciali/`                      | Materiali vendita (Listino, SLA, Roadmap_Vendita_Esterna)                   |
+| `docs/archivio/`                         | Storici sprint chiusi e audit retrospettivi (read-only)                     |
 
-In conflitto vince sempre **`ARCHITETTURA_LIVE_SLIDE_CENTER.md`**.
+In conflitto vince sempre **`docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md`**.
 
 ## Ecosistema Live Software (cross-project)
 

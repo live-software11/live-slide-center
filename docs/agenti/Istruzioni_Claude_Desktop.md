@@ -3,8 +3,8 @@
 > **Come usare questo file:** copia-incolla la sezione "PROMPT DI AVVIO" nella prima chat di una sessione Claude Desktop. Per Cursor agent il prompt e' gia' caricato dalle regole `.cursor/rules/`.
 >
 > **Versione:** 2.3 — 19 aprile 2026 (post Sprint W + Sentry + workspace cleanup + docs overhaul).
-> **Allineato con:** `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` v6.0 + `docs/STATO_E_TODO.md` v6.x + `docs/DISASTER_RECOVERY.md` (Sentry + warm-keep + cleanup).
-> **Storici sprint chiusi:** `docs/_archive/` (read-only).
+> **Allineato con:** `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` v6.0 + `docs/implementazioni-future/STATO_E_TODO.md` v6.x + `docs/operazioni/DISASTER_RECOVERY.md` (Sentry + warm-keep + cleanup).
+> **Storici sprint chiusi:** `docs/archivio/` (read-only).
 > **Aggiornare quando:** cambia architettura, cambia roadmap, cambia stack, cambiano account, vengono aggiunti/eliminati sprint o documenti.
 
 ---
@@ -137,13 +137,13 @@ Ogni nuova feature deve funzionare in tutte e tre, oppure dichiarare esplicitame
 - Sprint W: 7 migration SQLite mirror cloud + folder_routes + UI cloud-only conditional + deploy verde
 - Operativita: Sentry + workspace cleanup -11.83 GB + docs overhaul
 
-L'unico sprint **opzionale** ancora aperto e' Sprint Q (sync hybrid cloud<->desktop push-only). Decisione GO/NO-GO con framework in `docs/STATO_E_TODO.md` § 4.
+L'unico sprint **opzionale** ancora aperto e' Sprint Q (sync hybrid cloud<->desktop push-only). Decisione GO/NO-GO con framework in `docs/implementazioni-future/STATO_E_TODO.md` § 4.
 
-**Field test desktop** rinviato per scelta Andrea. Procedura completa pronta in `docs/STATO_E_TODO.md` § 3.
+**Field test desktop** rinviato per scelta Andrea. Procedura completa pronta in `docs/implementazioni-future/STATO_E_TODO.md` § 3.
 
 **Cose pending non automatizzabili:** Resend setup (1 ora), code-signing cert (€190/anno + 1-2 settimane), screencast (1 giorno + editing), revisione legale SLA/DPA (€300-800), listing prodotti sul sito.
 
-**Per dettaglio storico sprint:** `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22.
+**Per dettaglio storico sprint:** `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` § 22.
 
 ---
 
@@ -231,8 +231,8 @@ Mai committare con quality gate rosso. Se rosso -> fix prima di push.
 2. **Per task complessi** (architettura, debug runtime cross-system, decision design): usa MCP `sequential-thinking` per strutturare il piano, poi esegui.
 3. **Per librerie/framework** (sintassi, API, configurazione): consulta SEMPRE MCP `context7` PRIMA di scrivere codice (la memoria puo' essere obsoleta).
 4. **Per debug dati** in produzione: usa MCP `supabase-hosted` per query dirette + verifica RLS con query come tenant diverso.
-5. **Per debug deploy cloud** (`live-slide-center.vercel.app`): usa MCP `vercel` (`list_deployments`, `get_deployment_build_logs`, `get_deployment_runtime_logs`). Se l'auto-deploy GitHub→Vercel sembra rotto, fallback CLI: `vercel --prod --yes --archive=tgz` dalla root (vedi `ARCHITETTURA.md` §20.3.1 + `STATO_E_TODO.md` §0.26).
-6. **Per task lunghi**: aggiorna `docs/STATO_E_TODO.md` man mano che completi step.
+5. **Per debug deploy cloud** (`live-slide-center.vercel.app`): usa MCP `vercel` (`list_deployments`, `get_deployment_build_logs`, `get_deployment_runtime_logs`). Se l'auto-deploy GitHub→Vercel sembra rotto, fallback CLI: `vercel --prod --yes --archive=tgz` dalla root (vedi `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` §20.3.1 + `docs/archivio/STATO_E_TODO_storia_sprint_0.1-0.29.md` §0.26).
+6. **Per task lunghi**: aggiorna `docs/implementazioni-future/STATO_E_TODO.md` man mano che completi step.
 
 ---
 
@@ -242,17 +242,17 @@ Mai committare con quality gate rosso. Se rosso -> fix prima di push.
 
 Fonti di verita primarie:
 
-- **`docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`** — UNICA fonte di verita su "cosa e'" e "com'e' fatto" il prodotto + sprint history (§ 22).
-- **`docs/STATO_E_TODO.md`** — UNICA fonte di verita su "cosa rimane da fare", field test, Sprint Q opzionale.
-- **`docs/DISASTER_RECOVERY.md`** — backup, restore, Sentry setup, Edge Fn warm-keep, workspace cleanup runbook.
-- **`docs/FIELD_TEST_CHECKLIST.md`** — checklist pre-evento + smoke E2E + URL produzione.
-- **`docs/Setup_Strumenti_e_MCP.md`** — setup ambiente sviluppo.
-- **`docs/Manuali/`** — manuali operativi (Centro Slide Desktop, distribuzione, code-signing, email Resend, onboarding admin).
-- **`docs/Commerciale/`** — listino, SLA, roadmap vendita esterna.
-- **`docs/_archive/`** — storici sprint chiusi e audit retrospettivi (read-only, NON usare come fonte di verita).
+- **`docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md`** — UNICA fonte di verita su "cosa e'" e "com'e' fatto" il prodotto + sprint history (§ 22).
+- **`docs/implementazioni-future/STATO_E_TODO.md`** — UNICA fonte di verita su "cosa rimane da fare", field test, Sprint Q opzionale.
+- **`docs/operazioni/DISASTER_RECOVERY.md`** — backup, restore, Sentry setup, Edge Fn warm-keep, workspace cleanup runbook.
+- **`docs/operazioni/FIELD_TEST_CHECKLIST.md`** — checklist pre-evento + smoke E2E + URL produzione.
+- **`docs/operazioni/Setup_Strumenti_e_MCP.md`** — setup ambiente sviluppo.
+- **`docs/operazioni/`** — manuali operativi (Centro Slide Desktop, distribuzione, code-signing, email Resend, onboarding admin).
+- **`docs/commerciali/`** — listino, SLA, roadmap vendita esterna.
+- **`docs/archivio/`** — storici sprint chiusi e audit retrospettivi (read-only, NON usare come fonte di verita).
 - **`CLAUDE.md`** (root) — mappa rapida + comandi quotidiani.
 
-Ogni decisione architetturale non coperta: PRIMA aggiorna `ARCHITETTURA_LIVE_SLIDE_CENTER.md` + `STATO_E_TODO.md`, POI scrivi il codice.
+Ogni decisione architetturale non coperta: PRIMA aggiorna `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md` + `docs/implementazioni-future/STATO_E_TODO.md`, POI scrivi il codice.
 
 ````
 
@@ -266,7 +266,7 @@ Ogni decisione architetturale non coperta: PRIMA aggiorna `ARCHITETTURA_LIVE_SLI
 2. Indica COSA stai facendo:
    - "Sto pianificando il GO/NO-GO Sprint Q"
    - "Sto debuggando bug X visto durante field test"
-   - "Sto riscrivendo la sezione Y di ARCHITETTURA_LIVE_SLIDE_CENTER.md"
+   - "Sto riscrivendo la sezione Y di docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md"
 3. Allega gli ESTRATTI dei file rilevanti (Claude Desktop non vede il filesystem)
 
 ### Divisione del lavoro Claude Desktop vs Cursor agent
@@ -313,8 +313,8 @@ Ogni decisione architetturale non coperta: PRIMA aggiorna `ARCHITETTURA_LIVE_SLI
 - [ ] cargo check verde (se tocca apps/desktop)
 - [ ] i18n parity verde (se tocca strings UI)
 - [ ] test RLS (se schema modificato)
-- [ ] docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md aggiornato se decisione architetturale
-- [ ] docs/STATO_E_TODO.md aggiornato (sprint mark DONE)
+- [ ] docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md aggiornato se decisione architetturale
+- [ ] docs/implementazioni-future/STATO_E_TODO.md aggiornato (sprint mark DONE)
 
 ## Stima sforzo
 - Sviluppo: X giornate
@@ -325,7 +325,7 @@ Ogni decisione architetturale non coperta: PRIMA aggiorna `ARCHITETTURA_LIVE_SLI
 
 ### Quando aggiornare questo file
 
-- Cambiano decisioni architetturali in `docs/ARCHITETTURA_LIVE_SLIDE_CENTER.md`
+- Cambiano decisioni architetturali in `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md`
 - Cambiano piani commerciali, listino prezzi o limiti quota
 - Cambia roadmap (sprint completati, riordinati, nuovi sprint aggiunti)
 - Cambiano account o infrastruttura (es. nuovo progetto Supabase, migrazione hosting)

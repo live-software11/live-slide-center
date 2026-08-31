@@ -1,0 +1,50 @@
+---
+description: Struttura canonica cartelle docs/ (layout Live Software 23/08/2026)
+alwaysApply: true
+---
+
+# Struttura documentazione — Live SLIDE CENTER
+
+Allineata al layout canonico Live Software (Andrea, **23/08/2026**) usato da Easy Host / PLAN / CREW.
+
+## Root (resta in root — NON spostare)
+
+- `AGENTS.md`, `CLAUDE.md`, `README.md` (se presente), `package.json`
+- `apps/`, `packages/`, `supabase/`
+- `.cursor/rules/`
+
+Tutto il resto della documentazione vive sotto `docs/`. Non creare guide, runbook o manuali in root.
+
+## Cartelle canoniche `docs/`
+
+| Cartella | Cosa ci sta |
+| -------- | ----------- |
+| `docs/architettura/` | Architettura, isolamento tenant, dominio prodotto. Fonte unica: `ARCHITETTURA_LIVE_SLIDE_CENTER.md`. |
+| `docs/operazioni/` | Manuali (`Manuale_*`), field test, disaster recovery, onboarding, setup MCP/tool, code signing, distribuzione, email, screencast, uso interno DHS. |
+| `docs/implementazioni-future/` | `STATO_E_TODO.md` e roadmap **non-done**. Non duplicare TODO sparsi. |
+| `docs/agenti/` | Istruzioni Claude Desktop, prompt e workflow per AI assistant. |
+| `docs/commerciali/` | Listino, contratto SLA, roadmap vendita. **Lowercase kebab `commerciali`** — mai `Commerciale`. |
+| `docs/archivio/` | Storici, sprint chiusi, audit chiusi (ex `_archive`). Read-only. |
+| `docs/strumenti/` | Tooling docs-adjacent (es. `build-pdf.ps1`). Output PDF gitignored. |
+
+`docs/README.md` è **solo indice**, con **link relativi**. Ogni nuovo file va linkato lì.
+
+## Cosa NON fare
+
+- Non ricreare `docs/Commerciale/`, `docs/Manuali/`, `docs/_archive/`.
+- Non creare nuovi `AUDIT_*.md`. Gli audit chiusi stanno in `docs/archivio/`.
+- Non creare `PLAN.md` orfano in root (in questo repo non esiste).
+- Non committare password in chiaro, DSN, `service_role`, `.env`. Field test: `docs/operazioni/FIELD_TEST_CREDENTIALS.md` ha **solo pattern + email** `@fieldtest.local` (niente tabella password). Non era gitignored (era su GitHub).
+- Pochi file, corretti, ordinati. Se due file fanno lo stesso lavoro, uniscili in uno senza perdere info.
+
+## Dove mettere un doc nuovo
+
+1. Scegli la cartella dalla tabella sopra.
+2. Naming: `PascalCase_Descrittivo.md` o `Manuale_*` per i manuali user-facing. Niente spazi.
+3. Aggiungi una riga in `docs/README.md` (indice).
+4. Se diventa fonte di verità: aggiorna `AGENTS.md`, `CLAUDE.md`, `00-project-identity.mdc`, `docs-roadmap.mdc`.
+5. Lingua: italiano. Link relativi tra doc. In conflitto vince `docs/architettura/ARCHITETTURA_LIVE_SLIDE_CENTER.md`.
+
+## Archiviazione
+
+Uno sprint/audit chiuso va in `docs/archivio/` **dopo** aver consolidato il contenuto utile in `ARCHITETTURA` § 22 e/o `STATO_E_TODO`. Aggiorna `docs/archivio/README.md` (file, data, motivo, sostituito da).

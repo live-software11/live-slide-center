@@ -18,7 +18,7 @@ alwaysApply: false
 
 > Questa rule riguarda il **nuovo desktop unico** `apps/desktop` (Sprint J in poi, post Sprint W cleanup). Per i Tauri legacy `apps/agent` + `apps/room-agent`: vedi `legacy-agents.mdc`.
 
-> **Manuale operativo canonico:** `docs/Manuali/Manuale_Centro_Slide_Desktop.md` (Tauri 2, Setup Parte A + Smoke Test Parte B). I manuali `Manuale_Installazione_Local_Agent.md` e `Manuale_Installazione_Room_Agent.md` sono LEGACY (Tauri 1).
+> **Manuale operativo canonico:** `docs/operazioni/Manuale_Centro_Slide_Desktop.md` (Tauri 2, Setup Parte A + Smoke Test Parte B). I manuali `Manuale_Installazione_Local_Agent.md` e `Manuale_Installazione_Room_Agent.md` sono LEGACY (Tauri 1).
 
 ## Architettura
 
