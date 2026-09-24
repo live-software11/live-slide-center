@@ -246,3 +246,27 @@ Live SLIDE CENTER e' parte di un ecosistema piu' ampio (10 app + 1 sito) — ges
 Ogni modifica deve essere trattata come se andasse in produzione domani mattina su un evento live di un cliente pagante. Se una soluzione e' veloce ma instabile, scartala. Meglio un intervento piccolo verificato che un salto grande non controllato.
 
 Per dettagli operativi specifici → leggi la rule pertinente (`.cursor/rules/`) o il documento in `docs/`. Le rules `alwaysApply` coprono il 90% del lavoro quotidiano.
+
+## Test, audit e debug a fondo
+
+Test, audit, campo e debug vanno fatti **a fondo**, con l'obiettivo di trovare i problemi **prima** del cliente e di Andrea. Mai uno sguardo veloce: CI e unit verdi **non bastano**.
+
+### Cosa coprire (quando applicabile)
+
+- Percorso felice
+- Write o chiamata fallita a metà (niente stato parziale nascosto né successo finto)
+- Reload e sessione
+- Import e azioni di massa (righe errate, duplicati, limiti di batch)
+- Ruoli, permessi e rules
+- Concorrenza e race (listener prima della promise, modifiche ravvicinate, due utenti)
+- Dati limite (vuoti, null/undefined, date e Timestamp serializzati, caratteri speciali)
+- Regressioni sui flussi che condividono file, hook o servizi
+- Effetti esterni (calendari, email, Functions) **senza** effetti reali
+- Coerenza finale tra UI e dati salvati
+
+### Come lavorare
+
+- Leggere il **diff** e i **chiamanti** dei file toccati; quando si scopre un bug simile, cercare gli altri punti con lo stesso schema.
+- **Dati reali intoccabili:** test solo con fixture fittizie poi eliminate, o su emulatore; le azioni che potrebbero toccare dati reali non si eseguono sui dati veri.
+- Ogni esito verde dichiara in chiaro **cosa è stato provato** e **cosa resta fuori**, con il motivo.
+- UI e campo a **1920×1080**.
